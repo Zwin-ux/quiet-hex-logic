@@ -157,7 +157,7 @@ export default function Match() {
     setAiReasoning('');
 
     try {
-      // Call AI edge function
+      // Call AI edge function to get move suggestion
       const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-move', {
         body: { matchId: matchData.id }
       });
@@ -167,38 +167,20 @@ export default function Match() {
       const { move, reasoning } = aiResponse;
       setAiReasoning(reasoning || '');
 
-      // Validate and play move
-      if (move !== null && move !== undefined) {
-        await supabase.from('moves').insert({
-          match_id: matchData.id,
-          ply: hexEngine.ply,
-          color: hexEngine.turn,
+      // Apply move through secure edge function
+      const { data: result, error } = await supabase.functions.invoke('apply-move', {
+        body: { 
+          matchId: matchData.id, 
           cell: move
-        });
+        }
+      });
 
-        hexEngine.play(move);
-      } else if (move === null) {
-        // Pie rule swap
-        await supabase.from('moves').insert({
-          match_id: matchData.id,
-          ply: hexEngine.ply,
-          color: hexEngine.turn,
-          cell: null
-        });
-
-        hexEngine.play(null);
+      if (error || !result?.success) {
+        throw new Error(result?.error || error?.message || 'Failed to apply AI move');
       }
 
-      const winner = hexEngine.winner();
-
-      await supabase
-        .from('matches')
-        .update({
-          turn: hexEngine.turn,
-          winner: winner || null,
-          status: winner ? 'finished' : 'active'
-        })
-        .eq('id', matchData.id);
+      // Reload match to get canonical server state
+      await loadMatch();
 
       toast.success('AI played', {
         description: reasoning || 'Analyzing your position...'
@@ -228,44 +210,24 @@ export default function Match() {
     }
 
     try {
-      // Server-side validation
-      const { data: validation } = await supabase.functions.invoke('validate-move', {
+      // Server-side move application with validation
+      const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
           matchId: match.id, 
-          proposedMove: cell,
-          playerId: user.id 
+          cell
         }
       });
 
-      if (!validation?.valid) {
-        toast.error(validation?.error || 'Invalid move');
+      if (error || !result?.success) {
+        toast.error(result?.error || error?.message || 'Invalid move');
         return;
       }
 
-      // Insert move
-      await supabase.from('moves').insert({
-        match_id: match.id,
-        ply: engine.ply,
-        color: engine.turn,
-        cell
-      });
+      // Reload match to get canonical server state
+      await loadMatch();
 
-      // Update match state
-      engine.play(cell);
-      const winner = engine.winner();
-
-      await supabase
-        .from('matches')
-        .update({
-          turn: engine.turn,
-          winner: winner || null,
-          status: winner ? 'finished' : 'active'
-        })
-        .eq('id', match.id);
-
+      const winner = result.winner;
       if (winner) {
-        const path = engine.getWinningPath();
-        setWinningPath(path || []);
         toast.success(winner === currentPlayer.color ? 'You won!' : 'Opponent won!');
       }
     } catch (error) {
@@ -284,37 +246,21 @@ export default function Match() {
     }
 
     try {
-      // Server-side validation
-      const { data: validation } = await supabase.functions.invoke('validate-move', {
+      // Server-side pie rule swap with validation
+      const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
           matchId: match.id, 
-          proposedMove: null,
-          playerId: user.id 
+          cell: null
         }
       });
 
-      if (!validation?.valid) {
-        toast.error(validation?.error || 'Cannot swap colors');
+      if (error || !result?.success) {
+        toast.error(result?.error || error?.message || 'Cannot swap colors');
         return;
       }
 
-      // Record pie swap
-      await supabase.from('moves').insert({
-        match_id: match.id,
-        ply: engine.ply,
-        color: engine.turn,
-        cell: null
-      });
-
-      // Update engine
-      engine.play(null);
-
-      await supabase
-        .from('matches')
-        .update({
-          turn: engine.turn
-        })
-        .eq('id', match.id);
+      // Reload match to get canonical server state
+      await loadMatch();
 
       toast.success('Colors swapped!', {
         description: 'You are now playing as Indigo'

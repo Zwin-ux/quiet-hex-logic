@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.validate-move]
 verify_jwt = true
+
+[functions.apply-move]
+verify_jwt = true
