@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        body: ['Spectral', 'serif'],
+        mono: ['IBM Plex Mono', 'monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +61,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        paper: "hsl(var(--paper))",
+        ink: "hsl(var(--ink))",
+        indigo: "hsl(var(--indigo))",
+        ochre: "hsl(var(--ochre))",
+        graphite: "hsl(var(--graphite))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -84,6 +93,16 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "float": "float 8s ease-in-out infinite",
+        "gentle-pulse": "gentle-pulse 3s ease-in-out infinite",
+      },
+      boxShadow: {
+        'soft': 'var(--shadow-soft)',
+        'medium': 'var(--shadow-medium)',
+        'paper': 'var(--shadow-paper)',
+      },
+      transitionTimingFunction: {
+        'gentle': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },
