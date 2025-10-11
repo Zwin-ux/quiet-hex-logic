@@ -35,8 +35,10 @@ export default function Match() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [engine, setEngine] = useState<Hex | null>(null);
   const [lastMove, setLastMove] = useState<number | undefined>();
+  const [winningPath, setWinningPath] = useState<number[]>([]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
+  const [aiReasoning, setAiReasoning] = useState<string>('');
 
   useEffect(() => {
     if (!matchId || !user) return;
@@ -134,6 +136,13 @@ export default function Match() {
 
     setEngine(hexEngine);
 
+    // Check for winning path
+    const winner = hexEngine.winner();
+    if (winner) {
+      const path = hexEngine.getWinningPath();
+      setWinningPath(path || []);
+    }
+
     // Check if AI should play
     if (matchData.status === 'active' && playersData) {
       const currentPlayer = playersData.find(p => p.color === matchData.turn);
@@ -145,29 +154,41 @@ export default function Match() {
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
     setIsAIThinking(true);
+    setAiReasoning('');
 
     try {
-      // Simple AI: pick random valid move
-      const validMoves: number[] = [];
-      for (let i = 0; i < hexEngine.n * hexEngine.n; i++) {
-        if (hexEngine.legal(i)) {
-          validMoves.push(i);
-        }
-      }
-
-      if (validMoves.length === 0) return;
-
-      const move = validMoves[Math.floor(Math.random() * validMoves.length)];
-
-      await supabase.from('moves').insert({
-        match_id: matchData.id,
-        ply: hexEngine.ply,
-        color: hexEngine.turn,
-        cell: move
+      // Call AI edge function
+      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-move', {
+        body: { matchId: matchData.id }
       });
 
-      // Update match turn
-      hexEngine.play(move);
+      if (aiError) throw aiError;
+
+      const { move, reasoning } = aiResponse;
+      setAiReasoning(reasoning || '');
+
+      // Validate and play move
+      if (move !== null && move !== undefined) {
+        await supabase.from('moves').insert({
+          match_id: matchData.id,
+          ply: hexEngine.ply,
+          color: hexEngine.turn,
+          cell: move
+        });
+
+        hexEngine.play(move);
+      } else if (move === null) {
+        // Pie rule swap
+        await supabase.from('moves').insert({
+          match_id: matchData.id,
+          ply: hexEngine.ply,
+          color: hexEngine.turn,
+          cell: null
+        });
+
+        hexEngine.play(null);
+      }
+
       const winner = hexEngine.winner();
 
       await supabase
@@ -180,10 +201,11 @@ export default function Match() {
         .eq('id', matchData.id);
 
       toast.success('AI played', {
-        description: 'Analyzing your position...'
+        description: reasoning || 'Analyzing your position...'
       });
     } catch (error) {
       console.error('AI move error:', error);
+      toast.error('AI failed to move');
     } finally {
       setIsAIThinking(false);
     }
@@ -199,12 +221,27 @@ export default function Match() {
       return;
     }
 
+    // Client-side validation
     if (!engine.legal(cell)) {
       toast.error('Invalid move');
       return;
     }
 
     try {
+      // Server-side validation
+      const { data: validation } = await supabase.functions.invoke('validate-move', {
+        body: { 
+          matchId: match.id, 
+          proposedMove: cell,
+          playerId: user.id 
+        }
+      });
+
+      if (!validation?.valid) {
+        toast.error(validation?.error || 'Invalid move');
+        return;
+      }
+
       // Insert move
       await supabase.from('moves').insert({
         match_id: match.id,
@@ -227,11 +264,64 @@ export default function Match() {
         .eq('id', match.id);
 
       if (winner) {
+        const path = engine.getWinningPath();
+        setWinningPath(path || []);
         toast.success(winner === currentPlayer.color ? 'You won!' : 'Opponent won!');
       }
     } catch (error) {
       console.error('Move error:', error);
       toast.error('Failed to make move');
+    }
+  };
+
+  const handleSwapColors = async () => {
+    if (!engine || !match || !user) return;
+
+    const currentPlayer = players.find(p => p.color === match.turn);
+    if (!currentPlayer || currentPlayer.profile_id !== user.id) {
+      toast.error('Not your turn');
+      return;
+    }
+
+    try {
+      // Server-side validation
+      const { data: validation } = await supabase.functions.invoke('validate-move', {
+        body: { 
+          matchId: match.id, 
+          proposedMove: null,
+          playerId: user.id 
+        }
+      });
+
+      if (!validation?.valid) {
+        toast.error(validation?.error || 'Cannot swap colors');
+        return;
+      }
+
+      // Record pie swap
+      await supabase.from('moves').insert({
+        match_id: match.id,
+        ply: engine.ply,
+        color: engine.turn,
+        cell: null
+      });
+
+      // Update engine
+      engine.play(null);
+
+      await supabase
+        .from('matches')
+        .update({
+          turn: engine.turn
+        })
+        .eq('id', match.id);
+
+      toast.success('Colors swapped!', {
+        description: 'You are now playing as Indigo'
+      });
+    } catch (error) {
+      console.error('Swap error:', error);
+      toast.error('Failed to swap colors');
     }
   };
 
@@ -329,12 +419,21 @@ export default function Match() {
               size={match.size}
               board={engine.board}
               lastMove={lastMove}
+              winningPath={winningPath}
               onCellClick={handleCellClick}
               disabled={
                 match.status !== 'active' || 
                 currentPlayer?.profile_id !== user?.id ||
                 isAIThinking
               }
+              canSwap={
+                match.pie_rule &&
+                engine.ply === 1 &&
+                !engine.swapped &&
+                currentPlayer?.profile_id === user?.id &&
+                match.status === 'active'
+              }
+              onSwapColors={handleSwapColors}
             />
 
             {match.status === 'active' && (

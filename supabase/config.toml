@@ -1,1 +1,7 @@
 project_id = "ptuxqfwicdpdslqwnswd"
+
+[functions.ai-move]
+verify_jwt = false
+
+[functions.validate-move]
+verify_jwt = false

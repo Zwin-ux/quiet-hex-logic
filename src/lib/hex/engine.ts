@@ -176,6 +176,56 @@ export class Hex {
     return 0;
   }
 
+  // Get winning path using BFS
+  getWinningPath(): number[] | null {
+    const w = this.winner();
+    if (w === 0) return null;
+
+    const dsu = w === 1 ? this.dsu1 : this.dsu2;
+    const startVirtual = w === 1 ? this.v1a : this.v2a;
+    const endVirtual = w === 1 ? this.v1b : this.v2b;
+
+    // Find all cells connected to start border
+    const startCells: number[] = [];
+    for (let i = 0; i < this.n * this.n; i++) {
+      if (this.board[i] === w && dsu.find(i) === dsu.find(startVirtual)) {
+        startCells.push(i);
+      }
+    }
+
+    // BFS from start border to end border
+    const queue: number[] = [...startCells];
+    const parent = new Map<number, number>();
+    const visited = new Set<number>(startCells);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      
+      // Check if connected to end border
+      if (dsu.find(current) === dsu.find(endVirtual)) {
+        // Reconstruct path
+        const path: number[] = [current];
+        let node = current;
+        while (parent.has(node)) {
+          node = parent.get(node)!;
+          path.unshift(node);
+        }
+        return path;
+      }
+
+      // Explore neighbors
+      for (const nb of this.neighbors(current)) {
+        if (!visited.has(nb) && this.board[nb] === w) {
+          visited.add(nb);
+          parent.set(nb, current);
+          queue.push(nb);
+        }
+      }
+    }
+
+    return null;
+  }
+
   // Get all empty cells
   getEmptyCells(): number[] {
     const empty: number[] = [];

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Button } from './ui/button';
 
 interface HexBoardProps {
   size: number;
@@ -7,6 +8,8 @@ interface HexBoardProps {
   winningPath?: number[];
   onCellClick?: (cell: number) => void;
   disabled?: boolean;
+  onSwapColors?: () => void;
+  canSwap?: boolean;
 }
 
 export const HexBoard = ({ 
@@ -15,7 +18,9 @@ export const HexBoard = ({
   lastMove, 
   winningPath = [],
   onCellClick,
-  disabled = false
+  disabled = false,
+  onSwapColors,
+  canSwap = false
 }: HexBoardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
@@ -100,7 +105,17 @@ export const HexBoard = ({
         if (color === 1) {
           // Indigo stone
           ctx.fillStyle = isWinning ? 'hsl(223 45% 35%)' : 'hsl(223 45% 29%)';
+          
+          // Draw winning path with pulsing glow
+          if (isWinning) {
+            const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+            ctx.shadowColor = '#818cf8';
+            ctx.shadowBlur = 25 * pulse;
+          }
+          
           ctx.fill();
+          ctx.shadowBlur = 0;
+          
           if (isLast) {
             ctx.strokeStyle = 'hsl(40 76% 43%)';
             ctx.lineWidth = 3;
@@ -109,7 +124,17 @@ export const HexBoard = ({
         } else if (color === 2) {
           // Ochre stone
           ctx.fillStyle = isWinning ? 'hsl(40 76% 50%)' : 'hsl(40 76% 43%)';
+          
+          // Draw winning path with pulsing glow
+          if (isWinning) {
+            const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 25 * pulse;
+          }
+          
           ctx.fill();
+          ctx.shadowBlur = 0;
+          
           if (isLast) {
             ctx.strokeStyle = 'hsl(223 45% 29%)';
             ctx.lineWidth = 3;
@@ -125,7 +150,26 @@ export const HexBoard = ({
         }
       }
     }
+    
+    // Re-render animation for winning path glow
+    if (winningPath.length > 0) {
+      requestAnimationFrame(() => {
+        setHoveredCell(prev => prev);
+      });
+    }
   }, [size, board, lastMove, winningPath, hoveredCell, disabled]);
+
+  // Point-in-hexagon test for accurate click detection
+  const pointInHex = (px: number, py: number, cx: number, cy: number, size: number): boolean => {
+    const dx = Math.abs(px - cx);
+    const dy = Math.abs(py - cy);
+    
+    // Hexagon bounds check
+    if (dx > size || dy > size * 0.866) return false;
+    
+    // Check if point is inside hexagon using diagonal edges
+    return dy <= size * 0.866 - dx * 0.577;
+  };
 
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (disabled || !onCellClick) return;
@@ -137,7 +181,7 @@ export const HexBoard = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Calculate which cell was clicked (simplified - should use proper hex math)
+    // Calculate hex geometry
     const padding = 40;
     const availableWidth = rect.width - 2 * padding;
     const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
@@ -147,25 +191,20 @@ export const HexBoard = ({
     const offsetX = (rect.width - boardWidth) / 2;
     const offsetY = (rect.height - size * hexHeight) / 2;
 
-    // Find closest hex
-    let closestCell = -1;
-    let closestDist = Infinity;
-
+    // Find hex at click position using proper point-in-polygon test
     for (let row = 0; row < size; row++) {
       for (let col = 0; col < size; col++) {
         const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
         const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
         
-        if (dist < hexRadius && dist < closestDist) {
-          closestCell = row * size + col;
-          closestDist = dist;
+        if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
+          const clickedCell = row * size + col;
+          if (board[clickedCell] === 0) {
+            onCellClick(clickedCell);
+            return;
+          }
         }
       }
-    }
-
-    if (closestCell >= 0 && !board[closestCell]) {
-      onCellClick(closestCell);
     }
   };
 
@@ -194,9 +233,8 @@ export const HexBoard = ({
       for (let col = 0; col < size; col++) {
         const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
         const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
         
-        if (dist < hexRadius) {
+        if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
           const cell = row * size + col;
           if (!board[cell]) {
             hovering = cell;
@@ -215,16 +253,27 @@ export const HexBoard = ({
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      onClick={handleClick}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={`w-full aspect-square ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-      style={{ 
-        maxWidth: '600px',
-        imageRendering: 'crisp-edges'
-      }}
-    />
+    <div className="relative">
+      <canvas
+        ref={canvasRef}
+        onClick={handleClick}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className={`w-full aspect-square ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+        style={{ 
+          maxWidth: '600px',
+          imageRendering: 'crisp-edges'
+        }}
+      />
+      {canSwap && onSwapColors && (
+        <Button
+          onClick={onSwapColors}
+          size="lg"
+          className="absolute top-4 right-4 animate-pulse shadow-lg"
+        >
+          Swap Colors (Pie Rule)
+        </Button>
+      )}
+    </div>
   );
 };
