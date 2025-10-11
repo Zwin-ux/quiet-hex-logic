@@ -1,7 +1,7 @@
 project_id = "ptuxqfwicdpdslqwnswd"
 
 [functions.ai-move]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-move]
-verify_jwt = false
+verify_jwt = true

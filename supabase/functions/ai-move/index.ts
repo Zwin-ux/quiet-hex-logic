@@ -14,10 +14,45 @@ serve(async (req) => {
   try {
     const { matchId } = await req.json();
     
+    // Get authenticated user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // Verify the user is authenticated and is a player in this match
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user is a player in this match
+    const { data: player, error: playerError } = await supabase
+      .from('match_players')
+      .select('profile_id')
+      .eq('match_id', matchId)
+      .eq('profile_id', user.id)
+      .single();
+
+    if (playerError || !player) {
+      return new Response(
+        JSON.stringify({ error: 'Not authorized for this match' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch match and moves
     const { data: match, error: matchError } = await supabase
