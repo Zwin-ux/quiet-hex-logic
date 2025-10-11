@@ -20,59 +20,32 @@ export const JoinWithCode = ({ userId }: { userId: string }) => {
 
     setJoining(true);
     try {
-      // Find match by code
-      const { data: matches, error: matchError } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('status', 'waiting')
-        .limit(100);
+      // Use server-side function to find match by code (prevents enumeration)
+      const { data: matchId, error: findError } = await supabase.rpc('find_match_by_code', {
+        code: code.toUpperCase()
+      });
 
-      if (matchError) throw matchError;
+      if (findError) throw findError;
 
-      // Match codes by checking each match
-      let match = null;
-      for (const m of matches || []) {
-        const { data: matchCode } = await supabase.rpc('generate_match_code', { match_uuid: m.id });
-        if (matchCode === code.toUpperCase()) {
-          match = m;
-          break;
-        }
-      }
-
-      if (!match) {
+      if (!matchId) {
         toast.error('Match not found', { description: 'Invalid code or match no longer available' });
         return;
       }
 
-      // Check for blocks
-      const { data: blocked } = await supabase.rpc('is_blocked', {
-        _blocker: match.owner,
-        _blocked: userId
+      // Use secure join-match edge function
+      const { data, error: joinError } = await supabase.functions.invoke('join-match', {
+        body: { matchId }
       });
-
-      if (blocked) {
-        toast.error('Cannot join', { description: 'You are blocked by this user' });
-        return;
-      }
-
-      // Join match
-      const { error: joinError } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: match.id,
-          profile_id: userId,
-          color: 2,
-        });
 
       if (joinError) throw joinError;
 
-      await supabase
-        .from('matches')
-        .update({ status: 'active' })
-        .eq('id', match.id);
+      if (data?.error) {
+        toast.error('Failed to join', { description: data.error });
+        return;
+      }
 
       toast.success('Joined match!');
-      navigate(`/match/${match.id}`);
+      navigate(`/match/${matchId}`);
     } catch (error: any) {
       toast.error('Failed to join', { description: error.message });
     } finally {

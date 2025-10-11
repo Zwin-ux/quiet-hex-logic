@@ -128,25 +128,23 @@ export default function Lobby() {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: matchId,
-          profile_id: user.id,
-          color: 2, // ochre
-        });
+      // Use secure join-match edge function for atomic operation
+      const { data, error } = await supabase.functions.invoke('join-match', {
+        body: { matchId }
+      });
 
       if (error) throw error;
 
-      // Update match status to active
-      await supabase
-        .from('matches')
-        .update({ status: 'active' })
-        .eq('id', matchId);
+      if (data?.error) {
+        toast.error('Failed to join', { description: data.error });
+        return;
+      }
 
+      toast.success('Joined match!');
       navigate(`/match/${matchId}`);
     } catch (error: any) {
-      toast.error('Failed to join match', {
+      console.error('Join error:', error);
+      toast.error('Failed to join', {
         description: error.message
       });
     }

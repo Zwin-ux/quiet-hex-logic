@@ -254,6 +254,10 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
+      find_match_by_code: {
+        Args: { code: string }
+        Returns: string
+      }
       generate_match_code: {
         Args: { match_uuid: string }
         Returns: string

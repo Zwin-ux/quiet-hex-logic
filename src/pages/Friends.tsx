@@ -35,9 +35,19 @@ type Friend = {
   };
 };
 
+type BlockedUser = {
+  blocker: string;
+  blocked: string;
+  created_at: string;
+  profile: {
+    username: string;
+  };
+};
+
 export default function Friends() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [searchUsername, setSearchUsername] = useState('');
   const [searching, setSearching] = useState(false);
   const { user, loading } = useAuth();
@@ -77,9 +87,9 @@ export default function Friends() {
         profile_a:profiles!friends_a_fkey(username),
         profile_b:profiles!friends_b_fkey(username)
       `)
-      .or(`a.eq.${user.id},b.eq.${user.id}`) as { data: FriendRow[] | null };
+      .or(`a.eq.${user.id},b.eq.${user.id}`);
 
-    const accepted = friendsData?.filter(f => f.status === 'accepted').map(f => ({
+    const accepted = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => ({
       id: f.id,
       a: f.a,
       b: f.b,
@@ -88,7 +98,7 @@ export default function Friends() {
       profile: f.a === user.id ? f.profile_b : f.profile_a
     })) || [];
 
-    const pending = friendsData?.filter(f => f.status === 'pending' && f.b === user.id).map(f => ({
+    const pending = (friendsData as any)?.filter((f: any) => f.status === 'pending' && f.b === user.id).map((f: any) => ({
       id: f.id,
       a: f.a,
       b: f.b,
@@ -97,8 +107,27 @@ export default function Friends() {
       profile: f.profile_a
     })) || [];
 
+    // Fetch blocked users
+    const { data: blocksData } = await supabase
+      .from('blocks')
+      .select(`
+        blocker,
+        blocked,
+        created_at,
+        profile:profiles!blocks_blocked_fkey(username)
+      `)
+      .eq('blocker', user.id);
+
+    const blocked = (blocksData as any)?.map((b: any) => ({
+      blocker: b.blocker,
+      blocked: b.blocked,
+      created_at: b.created_at,
+      profile: { username: b.profile?.username || 'Unknown' }
+    })) || [];
+
     setFriends(accepted);
     setPendingRequests(pending);
+    setBlockedUsers(blocked);
   };
 
   const sendFriendRequest = async () => {
@@ -144,7 +173,7 @@ export default function Friends() {
 
   const acceptRequest = async (friendId: string) => {
     try {
-      const result = await (supabase as any)
+      await (supabase as any)
         .from('friends')
         .update({ status: 'accepted' })
         .eq('id', friendId);
@@ -158,7 +187,7 @@ export default function Friends() {
 
   const rejectRequest = async (friendId: string) => {
     try {
-      const result = await (supabase as any)
+      await (supabase as any)
         .from('friends')
         .delete()
         .eq('id', friendId);
@@ -186,6 +215,23 @@ export default function Friends() {
       fetchFriends();
     } catch (error: any) {
       toast.error('Failed to block', { description: error.message });
+    }
+  };
+
+  const unblockUser = async (blockedUserId: string) => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from('blocks')
+        .delete()
+        .eq('blocker', user.id)
+        .eq('blocked', blockedUserId);
+
+      toast.success('User unblocked');
+      fetchFriends();
+    } catch (error: any) {
+      toast.error('Failed to unblock', { description: error.message });
     }
   };
 
@@ -262,7 +308,7 @@ export default function Friends() {
         )}
 
         {/* Friends List */}
-        <Card className="p-6 shadow-paper border-2">
+        <Card className="p-6 mb-8 shadow-paper border-2">
           <div className="flex items-center gap-3 mb-4">
             <UserCheck className="h-5 w-5 text-indigo" />
             <h2 className="font-body text-xl font-semibold">Your Friends</h2>
@@ -301,6 +347,44 @@ export default function Friends() {
             </div>
           )}
         </Card>
+
+        {/* Blocked Users */}
+        {blockedUsers.length > 0 && (
+          <Card className="p-6 shadow-paper border-2">
+            <div className="flex items-center gap-3 mb-4">
+              <UserX className="h-5 w-5 text-destructive" />
+              <h2 className="font-body text-xl font-semibold">Blocked Users</h2>
+              <Badge variant="outline">{blockedUsers.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {blockedUsers.map((blocked) => (
+                <div key={blocked.blocked} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border-2 border-destructive">
+                      <AvatarFallback className="bg-destructive/20 text-destructive font-body">
+                        {blocked.profile.username.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-body font-semibold">{blocked.profile.username}</p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        Blocked {new Date(blocked.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => unblockUser(blocked.blocked)}
+                    className="gap-2"
+                  >
+                    <Check className="h-4 w-4" /> Unblock
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
