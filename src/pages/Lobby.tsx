@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check } from 'lucide-react';
+import { JoinWithCode } from '@/components/JoinWithCode';
 
 type Match = {
   id: string;
@@ -20,6 +21,7 @@ type Match = {
 export default function Lobby() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -155,6 +157,21 @@ export default function Lobby() {
     navigate('/auth');
   };
 
+  const getMatchCode = async (matchId: string) => {
+    const { data } = await supabase.rpc('generate_match_code', { match_uuid: matchId });
+    return data as string;
+  };
+
+  const copyMatchCode = async (matchId: string) => {
+    const code = await getMatchCode(matchId);
+    if (code) {
+      navigator.clipboard.writeText(code);
+      setCopiedCode(matchId);
+      toast.success('Match code copied!', { description: `Share ${code} with your friend` });
+      setTimeout(() => setCopiedCode(null), 2000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
@@ -176,17 +193,25 @@ export default function Lobby() {
               Choose your board, find your match
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleSignOut}
-            className="gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/friends')} className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Friends
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/history')} className="gap-2">
+              <HistoryIcon className="h-4 w-4" />
+              History
+            </Button>
+            <Button variant="outline" onClick={handleSignOut} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {/* Join with Code */}
+          {user && <JoinWithCode userId={user.id} />}
           {/* AI Practice */}
           <Card className="p-8 shadow-paper border-2 border-border">
             <div className="flex items-center gap-3 mb-4">
@@ -284,13 +309,26 @@ export default function Lobby() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    onClick={() => joinMatch(match.id)}
-                    disabled={match.owner === user?.id}
-                    variant={match.owner === user?.id ? "outline" : "default"}
-                  >
-                    {match.owner === user?.id ? 'Waiting...' : 'Join Match'}
-                  </Button>
+                  <div className="flex gap-2">
+                    {match.owner === user?.id ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => copyMatchCode(match.id)}
+                        className="gap-2"
+                      >
+                        {copiedCode === match.id ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        {copiedCode === match.id ? 'Copied!' : 'Copy Code'}
+                      </Button>
+                    ) : (
+                      <Button onClick={() => joinMatch(match.id)}>
+                        Join Match
+                      </Button>
+                    )}
+                  </div>
                 </Card>
               ))}
             </div>
