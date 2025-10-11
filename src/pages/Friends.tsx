@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords } from 'lucide-react';
+import { usePresence } from '@/hooks/usePresence';
 
 type FriendRow = {
   id: string;
@@ -33,6 +34,8 @@ type Friend = {
   profile: {
     username: string;
   };
+  presenceStatus?: 'offline' | 'online' | 'in_match';
+  matchId?: string;
 };
 
 type BlockedUser = {
@@ -53,6 +56,9 @@ export default function Friends() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Track user presence
+  usePresence(user?.id);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
@@ -63,14 +69,24 @@ export default function Friends() {
     if (!user) return;
     fetchFriends();
     
-    const channel = supabase
+    const friendsChannel = supabase
       .channel('friends-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => {
         fetchFriends();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const presenceChannel = supabase
+      .channel('presence-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, () => {
+        fetchFriends();
+      })
+      .subscribe();
+
+    return () => { 
+      supabase.removeChannel(friendsChannel);
+      supabase.removeChannel(presenceChannel);
+    };
   }, [user]);
 
   const fetchFriends = async () => {
@@ -89,14 +105,33 @@ export default function Friends() {
       `)
       .or(`a.eq.${user.id},b.eq.${user.id}`);
 
-    const accepted = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => ({
-      id: f.id,
-      a: f.a,
-      b: f.b,
-      status: f.status,
-      requested_at: f.requested_at,
-      profile: f.a === user.id ? f.profile_b : f.profile_a
-    })) || [];
+    // Get friend IDs to fetch presence
+    const friendIds = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => f.a === user.id ? f.b : f.a) || [];
+
+    // Fetch presence for all friends
+    const { data: presenceData } = await supabase
+      .from('user_presence')
+      .select('*')
+      .in('profile_id', friendIds);
+
+    const presenceMap = new Map(
+      (presenceData || []).map(p => [p.profile_id, { status: p.status, matchId: p.match_id }])
+    );
+
+    const accepted = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => {
+      const friendId = f.a === user.id ? f.b : f.a;
+      const presence = presenceMap.get(friendId);
+      return {
+        id: f.id,
+        a: f.a,
+        b: f.b,
+        status: f.status,
+        requested_at: f.requested_at,
+        profile: f.a === user.id ? f.profile_b : f.profile_a,
+        presenceStatus: presence?.status || 'offline',
+        matchId: presence?.matchId
+      };
+    }) || [];
 
     const pending = (friendsData as any)?.filter((f: any) => f.status === 'pending' && f.b === user.id).map((f: any) => ({
       id: f.id,
@@ -128,6 +163,57 @@ export default function Friends() {
     setFriends(accepted);
     setPendingRequests(pending);
     setBlockedUsers(blocked);
+  };
+
+  const sendChallenge = async (friendId: string, friendUsername: string) => {
+    if (!user) return;
+
+    // Create a new waiting match
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .insert({
+        owner: user.id,
+        size: 11, // Default size
+        status: 'waiting',
+        pie_rule: true
+      })
+      .select()
+      .single();
+
+    if (matchError || !matchData) {
+      toast.error('Failed to create challenge');
+      return;
+    }
+
+    // Add owner to match_players
+    await supabase
+      .from('match_players')
+      .insert({
+        match_id: matchData.id,
+        profile_id: user.id,
+        color: 1
+      });
+
+    // Send notification
+    const { error: notifError } = await supabase
+      .from('notifications')
+      .insert({
+        type: 'friend_challenge',
+        sender_id: user.id,
+        receiver_id: friendId,
+        payload: {
+          sender_name: user.email?.split('@')[0] || 'Someone',
+          match_id: matchData.id,
+          board_size: 11
+        }
+      });
+
+    if (notifError) {
+      toast.error('Failed to send challenge');
+      return;
+    }
+
+    toast.success(`Challenge sent to ${friendUsername}!`);
   };
 
   const sendFriendRequest = async () => {
@@ -326,21 +412,51 @@ export default function Friends() {
                 return (
                   <div key={friend.id} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border-2 border-indigo">
-                        <AvatarFallback className="bg-indigo text-primary-foreground font-body">
-                          {friend.profile.username.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p className="font-body font-semibold">{friend.profile.username}</p>
+                      <div className="relative">
+                        <Avatar className="h-10 w-10 border-2 border-indigo">
+                          <AvatarFallback className="bg-indigo text-primary-foreground font-body">
+                            {friend.profile.username.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
+                            friend.presenceStatus === 'online'
+                              ? 'bg-emerald-500'
+                              : friend.presenceStatus === 'in_match'
+                              ? 'bg-ochre'
+                              : 'bg-graphite'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-body font-semibold">{friend.profile.username}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {friend.presenceStatus === 'in_match' && 'In match'}
+                          {friend.presenceStatus === 'online' && 'Online'}
+                          {friend.presenceStatus === 'offline' && 'Offline'}
+                        </p>
+                      </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => blockUser(friend.id, friendUserId)}
-                      className="gap-2 text-destructive hover:text-destructive"
-                    >
-                      <UserX className="h-4 w-4" /> Block
-                    </Button>
+                    <div className="flex gap-2">
+                      {friend.presenceStatus !== 'in_match' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => sendChallenge(friendUserId, friend.profile.username)}
+                          className="gap-2"
+                        >
+                          <Swords className="h-4 w-4" /> Challenge
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => blockUser(friend.id, friendUserId)}
+                        className="gap-2 text-destructive hover:text-destructive"
+                      >
+                        <UserX className="h-4 w-4" /> Block
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

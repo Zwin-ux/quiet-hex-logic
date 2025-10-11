@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresence } from '@/hooks/usePresence';
 import { HexBoard } from '@/components/HexBoard';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
@@ -39,6 +40,9 @@ export default function Match() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
+
+  // Track presence in this match
+  usePresence(user?.id, matchId);
 
   useEffect(() => {
     if (!matchId || !user) return;

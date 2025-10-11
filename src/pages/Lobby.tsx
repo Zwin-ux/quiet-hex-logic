@@ -6,8 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell } from 'lucide-react';
 import { JoinWithCode } from '@/components/JoinWithCode';
+import { usePresence } from '@/hooks/usePresence';
+import { useNotifications } from '@/hooks/useNotifications';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 type Match = {
   id: string;
@@ -24,6 +31,12 @@ export default function Lobby() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Track user presence
+  usePresence(user?.id);
+
+  // Listen for notifications
+  const { notifications, markAsRead } = useNotifications(user?.id);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -192,6 +205,57 @@ export default function Lobby() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 relative">
+                  <Bell className="h-4 w-4" />
+                  {notifications.length > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre">
+                      {notifications.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Challenges</h3>
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No pending challenges</p>
+                  ) : (
+                    notifications.map((notif) => (
+                      <Card key={notif.id} className="p-3">
+                        <div className="flex flex-col gap-2">
+                          <p className="text-sm">
+                            <span className="font-semibold">{notif.payload.sender_name}</span> challenged you to {notif.payload.board_size}×{notif.payload.board_size}
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={async () => {
+                                if (notif.payload.match_id) {
+                                  await markAsRead(notif.id);
+                                  navigate(`/match/${notif.payload.match_id}`);
+                                }
+                              }}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markAsRead(notif.id)}
+                            >
+                              Decline
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
             <Button variant="outline" onClick={() => navigate('/friends')} className="gap-2">
               <UserPlus className="h-4 w-4" />
               Friends
