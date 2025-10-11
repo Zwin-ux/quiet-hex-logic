@@ -52,16 +52,22 @@ export type Database = {
           a: string
           b: string
           created_at: string | null
+          requested_at: string | null
+          status: string | null
         }
         Insert: {
           a: string
           b: string
           created_at?: string | null
+          requested_at?: string | null
+          status?: string | null
         }
         Update: {
           a?: string
           b?: string
           created_at?: string | null
+          requested_at?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -244,6 +250,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      are_friends: {
+        Args: { _user_a: string; _user_b: string }
+        Returns: boolean
+      }
+      generate_match_code: {
+        Args: { match_uuid: string }
+        Returns: string
+      }
+      is_blocked: {
+        Args: { _blocked: string; _blocker: string }
+        Returns: boolean
+      }
       user_in_match: {
         Args: { _match_id: string; _user_id: string }
         Returns: boolean
