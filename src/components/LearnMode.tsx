@@ -1,81 +1,72 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const LearnMode = () => {
   const steps = [
-    {
-      number: "1",
-      title: "Place a stone",
-      description: "Choose your side and make your first move",
-    },
-    {
-      number: "2",
-      title: "Connect your sides",
-      description: "Build an unbroken path from edge to edge",
-    },
-    {
-      number: "3",
-      title: "The pie rule",
-      description: "Balance ensures fairness from the first move",
-    },
-    {
-      number: "4",
-      title: "You're ready",
-      description: "Every move is a question. The board will answer.",
-    },
+    { number: 1, title: "Place a stone", description: "Choose your side and make your first move" },
+    { number: 2, title: "Connect your sides", description: "Build an unbroken path from edge to edge" },
+    { number: 3, title: "The pie rule", description: "Balance ensures fairness from the first move" },
+    { number: 4, title: "You're ready", description: "Every move is a question. The board will answer." }
   ];
 
-  return (
-    <section className="py-24 px-6 bg-gradient-to-b from-background via-accent/5 to-background">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-ink mb-4">
-            Learn the Language
-          </h2>
-          <p className="text-lg text-muted-foreground italic">
-            "Every move is a question. The board will answer."
-          </p>
-        </div>
+  const handleStartTutorial = () => {
+    window.location.href = '/auth';
+  };
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {steps.map((step, index) => (
+  return (
+    <section className="py-24 px-4 bg-gradient-to-b from-accent/20 to-background">
+      <div className="max-w-4xl mx-auto text-center">
+        <h2 className="font-body text-5xl md:text-6xl font-semibold text-foreground mb-6">
+          Learn the Language
+        </h2>
+        <p className="text-2xl md:text-3xl text-ochre font-body italic mb-16 leading-relaxed">
+          "Every move is a question. The board will answer."
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-6 mb-16">
+          {steps.map((step, idx) => (
             <Card 
-              key={index}
-              className="border-graphite/30 shadow-paper bg-card/95 backdrop-blur-sm hover:shadow-medium transition-all duration-300"
+              key={step.number}
+              className="p-8 text-left border-2 border-border hover:border-ochre/40 transition-all duration-500 hover:shadow-medium group relative overflow-hidden"
+              style={{ animationDelay: `${idx * 100}ms` }}
             >
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-indigo/10 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-indigo font-mono">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-ochre/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/2 group-hover:bg-ochre/10 transition-colors duration-500" />
+              
+              <div className="relative">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo/10 to-ochre/10 flex items-center justify-center group-hover:from-indigo/20 group-hover:to-ochre/20 transition-all duration-300">
+                    <span className="text-2xl font-body font-semibold text-indigo">
                       {step.number}
                     </span>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-ink mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {step.description}
-                    </p>
-                  </div>
+                  <h3 className="font-body text-2xl font-semibold text-foreground group-hover:text-ochre transition-colors duration-300">
+                    {step.title}
+                  </h3>
                 </div>
-              </CardContent>
+                <p className="text-muted-foreground text-lg font-body leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
             </Card>
           ))}
         </div>
 
-        <div className="text-center">
-          <Card className="inline-block border-ochre/40 bg-ochre/5 shadow-paper">
-            <CardContent className="py-8 px-12">
-              <p className="text-xl text-ink mb-6 italic">
-                "Hexology doesn't reward speed. It rewards clarity."
-              </p>
-              <Button variant="hero" size="lg">
-                Start Tutorial
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="p-12 md:p-16 bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5 border-2 border-indigo/20 shadow-paper relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9Ii4wMiIvPjwvZz48L3N2Zz4=')] opacity-30" />
+          
+          <div className="relative">
+            <p className="text-2xl md:text-3xl text-foreground font-body italic mb-8 leading-relaxed">
+              "Hexology doesn't reward speed. It rewards clarity."
+            </p>
+            <Button 
+              size="lg"
+              className="text-lg px-10 py-7 h-auto font-body shadow-medium hover:shadow-soft transition-all duration-300"
+              onClick={handleStartTutorial}
+            >
+              Start Tutorial
+            </Button>
+          </div>
+        </Card>
       </div>
     </section>
   );
