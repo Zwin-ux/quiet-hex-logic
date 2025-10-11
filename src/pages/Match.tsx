@@ -1,0 +1,364 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { HexBoard } from '@/components/HexBoard';
+import { PlayerPanel } from '@/components/PlayerPanel';
+import { TutorialOverlay } from '@/components/TutorialOverlay';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Hex } from '@/lib/hex/engine';
+import { Sparkles, BookOpen, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface MatchData {
+  id: string;
+  size: number;
+  pie_rule: boolean;
+  status: string;
+  turn: number;
+  winner: number | null;
+}
+
+interface Player {
+  profile_id: string;
+  color: number;
+  is_bot: boolean;
+  username: string;
+}
+
+export default function Match() {
+  const { matchId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [match, setMatch] = useState<MatchData | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [engine, setEngine] = useState<Hex | null>(null);
+  const [lastMove, setLastMove] = useState<number | undefined>();
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [isAIThinking, setIsAIThinking] = useState(false);
+
+  useEffect(() => {
+    if (!matchId || !user) return;
+
+    loadMatch();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel(`match:${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${matchId}`
+        },
+        () => loadMatch()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'moves',
+          filter: `match_id=eq.${matchId}`
+        },
+        () => loadMatch()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [matchId, user]);
+
+  const loadMatch = async () => {
+    if (!matchId) return;
+
+    // Load match data
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', matchId)
+      .single();
+
+    if (!matchData) {
+      toast.error('Match not found');
+      navigate('/lobby');
+      return;
+    }
+
+    setMatch(matchData);
+
+    // Load players
+    const { data: playersData } = await supabase
+      .from('match_players')
+      .select(`
+        profile_id,
+        color,
+        is_bot,
+        profiles!inner(username)
+      `)
+      .eq('match_id', matchId);
+
+    if (playersData) {
+      const enrichedPlayers = playersData.map(p => ({
+        profile_id: p.profile_id,
+        color: p.color,
+        is_bot: p.is_bot,
+        username: (p.profiles as any).username
+      }));
+      setPlayers(enrichedPlayers);
+    }
+
+    // Load moves and reconstruct game state
+    const { data: moves } = await supabase
+      .from('moves')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('ply', { ascending: true });
+
+    const hexEngine = new Hex(matchData.size);
+    
+    if (moves) {
+      moves.forEach(move => {
+        try {
+          hexEngine.play(move.cell);
+          setLastMove(move.cell ?? undefined);
+        } catch (e) {
+          console.error('Invalid move in history:', e);
+        }
+      });
+    }
+
+    setEngine(hexEngine);
+
+    // Check if AI should play
+    if (matchData.status === 'active' && playersData) {
+      const currentPlayer = playersData.find(p => p.color === matchData.turn);
+      if (currentPlayer?.is_bot && !hexEngine.winner()) {
+        setTimeout(() => makeAIMove(hexEngine, matchData), 1200);
+      }
+    }
+  };
+
+  const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
+    setIsAIThinking(true);
+
+    try {
+      // Simple AI: pick random valid move
+      const validMoves: number[] = [];
+      for (let i = 0; i < hexEngine.n * hexEngine.n; i++) {
+        if (hexEngine.legal(i)) {
+          validMoves.push(i);
+        }
+      }
+
+      if (validMoves.length === 0) return;
+
+      const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+
+      await supabase.from('moves').insert({
+        match_id: matchData.id,
+        ply: hexEngine.ply,
+        color: hexEngine.turn,
+        cell: move
+      });
+
+      // Update match turn
+      hexEngine.play(move);
+      const winner = hexEngine.winner();
+
+      await supabase
+        .from('matches')
+        .update({
+          turn: hexEngine.turn,
+          winner: winner || null,
+          status: winner ? 'finished' : 'active'
+        })
+        .eq('id', matchData.id);
+
+      toast.success('AI played', {
+        description: 'Analyzing your position...'
+      });
+    } catch (error) {
+      console.error('AI move error:', error);
+    } finally {
+      setIsAIThinking(false);
+    }
+  };
+
+  const handleCellClick = async (cell: number) => {
+    if (!engine || !match || !user) return;
+
+    // Check if it's user's turn
+    const currentPlayer = players.find(p => p.color === match.turn);
+    if (!currentPlayer || currentPlayer.profile_id !== user.id) {
+      toast.error('Not your turn');
+      return;
+    }
+
+    if (!engine.legal(cell)) {
+      toast.error('Invalid move');
+      return;
+    }
+
+    try {
+      // Insert move
+      await supabase.from('moves').insert({
+        match_id: match.id,
+        ply: engine.ply,
+        color: engine.turn,
+        cell
+      });
+
+      // Update match state
+      engine.play(cell);
+      const winner = engine.winner();
+
+      await supabase
+        .from('matches')
+        .update({
+          turn: engine.turn,
+          winner: winner || null,
+          status: winner ? 'finished' : 'active'
+        })
+        .eq('id', match.id);
+
+      if (winner) {
+        toast.success(winner === currentPlayer.color ? 'You won!' : 'Opponent won!');
+      }
+    } catch (error) {
+      console.error('Move error:', error);
+      toast.error('Failed to make move');
+    }
+  };
+
+  const handleShare = () => {
+    const shareCode = matchId?.slice(0, 8).toUpperCase();
+    navigator.clipboard.writeText(shareCode || '');
+    toast.success('Match code copied to clipboard');
+  };
+
+  if (!match || !engine) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-gentle-pulse text-4xl mb-4">⬡</div>
+          <p className="font-mono text-muted-foreground">Loading match...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const player1 = players.find(p => p.color === 1);
+  const player2 = players.find(p => p.color === 2);
+  const currentPlayer = players.find(p => p.color === match.turn);
+  const userPlayer = players.find(p => p.profile_id === user?.id);
+
+  return (
+    <div className="min-h-screen p-4 md:p-8">
+      {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
+
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="font-body text-3xl font-semibold mb-2">Match in Progress</h1>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="font-mono">
+                {match.size}×{match.size}
+              </Badge>
+              {match.pie_rule && (
+                <Badge variant="outline" className="font-mono">
+                  Pie Rule
+                </Badge>
+              )}
+              {match.status === 'finished' && match.winner && (
+                <Badge className="bg-indigo text-primary-foreground">
+                  {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTutorial(true)}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Tutorial
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-[300px_1fr_300px] gap-8 items-start">
+          {/* Player 1 Panel */}
+          <div className="order-2 lg:order-1">
+            {player1 && (
+              <PlayerPanel
+                username={player1.username}
+                color={1}
+                isCurrentTurn={match.turn === 1 && match.status === 'active'}
+                isAI={player1.is_bot}
+              />
+            )}
+          </div>
+
+          {/* Game Board */}
+          <div className="order-1 lg:order-2 flex flex-col items-center gap-6">
+            {isAIThinking && (
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Sparkles className="h-5 w-5 animate-gentle-pulse" />
+                <span className="font-mono text-sm">AI is thinking...</span>
+              </div>
+            )}
+
+            <HexBoard
+              size={match.size}
+              board={engine.board}
+              lastMove={lastMove}
+              onCellClick={handleCellClick}
+              disabled={
+                match.status !== 'active' || 
+                currentPlayer?.profile_id !== user?.id ||
+                isAIThinking
+              }
+            />
+
+            {match.status === 'active' && (
+              <p className="font-mono text-sm text-muted-foreground">
+                {currentPlayer?.profile_id === user?.id
+                  ? "Your turn — choose wisely"
+                  : `Waiting for ${currentPlayer?.username}...`}
+              </p>
+            )}
+          </div>
+
+          {/* Player 2 Panel */}
+          <div className="order-3">
+            {player2 && (
+              <PlayerPanel
+                username={player2.username}
+                color={2}
+                isCurrentTurn={match.turn === 2 && match.status === 'active'}
+                isAI={player2.is_bot}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
