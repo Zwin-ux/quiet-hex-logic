@@ -14,7 +14,231 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      blocks: {
+        Row: {
+          blocked: string
+          blocker: string
+          created_at: string | null
+        }
+        Insert: {
+          blocked: string
+          blocker: string
+          created_at?: string | null
+        }
+        Update: {
+          blocked?: string
+          blocker?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_fkey"
+            columns: ["blocked"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_fkey"
+            columns: ["blocker"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friends: {
+        Row: {
+          a: string
+          b: string
+          created_at: string | null
+        }
+        Insert: {
+          a: string
+          b: string
+          created_at?: string | null
+        }
+        Update: {
+          a?: string
+          b?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friends_a_fkey"
+            columns: ["a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_b_fkey"
+            columns: ["b"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_players: {
+        Row: {
+          color: number
+          created_at: string | null
+          is_bot: boolean
+          match_id: string
+          profile_id: string
+        }
+        Insert: {
+          color: number
+          created_at?: string | null
+          is_bot?: boolean
+          match_id: string
+          profile_id: string
+        }
+        Update: {
+          color?: number
+          created_at?: string | null
+          is_bot?: boolean
+          match_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_players_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_players_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          created_at: string | null
+          id: string
+          owner: string
+          pie_rule: boolean
+          size: number
+          status: Database["public"]["Enums"]["match_status"]
+          turn: number
+          updated_at: string | null
+          winner: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          owner: string
+          pie_rule?: boolean
+          size: number
+          status?: Database["public"]["Enums"]["match_status"]
+          turn?: number
+          updated_at?: string | null
+          winner?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          owner?: string
+          pie_rule?: boolean
+          size?: number
+          status?: Database["public"]["Enums"]["match_status"]
+          turn?: number
+          updated_at?: string | null
+          winner?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_owner_fkey"
+            columns: ["owner"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moves: {
+        Row: {
+          cell: number | null
+          color: number
+          created_at: string | null
+          match_id: string
+          ply: number
+        }
+        Insert: {
+          cell?: number | null
+          color: number
+          created_at?: string | null
+          match_id: string
+          ply: number
+        }
+        Update: {
+          cell?: number | null
+          color?: number
+          created_at?: string | null
+          match_id?: string
+          ply?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moves_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      tutorial_progress: {
+        Row: {
+          completed_at: string | null
+          profile_id: string
+          step: number
+        }
+        Insert: {
+          completed_at?: string | null
+          profile_id: string
+          step: number
+        }
+        Update: {
+          completed_at?: string | null
+          profile_id?: string
+          step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutorial_progress_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +247,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      match_status: "waiting" | "active" | "finished" | "aborted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      match_status: ["waiting", "active", "finished", "aborted"],
+    },
   },
 } as const

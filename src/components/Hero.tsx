@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import heroBoard from "@/assets/hero-board.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Hero background with subtle animation */}
@@ -39,13 +42,28 @@ const Hero = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-          <Button variant="hero" size="lg" className="min-w-[200px]">
+          <Button 
+            variant="hero" 
+            size="lg" 
+            className="min-w-[200px]"
+            onClick={() => navigate('/lobby')}
+          >
             Play Online
           </Button>
-          <Button variant="quiet" size="lg" className="min-w-[200px]">
+          <Button 
+            variant="quiet" 
+            size="lg" 
+            className="min-w-[200px]"
+            onClick={() => navigate('/lobby')}
+          >
             Play with Friends
           </Button>
-          <Button variant="outline" size="lg" className="min-w-[200px]">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="min-w-[200px]"
+            onClick={() => navigate('/lobby')}
+          >
             Learn
           </Button>
         </div>
