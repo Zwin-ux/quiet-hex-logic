@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
+import { useSpectators } from '@/hooks/useSpectators';
 import { HexBoard } from '@/components/HexBoard';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
-import { Sparkles, BookOpen, Share2 } from 'lucide-react';
+import { Sparkles, BookOpen, Share2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -43,6 +44,9 @@ export default function Match() {
 
   // Track presence in this match
   usePresence(user?.id, matchId);
+
+  // Track spectators
+  const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(matchId);
 
   useEffect(() => {
     if (!matchId || !user) return;
@@ -200,6 +204,12 @@ export default function Match() {
   const handleCellClick = async (cell: number) => {
     if (!engine || !match || !user) return;
 
+    // Spectators can't make moves
+    if (isSpectating) {
+      toast.error('Spectators cannot make moves');
+      return;
+    }
+
     // Check if it's user's turn
     const currentPlayer = players.find(p => p.color === match.turn);
     if (!currentPlayer || currentPlayer.profile_id !== user.id) {
@@ -281,6 +291,22 @@ export default function Match() {
     toast.success('Match code copied to clipboard');
   };
 
+  const handleToggleSpectate = async () => {
+    if (!user) return;
+
+    try {
+      if (isSpectating) {
+        await leaveAsSpectator(user.id);
+        toast.success('Left spectator mode');
+      } else {
+        await joinAsSpectator(user.id);
+        toast.success('Joined as spectator');
+      }
+    } catch (error) {
+      toast.error('Failed to toggle spectator mode');
+    }
+  };
+
   if (!match || !engine) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -296,6 +322,7 @@ export default function Match() {
   const player2 = players.find(p => p.color === 2);
   const currentPlayer = players.find(p => p.color === match.turn);
   const userPlayer = players.find(p => p.profile_id === user?.id);
+  const isPlayer = !!userPlayer;
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -324,6 +351,16 @@ export default function Match() {
           </div>
 
           <div className="flex gap-2">
+            {!isPlayer && (
+              <Button
+                variant={isSpectating ? "default" : "outline"}
+                size="sm"
+                onClick={handleToggleSpectate}
+              >
+                {isSpectating ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {isSpectating ? 'Leave' : 'Spectate'}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -374,7 +411,9 @@ export default function Match() {
               disabled={
                 match.status !== 'active' || 
                 currentPlayer?.profile_id !== user?.id ||
-                isAIThinking
+                isAIThinking ||
+                isSpectating ||
+                !isPlayer
               }
               canSwap={
                 match.pie_rule &&
@@ -388,7 +427,9 @@ export default function Match() {
 
             {match.status === 'active' && (
               <p className="font-mono text-sm text-muted-foreground">
-                {currentPlayer?.profile_id === user?.id
+                {isSpectating
+                  ? `Watching ${currentPlayer?.username}'s turn`
+                  : currentPlayer?.profile_id === user?.id
                   ? "Your turn — choose wisely"
                   : `Waiting for ${currentPlayer?.username}...`}
               </p>
@@ -404,6 +445,30 @@ export default function Match() {
                 isCurrentTurn={match.turn === 2 && match.status === 'active'}
                 isAI={player2.is_bot}
               />
+            )}
+
+            {/* Spectators */}
+            {spectators.length > 0 && (
+              <div className="mt-6 p-4 border rounded-lg bg-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-mono text-sm text-muted-foreground">
+                    {spectators.length} watching
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {spectators.slice(0, 5).map((spectator) => (
+                    <div key={spectator.profile_id} className="text-sm text-muted-foreground font-mono">
+                      {spectator.profiles?.username || 'Anonymous'}
+                    </div>
+                  ))}
+                  {spectators.length > 5 && (
+                    <div className="text-xs text-muted-foreground">
+                      +{spectators.length - 5} more
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>

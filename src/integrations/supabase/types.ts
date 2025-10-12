@@ -127,6 +127,7 @@ export type Database = {
       }
       matches: {
         Row: {
+          allow_spectators: boolean
           created_at: string | null
           id: string
           owner: string
@@ -138,6 +139,7 @@ export type Database = {
           winner: number | null
         }
         Insert: {
+          allow_spectators?: boolean
           created_at?: string | null
           id?: string
           owner: string
@@ -149,6 +151,7 @@ export type Database = {
           winner?: number | null
         }
         Update: {
+          allow_spectators?: boolean
           created_at?: string | null
           id?: string
           owner?: string
@@ -263,6 +266,39 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      spectators: {
+        Row: {
+          joined_at: string
+          match_id: string
+          profile_id: string
+        }
+        Insert: {
+          joined_at?: string
+          match_id: string
+          profile_id: string
+        }
+        Update: {
+          joined_at?: string
+          match_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spectators_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spectators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tutorial_progress: {
         Row: {

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell } from 'lucide-react';
 import { JoinWithCode } from '@/components/JoinWithCode';
+import { SpectateButton } from '@/components/SpectateButton';
 import { usePresence } from '@/hooks/usePresence';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
@@ -23,10 +24,12 @@ type Match = {
   status: string;
   created_at: string;
   owner: string;
+  allow_spectators: boolean;
 };
 
 export default function Lobby() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [activeMatches, setActiveMatches] = useState<Match[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { user, loading, signOut } = useAuth();
@@ -47,8 +50,9 @@ export default function Lobby() {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch waiting matches
+    // Fetch waiting and active matches
     fetchWaitingMatches();
+    fetchActiveMatches();
 
     // Subscribe to match changes
     const channel = supabase
@@ -63,6 +67,18 @@ export default function Lobby() {
         },
         () => {
           fetchWaitingMatches();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `status=eq.active`,
+        },
+        () => {
+          fetchActiveMatches();
         }
       )
       .subscribe();
@@ -83,6 +99,22 @@ export default function Lobby() {
       console.error('Error fetching matches:', error);
     } else {
       setMatches(data || []);
+    }
+  };
+
+  const fetchActiveMatches = async () => {
+    const { data, error } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('status', 'active')
+      .eq('allow_spectators', true)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Error fetching active matches:', error);
+    } else {
+      setActiveMatches(data || []);
     }
   };
 
@@ -327,6 +359,46 @@ export default function Lobby() {
             </div>
           </Card>
         </div>
+
+        {/* Active Matches to Spectate */}
+        {activeMatches.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-body text-2xl font-semibold text-foreground">
+                Live Matches
+              </h2>
+              <Badge variant="outline" className="font-mono">
+                {activeMatches.length} ongoing
+              </Badge>
+            </div>
+            <div className="grid gap-4">
+              {activeMatches.map((match) => (
+                <Card
+                  key={match.id}
+                  className="p-6 flex items-center justify-between shadow-soft hover:shadow-medium transition-all duration-300 border-2 hover:border-ochre/30"
+                >
+                  <div className="flex items-center gap-6">
+                    <div className="text-4xl text-muted-foreground/30">⬡</div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <Badge className="font-mono bg-ochre text-primary-foreground">
+                          {match.size}×{match.size}
+                        </Badge>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          In Progress
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        Started {new Date(match.created_at).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                  <SpectateButton matchId={match.id} />
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Waiting Matches */}
         <div>
