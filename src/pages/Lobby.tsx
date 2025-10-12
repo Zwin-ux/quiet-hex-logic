@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User } from 'lucide-react';
 import { JoinWithCode } from '@/components/JoinWithCode';
 import { SpectateButton } from '@/components/SpectateButton';
 import { usePresence } from '@/hooks/usePresence';
@@ -288,6 +288,10 @@ export default function Lobby() {
               </PopoverContent>
             </Popover>
 
+            <Button variant="outline" onClick={() => navigate('/profile')} className="gap-2">
+              <User className="h-4 w-4" />
+              Profile
+            </Button>
             <Button variant="outline" onClick={() => navigate('/friends')} className="gap-2">
               <UserPlus className="h-4 w-4" />
               Friends

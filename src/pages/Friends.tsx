@@ -36,6 +36,10 @@ type Friend = {
   };
   presenceStatus?: 'offline' | 'online' | 'in_match';
   matchId?: string;
+  stats?: {
+    wins: number;
+    total_games: number;
+  };
 };
 
 type BlockedUser = {
@@ -118,9 +122,20 @@ export default function Friends() {
       (presenceData || []).map(p => [p.profile_id, { status: p.status, matchId: p.match_id }])
     );
 
+    // Fetch stats for all friends
+    const { data: statsData } = await supabase
+      .from('user_stats')
+      .select('profile_id, wins, total_games')
+      .in('profile_id', friendIds);
+
+    const statsMap = new Map(
+      (statsData || []).map(s => [s.profile_id, { wins: s.wins, total_games: s.total_games }])
+    );
+
     const accepted = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => {
       const friendId = f.a === user.id ? f.b : f.a;
       const presence = presenceMap.get(friendId);
+      const stats = statsMap.get(friendId);
       return {
         id: f.id,
         a: f.a,
@@ -129,7 +144,8 @@ export default function Friends() {
         requested_at: f.requested_at,
         profile: f.a === user.id ? f.profile_b : f.profile_a,
         presenceStatus: presence?.status || 'offline',
-        matchId: presence?.matchId
+        matchId: presence?.matchId,
+        stats
       };
     }) || [];
 
@@ -430,11 +446,21 @@ export default function Friends() {
                       </div>
                       <div>
                         <p className="font-body font-semibold">{friend.profile.username}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {friend.presenceStatus === 'in_match' && 'In match'}
-                          {friend.presenceStatus === 'online' && 'Online'}
-                          {friend.presenceStatus === 'offline' && 'Offline'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            {friend.presenceStatus === 'in_match' && 'In match'}
+                            {friend.presenceStatus === 'online' && 'Online'}
+                            {friend.presenceStatus === 'offline' && 'Offline'}
+                          </p>
+                          {friend.stats && friend.stats.total_games > 0 && (
+                            <>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <Badge variant="outline" className="text-xs font-mono">
+                                {friend.stats.wins}W {friend.stats.total_games - friend.stats.wins}L
+                              </Badge>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
