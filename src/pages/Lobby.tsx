@@ -250,7 +250,7 @@ export default function Lobby() {
                 <div>
                   <p className="font-body font-semibold text-foreground">Playing as Guest</p>
                   <p className="text-sm text-muted-foreground">
-                    Sign in to track progress, challenge friends, and save your match history
+                    Sign in to save progress and challenge friends
                   </p>
                 </div>
               </div>
@@ -268,7 +268,7 @@ export default function Lobby() {
               The Lobby
             </h1>
             <p className="text-muted-foreground text-lg font-body">
-              Choose your board, find your match
+              Start a game
             </p>
           </div>
           <div className="flex gap-2">
@@ -366,7 +366,7 @@ export default function Lobby() {
               </h2>
             </div>
             <p className="text-muted-foreground mb-4 font-body leading-relaxed">
-              Practice against the computer. Choose your difficulty and board size.
+              Play against AI
             </p>
             <div className="mb-4">
               <label className="text-sm font-medium mb-2 block text-muted-foreground">
@@ -407,8 +407,7 @@ export default function Lobby() {
               </h2>
             </div>
             <p className="text-muted-foreground mb-6 font-body leading-relaxed">
-              Create a match and invite a friend. Share the code, or wait for someone 
-              to find you in the lobby below.
+              Create a match and share the code
             </p>
             <div className="grid grid-cols-2 gap-3">
               {[7, 9, 11, 13].map((size) => (

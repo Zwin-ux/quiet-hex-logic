@@ -33,20 +33,12 @@ const Hero = () => {
 
       {/* Hero content */}
       <div className="relative z-20 max-w-5xl mx-auto px-6 text-center">
-        <div className="mb-6 animate-in fade-in slide-in-from-top-8 duration-700">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo/10 border border-indigo/20 text-indigo font-mono text-sm mb-6">
-            <Sparkles className="h-4 w-4" />
-            <span>Ancient strategy, modern play</span>
-          </div>
-        </div>
-        
         <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8 text-ink tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
           Hexology
         </h1>
         
         <p className="text-xl md:text-2xl text-ink/70 mb-12 max-w-3xl mx-auto leading-relaxed font-body animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-          Master the game of perfect connection. Play against friends, challenge the computer,
-          or watch live matches from players around the world.
+          Connect your sides. Play against friends or AI. Watch live matches.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
@@ -79,12 +71,7 @@ const Hero = () => {
         </div>
 
         <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground font-mono animate-in fade-in duration-700 delay-500">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Free forever</span>
-          </div>
-          <div className="h-4 w-px bg-border" />
-          <span>No ads • No tracking</span>
+          <span>Free • No ads</span>
         </div>
       </div>
 

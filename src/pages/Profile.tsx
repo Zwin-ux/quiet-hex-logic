@@ -79,7 +79,7 @@ export default function Profile() {
                 {user?.user_metadata?.username || 'Your Profile'}
               </h1>
               <p className="text-muted-foreground font-mono text-lg">
-                Track your journey, customize your experience
+                Stats and settings
               </p>
             </div>
           </div>

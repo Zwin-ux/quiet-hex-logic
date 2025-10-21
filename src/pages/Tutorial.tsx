@@ -324,9 +324,6 @@ export default function Tutorial() {
             <Card className="p-8 shadow-paper border-2 border-border flex items-center justify-center bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5">
               <div className="text-center">
                 <div className="text-8xl mb-6 opacity-10">⬡</div>
-                <p className="text-2xl font-body text-muted-foreground italic">
-                  "Every move is a question.<br />The board will answer."
-                </p>
               </div>
             </Card>
           )}

@@ -16,12 +16,9 @@ const LearnMode = () => {
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-accent/20 to-background">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="font-body text-5xl md:text-6xl font-semibold text-foreground mb-6">
-          Learn the Language
+        <h2 className="font-body text-5xl md:text-6xl font-semibold text-foreground mb-12">
+          Learn to Play
         </h2>
-        <p className="text-2xl md:text-3xl text-ochre font-body italic mb-16 leading-relaxed">
-          "Every move is a question. The board will answer."
-        </p>
 
         <div className="grid md:grid-cols-2 gap-6 mb-16">
           {steps.map((step, idx) => (
@@ -55,9 +52,6 @@ const LearnMode = () => {
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9Ii4wMiIvPjwvZz48L3N2Zz4=')] opacity-30" />
           
           <div className="relative">
-            <p className="text-2xl md:text-3xl text-foreground font-body italic mb-8 leading-relaxed">
-              "Hexology doesn't reward speed. It rewards clarity."
-            </p>
             <Button 
               size="lg"
               className="text-lg px-10 py-7 h-auto font-body shadow-medium hover:shadow-soft transition-all duration-300"
