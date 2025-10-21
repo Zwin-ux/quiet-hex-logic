@@ -146,13 +146,14 @@ export default function Lobby() {
 
       if (playerError) throw playerError;
 
+      // For AI matches, we mark the match with a special flag but don't create a second player
+      // The AI will be handled server-side through the ai-move edge function
       if (withAI) {
-        await supabase.from('match_players').insert({
-          match_id: match.id,
-          profile_id: user.id,
-          color: 2,
-          is_bot: true
-        });
+        // Update match to indicate it's an AI match
+        await supabase
+          .from('matches')
+          .update({ pie_rule: false }) // Disable pie rule for AI matches for simplicity
+          .eq('id', match.id);
       }
 
       toast.success(withAI ? 'AI match created!' : 'Match created!', {
