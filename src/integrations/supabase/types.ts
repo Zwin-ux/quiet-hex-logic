@@ -113,6 +113,89 @@ export type Database = {
           },
         ]
       }
+      lobbies: {
+        Row: {
+          board_size: number
+          code: string
+          created_at: string | null
+          host_id: string | null
+          id: string
+          pie_rule: boolean
+          status: string
+          turn_timer_seconds: number
+          updated_at: string | null
+        }
+        Insert: {
+          board_size?: number
+          code: string
+          created_at?: string | null
+          host_id?: string | null
+          id?: string
+          pie_rule?: boolean
+          status?: string
+          turn_timer_seconds?: number
+          updated_at?: string | null
+        }
+        Update: {
+          board_size?: number
+          code?: string
+          created_at?: string | null
+          host_id?: string | null
+          id?: string
+          pie_rule?: boolean
+          status?: string
+          turn_timer_seconds?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobbies_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lobby_players: {
+        Row: {
+          is_ready: boolean
+          last_seen: string | null
+          lobby_id: string
+          player_id: string
+          role: string
+        }
+        Insert: {
+          is_ready?: boolean
+          last_seen?: string | null
+          lobby_id: string
+          player_id: string
+          role?: string
+        }
+        Update: {
+          is_ready?: boolean
+          last_seen?: string | null
+          lobby_id?: string
+          player_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobby_players_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lobby_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_players: {
         Row: {
           color: number
@@ -158,6 +241,7 @@ export type Database = {
           allow_spectators: boolean
           created_at: string | null
           id: string
+          lobby_id: string | null
           owner: string | null
           pie_rule: boolean
           size: number
@@ -171,6 +255,7 @@ export type Database = {
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
+          lobby_id?: string | null
           owner?: string | null
           pie_rule?: boolean
           size: number
@@ -184,6 +269,7 @@ export type Database = {
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
+          lobby_id?: string | null
           owner?: string | null
           pie_rule?: boolean
           size?: number
@@ -193,6 +279,13 @@ export type Database = {
           winner?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "matches_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "matches_owner_fkey"
             columns: ["owner"]
@@ -456,8 +549,16 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
+      find_lobby_by_code: {
+        Args: { lobby_code: string }
+        Returns: string
+      }
       find_match_by_code: {
         Args: { code: string }
+        Returns: string
+      }
+      generate_lobby_code: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       generate_match_code: {

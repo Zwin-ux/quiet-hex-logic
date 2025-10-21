@@ -14,6 +14,7 @@ import History from "./pages/History";
 import Replay from "./pages/Replay";
 import Profile from "./pages/Profile";
 import Tutorial from "./pages/Tutorial";
+import LobbyView from "./pages/LobbyView";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/tutorial" element={<Tutorial />} />
           <Route path="/lobby" element={<Lobby />} />
+          <Route path="/lobby/:lobbyId" element={<LobbyView />} />
           <Route path="/match/:matchId" element={<Match />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/history" element={<History />} />

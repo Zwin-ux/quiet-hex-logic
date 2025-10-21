@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User } from 'lucide-react';
-import { JoinWithCode } from '@/components/JoinWithCode';
 import { SpectateButton } from '@/components/SpectateButton';
+import { CreateLobby } from '@/components/CreateLobby';
+import { JoinLobby } from '@/components/JoinLobby';
 import { usePresence } from '@/hooks/usePresence';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
@@ -364,8 +365,13 @@ export default function Lobby() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {/* Join with Code */}
-          {user && <JoinWithCode userId={user.id} />}
+          {/* Create/Join Lobby */}
+          {user && (
+            <>
+              <CreateLobby userId={user.id} />
+              <JoinLobby userId={user.id} />
+            </>
+          )}
           {/* AI Practice */}
           <Card className="p-8 shadow-paper border-2 border-border">
             <div className="flex items-center gap-3 mb-4">
