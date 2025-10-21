@@ -190,7 +190,7 @@ export default function Match() {
       setAiReasoning(reasoning);
 
       // Apply move through server for validation and persistence
-      const { data: result, error } = await supabase.functions.invoke('apply-move', {
+      const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
         body: { 
           matchId: matchData.id, 
           cell

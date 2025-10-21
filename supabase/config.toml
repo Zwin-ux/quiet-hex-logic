@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.join-match]
 verify_jwt = true
+
+[functions.apply-ai-move]
+verify_jwt = true
