@@ -136,9 +136,8 @@ export default function Lobby() {
         .insert({
           owner: user?.id || null, // Allow guest matches
           size,
-          pie_rule: true,
+          pie_rule: withAI ? false : true, // Disable pie rule for AI matches
           status: withAI ? 'active' : 'waiting',
-          ai_difficulty: withAI ? (aiDifficulty || 'medium') : null,
         })
         .select()
         .single();

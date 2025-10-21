@@ -112,7 +112,6 @@ export default function Tutorial() {
           size: step.boardSize || 7,
           pie_rule: false,
           status: 'active',
-          ai_difficulty: null,
         })
         .select()
         .single();
@@ -152,9 +151,8 @@ export default function Tutorial() {
         .insert({
           owner: null, // Guest match
           size: 7,
-          pie_rule: true,
+          pie_rule: false,
           status: 'active',
-          ai_difficulty: 'easy',
         })
         .select()
         .single();
@@ -295,9 +293,9 @@ export default function Tutorial() {
               <div className="flex items-center justify-center">
                 {tutorialMatchId ? (
                   <HexBoard
-                    matchId={tutorialMatchId}
                     size={step.boardSize || 7}
-                    interactive={step.allowInteraction || false}
+                    board={new Uint8Array((step.boardSize || 7) * (step.boardSize || 7))}
+                    disabled={!step.allowInteraction}
                   />
                 ) : (
                   <div className="w-full aspect-square flex items-center justify-center bg-muted/20 rounded-lg">
