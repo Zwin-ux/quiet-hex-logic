@@ -128,6 +128,15 @@ export default function Lobby() {
   };
 
   const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
+    // AI practice requires authentication
+    if (withAI && !user) {
+      toast.error('Sign in required', {
+        description: 'Please sign in to play against AI'
+      });
+      navigate('/auth');
+      return;
+    }
+    
     setCreatingMatch(true);
 
     try {
@@ -138,6 +147,7 @@ export default function Lobby() {
           size,
           pie_rule: withAI ? false : true, // Disable pie rule for AI matches
           status: withAI ? 'active' : 'waiting',
+          ai_difficulty: withAI ? (aiDifficulty || 'medium') : null,
         })
         .select()
         .single();

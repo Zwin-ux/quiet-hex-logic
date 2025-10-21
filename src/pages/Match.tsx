@@ -120,6 +120,17 @@ export default function Match() {
         is_bot: p.is_bot,
         username: (p.profiles as any).username
       }));
+      
+      // For AI matches, add synthetic AI player as color 2
+      if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
+        enrichedPlayers.push({
+          profile_id: 'ai-player',
+          color: 2,
+          is_bot: true,
+          username: `AI (${matchData.ai_difficulty})`
+        });
+      }
+      
       setPlayers(enrichedPlayers);
     }
 
@@ -153,11 +164,13 @@ export default function Match() {
     }
 
     // Check if AI should play
-    if (matchData.status === 'active' && playersData) {
-      // Convert turn number to color (odd turns = color 1, even turns = color 2)
+    if (matchData.status === 'active') {
+      // For AI matches (has ai_difficulty set), AI plays as color 2 (Ochre)
       const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
-      const currentPlayer = playersData.find(p => p.color === currentColor);
-      if (currentPlayer?.is_bot && !hexEngine.winner()) {
+      const isAIMatch = matchData.ai_difficulty != null;
+      const isAITurn = isAIMatch && currentColor === 2;
+      
+      if (isAITurn && !hexEngine.winner()) {
         setTimeout(() => makeAIMove(hexEngine, matchData), 1200);
       }
     }
@@ -217,7 +230,8 @@ export default function Match() {
     }
 
     // Check if it's user's turn
-    const currentPlayer = players.find(p => p.color === match.turn);
+    const currentColor = match.turn % 2 === 1 ? 1 : 2;
+    const currentPlayer = players.find(p => p.color === currentColor);
     if (!currentPlayer || currentPlayer.profile_id !== user.id) {
       toast.error('Not your turn');
       return;
@@ -259,7 +273,8 @@ export default function Match() {
   const handleSwapColors = async () => {
     if (!engine || !match || !user) return;
 
-    const currentPlayer = players.find(p => p.color === match.turn);
+    const currentColor = match.turn % 2 === 1 ? 1 : 2;
+    const currentPlayer = players.find(p => p.color === currentColor);
     if (!currentPlayer || currentPlayer.profile_id !== user.id) {
       toast.error('Not your turn');
       return;
@@ -326,7 +341,8 @@ export default function Match() {
 
   const player1 = players.find(p => p.color === 1);
   const player2 = players.find(p => p.color === 2);
-  const currentPlayer = players.find(p => p.color === match.turn);
+  const currentColor = match.turn % 2 === 1 ? 1 : 2;
+  const currentPlayer = players.find(p => p.color === currentColor);
   const userPlayer = players.find(p => p.profile_id === user?.id);
   const isPlayer = !!userPlayer;
 
@@ -393,7 +409,7 @@ export default function Match() {
               <PlayerPanel
                 username={player1.username}
                 color={1}
-                isCurrentTurn={match.turn === 1 && match.status === 'active'}
+                isCurrentTurn={currentColor === 1 && match.status === 'active'}
                 isAI={player1.is_bot}
               />
             )}
@@ -448,7 +464,7 @@ export default function Match() {
               <PlayerPanel
                 username={player2.username}
                 color={2}
-                isCurrentTurn={match.turn === 2 && match.status === 'active'}
+                isCurrentTurn={currentColor === 2 && match.status === 'active'}
                 isAI={player2.is_bot}
               />
             )}

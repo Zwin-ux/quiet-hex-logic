@@ -154,6 +154,7 @@ export type Database = {
       }
       matches: {
         Row: {
+          ai_difficulty: Database["public"]["Enums"]["ai_difficulty"] | null
           allow_spectators: boolean
           created_at: string | null
           id: string
@@ -166,6 +167,7 @@ export type Database = {
           winner: number | null
         }
         Insert: {
+          ai_difficulty?: Database["public"]["Enums"]["ai_difficulty"] | null
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
@@ -178,6 +180,7 @@ export type Database = {
           winner?: number | null
         }
         Update: {
+          ai_difficulty?: Database["public"]["Enums"]["ai_difficulty"] | null
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
@@ -468,6 +471,7 @@ export type Database = {
       }
     }
     Enums: {
+      ai_difficulty: "easy" | "medium" | "hard" | "expert"
       match_status: "waiting" | "active" | "finished" | "aborted"
     }
     CompositeTypes: {
@@ -596,6 +600,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_difficulty: ["easy", "medium", "hard", "expert"],
       match_status: ["waiting", "active", "finished", "aborted"],
     },
   },
