@@ -45,14 +45,16 @@ export default function Profile() {
     setSelectedSkin(skinId);
     setSaving(true);
     try {
-      // Save to profiles table (board_skin column needs to exist)
-      await supabase
+      // Save to profiles table
+      const { error } = await supabase
         .from('profiles')
-        .update({ board_skin: skinId })
+        .update({ board_skin: skinId } as any)
         .eq('id', user?.id);
+      if (error) throw error;
       toast.success('Board theme saved!');
     } catch (error) {
       toast.error('Failed to save theme');
+      console.error(error);
     } finally {
       setSaving(false);
     }

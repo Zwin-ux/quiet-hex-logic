@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
+import { BoardSkin, getSkinById } from '@/lib/boardSkins';
 import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -43,6 +44,7 @@ export default function Match() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
 
   // Track presence in this match
   usePresence(user?.id, matchId);
@@ -53,6 +55,8 @@ export default function Match() {
   useEffect(() => {
     if (!matchId || !user) return;
 
+    // Load board skin preference
+    loadBoardSkin();
     loadMatch();
 
     // Subscribe to realtime updates
@@ -84,6 +88,22 @@ export default function Match() {
       supabase.removeChannel(channel);
     };
   }, [matchId, user]);
+
+  const loadBoardSkin = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('board_skin')
+        .eq('id', user.id)
+        .single();
+      if (data && (data as any).board_skin) {
+        setBoardSkin(getSkinById((data as any).board_skin));
+      }
+    } catch (error) {
+      console.error('Failed to load board skin:', error);
+    }
+  };
 
   const loadMatch = async () => {
     if (!matchId) return;
@@ -423,6 +443,7 @@ export default function Match() {
               lastMove={lastMove}
               winningPath={winningPath}
               onCellClick={handleCellClick}
+              skin={boardSkin}
               disabled={
                 match.status !== 'active' || 
                 currentPlayer?.profile_id !== user?.id ||

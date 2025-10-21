@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords, AlertCircle } from 'lucide-react';
 import { usePresence } from '@/hooks/usePresence';
 
 type FriendRow = {
@@ -17,12 +17,8 @@ type FriendRow = {
   b: string;
   status: string;
   requested_at: string;
-  profile_a: {
-    username: string;
-  };
-  profile_b: {
-    username: string;
-  };
+  profile_a: { username: string; };
+  profile_b: { username: string; };
 };
 
 type Friend = {
@@ -31,24 +27,17 @@ type Friend = {
   b: string;
   status: string;
   requested_at: string;
-  profile: {
-    username: string;
-  };
+  profile: { username: string; };
   presenceStatus?: 'offline' | 'online' | 'in_match';
   matchId?: string;
-  stats?: {
-    wins: number;
-    total_games: number;
-  };
+  stats?: { wins: number; total_games: number; };
 };
 
 type BlockedUser = {
   blocker: string;
   blocked: string;
   created_at: string;
-  profile: {
-    username: string;
-  };
+  profile: { username: string; };
 };
 
 export default function Friends() {
@@ -60,13 +49,10 @@ export default function Friends() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Track user presence
   usePresence(user?.id);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
+    if (!loading && !user) navigate('/auth');
   }, [user, loading, navigate]);
 
   useEffect(() => {
@@ -75,16 +61,12 @@ export default function Friends() {
     
     const friendsChannel = supabase
       .channel('friends-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => {
-        fetchFriends();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, fetchFriends)
       .subscribe();
 
     const presenceChannel = supabase
       .channel('presence-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, () => {
-        fetchFriends();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, fetchFriends)
       .subscribe();
 
     return () => { 
@@ -98,83 +80,34 @@ export default function Friends() {
 
     const { data: friendsData } = await supabase
       .from('friends')
-      .select(`
-        id,
-        a,
-        b,
-        status,
-        requested_at,
-        profile_a:profiles!friends_a_fkey(username),
-        profile_b:profiles!friends_b_fkey(username)
-      `)
+      .select(`id, a, b, status, requested_at, profile_a:profiles!friends_a_fkey(username), profile_b:profiles!friends_b_fkey(username)`)
       .or(`a.eq.${user.id},b.eq.${user.id}`);
 
-    // Get friend IDs to fetch presence
     const friendIds = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => f.a === user.id ? f.b : f.a) || [];
 
-    // Fetch presence for all friends
-    const { data: presenceData } = await supabase
-      .from('user_presence')
-      .select('*')
-      .in('profile_id', friendIds);
+    const { data: presenceData } = await supabase.from('user_presence').select('*').in('profile_id', friendIds);
+    const presenceMap = new Map((presenceData || []).map(p => [p.profile_id, { status: p.status, matchId: p.match_id }]));
 
-    const presenceMap = new Map(
-      (presenceData || []).map(p => [p.profile_id, { status: p.status, matchId: p.match_id }])
-    );
-
-    // Fetch stats for all friends
-    const { data: statsData } = await supabase
-      .from('user_stats')
-      .select('profile_id, wins, total_games')
-      .in('profile_id', friendIds);
-
-    const statsMap = new Map(
-      (statsData || []).map(s => [s.profile_id, { wins: s.wins, total_games: s.total_games }])
-    );
+    const { data: statsData } = await supabase.from('user_stats').select('profile_id, wins, total_games').in('profile_id', friendIds);
+    const statsMap = new Map((statsData || []).map(s => [s.profile_id, { wins: s.wins, total_games: s.total_games }]));
 
     const accepted = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => {
       const friendId = f.a === user.id ? f.b : f.a;
       const presence = presenceMap.get(friendId);
       const stats = statsMap.get(friendId);
       return {
-        id: f.id,
-        a: f.a,
-        b: f.b,
-        status: f.status,
-        requested_at: f.requested_at,
+        id: f.id, a: f.a, b: f.b, status: f.status, requested_at: f.requested_at,
         profile: f.a === user.id ? f.profile_b : f.profile_a,
-        presenceStatus: presence?.status || 'offline',
-        matchId: presence?.matchId,
-        stats
+        presenceStatus: presence?.status || 'offline', matchId: presence?.matchId, stats
       };
     }) || [];
 
     const pending = (friendsData as any)?.filter((f: any) => f.status === 'pending' && f.b === user.id).map((f: any) => ({
-      id: f.id,
-      a: f.a,
-      b: f.b,
-      status: f.status,
-      requested_at: f.requested_at,
-      profile: f.profile_a
+      id: f.id, a: f.a, b: f.b, status: f.status, requested_at: f.requested_at, profile: f.profile_a
     })) || [];
 
-    // Fetch blocked users
-    const { data: blocksData } = await supabase
-      .from('blocks')
-      .select(`
-        blocker,
-        blocked,
-        created_at,
-        profile:profiles!blocks_blocked_fkey(username)
-      `)
-      .eq('blocker', user.id);
-
-    const blocked = (blocksData as any)?.map((b: any) => ({
-      blocker: b.blocker,
-      blocked: b.blocked,
-      created_at: b.created_at,
-      profile: { username: b.profile?.username || 'Unknown' }
-    })) || [];
+    const { data: blocksData } = await supabase.from('blocks').select(`blocker, blocked, created_at, profile:profiles!blocks_blocked_fkey(username)`).eq('blocker', user.id);
+    const blocked = (blocksData as any)?.map((b: any) => ({ blocker: b.blocker, blocked: b.blocked, created_at: b.created_at, profile: { username: b.profile?.username || 'Unknown' }})) || [];
 
     setFriends(accepted);
     setPendingRequests(pending);
@@ -183,87 +116,24 @@ export default function Friends() {
 
   const sendChallenge = async (friendId: string, friendUsername: string) => {
     if (!user) return;
-
-    // Create a new waiting match
-    const { data: matchData, error: matchError } = await supabase
-      .from('matches')
-      .insert({
-        owner: user.id,
-        size: 11, // Default size
-        status: 'waiting',
-        pie_rule: true
-      })
-      .select()
-      .single();
-
-    if (matchError || !matchData) {
-      toast.error('Failed to create challenge');
-      return;
-    }
-
-    // Add owner to match_players
-    await supabase
-      .from('match_players')
-      .insert({
-        match_id: matchData.id,
-        profile_id: user.id,
-        color: 1
-      });
-
-    // Send notification
-    const { error: notifError } = await supabase
-      .from('notifications')
-      .insert({
-        type: 'friend_challenge',
-        sender_id: user.id,
-        receiver_id: friendId,
-        payload: {
-          sender_name: user.email?.split('@')[0] || 'Someone',
-          match_id: matchData.id,
-          board_size: 11
-        }
-      });
-
-    if (notifError) {
-      toast.error('Failed to send challenge');
-      return;
-    }
-
+    const { data: matchData, error: matchError } = await supabase.from('matches').insert({ owner: user.id, size: 11, status: 'waiting', pie_rule: true }).select().single();
+    if (matchError || !matchData) { toast.error('Failed to create challenge'); return; }
+    await supabase.from('match_players').insert({ match_id: matchData.id, profile_id: user.id, color: 1 });
+    const { error: notifError } = await supabase.from('notifications').insert({ type: 'friend_challenge', sender_id: user.id, receiver_id: friendId, payload: { sender_name: user.email?.split('@')[0] || 'Someone', match_id: matchData.id, board_size: 11 }});
+    if (notifError) { toast.error('Failed to send challenge'); return; }
     toast.success(`Challenge sent to ${friendUsername}!`);
   };
 
   const sendFriendRequest = async () => {
     if (!user || !searchUsername.trim()) return;
     setSearching(true);
-
     try {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .ilike('username', searchUsername.trim())
-        .limit(1);
-
-      if (!profiles || profiles.length === 0) {
-        toast.error('User not found');
-        return;
-      }
-
+      const { data: profiles } = await supabase.from('profiles').select('id, username').ilike('username', searchUsername.trim()).limit(1);
+      if (!profiles || profiles.length === 0) { toast.error('User not found'); return; }
       const targetUser = profiles[0];
-      if (targetUser.id === user.id) {
-        toast.error('Cannot add yourself');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('friends')
-        .insert({
-          a: user.id,
-          b: targetUser.id,
-          status: 'pending'
-        });
-
+      if (targetUser.id === user.id) { toast.error('Cannot add yourself'); return; }
+      const { error } = await supabase.from('friends').insert({ a: user.id, b: targetUser.id, status: 'pending' });
       if (error) throw error;
-
       toast.success('Friend request sent!');
       setSearchUsername('');
     } catch (error: any) {
@@ -275,11 +145,7 @@ export default function Friends() {
 
   const acceptRequest = async (friendId: string) => {
     try {
-      await (supabase as any)
-        .from('friends')
-        .update({ status: 'accepted' })
-        .eq('id', friendId);
-      
+      await (supabase as any).from('friends').update({ status: 'accepted' }).eq('id', friendId);
       toast.success('Friend request accepted!');
       fetchFriends();
     } catch (error: any) {
@@ -289,11 +155,7 @@ export default function Friends() {
 
   const rejectRequest = async (friendId: string) => {
     try {
-      await (supabase as any)
-        .from('friends')
-        .delete()
-        .eq('id', friendId);
-      
+      await (supabase as any).from('friends').delete().eq('id', friendId);
       toast.success('Friend request rejected');
       fetchFriends();
     } catch (error: any) {
@@ -303,15 +165,8 @@ export default function Friends() {
 
   const blockUser = async (friendId: string, blockedUserId: string) => {
     if (!user) return;
-
     try {
-      await (supabase as any)
-        .from('blocks')
-        .insert({
-          blocker: user.id,
-          blocked: blockedUserId
-        });
-
+      await (supabase as any).from('blocks').insert({ blocker: user.id, blocked: blockedUserId });
       await (supabase as any).from('friends').delete().eq('id', friendId);
       toast.success('User blocked');
       fetchFriends();
@@ -322,14 +177,8 @@ export default function Friends() {
 
   const unblockUser = async (blockedUserId: string) => {
     if (!user) return;
-
     try {
-      await supabase
-        .from('blocks')
-        .delete()
-        .eq('blocker', user.id)
-        .eq('blocked', blockedUserId);
-
+      await supabase.from('blocks').delete().eq('blocker', user.id).eq('blocked', blockedUserId);
       toast.success('User unblocked');
       fetchFriends();
     } catch (error: any) {
@@ -337,70 +186,74 @@ export default function Friends() {
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-gentle-pulse text-4xl">⬡</div></div>;
 
   return (
     <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate('/lobby')} className="mb-4 gap-2">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-12">
+          <Button variant="ghost" onClick={() => navigate('/lobby')} className="mb-6 gap-2 hover:gap-3 transition-all">
             <ArrowLeft className="h-4 w-4" /> Back to Lobby
           </Button>
-          <h1 className="font-body text-4xl font-semibold text-foreground mb-2">Friends</h1>
-          <p className="text-muted-foreground font-body">Manage your connections and game partners</p>
+          <h1 className="font-body text-5xl font-bold mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700">Friends</h1>
+          <p className="text-muted-foreground font-body text-lg">Connect, challenge, compete</p>
         </div>
 
-        {/* Add Friend */}
-        <Card className="p-6 mb-8 shadow-paper border-2">
-          <div className="flex items-center gap-3 mb-4">
-            <UserPlus className="h-5 w-5 text-indigo" />
-            <h2 className="font-body text-xl font-semibold">Add Friend</h2>
+        {/* Add Friend Card */}
+        <Card className="p-8 mb-8 shadow-lg border-2 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-indigo/10">
+              <UserPlus className="h-6 w-6 text-indigo" />
+            </div>
+            <h2 className="font-body text-2xl font-semibold">Add Friend</h2>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
-              placeholder="Enter username"
+              placeholder="Enter username..."
               value={searchUsername}
               onChange={(e) => setSearchUsername(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendFriendRequest()}
+              className="text-lg"
             />
-            <Button onClick={sendFriendRequest} disabled={searching || !searchUsername.trim()}>
-              Send Request
+            <Button onClick={sendFriendRequest} disabled={searching || !searchUsername.trim()} size="lg" className="sm:min-w-[140px]">
+              {searching ? 'Searching...' : 'Send Request'}
             </Button>
           </div>
         </Card>
 
         {/* Pending Requests */}
         {pendingRequests.length > 0 && (
-          <Card className="p-6 mb-8 shadow-paper border-2">
-            <div className="flex items-center gap-3 mb-4">
-              <UserCheck className="h-5 w-5 text-ochre" />
-              <h2 className="font-body text-xl font-semibold">Pending Requests</h2>
-              <Badge variant="outline">{pendingRequests.length}</Badge>
+          <Card className="p-8 mb-8 shadow-lg border-2 border-ochre/30 bg-ochre/5 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-ochre/20">
+                <AlertCircle className="h-6 w-6 text-ochre" />
+              </div>
+              <h2 className="font-body text-2xl font-semibold">Pending Requests</h2>
+              <Badge className="bg-ochre text-primary-foreground text-base px-3 py-1">{pendingRequests.length}</Badge>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {pendingRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-indigo">
-                      <AvatarFallback className="bg-indigo text-primary-foreground font-body">
+                <div key={request.id} className="flex items-center justify-between p-5 bg-background rounded-xl border-2 hover:border-ochre/50 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-12 w-12 border-2 border-indigo ring-2 ring-indigo/20 group-hover:scale-110 transition-transform">
+                      <AvatarFallback className="bg-indigo text-primary-foreground font-body text-lg">
                         {request.profile.username.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-body font-semibold">{request.profile.username}</p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {new Date(request.requested_at).toLocaleDateString()}
+                      <p className="font-body font-semibold text-lg">{request.profile.username}</p>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        {new Date(request.requested_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => acceptRequest(request.id)} className="gap-2">
+                    <Button onClick={() => acceptRequest(request.id)} className="gap-2 hover:scale-105 transition-transform">
                       <Check className="h-4 w-4" /> Accept
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => rejectRequest(request.id)} className="gap-2">
-                      <X className="h-4 w-4" /> Reject
+                    <Button variant="outline" onClick={() => rejectRequest(request.id)} className="gap-2">
+                      <X className="h-4 w-4" /> Decline
                     </Button>
                   </div>
                 </div>
@@ -410,53 +263,60 @@ export default function Friends() {
         )}
 
         {/* Friends List */}
-        <Card className="p-6 mb-8 shadow-paper border-2">
-          <div className="flex items-center gap-3 mb-4">
-            <UserCheck className="h-5 w-5 text-indigo" />
-            <h2 className="font-body text-xl font-semibold">Your Friends</h2>
-            <Badge variant="outline">{friends.length}</Badge>
+        <Card className="p-8 mb-8 shadow-lg border-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-indigo/10">
+              <UserCheck className="h-6 w-6 text-indigo" />
+            </div>
+            <h2 className="font-body text-2xl font-semibold">Your Friends</h2>
+            <Badge variant="outline" className="text-base px-3 py-1">{friends.length}</Badge>
           </div>
           {friends.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>No friends yet. Add some above!</p>
+            <div className="text-center py-16 text-muted-foreground">
+              <UserPlus className="h-16 w-16 mx-auto mb-6 opacity-20 animate-gentle-pulse" />
+              <p className="text-lg font-body mb-2">No friends yet</p>
+              <p className="text-sm">Add someone above to start playing together!</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {friends.map((friend) => {
+            <div className="space-y-4">
+              {friends.map((friend, idx) => {
                 const friendUserId = friend.a === user?.id ? friend.b : friend.a;
                 return (
-                  <div key={friend.id} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10 border-2 border-indigo">
-                          <AvatarFallback className="bg-indigo text-primary-foreground font-body">
+                  <div 
+                    key={friend.id} 
+                    className="flex items-center justify-between p-5 bg-accent/30 rounded-xl border-2 hover:border-indigo/50 transition-all group hover:shadow-md animate-in fade-in slide-in-from-left-4 duration-500"
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative group-hover:scale-110 transition-transform">
+                        <Avatar className="h-14 w-14 border-2 border-indigo ring-2 ring-indigo/20">
+                          <AvatarFallback className="bg-indigo text-primary-foreground font-body text-xl">
                             {friend.profile.username.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div
-                          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
-                            friend.presenceStatus === 'online'
-                              ? 'bg-emerald-500'
-                              : friend.presenceStatus === 'in_match'
-                              ? 'bg-ochre'
-                              : 'bg-graphite'
+                          className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background transition-all ${
+                            friend.presenceStatus === 'online' ? 'bg-emerald-500 animate-pulse' :
+                            friend.presenceStatus === 'in_match' ? 'bg-ochre animate-pulse' : 'bg-graphite'
                           }`}
                         />
                       </div>
                       <div>
-                        <p className="font-body font-semibold">{friend.profile.username}</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">
-                            {friend.presenceStatus === 'in_match' && 'In match'}
-                            {friend.presenceStatus === 'online' && 'Online'}
-                            {friend.presenceStatus === 'offline' && 'Offline'}
-                          </p>
+                        <p className="font-body font-semibold text-lg">{friend.profile.username}</p>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className={`font-medium ${
+                            friend.presenceStatus === 'online' ? 'text-emerald-500' :
+                            friend.presenceStatus === 'in_match' ? 'text-ochre' : 'text-muted-foreground'
+                          }`}>
+                            {friend.presenceStatus === 'in_match' && '🎮 In match'}
+                            {friend.presenceStatus === 'online' && '● Online'}
+                            {friend.presenceStatus === 'offline' && '○ Offline'}
+                          </span>
                           {friend.stats && friend.stats.total_games > 0 && (
                             <>
-                              <span className="text-xs text-muted-foreground">•</span>
-                              <Badge variant="outline" className="text-xs font-mono">
-                                {friend.stats.wins}W {friend.stats.total_games - friend.stats.wins}L
+                              <span className="text-muted-foreground">•</span>
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {friend.stats.wins}W-{friend.stats.total_games - friend.stats.wins}L
                               </Badge>
                             </>
                           )}
@@ -467,20 +327,19 @@ export default function Friends() {
                       {friend.presenceStatus !== 'in_match' && (
                         <Button
                           size="sm"
-                          variant="outline"
                           onClick={() => sendChallenge(friendUserId, friend.profile.username)}
-                          className="gap-2"
+                          className="gap-2 hover:scale-105 transition-transform"
                         >
                           <Swords className="h-4 w-4" /> Challenge
                         </Button>
                       )}
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => blockUser(friend.id, friendUserId)}
-                        className="gap-2 text-destructive hover:text-destructive"
+                        className="gap-2 text-muted-foreground hover:text-destructive"
                       >
-                        <UserX className="h-4 w-4" /> Block
+                        <UserX className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -492,35 +351,18 @@ export default function Friends() {
 
         {/* Blocked Users */}
         {blockedUsers.length > 0 && (
-          <Card className="p-6 shadow-paper border-2">
-            <div className="flex items-center gap-3 mb-4">
-              <UserX className="h-5 w-5 text-destructive" />
-              <h2 className="font-body text-xl font-semibold">Blocked Users</h2>
-              <Badge variant="outline">{blockedUsers.length}</Badge>
+          <Card className="p-8 shadow-lg border-2 border-destructive/20 animate-in fade-in duration-500">
+            <div className="flex items-center gap-3 mb-6">
+              <UserX className="h-6 w-6 text-destructive" />
+              <h2 className="font-body text-2xl font-semibold">Blocked Users</h2>
+              <Badge variant="destructive">{blockedUsers.length}</Badge>
             </div>
             <div className="space-y-3">
               {blockedUsers.map((blocked) => (
-                <div key={blocked.blocked} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-destructive">
-                      <AvatarFallback className="bg-destructive/20 text-destructive font-body">
-                        {blocked.profile.username.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-body font-semibold">{blocked.profile.username}</p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        Blocked {new Date(blocked.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => unblockUser(blocked.blocked)}
-                    className="gap-2"
-                  >
-                    <Check className="h-4 w-4" /> Unblock
+                <div key={blocked.blocked} className="flex items-center justify-between p-4 bg-destructive/5 rounded-lg border">
+                  <p className="font-mono">{blocked.profile.username}</p>
+                  <Button size="sm" variant="outline" onClick={() => unblockUser(blocked.blocked)}>
+                    Unblock
                   </Button>
                 </div>
               ))}

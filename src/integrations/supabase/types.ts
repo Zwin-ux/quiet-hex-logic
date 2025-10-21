@@ -281,16 +281,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          board_skin: string | null
           created_at: string | null
           id: string
           username: string
         }
         Insert: {
+          board_skin?: string | null
           created_at?: string | null
           id: string
           username: string
         }
         Update: {
+          board_skin?: string | null
           created_at?: string | null
           id?: string
           username?: string
