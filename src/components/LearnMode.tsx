@@ -10,7 +10,7 @@ const LearnMode = () => {
   ];
 
   const handleStartTutorial = () => {
-    window.location.href = '/auth';
+    window.location.href = '/tutorial';
   };
 
   return (

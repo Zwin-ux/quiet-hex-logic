@@ -13,6 +13,7 @@ import Friends from "./pages/Friends";
 import History from "./pages/History";
 import Replay from "./pages/Replay";
 import Profile from "./pages/Profile";
+import Tutorial from "./pages/Tutorial";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/tutorial" element={<Tutorial />} />
           <Route path="/lobby" element={<Lobby />} />
           <Route path="/match/:matchId" element={<Match />} />
           <Route path="/friends" element={<Friends />} />

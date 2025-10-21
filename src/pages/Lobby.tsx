@@ -49,11 +49,12 @@ export default function Lobby() {
   // Listen for notifications
   const { notifications, markAsRead } = useNotifications(user?.id);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
+  // Allow guest access - don't redirect to auth
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     navigate('/auth');
+  //   }
+  // }, [user, loading, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -127,14 +128,13 @@ export default function Lobby() {
   };
 
   const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
-    if (!user) return;
     setCreatingMatch(true);
 
     try {
       const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert({
-          owner: user.id,
+          owner: user?.id || null, // Allow guest matches
           size,
           pie_rule: true,
           status: withAI ? 'active' : 'waiting',
@@ -145,15 +145,18 @@ export default function Lobby() {
 
       if (matchError) throw matchError;
 
-      const { error: playerError } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: match.id,
-          profile_id: user.id,
-          color: 1, // indigo
-        });
+      // Only add player record if user is authenticated
+      if (user) {
+        const { error: playerError } = await supabase
+          .from('match_players')
+          .insert({
+            match_id: match.id,
+            profile_id: user.id,
+            color: 1, // indigo
+          });
 
-      if (playerError) throw playerError;
+        if (playerError) throw playerError;
+      }
 
       // For AI matches, the AI will be handled server-side through the ai-move edge function
       // Pie rule is fully supported for AI matches
@@ -229,6 +232,26 @@ export default function Lobby() {
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Guest Mode Banner */}
+        {!user && (
+          <Card className="mb-6 p-4 bg-ochre/10 border-ochre/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <User className="h-5 w-5 text-ochre" />
+                <div>
+                  <p className="font-body font-semibold text-foreground">Playing as Guest</p>
+                  <p className="text-sm text-muted-foreground">
+                    Sign in to track progress, challenge friends, and save your match history
+                  </p>
+                </div>
+              </div>
+              <Button onClick={() => navigate('/auth')} variant="default">
+                Sign In
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Header */}
         <div className="flex justify-between items-start mb-12">
           <div>
@@ -240,17 +263,18 @@ export default function Lobby() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2 relative">
-                  <Bell className="h-4 w-4" />
-                  {notifications.length > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre">
-                      {notifications.length}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
+            {user && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2 relative">
+                    <Bell className="h-4 w-4" />
+                    {notifications.length > 0 && (
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre">
+                        {notifications.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
               <PopoverContent className="w-80">
                 <div className="space-y-2">
                   <h3 className="font-semibold">Challenges</h3>
@@ -290,23 +314,34 @@ export default function Lobby() {
                 </div>
               </PopoverContent>
             </Popover>
+            )}
 
-            <Button variant="outline" onClick={() => navigate('/profile')} className="gap-2">
-              <User className="h-4 w-4" />
-              Profile
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/friends')} className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Friends
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/history')} className="gap-2">
-              <HistoryIcon className="h-4 w-4" />
-              History
-            </Button>
-            <Button variant="outline" onClick={handleSignOut} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
+            {user && (
+              <>
+                <Button variant="outline" onClick={() => navigate('/profile')} className="gap-2">
+                  <User className="h-4 w-4" />
+                  Profile
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/friends')} className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Friends
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/history')} className="gap-2">
+                  <HistoryIcon className="h-4 w-4" />
+                  History
+                </Button>
+                <Button variant="outline" onClick={handleSignOut} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </>
+            )}
+            
+            {!user && (
+              <Button onClick={() => navigate('/auth')} className="gap-2">
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
 
