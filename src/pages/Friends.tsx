@@ -12,7 +12,6 @@ import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords, AlertCircle } 
 import { usePresence } from '@/hooks/usePresence';
 
 type FriendRow = {
-  id: string;
   a: string;
   b: string;
   status: string;
@@ -22,7 +21,6 @@ type FriendRow = {
 };
 
 type Friend = {
-  id: string;
   a: string;
   b: string;
   status: string;
@@ -80,7 +78,7 @@ export default function Friends() {
 
     const { data: friendsData } = await supabase
       .from('friends')
-      .select(`id, a, b, status, requested_at, profile_a:profiles!friends_a_fkey(username), profile_b:profiles!friends_b_fkey(username)`)
+      .select(`a, b, status, requested_at, profile_a:profiles!friends_a_fkey(username), profile_b:profiles!friends_b_fkey(username)`)
       .or(`a.eq.${user.id},b.eq.${user.id}`);
 
     const friendIds = (friendsData as any)?.filter((f: any) => f.status === 'accepted').map((f: any) => f.a === user.id ? f.b : f.a) || [];
@@ -96,14 +94,14 @@ export default function Friends() {
       const presence = presenceMap.get(friendId);
       const stats = statsMap.get(friendId);
       return {
-        id: f.id, a: f.a, b: f.b, status: f.status, requested_at: f.requested_at,
+        a: f.a, b: f.b, status: f.status, requested_at: f.requested_at,
         profile: f.a === user.id ? f.profile_b : f.profile_a,
         presenceStatus: presence?.status || 'offline', matchId: presence?.matchId, stats
       };
     }) || [];
 
     const pending = (friendsData as any)?.filter((f: any) => f.status === 'pending' && f.b === user.id).map((f: any) => ({
-      id: f.id, a: f.a, b: f.b, status: f.status, requested_at: f.requested_at, profile: f.profile_a
+      a: f.a, b: f.b, status: f.status, requested_at: f.requested_at, profile: f.profile_a
     })) || [];
 
     const { data: blocksData } = await supabase.from('blocks').select(`blocker, blocked, created_at, profile:profiles!blocks_blocked_fkey(username)`).eq('blocker', user.id);
@@ -143,9 +141,10 @@ export default function Friends() {
     }
   };
 
-  const acceptRequest = async (friendId: string) => {
+  const acceptRequest = async (requesterUserId: string) => {
+    if (!user) return;
     try {
-      await (supabase as any).from('friends').update({ status: 'accepted' }).eq('id', friendId);
+      await supabase.from('friends').update({ status: 'accepted' }).eq('a', requesterUserId).eq('b', user.id);
       toast.success('Friend request accepted!');
       fetchFriends();
     } catch (error: any) {
@@ -153,9 +152,10 @@ export default function Friends() {
     }
   };
 
-  const rejectRequest = async (friendId: string) => {
+  const rejectRequest = async (requesterUserId: string) => {
+    if (!user) return;
     try {
-      await (supabase as any).from('friends').delete().eq('id', friendId);
+      await supabase.from('friends').delete().eq('a', requesterUserId).eq('b', user.id);
       toast.success('Friend request rejected');
       fetchFriends();
     } catch (error: any) {
@@ -163,11 +163,11 @@ export default function Friends() {
     }
   };
 
-  const blockUser = async (friendId: string, blockedUserId: string) => {
+  const blockUser = async (userIdA: string, userIdB: string, blockedUserId: string) => {
     if (!user) return;
     try {
-      await (supabase as any).from('blocks').insert({ blocker: user.id, blocked: blockedUserId });
-      await (supabase as any).from('friends').delete().eq('id', friendId);
+      await supabase.from('blocks').insert({ blocker: user.id, blocked: blockedUserId });
+      await supabase.from('friends').delete().eq('a', userIdA).eq('b', userIdB);
       toast.success('User blocked');
       fetchFriends();
     } catch (error: any) {
@@ -234,7 +234,7 @@ export default function Friends() {
             </div>
             <div className="space-y-4">
               {pendingRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-5 bg-background rounded-xl border-2 hover:border-ochre/50 transition-all group">
+                <div key={`${request.a}-${request.b}`} className="flex items-center justify-between p-5 bg-background rounded-xl border-2 hover:border-ochre/50 transition-all group">
                   <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12 border-2 border-indigo ring-2 ring-indigo/20 group-hover:scale-110 transition-transform">
                       <AvatarFallback className="bg-indigo text-primary-foreground font-body text-lg">
@@ -249,10 +249,10 @@ export default function Friends() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => acceptRequest(request.id)} className="gap-2 hover:scale-105 transition-transform">
+                    <Button onClick={() => acceptRequest(request.a)} className="gap-2 hover:scale-105 transition-transform">
                       <Check className="h-4 w-4" /> Accept
                     </Button>
-                    <Button variant="outline" onClick={() => rejectRequest(request.id)} className="gap-2">
+                    <Button variant="outline" onClick={() => rejectRequest(request.a)} className="gap-2">
                       <X className="h-4 w-4" /> Decline
                     </Button>
                   </div>
@@ -283,7 +283,7 @@ export default function Friends() {
                 const friendUserId = friend.a === user?.id ? friend.b : friend.a;
                 return (
                   <div 
-                    key={friend.id} 
+                    key={`${friend.a}-${friend.b}`} 
                     className="flex items-center justify-between p-5 bg-accent/30 rounded-xl border-2 hover:border-indigo/50 transition-all group hover:shadow-md animate-in fade-in slide-in-from-left-4 duration-500"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
@@ -336,7 +336,7 @@ export default function Friends() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => blockUser(friend.id, friendUserId)}
+                        onClick={() => blockUser(friend.a, friend.b, friendUserId)}
                         className="gap-2 text-muted-foreground hover:text-destructive"
                       >
                         <UserX className="h-4 w-4" />

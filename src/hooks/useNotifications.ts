@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 type NotificationType = 'friend_challenge' | 'match_invitation';
 
@@ -60,8 +60,7 @@ export const useNotifications = (userId: string | undefined) => {
           
           // Show toast for new notifications
           if (notification.type === 'friend_challenge') {
-            toast({
-              title: "Challenge Received!",
+            toast.success("Challenge Received!", {
               description: `${notification.payload.sender_name} challenged you to a ${notification.payload.board_size}×${notification.payload.board_size} game`,
             });
           }
