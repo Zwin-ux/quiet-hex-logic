@@ -128,10 +128,10 @@ export default function Lobby() {
   };
 
   const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
-    // All match creation requires authentication
-    if (!user) {
+    // AI practice requires authentication
+    if (withAI && !user) {
       toast.error('Sign in required', {
-        description: 'Please sign in to create a match'
+        description: 'Please sign in to play against AI'
       });
       navigate('/auth');
       return;
@@ -143,7 +143,7 @@ export default function Lobby() {
       const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert({
-          owner: user.id,
+          owner: user?.id || null, // Allow guest matches
           size,
           pie_rule: withAI ? false : true, // Disable pie rule for AI matches
           status: withAI ? 'active' : 'waiting',
@@ -154,15 +154,18 @@ export default function Lobby() {
 
       if (matchError) throw matchError;
 
-      const { error: playerError } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: match.id,
-          profile_id: user.id,
-          color: 1, // indigo
-        });
+      // Only add player record if user is authenticated
+      if (user) {
+        const { error: playerError } = await supabase
+          .from('match_players')
+          .insert({
+            match_id: match.id,
+            profile_id: user.id,
+            color: 1, // indigo
+          });
 
-      if (playerError) throw playerError;
+        if (playerError) throw playerError;
+      }
 
       // For AI matches, go directly to the match
       if (withAI) {

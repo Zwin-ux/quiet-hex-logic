@@ -158,7 +158,7 @@ export type Database = {
           allow_spectators: boolean
           created_at: string | null
           id: string
-          owner: string
+          owner: string | null
           pie_rule: boolean
           size: number
           status: Database["public"]["Enums"]["match_status"]
@@ -171,7 +171,7 @@ export type Database = {
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
-          owner: string
+          owner?: string | null
           pie_rule?: boolean
           size: number
           status?: Database["public"]["Enums"]["match_status"]
@@ -184,7 +184,7 @@ export type Database = {
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
-          owner?: string
+          owner?: string | null
           pie_rule?: boolean
           size?: number
           status?: Database["public"]["Enums"]["match_status"]
