@@ -167,14 +167,23 @@ export default function Lobby() {
         if (playerError) throw playerError;
       }
 
-      // For AI matches, the AI will be handled server-side through the ai-move edge function
-      // Pie rule is fully supported for AI matches
-
-      toast.success(withAI ? 'AI match created!' : 'Match created!', {
-        description: withAI ? 'The AI will play as Ochre' : 'Waiting for opponent...'
-      });
-
-      navigate(`/match/${match.id}`);
+      // For AI matches, go directly to the match
+      if (withAI) {
+        toast.success('AI match created!', {
+          description: 'The AI will play as Ochre'
+        });
+        navigate(`/match/${match.id}`);
+      } else {
+        // For friend matches, stay on lobby and show the code
+        const code = await getMatchCode(match.id);
+        await copyMatchCode(match.id);
+        toast.success('Match created!', {
+          description: `Share code ${code} with your friend. Code copied to clipboard!`,
+          duration: 6000,
+        });
+        // Refresh matches list to show the new match
+        fetchWaitingMatches();
+      }
     } catch (error: any) {
       toast.error('Failed to create match', {
         description: error.message
@@ -510,18 +519,23 @@ export default function Lobby() {
                   </div>
                   <div className="flex gap-2">
                     {match.owner === user?.id ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => copyMatchCode(match.id)}
-                        className="gap-2"
-                      >
-                        {copiedCode === match.id ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                        {copiedCode === match.id ? 'Copied!' : 'Copy Code'}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => copyMatchCode(match.id)}
+                          className="gap-2"
+                        >
+                          {copiedCode === match.id ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                          {copiedCode === match.id ? 'Copied!' : 'Copy Code'}
+                        </Button>
+                        <Button onClick={() => navigate(`/match/${match.id}`)}>
+                          Enter Match
+                        </Button>
+                      </div>
                     ) : (
                       <Button onClick={() => joinMatch(match.id)}>
                         Join Match
