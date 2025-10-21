@@ -109,12 +109,15 @@ export default function Tutorial() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentStep]);
 
-  // Reset board when step changes
+  // Reset board when step changes (but keep size the same to prevent unnecessary resets)
   useEffect(() => {
     const size = step.boardSize || 7;
-    setBoard(new Uint8Array(size * size));
-    setLastMove(undefined);
-  }, [currentStep]);
+    // Only reset if the board size changed or if we moved to a non-interactive step
+    if (board.length !== size * size || !step.allowInteraction) {
+      setBoard(new Uint8Array(size * size));
+      setLastMove(undefined);
+    }
+  }, [currentStep, step.boardSize, step.allowInteraction]);
 
   const handleCellClick = (cell: number) => {
     if (!step.allowInteraction || board[cell] !== 0) return;
@@ -156,7 +159,7 @@ export default function Tutorial() {
         .insert({
           owner: null, // Guest match
           size: 7,
-          pie_rule: false,
+          pie_rule: true, // Enable pie rule for consistency
           status: 'active',
           ai_difficulty: 'easy',
         })

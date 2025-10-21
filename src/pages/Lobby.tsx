@@ -103,7 +103,8 @@ export default function Lobby() {
       .from('matches')
       .select('*')
       .eq('status', 'waiting')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(20); // Limit to prevent performance issues
 
     if (error) {
       console.error('Error fetching matches:', error);
@@ -146,7 +147,7 @@ export default function Lobby() {
         .insert({
           owner: user?.id || null, // Allow guest matches
           size,
-          pie_rule: withAI ? false : true, // Disable pie rule for AI matches
+          pie_rule: true, // Enable pie rule for all matches
           status: withAI ? 'active' : 'waiting',
           ai_difficulty: withAI ? (aiDifficulty || 'medium') : null,
         })
