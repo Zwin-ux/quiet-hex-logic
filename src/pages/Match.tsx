@@ -10,7 +10,8 @@ import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
-import { Sparkles, BookOpen, Share2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -20,7 +21,7 @@ interface MatchData {
   status: string;
   turn: number;
   winner: number | null;
-  ai_difficulty?: 'easy' | 'medium' | 'hard' | 'expert' | null;
+  ai_difficulty?: AIDifficulty | null;
 }
 
 interface Player {
@@ -123,11 +124,12 @@ export default function Match() {
       
       // For AI matches, add synthetic AI player as color 2
       if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
+        const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
         enrichedPlayers.push({
           profile_id: 'ai-player',
           color: 2,
           is_bot: true,
-          username: `AI (${matchData.ai_difficulty})`
+          username: `Computer (${difficultyLabel})`
         });
       }
       
@@ -165,13 +167,12 @@ export default function Match() {
 
     // Check if AI should play
     if (matchData.status === 'active') {
-      // For AI matches (has ai_difficulty set), AI plays as color 2 (Ochre)
       const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
       const isAIMatch = matchData.ai_difficulty != null;
       const isAITurn = isAIMatch && currentColor === 2;
       
       if (isAITurn && !hexEngine.winner()) {
-        setTimeout(() => makeAIMove(hexEngine, matchData), 1200);
+        setTimeout(() => makeAIMove(hexEngine, matchData), 800);
       }
     }
   };
@@ -181,24 +182,18 @@ export default function Match() {
     setAiReasoning('');
 
     try {
-      // Call AI edge function to get move suggestion
-      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-move', {
-        body: {
-          matchId: matchData.id,
-          difficulty: matchData.ai_difficulty || 'medium'
-        }
-      });
+      // Use simple client-side AI
+      const difficulty = matchData.ai_difficulty || 'medium';
+      const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
+      const { cell, reasoning } = ai.getMove();
+      
+      setAiReasoning(reasoning);
 
-      if (aiError) throw aiError;
-
-      const { move, reasoning } = aiResponse;
-      setAiReasoning(reasoning || '');
-
-      // Apply move through secure edge function
+      // Apply move through server for validation and persistence
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
           matchId: matchData.id, 
-          cell: move
+          cell
         }
       });
 
@@ -206,15 +201,15 @@ export default function Match() {
         throw new Error(result?.error || error?.message || 'Failed to apply AI move');
       }
 
-      // Reload match to get canonical server state
+      // Reload match to get updated state
       await loadMatch();
 
-      toast.success('AI played', {
-        description: reasoning || 'Analyzing your position...'
+      toast.success('Computer played', {
+        description: reasoning
       });
     } catch (error) {
       console.error('AI move error:', error);
-      toast.error('AI failed to move');
+      toast.error('Computer failed to move');
     } finally {
       setIsAIThinking(false);
     }
@@ -257,12 +252,12 @@ export default function Match() {
         return;
       }
 
-      // Reload match to get canonical server state
+      // Reload match
       await loadMatch();
 
       const winner = result.winner;
       if (winner) {
-        toast.success(winner === currentPlayer.color ? 'You won!' : 'Opponent won!');
+        toast.success(winner === currentPlayer.color ? 'You won!' : 'Computer won!');
       }
     } catch (error) {
       console.error('Move error:', error);
@@ -294,7 +289,6 @@ export default function Match() {
         return;
       }
 
-      // Reload match to get canonical server state
       await loadMatch();
 
       toast.success('Colors swapped!', {
@@ -304,12 +298,6 @@ export default function Match() {
       console.error('Swap error:', error);
       toast.error('Failed to swap colors');
     }
-  };
-
-  const handleShare = () => {
-    const shareCode = matchId?.slice(0, 8).toUpperCase();
-    navigator.clipboard.writeText(shareCode || '');
-    toast.success('Match code copied to clipboard');
   };
 
   const handleToggleSpectate = async () => {
@@ -345,6 +333,7 @@ export default function Match() {
   const currentPlayer = players.find(p => p.color === currentColor);
   const userPlayer = players.find(p => p.profile_id === user?.id);
   const isPlayer = !!userPlayer;
+  const isAIMatch = match.ai_difficulty != null;
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -354,16 +343,13 @@ export default function Match() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="font-body text-3xl font-semibold mb-2">Match in Progress</h1>
+            <h1 className="font-body text-3xl font-semibold mb-2">
+              {isAIMatch ? 'Practice Mode' : 'Match in Progress'}
+            </h1>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="font-mono">
                 {match.size}×{match.size}
               </Badge>
-              {match.pie_rule && (
-                <Badge variant="outline" className="font-mono">
-                  Pie Rule
-                </Badge>
-              )}
               {match.status === 'finished' && match.winner && (
                 <Badge className="bg-indigo text-primary-foreground">
                   {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}
@@ -379,16 +365,16 @@ export default function Match() {
               onClick={() => navigate('/lobby')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Exit Game
+              Exit
             </Button>
-            {!isPlayer && (
+            {!isAIMatch && !isPlayer && (
               <Button
                 variant={isSpectating ? "default" : "outline"}
                 size="sm"
                 onClick={handleToggleSpectate}
               >
                 {isSpectating ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                {isSpectating ? 'Leave' : 'Spectate'}
+                {isSpectating ? 'Leave' : 'Watch'}
               </Button>
             )}
             <Button
@@ -397,15 +383,7 @@ export default function Match() {
               onClick={() => setShowTutorial(true)}
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              Tutorial
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShare}
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+              How to Play
             </Button>
           </div>
         </div>
@@ -426,9 +404,16 @@ export default function Match() {
           {/* Game Board */}
           <div className="order-1 lg:order-2 flex flex-col items-center gap-6">
             {isAIThinking && (
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Sparkles className="h-5 w-5 animate-gentle-pulse" />
-                <span className="font-mono text-sm">AI is thinking...</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <Sparkles className="h-5 w-5 animate-gentle-pulse" />
+                  <span className="font-mono text-sm">Computer thinking...</span>
+                </div>
+                {aiReasoning && (
+                  <p className="text-sm text-muted-foreground max-w-md text-center">
+                    {aiReasoning}
+                  </p>
+                )}
               </div>
             )}
 
@@ -460,7 +445,7 @@ export default function Match() {
                 {isSpectating
                   ? `Watching ${currentPlayer?.username}'s turn`
                   : currentPlayer?.profile_id === user?.id
-                  ? "Your turn — choose wisely"
+                  ? "Your turn"
                   : `Waiting for ${currentPlayer?.username}...`}
               </p>
             )}
@@ -477,8 +462,8 @@ export default function Match() {
               />
             )}
 
-            {/* Spectators */}
-            {spectators.length > 0 && (
+            {/* Spectators - only for non-AI matches */}
+            {!isAIMatch && spectators.length > 0 && (
               <div className="mt-6 p-4 border rounded-lg bg-card">
                 <div className="flex items-center gap-2 mb-3">
                   <Eye className="h-4 w-4 text-muted-foreground" />

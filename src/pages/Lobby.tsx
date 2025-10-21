@@ -366,8 +366,7 @@ export default function Lobby() {
               </h2>
             </div>
             <p className="text-muted-foreground mb-4 font-body leading-relaxed">
-              Train against our thoughtful AI opponent. It pauses, considers, and occasionally
-              explains its reasoning—like a patient teacher across the board.
+              Practice against the computer. Choose your difficulty and board size.
             </p>
             <div className="mb-4">
               <label className="text-sm font-medium mb-2 block text-muted-foreground">
@@ -378,10 +377,10 @@ export default function Lobby() {
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="easy">Easy - Random moves with center bias</SelectItem>
-                  <SelectItem value="medium">Medium - Positional strategy</SelectItem>
-                  <SelectItem value="hard">Hard - Monte Carlo simulations</SelectItem>
-                  <SelectItem value="expert">Expert - AI-powered (LLM)</SelectItem>
+                  <SelectItem value="easy">Easy - Beginner level</SelectItem>
+                  <SelectItem value="medium">Medium - Intermediate strategy</SelectItem>
+                  <SelectItem value="hard">Hard - Advanced tactics</SelectItem>
+                  <SelectItem value="expert">Expert - Master level</SelectItem>
                 </SelectContent>
               </Select>
             </div>
