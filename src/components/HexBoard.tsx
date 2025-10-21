@@ -309,9 +309,10 @@ export const HexBoard = ({
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className={`w-full aspect-square ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`aspect-square ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         style={{ 
-          maxWidth: '1200px',
+          width: 'min(92vw, 1400px)',
+          maxWidth: '100%',
           imageRendering: 'crisp-edges'
         }}
       />

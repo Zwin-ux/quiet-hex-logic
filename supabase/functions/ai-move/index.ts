@@ -208,29 +208,32 @@ serve(async (req) => {
       );
     }
 
-    // Verify user is a player in this match
-    const { data: player, error: playerError } = await supabase
-      .from('match_players')
-      .select('profile_id')
-      .eq('match_id', matchId)
-      .eq('profile_id', user.id)
-      .single();
-
-    if (playerError || !player) {
-      return new Response(
-        JSON.stringify({ error: 'Not authorized for this match' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Fetch match and moves
+    // Fetch match first to decide authorization rules
     const { data: match, error: matchError } = await supabase
       .from('matches')
-      .select('size, pie_rule, turn')
+      .select('size, pie_rule, turn, owner, ai_difficulty')
       .eq('id', matchId)
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError || !match) throw matchError || new Error('Match not found');
+
+    // Authorization: allow owner in AI practice matches even if not in match_players
+    const isAIMatch = match.ai_difficulty !== null;
+    if (!(isAIMatch && match.owner === user.id)) {
+      const { data: player, error: playerError } = await supabase
+        .from('match_players')
+        .select('profile_id')
+        .eq('match_id', matchId)
+        .eq('profile_id', user.id)
+        .maybeSingle();
+
+      if (playerError || !player) {
+        return new Response(
+          JSON.stringify({ error: 'Not authorized for this match' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     const { data: moves, error: movesError } = await supabase
       .from('moves')
@@ -286,19 +289,23 @@ serve(async (req) => {
       );
     }
 
-    // Expert difficulty: Call Lovable AI for move suggestion
+    // Expert difficulty: Prefer LLM, but always fallback to deterministic AI
+    const hexAIFallback = () => {
+      const hexAI = new HexAI(boardSize, board, match.pie_rule, match.turn);
+      return hexAI.getHardMove(canUsePieRule);
+    };
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      // Fallback to hard difficulty if API key not available
-      const hexAI = new HexAI(boardSize, board, match.pie_rule, match.turn);
-      const result = hexAI.getHardMove(canUsePieRule);
+      const result = hexAIFallback();
       return new Response(
         JSON.stringify({ ...result, reasoning: result.reasoning + ' (LLM unavailable)' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const systemPrompt = `You are an expert Hex game AI. Hex is played on a ${boardSize}×${boardSize} rhombus board. 
+    try {
+      const systemPrompt = `You are an expert Hex game AI. Hex is played on a ${boardSize}×${boardSize} rhombus board. 
 Player 1 (indigo) connects West-East. Player 2 (ochre) connects North-South.
 Players alternate placing stones. First to connect their sides wins.
 
@@ -310,7 +317,7 @@ Key strategies:
 
 Current turn: Player ${match.turn}`;
 
-    const userPrompt = `Board state (0=empty, 1=indigo, 2=ochre):
+      const userPrompt = `Board state (0=empty, 1=indigo, 2=ochre):
 ${board.map((v, i) => (i % boardSize === 0 ? '\n' : '') + v).join(' ')}
 
 Available moves: ${emptyCells.slice(0, 20).join(', ')}${emptyCells.length > 20 ? '...' : ''}
@@ -318,78 +325,74 @@ ${canUsePieRule ? '\nPie rule available: You can swap colors instead of playing.
 
 Analyze and choose the best move. ${canUsePieRule ? 'Consider whether swapping is better than playing a move.' : ''}`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'make_move',
-            description: 'Make a move in the Hex game',
-            parameters: {
-              type: 'object',
-              properties: {
-                move: {
-                  type: ['number', 'null'],
-                  description: 'Cell index (0 to board_size²-1) or null for pie swap'
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          tools: [{
+            type: 'function',
+            function: {
+              name: 'make_move',
+              description: 'Make a move in the Hex game',
+              parameters: {
+                type: 'object',
+                properties: {
+                  move: {
+                    type: ['number', 'null'],
+                    description: 'Cell index (0 to board_size²-1) or null for pie swap'
+                  },
+                  reasoning: {
+                    type: 'string',
+                    description: 'Brief explanation of why this move is strong (20-40 words)'
+                  }
                 },
-                reasoning: {
-                  type: 'string',
-                  description: 'Brief explanation of why this move is strong (20-40 words)'
-                }
-              },
-              required: ['move', 'reasoning'],
-              additionalProperties: false
+                required: ['move', 'reasoning'],
+                additionalProperties: false
+              }
             }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'make_move' } }
-      })
-    });
+          }],
+          tool_choice: { type: 'function', function: { name: 'make_move' } }
+        })
+      });
 
-    if (!aiResponse.ok) {
-      console.error('AI API error:', aiResponse.status, await aiResponse.text());
-      // Fallback to random move
-      const randomMove = canUsePieRule && Math.random() < 0.3 
-        ? null 
-        : emptyCells[Math.floor(Math.random() * emptyCells.length)];
-      return new Response(
-        JSON.stringify({ 
-          move: randomMove, 
-          reasoning: 'Random move (AI unavailable)' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      if (!aiResponse.ok) throw new Error(`AI gateway error ${aiResponse.status}: ${await aiResponse.text()}`);
 
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
-    
-    if (toolCall) {
-      const args = JSON.parse(toolCall.function.arguments);
-      const move = args.move === null ? null : Number(args.move);
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       
-      // Validate move
-      if (move !== null && (move < 0 || move >= boardSize * boardSize || board[move] !== 0)) {
-        throw new Error('AI suggested invalid move');
+      if (toolCall?.function?.arguments) {
+        const args = JSON.parse(toolCall.function.arguments);
+        const move = args.move === null ? null : Number(args.move);
+        
+        // Validate move
+        if (move !== null && (move < 0 || move >= boardSize * boardSize || board[move] !== 0)) {
+          throw new Error('AI suggested invalid move');
+        }
+        
+        return new Response(
+          JSON.stringify({ move, reasoning: args.reasoning || 'Expert analysis' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-      
+
+      throw new Error('No valid AI response');
+    } catch (e) {
+      console.error('LLM path failed:', e);
+      const fallback = hexAIFallback();
       return new Response(
-        JSON.stringify({ move, reasoning: args.reasoning }),
+        JSON.stringify({ ...fallback, reasoning: fallback.reasoning + ' (fallback used)' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    throw new Error('No valid AI response');
 
   } catch (error) {
     console.error('Error in ai-move:', error);
