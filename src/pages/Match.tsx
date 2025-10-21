@@ -347,11 +347,11 @@ export default function Match() {
     );
   }
 
-  const player1 = useMemo(() => players.find(p => p.color === 1), [players]);
-  const player2 = useMemo(() => players.find(p => p.color === 2), [players]);
-  const currentColor = useMemo(() => match.turn % 2 === 1 ? 1 : 2, [match.turn]);
-  const currentPlayer = useMemo(() => players.find(p => p.color === currentColor), [players, currentColor]);
-  const userPlayer = useMemo(() => players.find(p => p.profile_id === user?.id), [players, user?.id]);
+  const player1 = players.find(p => p.color === 1);
+  const player2 = players.find(p => p.color === 2);
+  const currentColor = match.turn % 2 === 1 ? 1 : 2;
+  const currentPlayer = players.find(p => p.color === currentColor);
+  const userPlayer = players.find(p => p.profile_id === user?.id);
   const isPlayer = !!userPlayer;
   const isAIMatch = match.ai_difficulty != null;
 
