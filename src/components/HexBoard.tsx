@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
+import { BoardSkin, getDefaultSkin } from '@/lib/boardSkins';
 
 interface HexBoardProps {
   size: number;
@@ -10,6 +11,7 @@ interface HexBoardProps {
   disabled?: boolean;
   onSwapColors?: () => void;
   canSwap?: boolean;
+  skin?: BoardSkin;
 }
 
 interface AnimatedCell {
@@ -25,7 +27,8 @@ export const HexBoard = ({
   onCellClick,
   disabled = false,
   onSwapColors,
-  canSwap = false
+  canSwap = false,
+  skin = getDefaultSkin()
 }: HexBoardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
@@ -82,22 +85,21 @@ export const HexBoard = ({
     const offsetY = (rect.height - boardHeight) / 2;
 
     // Draw board background
-    ctx.fillStyle = 'hsl(40 33% 98%)';
+    ctx.fillStyle = skin.colors.background;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
     // Draw edge markers
     ctx.font = `${hexRadius * 0.4}px "IBM Plex Mono", monospace`;
-    ctx.fillStyle = 'hsl(0 0% 10% / 0.4)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // West/East markers (Indigo)
-    ctx.fillStyle = 'hsl(223 45% 29% / 0.5)';
+    // West/East markers (Player 1)
+    ctx.fillStyle = skin.colors.edgePlayer1;
     ctx.fillText('W', offsetX - 20, offsetY + boardHeight / 2);
     ctx.fillText('E', offsetX + boardWidth + 20, offsetY + boardHeight / 2);
 
-    // North/South markers (Ochre)
-    ctx.fillStyle = 'hsl(40 76% 43% / 0.5)';
+    // North/South markers (Player 2)
+    ctx.fillStyle = skin.colors.edgePlayer2;
     ctx.fillText('N', offsetX + boardWidth / 2, offsetY - 20);
     ctx.fillText('S', offsetX + boardWidth / 2, offsetY + boardHeight + 20);
 
@@ -133,18 +135,18 @@ export const HexBoard = ({
         const scale = animatedCell ? 0.5 + (animationProgress * 0.5) : 1;
 
         if (color === 1) {
-          // Indigo stone with scale animation
+          // Player 1 stone with scale animation
           ctx.save();
           ctx.translate(x, y);
           ctx.scale(scale, scale);
           ctx.translate(-x, -y);
           
-          ctx.fillStyle = isWinning ? 'hsl(223 45% 35%)' : 'hsl(223 45% 29%)';
+          ctx.fillStyle = isWinning ? skin.colors.player1Winning : skin.colors.player1;
           
           // Draw winning path with pulsing glow
           if (isWinning) {
             const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
-            ctx.shadowColor = '#818cf8';
+            ctx.shadowColor = skin.colors.player1Glow;
             ctx.shadowBlur = 25 * pulse;
           }
           
@@ -152,25 +154,25 @@ export const HexBoard = ({
           ctx.shadowBlur = 0;
           
           if (isLast) {
-            ctx.strokeStyle = 'hsl(40 76% 43%)';
+            ctx.strokeStyle = skin.colors.player2;
             ctx.lineWidth = 3;
             ctx.stroke();
           }
           
           ctx.restore();
         } else if (color === 2) {
-          // Ochre stone with scale animation
+          // Player 2 stone with scale animation
           ctx.save();
           ctx.translate(x, y);
           ctx.scale(scale, scale);
           ctx.translate(-x, -y);
           
-          ctx.fillStyle = isWinning ? 'hsl(40 76% 50%)' : 'hsl(40 76% 43%)';
+          ctx.fillStyle = isWinning ? skin.colors.player2Winning : skin.colors.player2;
           
           // Draw winning path with pulsing glow
           if (isWinning) {
             const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
-            ctx.shadowColor = '#f59e0b';
+            ctx.shadowColor = skin.colors.player2Glow;
             ctx.shadowBlur = 25 * pulse;
           }
           
@@ -178,7 +180,7 @@ export const HexBoard = ({
           ctx.shadowBlur = 0;
           
           if (isLast) {
-            ctx.strokeStyle = 'hsl(223 45% 29%)';
+            ctx.strokeStyle = skin.colors.player1;
             ctx.lineWidth = 3;
             ctx.stroke();
           }
@@ -186,9 +188,9 @@ export const HexBoard = ({
           ctx.restore();
         } else {
           // Empty cell
-          ctx.fillStyle = isHovered ? 'hsl(40 60% 85%)' : 'hsl(40 33% 96%)';
+          ctx.fillStyle = isHovered ? skin.colors.emptyHover : skin.colors.empty;
           ctx.fill();
-          ctx.strokeStyle = 'hsl(39 13% 71%)';
+          ctx.strokeStyle = skin.colors.emptyBorder;
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
