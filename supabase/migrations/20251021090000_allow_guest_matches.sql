@@ -1,5 +1,7 @@
 -- Allow guest users to create and play matches
 -- This migration relaxes RLS policies to support guest play
+-- NOTE: This requires ai_difficulty and allow_spectators columns to exist
+-- Run 20251021090100_ensure_all_columns.sql first if needed
 
 -- Drop existing policies for matches
 DROP POLICY IF EXISTS "matches_insert" ON public.matches;
