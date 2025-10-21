@@ -10,7 +10,7 @@ import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
-import { Sparkles, BookOpen, Share2, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, BookOpen, Share2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -373,6 +373,14 @@ export default function Match() {
           </div>
 
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/lobby')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Exit Game
+            </Button>
             {!isPlayer && (
               <Button
                 variant={isSpectating ? "default" : "outline"}
