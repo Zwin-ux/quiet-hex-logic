@@ -332,22 +332,24 @@ Analyze and choose the best move. ${canUsePieRule ? 'Consider whether swapping i
         ],
         tools: [{
           type: 'function',
-          name: 'make_move',
-          description: 'Make a move in the Hex game',
-          parameters: {
-            type: 'object',
-            properties: {
-              move: {
-                type: ['number', 'null'],
-                description: 'Cell index (0 to board_size²-1) or null for pie swap'
+          function: {
+            name: 'make_move',
+            description: 'Make a move in the Hex game',
+            parameters: {
+              type: 'object',
+              properties: {
+                move: {
+                  type: ['number', 'null'],
+                  description: 'Cell index (0 to board_size²-1) or null for pie swap'
+                },
+                reasoning: {
+                  type: 'string',
+                  description: 'Brief explanation of why this move is strong (20-40 words)'
+                }
               },
-              reasoning: {
-                type: 'string',
-                description: 'Brief explanation of why this move is strong (20-40 words)'
-              }
-            },
-            required: ['move', 'reasoning'],
-            additionalProperties: false
+              required: ['move', 'reasoning'],
+              additionalProperties: false
+            }
           }
         }],
         tool_choice: { type: 'function', function: { name: 'make_move' } }

@@ -12,6 +12,11 @@ interface HexBoardProps {
   canSwap?: boolean;
 }
 
+interface AnimatedCell {
+  cell: number;
+  timestamp: number;
+}
+
 export const HexBoard = ({ 
   size, 
   board, 
@@ -24,6 +29,24 @@ export const HexBoard = ({
 }: HexBoardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
+  const [animatedCells, setAnimatedCells] = useState<AnimatedCell[]>([]);
+  const animationRef = useRef<number>();
+
+  // Track new placements for animation
+  useEffect(() => {
+    if (lastMove !== undefined) {
+      setAnimatedCells(prev => [...prev, { cell: lastMove, timestamp: Date.now() }]);
+    }
+  }, [lastMove]);
+
+  // Clean up old animations
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      const now = Date.now();
+      setAnimatedCells(prev => prev.filter(a => now - a.timestamp < 500));
+    }, 100);
+    return () => clearInterval(cleanup);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -101,9 +124,21 @@ export const HexBoard = ({
         const isWinning = winningPath.includes(cell);
         const isLast = cell === lastMove;
         const isHovered = cell === hoveredCell && !color && !disabled;
+        
+        // Check if this cell is being animated
+        const animatedCell = animatedCells.find(a => a.cell === cell);
+        const animationProgress = animatedCell 
+          ? Math.min(1, (Date.now() - animatedCell.timestamp) / 300)
+          : 1;
+        const scale = animatedCell ? 0.5 + (animationProgress * 0.5) : 1;
 
         if (color === 1) {
-          // Indigo stone
+          // Indigo stone with scale animation
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(scale, scale);
+          ctx.translate(-x, -y);
+          
           ctx.fillStyle = isWinning ? 'hsl(223 45% 35%)' : 'hsl(223 45% 29%)';
           
           // Draw winning path with pulsing glow
@@ -121,8 +156,15 @@ export const HexBoard = ({
             ctx.lineWidth = 3;
             ctx.stroke();
           }
+          
+          ctx.restore();
         } else if (color === 2) {
-          // Ochre stone
+          // Ochre stone with scale animation
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(scale, scale);
+          ctx.translate(-x, -y);
+          
           ctx.fillStyle = isWinning ? 'hsl(40 76% 50%)' : 'hsl(40 76% 43%)';
           
           // Draw winning path with pulsing glow
@@ -140,6 +182,8 @@ export const HexBoard = ({
             ctx.lineWidth = 3;
             ctx.stroke();
           }
+          
+          ctx.restore();
         } else {
           // Empty cell
           ctx.fillStyle = isHovered ? 'hsl(40 60% 85%)' : 'hsl(40 33% 96%)';
@@ -151,13 +195,19 @@ export const HexBoard = ({
       }
     }
     
-    // Re-render animation for winning path glow
-    if (winningPath.length > 0) {
-      requestAnimationFrame(() => {
+    // Re-render animation for winning path glow and placement animations
+    if (winningPath.length > 0 || animatedCells.length > 0) {
+      animationRef.current = requestAnimationFrame(() => {
         setHoveredCell(prev => prev);
       });
     }
-  }, [size, board, lastMove, winningPath, hoveredCell, disabled]);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [size, board, lastMove, winningPath, hoveredCell, disabled, animatedCells]);
 
   // Point-in-hexagon test for accurate click detection
   const pointInHex = (px: number, py: number, cx: number, cy: number, size: number): boolean => {
@@ -261,7 +311,7 @@ export const HexBoard = ({
         onMouseLeave={handleMouseLeave}
         className={`w-full aspect-square ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         style={{ 
-          maxWidth: '600px',
+          maxWidth: '1200px',
           imageRendering: 'crisp-edges'
         }}
       />
