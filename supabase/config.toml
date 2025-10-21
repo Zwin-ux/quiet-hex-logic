@@ -14,3 +14,24 @@ verify_jwt = true
 
 [functions.apply-ai-move]
 verify_jwt = true
+
+[functions.create-lobby]
+verify_jwt = true
+
+[functions.join-lobby]
+verify_jwt = true
+
+[functions.leave-lobby]
+verify_jwt = true
+
+[functions.update-lobby-settings]
+verify_jwt = true
+
+[functions.toggle-lobby-ready]
+verify_jwt = true
+
+[functions.start-lobby-match]
+verify_jwt = true
+
+[functions.rematch-lobby]
+verify_jwt = true

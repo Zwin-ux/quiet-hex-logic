@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
-import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -45,6 +45,7 @@ export default function Match() {
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
+  const [requestingRematch, setRequestingRematch] = useState(false);
 
   // Track presence in this match
   usePresence(user?.id, matchId);
@@ -336,6 +337,33 @@ export default function Match() {
     }
   };
 
+  const handleRematch = async () => {
+    if (!matchId || !isPlayer) return;
+    
+    setRequestingRematch(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('rematch-lobby', {
+        body: { matchId }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success('Rematch lobby created!', {
+        description: `Share code ${data.code} with your opponent`,
+        duration: 6000
+      });
+
+      navigate(`/lobby/${data.lobby.id}`);
+    } catch (error: any) {
+      toast.error('Failed to create rematch', {
+        description: error.message
+      });
+    } finally {
+      setRequestingRematch(false);
+    }
+  };
+
   if (!match || !engine) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -379,6 +407,17 @@ export default function Match() {
           </div>
 
           <div className="flex gap-2">
+            {match.status === 'finished' && !isAIMatch && isPlayer && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleRematch}
+                disabled={requestingRematch}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {requestingRematch ? 'Creating...' : 'Rematch'}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
