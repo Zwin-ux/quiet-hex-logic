@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Clock } from 'lucide-react';
+import { memo } from 'react';
 
 interface PlayerPanelProps {
   username: string;
@@ -10,7 +11,7 @@ interface PlayerPanelProps {
   isAI?: boolean;
 }
 
-export const PlayerPanel = ({ 
+const PlayerPanelComponent = ({ 
   username, 
   color, 
   isCurrentTurn,
@@ -81,3 +82,5 @@ export const PlayerPanel = ({
     </div>
   );
 };
+
+export const PlayerPanel = memo(PlayerPanelComponent);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { Button } from './ui/button';
 import { BoardSkin, getDefaultSkin } from '@/lib/boardSkins';
 
@@ -19,7 +19,7 @@ interface AnimatedCell {
   timestamp: number;
 }
 
-export const HexBoard = ({ 
+const HexBoardComponent = ({ 
   size, 
   board, 
   lastMove, 
@@ -34,6 +34,8 @@ export const HexBoard = ({
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
   const [animatedCells, setAnimatedCells] = useState<AnimatedCell[]>([]);
   const animationRef = useRef<number>();
+  const lastRenderTime = useRef<number>(0);
+  const mouseMoveTimeout = useRef<number>();
 
   // Track new placements for animation
   useEffect(() => {
@@ -55,15 +57,32 @@ export const HexBoard = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    // Set canvas size for retina displays
+    const now = Date.now();
+    const shouldAnimate = winningPath.length > 0 || animatedCells.length > 0;
+    
+    // Throttle animations to 30fps for better performance
+    if (shouldAnimate && now - lastRenderTime.current < 33) {
+      animationRef.current = requestAnimationFrame(() => {
+        setHoveredCell(prev => prev);
+      });
+      return;
+    }
+    lastRenderTime.current = now;
+
+    // Set canvas size for retina displays (only if dimensions changed)
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    const newWidth = rect.width * dpr;
+    const newHeight = rect.height * dpr;
+    
+    if (canvas.width !== newWidth || canvas.height !== newHeight) {
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      ctx.scale(dpr, dpr);
+    }
 
     // Calculate hex dimensions
     const padding = 40;
@@ -198,7 +217,7 @@ export const HexBoard = ({
     }
     
     // Re-render animation for winning path glow and placement animations
-    if (winningPath.length > 0 || animatedCells.length > 0) {
+    if (shouldAnimate) {
       animationRef.current = requestAnimationFrame(() => {
         setHoveredCell(prev => prev);
       });
@@ -209,7 +228,7 @@ export const HexBoard = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [size, board, lastMove, winningPath, hoveredCell, disabled, animatedCells]);
+  }, [size, board, lastMove, winningPath, hoveredCell, disabled, animatedCells, skin]);
 
   // Point-in-hexagon test for accurate click detection
   const pointInHex = (px: number, py: number, cx: number, cy: number, size: number): boolean => {
@@ -260,49 +279,59 @@ export const HexBoard = ({
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (disabled) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const padding = 40;
-    const availableWidth = rect.width - 2 * padding;
-    const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
-    const hexHeight = Math.sqrt(3) * hexRadius;
-
-    const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
-    const offsetX = (rect.width - boardWidth) / 2;
-    const offsetY = (rect.height - size * hexHeight) / 2;
-
-    let hovering: number | null = null;
-
-    for (let row = 0; row < size; row++) {
-      for (let col = 0; col < size; col++) {
-        const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
-        const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-        
-        if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
-          const cell = row * size + col;
-          if (!board[cell]) {
-            hovering = cell;
-          }
-          break;
-        }
-      }
-      if (hovering !== null) break;
+    // Debounce mouse move for better performance
+    if (mouseMoveTimeout.current) {
+      clearTimeout(mouseMoveTimeout.current);
     }
 
-    setHoveredCell(hovering);
-  };
+    mouseMoveTimeout.current = window.setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-  const handleMouseLeave = () => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const padding = 40;
+      const availableWidth = rect.width - 2 * padding;
+      const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
+      const hexHeight = Math.sqrt(3) * hexRadius;
+
+      const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
+      const offsetX = (rect.width - boardWidth) / 2;
+      const offsetY = (rect.height - size * hexHeight) / 2;
+
+      let hovering: number | null = null;
+
+      for (let row = 0; row < size; row++) {
+        for (let col = 0; col < size; col++) {
+          const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
+          const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
+          
+          if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
+            const cell = row * size + col;
+            if (!board[cell]) {
+              hovering = cell;
+            }
+            break;
+          }
+        }
+        if (hovering !== null) break;
+      }
+
+      setHoveredCell(hovering);
+    }, 16); // ~60fps
+  }, [disabled, size, board]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (mouseMoveTimeout.current) {
+      clearTimeout(mouseMoveTimeout.current);
+    }
     setHoveredCell(null);
-  };
+  }, []);
 
   return (
     <div className="relative">
@@ -330,3 +359,18 @@ export const HexBoard = ({
     </div>
   );
 };
+
+export const HexBoard = memo(HexBoardComponent, (prevProps, nextProps) => {
+  // Custom comparison for memo optimization
+  return (
+    prevProps.size === nextProps.size &&
+    prevProps.lastMove === nextProps.lastMove &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.canSwap === nextProps.canSwap &&
+    prevProps.skin === nextProps.skin &&
+    prevProps.board.length === nextProps.board.length &&
+    prevProps.board.every((val, idx) => val === nextProps.board[idx]) &&
+    prevProps.winningPath?.length === nextProps.winningPath?.length &&
+    prevProps.winningPath?.every((val, idx) => val === nextProps.winningPath[idx])
+  );
+});

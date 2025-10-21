@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -89,7 +89,7 @@ export default function Match() {
     };
   }, [matchId, user]);
 
-  const loadBoardSkin = async () => {
+  const loadBoardSkin = useCallback(async () => {
     if (!user) return;
     try {
       const { data } = await supabase
@@ -103,9 +103,9 @@ export default function Match() {
     } catch (error) {
       console.error('Failed to load board skin:', error);
     }
-  };
+  }, [user]);
 
-  const loadMatch = async () => {
+  const loadMatch = useCallback(async () => {
     if (!matchId) return;
 
     // Load match data
@@ -192,10 +192,10 @@ export default function Match() {
       const isAITurn = isAIMatch && currentColor === 2;
       
       if (isAITurn && !hexEngine.winner()) {
-        setTimeout(() => makeAIMove(hexEngine, matchData), 800);
+      setTimeout(() => makeAIMove(hexEngine, matchData), 800);
       }
     }
-  };
+  }, [matchId, navigate]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
     setIsAIThinking(true);
@@ -235,7 +235,7 @@ export default function Match() {
     }
   };
 
-  const handleCellClick = async (cell: number) => {
+  const handleCellClick = useCallback(async (cell: number) => {
     if (!engine || !match || !user) return;
 
     // Spectators can't make moves
@@ -283,9 +283,9 @@ export default function Match() {
       console.error('Move error:', error);
       toast.error('Failed to make move');
     }
-  };
+  }, [engine, match, user, players, isSpectating, loadMatch]);
 
-  const handleSwapColors = async () => {
+  const handleSwapColors = useCallback(async () => {
     if (!engine || !match || !user) return;
 
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
@@ -318,7 +318,7 @@ export default function Match() {
       console.error('Swap error:', error);
       toast.error('Failed to swap colors');
     }
-  };
+  }, [engine, match, user, players, loadMatch]);
 
   const handleToggleSpectate = async () => {
     if (!user) return;
@@ -347,11 +347,11 @@ export default function Match() {
     );
   }
 
-  const player1 = players.find(p => p.color === 1);
-  const player2 = players.find(p => p.color === 2);
-  const currentColor = match.turn % 2 === 1 ? 1 : 2;
-  const currentPlayer = players.find(p => p.color === currentColor);
-  const userPlayer = players.find(p => p.profile_id === user?.id);
+  const player1 = useMemo(() => players.find(p => p.color === 1), [players]);
+  const player2 = useMemo(() => players.find(p => p.color === 2), [players]);
+  const currentColor = useMemo(() => match.turn % 2 === 1 ? 1 : 2, [match.turn]);
+  const currentPlayer = useMemo(() => players.find(p => p.color === currentColor), [players, currentColor]);
+  const userPlayer = useMemo(() => players.find(p => p.profile_id === user?.id), [players, user?.id]);
   const isPlayer = !!userPlayer;
   const isAIMatch = match.ai_difficulty != null;
 
