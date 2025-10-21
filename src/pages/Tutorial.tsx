@@ -89,46 +89,39 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 
 export default function Tutorial() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [tutorialMatchId, setTutorialMatchId] = useState<string | null>(null);
-  const [moves, setMoves] = useState<any[]>([]);
+  const [board, setBoard] = useState<Uint8Array>(new Uint8Array(49)); // 7x7 board
+  const [lastMove, setLastMove] = useState<number | undefined>(undefined);
   const navigate = useNavigate();
   
   const step = TUTORIAL_STEPS[currentStep];
 
+  // Reset board when step changes
   useEffect(() => {
-    // Create a tutorial match when we reach an interactive step
-    if (step.showBoard && step.allowInteraction && !tutorialMatchId) {
-      createTutorialMatch();
-    }
+    const size = step.boardSize || 7;
+    setBoard(new Uint8Array(size * size));
+    setLastMove(undefined);
   }, [currentStep]);
 
-  const createTutorialMatch = async () => {
-    try {
-      // Create a guest match (owner is null)
-      const { data: match, error: matchError } = await supabase
-        .from('matches')
-        .insert({
-          owner: null, // Guest match
-          size: step.boardSize || 7,
-          pie_rule: false,
-          status: 'active',
-        })
-        .select()
-        .single();
-
-      if (matchError) throw matchError;
-      setTutorialMatchId(match.id);
-    } catch (error: any) {
-      console.error('Failed to create tutorial match:', error);
-      toast.error('Failed to initialize tutorial board');
+  const handleCellClick = (cell: number) => {
+    if (!step.allowInteraction || board[cell] !== 0) return;
+    
+    // Place a stone
+    const newBoard = new Uint8Array(board);
+    newBoard[cell] = 1; // Indigo stone
+    setBoard(newBoard);
+    setLastMove(cell);
+    
+    // Check if it's the expected move
+    if (step.expectedMoves && step.expectedMoves.includes(cell)) {
+      toast.success('Great move!', { description: 'You placed a stone correctly' });
+    } else if (step.expectedMoves) {
+      toast('Try clicking the center hexagon', { description: 'Follow the instruction' });
     }
   };
 
   const handleNext = () => {
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
-      setTutorialMatchId(null);
-      setMoves([]);
     } else {
       // Tutorial complete - offer options
       navigate('/lobby');
@@ -138,8 +131,6 @@ export default function Tutorial() {
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      setTutorialMatchId(null);
-      setMoves([]);
     }
   };
 
@@ -291,22 +282,13 @@ export default function Tutorial() {
           {step.showBoard && (
             <Card className="p-8 shadow-paper border-2 border-border">
               <div className="flex items-center justify-center">
-                {tutorialMatchId ? (
-                  <HexBoard
-                    size={step.boardSize || 7}
-                    board={new Uint8Array((step.boardSize || 7) * (step.boardSize || 7))}
-                    disabled={!step.allowInteraction}
-                  />
-                ) : (
-                  <div className="w-full aspect-square flex items-center justify-center bg-muted/20 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4 opacity-20">⬡</div>
-                      <p className="text-muted-foreground font-body">
-                        {step.boardSize}×{step.boardSize} Board
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <HexBoard
+                  size={step.boardSize || 7}
+                  board={board}
+                  lastMove={lastMove}
+                  onCellClick={step.allowInteraction ? handleCellClick : undefined}
+                  disabled={!step.allowInteraction}
+                />
               </div>
               
               {step.allowInteraction && (
