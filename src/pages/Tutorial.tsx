@@ -95,6 +95,20 @@ export default function Tutorial() {
   
   const step = TUTORIAL_STEPS[currentStep];
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' && currentStep < TUTORIAL_STEPS.length - 1) {
+        setCurrentStep(prev => prev + 1);
+      } else if (e.key === 'ArrowLeft' && currentStep > 0) {
+        setCurrentStep(prev => prev - 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentStep]);
+
   // Reset board when step changes
   useEffect(() => {
     const size = step.boardSize || 7;
@@ -136,7 +150,7 @@ export default function Tutorial() {
 
   const handlePlayAsGuest = async () => {
     try {
-      // Create a guest AI match
+      // Create a guest AI match with Easy difficulty
       const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert({
@@ -144,6 +158,7 @@ export default function Tutorial() {
           size: 7,
           pie_rule: false,
           status: 'active',
+          ai_difficulty: 'easy',
         })
         .select()
         .single();
