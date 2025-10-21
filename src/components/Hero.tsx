@@ -33,13 +33,9 @@ const Hero = () => {
 
       {/* Hero content */}
       <div className="relative z-20 max-w-5xl mx-auto px-6 text-center">
-        <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8 text-ink tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+        <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-12 text-ink tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
           Hexology
         </h1>
-        
-        <p className="text-xl md:text-2xl text-ink/70 mb-12 max-w-3xl mx-auto leading-relaxed font-body animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-          Connect your sides. Play against friends or AI. Watch live matches.
-        </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Button 
@@ -70,9 +66,6 @@ const Hero = () => {
           </Button>
         </div>
 
-        <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground font-mono animate-in fade-in duration-700 delay-500">
-          <span>Free • No ads</span>
-        </div>
       </div>
 
       {/* Scroll indicator */}

@@ -3,10 +3,9 @@ import { Button } from "@/components/ui/button";
 
 const LearnMode = () => {
   const steps = [
-    { number: 1, title: "Place a stone", description: "Choose your side and make your first move" },
-    { number: 2, title: "Connect your sides", description: "Build an unbroken path from edge to edge" },
-    { number: 3, title: "The pie rule", description: "Balance ensures fairness from the first move" },
-    { number: 4, title: "You're ready", description: "Every move is a question. The board will answer." }
+    { number: 1, title: "Place a stone", description: "Make your first move" },
+    { number: 2, title: "Connect your sides", description: "Build a path from edge to edge" },
+    { number: 3, title: "Win the game", description: "Complete your connection first" }
   ];
 
   const handleStartTutorial = () => {
@@ -20,7 +19,7 @@ const LearnMode = () => {
           Learn to Play
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-16">
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
           {steps.map((step, idx) => (
             <Card 
               key={step.number}

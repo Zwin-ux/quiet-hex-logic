@@ -1,52 +1,46 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, Puzzle, Eye, Archive, ArrowRight } from "lucide-react";
+import { Users, Puzzle, Eye, Archive } from "lucide-react";
 
 const FriendsSection = () => {
   const features = [
     {
       icon: Users,
-      title: "Study Together",
-      description: "Share puzzles and opening patterns with friends.",
-      badge: "Collaborative"
+      title: "Multiplayer",
+      description: "Play with friends or online opponents",
+      badge: "Social"
     },
     {
       icon: Puzzle,
-      title: "Casual Duels",
-      description: "Invite via short code, no account required.",
-      badge: "Quick Start"
+      title: "AI Opponents",
+      description: "Practice against AI with multiple difficulty levels",
+      badge: "Practice"
     },
     {
       icon: Eye,
-      title: "Spectator Room",
-      description: "Watch two AIs or humans play slowly with commentary.",
-      badge: "Observe"
+      title: "Spectate",
+      description: "Watch live games",
+      badge: "Watch"
     },
     {
       icon: Archive,
-      title: "Friend Archive",
-      description: "Every finished match gets saved with turn-by-turn replay.",
-      badge: "Memory"
+      title: "Match History",
+      description: "Review past games",
+      badge: "Replay"
     }
   ];
 
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-background to-accent/20">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="font-body text-5xl md:text-6xl font-semibold text-foreground mb-6">
-            Quiet Camaraderie
+          <h2 className="font-body text-4xl md:text-5xl font-semibold text-foreground mb-6">
+            Features
           </h2>
-          <p className="text-xl md:text-2xl text-muted-foreground font-body max-w-2xl mx-auto leading-relaxed">
-            Academic companionship instead of hyper-competitive leaderboards.
-          </p>
         </div>
 
         {/* Feature Grid */}
-        <div className="grid md:grid-cols-2 gap-6 mb-16">
+        <div className="grid md:grid-cols-2 gap-6">
           {features.map((feature, idx) => {
             const Icon = feature.icon;
             return (
@@ -77,44 +71,6 @@ const FriendsSection = () => {
               </Card>
             );
           })}
-        </div>
-
-        {/* Example Friend Card */}
-        <div className="max-w-md mx-auto">
-          <Card className="p-8 border-2 border-indigo/20 shadow-paper hover:shadow-medium transition-all duration-300">
-            <div className="flex items-start gap-4 mb-6">
-              <Avatar className="h-16 w-16 border-2 border-indigo">
-                <AvatarFallback className="bg-indigo text-primary-foreground text-xl font-body">
-                  AM
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                <h4 className="font-body text-xl font-semibold text-foreground mb-1">
-                  A. Mathematician
-                </h4>
-                <p className="text-sm text-muted-foreground font-mono mb-2">
-                  Favorite size: 11 × 11
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-ochre animate-gentle-pulse" />
-                  <span className="text-xs font-mono text-muted-foreground">
-                    Studying
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="pt-4 border-t border-border">
-              <p className="text-sm text-muted-foreground font-mono mb-4">
-                Last move: <span className="text-foreground">E7</span> → building bridge
-              </p>
-              <Button variant="outline" className="w-full gap-2 group">
-                Watch Game
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </div>
-          </Card>
         </div>
       </div>
     </section>
