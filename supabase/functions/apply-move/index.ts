@@ -60,8 +60,10 @@ class HexValidator {
     }
     
     if (cell === null) {
+      // Pie rule: swap all stones on the board
       this.board = this.board.map(c => c === 1 ? 2 : c === 2 ? 1 : 0) as (0 | 1 | 2)[];
-      this.turn = 3;
+      // After swap, increment turn normally (next player's turn)
+      this.turn++;
       return;
     }
     

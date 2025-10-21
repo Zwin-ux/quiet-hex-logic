@@ -20,6 +20,7 @@ interface MatchData {
   status: string;
   turn: number;
   winner: number | null;
+  ai_difficulty?: 'easy' | 'medium' | 'hard' | 'expert' | null;
 }
 
 interface Player {
@@ -153,7 +154,9 @@ export default function Match() {
 
     // Check if AI should play
     if (matchData.status === 'active' && playersData) {
-      const currentPlayer = playersData.find(p => p.color === matchData.turn);
+      // Convert turn number to color (odd turns = color 1, even turns = color 2)
+      const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
+      const currentPlayer = playersData.find(p => p.color === currentColor);
       if (currentPlayer?.is_bot && !hexEngine.winner()) {
         setTimeout(() => makeAIMove(hexEngine, matchData), 1200);
       }
@@ -167,7 +170,10 @@ export default function Match() {
     try {
       // Call AI edge function to get move suggestion
       const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-move', {
-        body: { matchId: matchData.id }
+        body: {
+          matchId: matchData.id,
+          difficulty: matchData.ai_difficulty || 'medium'
+        }
       });
 
       if (aiError) throw aiError;

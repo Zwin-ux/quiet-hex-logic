@@ -242,7 +242,32 @@ export class Hex {
     copy.turn = this.turn;
     copy.ply = this.ply;
     copy.swapped = this.swapped;
-    // Note: DSU state will be rebuilt from board state if needed
+
+    // Rebuild DSU state from board position
+    for (let i = 0; i < this.board.length; i++) {
+      const color = this.board[i];
+      if (color === 0) continue;
+
+      const dsu = color === 1 ? copy.dsu1 : copy.dsu2;
+
+      // Union with same-color neighbors
+      for (const nb of copy.neighbors(i)) {
+        if (copy.board[nb] === color) {
+          dsu.union(i, nb);
+        }
+      }
+
+      // Connect to borders if on edge
+      const [c, r] = copy.coords(i);
+      if (color === 1) {
+        if (c === 0) dsu.union(i, copy.v1a);
+        if (c === this.n - 1) dsu.union(i, copy.v1b);
+      } else {
+        if (r === 0) dsu.union(i, copy.v2a);
+        if (r === this.n - 1) dsu.union(i, copy.v2b);
+      }
+    }
+
     return copy;
   }
 

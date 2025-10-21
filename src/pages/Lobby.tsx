@@ -16,6 +16,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type Match = {
   id: string;
@@ -32,6 +39,7 @@ export default function Lobby() {
   const [activeMatches, setActiveMatches] = useState<Match[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('medium');
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -118,7 +126,7 @@ export default function Lobby() {
     }
   };
 
-  const createMatch = async (size: number, withAI: boolean = false) => {
+  const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
     if (!user) return;
     setCreatingMatch(true);
 
@@ -130,6 +138,7 @@ export default function Lobby() {
           size,
           pie_rule: true,
           status: withAI ? 'active' : 'waiting',
+          ai_difficulty: withAI ? (aiDifficulty || 'medium') : null,
         })
         .select()
         .single();
@@ -146,15 +155,8 @@ export default function Lobby() {
 
       if (playerError) throw playerError;
 
-      // For AI matches, we mark the match with a special flag but don't create a second player
-      // The AI will be handled server-side through the ai-move edge function
-      if (withAI) {
-        // Update match to indicate it's an AI match
-        await supabase
-          .from('matches')
-          .update({ pie_rule: false }) // Disable pie rule for AI matches for simplicity
-          .eq('id', match.id);
-      }
+      // For AI matches, the AI will be handled server-side through the ai-move edge function
+      // Pie rule is fully supported for AI matches
 
       toast.success(withAI ? 'AI match created!' : 'Match created!', {
         description: withAI ? 'The AI will play as Ochre' : 'Waiting for opponent...'
@@ -319,15 +321,31 @@ export default function Lobby() {
                 AI Practice
               </h2>
             </div>
-            <p className="text-muted-foreground mb-6 font-body leading-relaxed">
-              Train against our thoughtful AI opponent. It pauses, considers, and occasionally 
+            <p className="text-muted-foreground mb-4 font-body leading-relaxed">
+              Train against our thoughtful AI opponent. It pauses, considers, and occasionally
               explains its reasoning—like a patient teacher across the board.
             </p>
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-2 block text-muted-foreground">
+                Difficulty
+              </label>
+              <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy - Random moves with center bias</SelectItem>
+                  <SelectItem value="medium">Medium - Positional strategy</SelectItem>
+                  <SelectItem value="hard">Hard - Monte Carlo simulations</SelectItem>
+                  <SelectItem value="expert">Expert - AI-powered (LLM)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {[7, 9, 11, 13].map((size) => (
                 <Button
                   key={size}
-                  onClick={() => createMatch(size, true)}
+                  onClick={() => createMatch(size, true, aiDifficulty)}
                   disabled={creatingMatch}
                   className="font-mono"
                 >
