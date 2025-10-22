@@ -121,7 +121,7 @@ class HexAI {
     return { move: bestMove, reasoning };
   }
 
-  // Hard AI: Monte Carlo simulation
+  // Hard AI: Tactical evaluation with threat detection
   getHardMove(canUsePieRule: boolean): { move: number | null, reasoning: string } {
     const empty = this.getEmptyCells();
     if (empty.length === 0) return { move: null, reasoning: 'No moves available' };
@@ -134,44 +134,80 @@ class HexAI {
           const [c, r] = this.coords(i);
           const dist = Math.abs(c - center) + Math.abs(r - center);
           if (dist <= 2) {
-            return { move: null, reasoning: 'Swapping - simulations favor color swap.' };
+            return { move: null, reasoning: 'Swapping - opponent took strong position.' };
           }
         }
       }
     }
 
     const currentColor = this.turn % 2 === 1 ? 1 : 2;
-    const simulations = Math.min(40, empty.length * 4);
-    const scores = new Map<number, number>();
-    const counts = new Map<number, number>();
+    const opponentColor = currentColor === 1 ? 2 : 1;
 
+    // Check for immediate winning move
     for (const move of empty) {
-      scores.set(move, 0);
-      counts.set(move, 0);
-    }
-
-    for (let i = 0; i < simulations; i++) {
-      const move = empty[Math.floor(Math.random() * empty.length)];
-      const score = Math.random(); // Simplified: real implementation would simulate to end
-
-      scores.set(move, (scores.get(move) || 0) + score);
-      counts.set(move, (counts.get(move) || 0) + 1);
-    }
-
-    let bestMove = empty[0];
-    let bestWinRate = -1;
-
-    for (const move of empty) {
-      const count = counts.get(move) || 1;
-      const winRate = (scores.get(move) || 0) / count;
-
-      if (winRate > bestWinRate) {
-        bestWinRate = winRate;
-        bestMove = move;
+      const testBoard = [...this.board];
+      testBoard[move] = currentColor;
+      if (this.checkWinner(testBoard, currentColor)) {
+        return { move, reasoning: 'Winning move!' };
       }
     }
 
-    return { move: bestMove, reasoning: 'Monte Carlo analysis shows highest win probability here.' };
+    // Check for blocking opponent's winning threat
+    for (const move of empty) {
+      const testBoard = [...this.board];
+      testBoard[move] = opponentColor;
+      if (this.checkWinner(testBoard, opponentColor)) {
+        return { move, reasoning: 'Blocking critical opponent threat!' };
+      }
+    }
+
+    // Use medium strategy with enhanced scoring
+    return this.getMediumMove(canUsePieRule);
+  }
+
+  // Simple winner check for threat detection
+  checkWinner(board: number[], color: number): boolean {
+    const start = color === 1 ? 
+      Array.from({length: this.size}, (_, i) => i * this.size) : // West edge for player 1
+      Array.from({length: this.size}, (_, i) => i); // North edge for player 2
+    
+    const visited = new Set<number>();
+    const queue: number[] = [];
+    
+    for (const cell of start) {
+      if (board[cell] === color) {
+        queue.push(cell);
+        visited.add(cell);
+      }
+    }
+    
+    while (queue.length > 0) {
+      const cell = queue.shift()!;
+      const [col, row] = this.coords(cell);
+      
+      // Check if reached goal
+      if (color === 1 && col === this.size - 1) return true; // East edge
+      if (color === 2 && row === this.size - 1) return true; // South edge
+      
+      // Check neighbors
+      const neighbors = [
+        [1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]
+      ];
+      
+      for (const [dc, dr] of neighbors) {
+        const nc = col + dc;
+        const nr = row + dr;
+        if (nc >= 0 && nc < this.size && nr >= 0 && nr < this.size) {
+          const neighborCell = nr * this.size + nc;
+          if (board[neighborCell] === color && !visited.has(neighborCell)) {
+            visited.add(neighborCell);
+            queue.push(neighborCell);
+          }
+        }
+      }
+    }
+    
+    return false;
   }
 }
 

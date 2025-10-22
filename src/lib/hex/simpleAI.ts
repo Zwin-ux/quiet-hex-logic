@@ -142,19 +142,16 @@ export class SimpleHexAI {
       }
     }
     
-    // Check if we need to block opponent's win
-    for (const cell of emptyCells) {
+    // Check if opponent can win on their next turn (and block it)
+    for (const oppCell of emptyCells) {
       const testGame = this.game.clone();
-      testGame.play(cell); // Skip our turn
+      // Simulate opponent playing this cell
+      const testBoard = new Uint8Array(testGame.board);
+      testBoard[oppCell] = opponentColor;
+      const tempGame = new Hex(testGame.n, testGame.pie, testBoard, testGame.ply);
       
-      // Check if opponent can win
-      const opponentEmptyCells = this.getEmptyCellsForGame(testGame);
-      for (const oppCell of opponentEmptyCells) {
-        const oppTestGame = testGame.clone();
-        oppTestGame.play(oppCell);
-        if (oppTestGame.winner() === opponentColor) {
-          return { cell, reasoning: 'Blocking opponent threat' };
-        }
+      if (tempGame.winner() === opponentColor) {
+        return { cell: oppCell, reasoning: 'Blocking critical opponent threat!' };
       }
     }
     
@@ -165,10 +162,12 @@ export class SimpleHexAI {
   private getNeighbors(cell: number): number[] {
     const [col, row] = this.coords(cell);
     const neighbors: number[] = [];
+    
+    // Hex grid has 6 neighbors - correct directions for axial coordinates
     const directions = [
-      [-1, 0], [1, 0],   // W, E
-      [0, -1], [0, 1],   // NW, SE
-      [-1, 1], [1, -1]   // SW, NE
+      [1, 0], [-1, 0],      // E, W
+      [0, 1], [0, -1],      // SE, NW
+      [1, -1], [-1, 1]      // NE, SW
     ];
     
     for (const [dc, dr] of directions) {

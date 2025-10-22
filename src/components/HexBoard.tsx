@@ -340,11 +340,12 @@ const HexBoardComponent = ({
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className={`aspect-square ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`aspect-square rounded-lg shadow-2xl ring-4 ring-primary/20 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         style={{ 
           width: 'min(92vw, 1400px)',
           maxWidth: '100%',
-          imageRendering: 'crisp-edges'
+          imageRendering: 'crisp-edges',
+          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)'
         }}
       />
       {canSwap && onSwapColors && (
