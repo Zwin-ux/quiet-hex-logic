@@ -1,5 +1,8 @@
 project_id = "ptuxqfwicdpdslqwnswd"
 
+[functions.cleanup-empty-lobbies]
+verify_jwt = false
+
 [functions.ai-move]
 verify_jwt = true
 
