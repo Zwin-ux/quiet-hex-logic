@@ -365,138 +365,129 @@ export default function Lobby() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {/* Create/Join Lobby */}
-          {user && (
-            <>
-              <CreateLobby userId={user.id} />
-              <JoinLobby userId={user.id} />
-            </>
-          )}
-          {/* AI Practice */}
-          <Card className="p-8 shadow-paper border-2 border-border">
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="h-6 w-6 text-ochre" />
-              <h2 className="font-body text-2xl font-semibold text-foreground">
-                AI Practice
-              </h2>
-            </div>
-            <p className="text-muted-foreground mb-4 font-body leading-relaxed">
-              Play against AI
-            </p>
-            <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block text-muted-foreground">
-                Difficulty
-              </label>
-              <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy - Beginner level</SelectItem>
-                  <SelectItem value="medium">Medium - Intermediate strategy</SelectItem>
-                  <SelectItem value="hard">Hard - Advanced tactics</SelectItem>
-                  <SelectItem value="expert">Expert - Master level</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[7, 9, 11, 13].map((size) => (
-                <Button
-                  key={size}
-                  onClick={() => createMatch(size, true, aiDifficulty)}
-                  disabled={creatingMatch}
-                  className="font-mono"
-                >
-                  {size}×{size}
-                </Button>
-              ))}
-            </div>
-          </Card>
-
-          {/* Multiplayer */}
-          <Card className="p-8 shadow-paper border-2 border-border">
-            <div className="flex items-center gap-3 mb-4">
-              <Users className="h-6 w-6 text-indigo" />
-              <h2 className="font-body text-2xl font-semibold text-foreground">
-                Play with Friends
-              </h2>
-            </div>
-            <p className="text-muted-foreground mb-6 font-body leading-relaxed">
-              Create a match and share the code
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {[7, 9, 11, 13].map((size) => (
-                <Button
-                  key={size}
-                  variant="secondary"
-                  onClick={() => createMatch(size, false)}
-                  disabled={creatingMatch}
-                  className="font-mono"
-                >
-                  {size}×{size}
-                </Button>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        {/* Active Matches to Spectate */}
-        {activeMatches.length > 0 && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-body text-2xl font-semibold text-foreground">
-                Live Matches
-              </h2>
-              <Badge variant="outline" className="font-mono">
-                {activeMatches.length} ongoing
-              </Badge>
-            </div>
-            <div className="grid gap-4">
-              {activeMatches.map((match) => (
-                <Card
-                  key={match.id}
-                  className="p-6 flex items-center justify-between shadow-soft hover:shadow-medium transition-all duration-300 border-2 hover:border-ochre/30"
-                >
-                  <div className="flex items-center gap-6">
-                    <div className="text-4xl text-muted-foreground/30">⬡</div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge className="font-mono bg-ochre text-primary-foreground">
-                          {match.size}×{match.size}
-                        </Badge>
-                        <Badge variant="outline" className="font-mono text-xs">
-                          In Progress
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        Started {new Date(match.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                  <SpectateButton matchId={match.id} />
-                </Card>
-              ))}
-            </div>
+        {/* Lobby Creation Section - UX: Horizontal layout for symmetry, clear flow */}
+        {user && (
+          <div className="grid md:grid-cols-2 gap-4 mb-8">
+            <CreateLobby userId={user.id} />
+            <JoinLobby userId={user.id} />
           </div>
         )}
 
-        {/* Waiting Matches */}
+        {/* AI Practice Section - UX: Separated for clarity, full-width for prominence */}
+        <Card className="p-6 shadow-soft border-2 border-border hover:border-ochre/20 transition-all duration-300 mb-12">
+          <div className="flex items-center gap-3 mb-3">
+            <Sparkles className="h-5 w-5 text-ochre" />
+            <h2 className="font-body text-xl font-semibold text-foreground">
+              AI Practice
+            </h2>
+          </div>
+          <p className="text-muted-foreground mb-4 font-body text-sm leading-relaxed">
+            Train against AI opponents with adjustable difficulty
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="sm:w-64">
+              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
+                Difficulty Level
+              </label>
+              <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy - Beginner</SelectItem>
+                  <SelectItem value="medium">Medium - Intermediate</SelectItem>
+                  <SelectItem value="hard">Hard - Advanced</SelectItem>
+                  <SelectItem value="expert">Expert - Master</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
+                Board Size
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[7, 9, 11, 13].map((size) => (
+                  <Button
+                    key={size}
+                    onClick={() => createMatch(size, true, aiDifficulty)}
+                    disabled={creatingMatch}
+                    className="font-mono h-9 font-medium"
+                    variant="secondary"
+                  >
+                    {size}×{size}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Live Matches Section - UX: Enhanced info (board size, players, time), clear CTA */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-body text-xl font-semibold text-foreground">
+              Live Matches
+            </h2>
+            <Badge variant="outline" className="font-mono text-xs">
+              {activeMatches.length} ongoing
+            </Badge>
+          </div>
+          {activeMatches.length === 0 ? (
+            <Card className="p-8 text-center shadow-soft border-2 border-dashed">
+              <div className="text-4xl mb-3 opacity-20">⬡</div>
+              <p className="text-sm text-muted-foreground font-body">
+                No live matches yet — start one above
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {activeMatches.map((match) => {
+                const elapsed = Math.floor((Date.now() - new Date(match.created_at).getTime()) / 60000);
+                return (
+                  <Card
+                    key={match.id}
+                    className="p-4 flex items-center justify-between shadow-soft hover:shadow-medium transition-all duration-300 border hover:border-ochre/40"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="text-3xl text-muted-foreground/30">⬡</div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className="font-mono bg-ochre text-primary-foreground text-xs px-2 py-0.5">
+                            {match.size}×{match.size}
+                          </Badge>
+                          <span className="text-sm font-medium text-muted-foreground">
+                            <span className="text-indigo font-semibold">Indigo</span> vs <span className="text-ochre font-semibold">Ochre</span>
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {elapsed < 1 ? 'Just started' : `${elapsed} min elapsed`}
+                        </p>
+                      </div>
+                    </div>
+                    <SpectateButton matchId={match.id} />
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Open Matches Section - UX: Clear empty state */}
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-body text-2xl font-semibold text-foreground">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-body text-xl font-semibold text-foreground">
               Open Matches
             </h2>
-            <Badge variant="outline" className="font-mono">
+            <Badge variant="outline" className="font-mono text-xs">
               {matches.length} waiting
             </Badge>
           </div>
           
           {matches.length === 0 ? (
-            <Card className="p-12 text-center shadow-soft">
-              <div className="text-6xl mb-4 opacity-20">⬡</div>
-              <p className="text-muted-foreground font-body">
-                No open matches at the moment. Create one above.
+            <Card className="p-8 text-center shadow-soft border-2 border-dashed">
+              <div className="text-4xl mb-3 opacity-20">⬡</div>
+              <p className="text-sm text-muted-foreground font-body">
+                No open matches yet — create one above
               </p>
             </Card>
           ) : (

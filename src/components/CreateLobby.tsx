@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, Copy, Check } from 'lucide-react';
@@ -66,25 +67,25 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
   };
 
   return (
-    <Card className="p-8 shadow-paper border-2 border-border">
-      <div className="flex items-center gap-3 mb-4">
-        <Users className="h-6 w-6 text-indigo" />
-        <h2 className="font-body text-2xl font-semibold text-foreground">
+    <Card className="p-6 shadow-soft border-2 border-border hover:border-indigo/30 transition-all duration-300">
+      <div className="flex items-center gap-3 mb-3">
+        <Users className="h-5 w-5 text-indigo" />
+        <h2 className="font-body text-xl font-semibold text-foreground">
           Create Lobby
         </h2>
       </div>
       
-      <p className="text-muted-foreground mb-6 font-body leading-relaxed">
-        Create a private lobby and share the code with your friend
+      <p className="text-muted-foreground mb-4 font-body text-sm leading-relaxed">
+        Start a private match and share the code
       </p>
 
-      <div className="space-y-4 mb-6">
+      <div className="space-y-3 mb-4">
         <div>
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">
+          <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
             Board Size
           </label>
           <Select value={boardSize.toString()} onValueChange={(v) => setBoardSize(parseInt(v))}>
-            <SelectTrigger>
+            <SelectTrigger className="h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -96,30 +97,24 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
           </Select>
         </div>
 
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div>
-            <p className="font-medium">Pie Rule</p>
-            <p className="text-sm text-muted-foreground">Second player can swap colors</p>
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-card/50">
+          <div className="flex-1">
+            <p className="text-sm font-medium">Pie Rule</p>
+            <p className="text-xs text-muted-foreground">Player 2 can swap colors</p>
           </div>
-          <Button
-            variant={pieRule ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPieRule(!pieRule)}
-          >
-            {pieRule ? 'Enabled' : 'Disabled'}
-          </Button>
+          <Switch checked={pieRule} onCheckedChange={setPieRule} />
         </div>
       </div>
 
       {createdCode ? (
-        <div className="space-y-3">
-          <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/20 text-center">
-            <p className="text-sm text-muted-foreground mb-1">Lobby Code</p>
-            <p className="text-3xl font-mono font-bold tracking-wider text-primary">
+        <div className="space-y-2">
+          <div className="p-3 bg-indigo/5 rounded-lg border-2 border-indigo/20 text-center">
+            <p className="text-xs text-muted-foreground mb-0.5">Lobby Code</p>
+            <p className="text-2xl font-mono font-bold tracking-wider text-indigo">
               {createdCode}
             </p>
           </div>
-          <Button onClick={copyCode} className="w-full gap-2">
+          <Button onClick={copyCode} className="w-full gap-2 h-9">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied!' : 'Copy Code'}
           </Button>
@@ -128,9 +123,9 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
         <Button 
           onClick={createLobby} 
           disabled={creating}
-          className="w-full"
+          className="w-full h-9 font-medium"
         >
-          {creating ? 'Creating...' : 'Create Lobby'}
+          {creating ? 'Creating...' : 'Create & Share'}
         </Button>
       )}
     </Card>

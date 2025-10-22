@@ -43,21 +43,21 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
   };
 
   return (
-    <Card className="p-8 shadow-paper border-2 border-border">
-      <div className="flex items-center gap-3 mb-4">
-        <LogIn className="h-6 w-6 text-ochre" />
-        <h2 className="font-body text-2xl font-semibold text-foreground">
+    <Card className="p-6 shadow-soft border-2 border-border hover:border-ochre/30 transition-all duration-300">
+      <div className="flex items-center gap-3 mb-3">
+        <LogIn className="h-5 w-5 text-ochre" />
+        <h2 className="font-body text-xl font-semibold text-foreground">
           Join Lobby
         </h2>
       </div>
       
-      <p className="text-muted-foreground mb-6 font-body leading-relaxed">
-        Enter a lobby code to join your friend
+      <p className="text-muted-foreground mb-4 font-body text-sm leading-relaxed">
+        Enter a code to join your friend
       </p>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">
+          <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
             Lobby Code
           </label>
           <Input
@@ -65,14 +65,15 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="ABC123"
             maxLength={6}
-            className="font-mono text-lg tracking-wider text-center uppercase"
+            className="font-mono text-base tracking-wider text-center uppercase h-9"
           />
         </div>
 
         <Button 
           onClick={joinLobby} 
           disabled={joining || code.length < 4}
-          className="w-full"
+          className="w-full h-9 font-medium"
+          variant="secondary"
         >
           {joining ? 'Joining...' : 'Join Lobby'}
         </Button>

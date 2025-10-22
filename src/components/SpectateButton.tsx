@@ -14,9 +14,9 @@ export const SpectateButton = ({ matchId }: SpectateButtonProps) => {
       variant="outline"
       size="sm"
       onClick={() => navigate(`/match/${matchId}`)}
-      className="gap-2"
+      className="gap-1.5 h-8 text-xs font-medium hover:bg-ochre/10 hover:text-ochre hover:border-ochre transition-colors"
     >
-      <Eye className="h-4 w-4" />
+      <Eye className="h-3.5 w-3.5" />
       Spectate
     </Button>
   );
