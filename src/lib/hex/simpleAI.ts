@@ -144,13 +144,12 @@ export class SimpleHexAI {
     
     // Check if opponent can win on their next turn (and block it)
     for (const oppCell of emptyCells) {
+      // Simulate opponent playing this cell by cloning and playing directly
       const testGame = this.game.clone();
-      // Simulate opponent playing this cell
-      const testBoard = new Uint8Array(testGame.board);
-      testBoard[oppCell] = opponentColor;
-      const tempGame = new Hex(testGame.n, testGame.pie, testBoard, testGame.ply);
+      // Manually set the cell to test opponent's position
+      testGame.board[oppCell] = opponentColor;
       
-      if (tempGame.winner() === opponentColor) {
+      if (testGame.winner() === opponentColor) {
         return { cell: oppCell, reasoning: 'Blocking critical opponent threat!' };
       }
     }

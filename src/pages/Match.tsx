@@ -30,6 +30,7 @@ interface Player {
   color: number;
   is_bot: boolean;
   username: string;
+  avatar_color?: string;
 }
 
 export default function Match() {
@@ -131,7 +132,7 @@ export default function Match() {
         profile_id,
         color,
         is_bot,
-        profiles!inner(username)
+        profiles!inner(username, avatar_color)
       `)
       .eq('match_id', matchId);
 
@@ -140,7 +141,8 @@ export default function Match() {
         profile_id: p.profile_id,
         color: p.color,
         is_bot: p.is_bot,
-        username: (p.profiles as any).username
+        username: (p.profiles as any).username,
+        avatar_color: (p.profiles as any).avatar_color || 'indigo'
       }));
       
       // For AI matches, add synthetic AI player as color 2
@@ -150,7 +152,8 @@ export default function Match() {
           profile_id: 'ai-player',
           color: 2,
           is_bot: true,
-          username: `Computer (${difficultyLabel})`
+          username: `Computer (${difficultyLabel})`,
+          avatar_color: 'slate'
         });
       }
       
@@ -456,6 +459,7 @@ export default function Match() {
                 color={1}
                 isCurrentTurn={currentColor === 1 && match.status === 'active'}
                 isAI={player1.is_bot}
+                avatarColor={player1.avatar_color}
               />
             )}
           </div>
@@ -519,6 +523,7 @@ export default function Match() {
                 color={2}
                 isCurrentTurn={currentColor === 2 && match.status === 'active'}
                 isAI={player2.is_bot}
+                avatarColor={player2.avatar_color}
               />
             )}
 

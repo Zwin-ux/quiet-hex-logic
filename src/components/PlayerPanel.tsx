@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import { Clock } from 'lucide-react';
 import { memo } from 'react';
 
@@ -9,6 +9,7 @@ interface PlayerPanelProps {
   isCurrentTurn: boolean;
   timeRemaining?: number;
   isAI?: boolean;
+  avatarColor?: string;
 }
 
 const PlayerPanelComponent = ({ 
@@ -16,7 +17,8 @@ const PlayerPanelComponent = ({
   color, 
   isCurrentTurn,
   timeRemaining,
-  isAI = false
+  isAI = false,
+  avatarColor = 'indigo'
 }: PlayerPanelProps) => {
   const colorName = color === 1 ? 'Indigo' : 'Ochre';
   const colorClass = color === 1 ? 'bg-indigo text-primary-foreground' : 'bg-ochre text-secondary-foreground';
@@ -47,11 +49,11 @@ const PlayerPanelComponent = ({
       )}
 
       <div className="flex items-center gap-4">
-        <Avatar className="h-14 w-14 border-2 border-border">
-          <AvatarFallback className={colorClass}>
-            {username.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar 
+          username={username}
+          color={avatarColor}
+          size="lg"
+        />
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">

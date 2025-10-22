@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserStats } from '@/hooks/useUserStats';
 import { useAchievements } from '@/hooks/useAchievements';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { UserAvatar } from '@/components/UserAvatar';
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { boardSkins } from '@/lib/boardSkins';
 import { toast } from 'sonner';
@@ -26,6 +27,27 @@ export default function Profile() {
   const navigate = useNavigate();
   const [selectedSkin, setSelectedSkin] = useState('classic');
   const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<{ username: string; avatar_color: string; bio: string } | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('username, avatar_color, bio, board_skin')
+      .eq('id', user.id)
+      .single();
+
+    if (data) {
+      setProfile(data as any);
+      setSelectedSkin(data.board_skin || 'classic');
+    }
+  };
 
   if (statsLoading || achievementsLoading) {
     return (
@@ -73,15 +95,32 @@ export default function Profile() {
             <ArrowLeft className="h-4 w-4" />
             Back to Lobby
           </Button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-body text-5xl font-bold mb-3 bg-gradient-to-br from-indigo to-ochre bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {user?.user_metadata?.username || 'Your Profile'}
-              </h1>
-              <p className="text-muted-foreground font-mono text-lg">
-                Stats and settings
-              </p>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-6">
+              <UserAvatar 
+                username={profile?.username || 'User'}
+                color={profile?.avatar_color || 'indigo'}
+                size="xl"
+              />
+              <div>
+                <h1 className="font-body text-5xl font-bold mb-2 bg-gradient-to-br from-indigo to-ochre bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  {profile?.username || 'Your Profile'}
+                </h1>
+                {profile?.bio && (
+                  <p className="text-muted-foreground font-mono">
+                    {profile.bio}
+                  </p>
+                )}
+              </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/profile/edit')}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Edit Profile
+            </Button>
           </div>
         </div>
 

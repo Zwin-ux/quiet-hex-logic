@@ -13,6 +13,7 @@ import Friends from "./pages/Friends";
 import History from "./pages/History";
 import Replay from "./pages/Replay";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 import Tutorial from "./pages/Tutorial";
 import LobbyView from "./pages/LobbyView";
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/history" element={<History />} />
           <Route path="/replay/:matchId" element={<Replay />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
