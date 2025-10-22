@@ -374,21 +374,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_color: string | null
+          bio: string | null
           board_skin: string | null
           created_at: string | null
           id: string
+          last_online: string | null
           username: string
         }
         Insert: {
+          avatar_color?: string | null
+          bio?: string | null
           board_skin?: string | null
           created_at?: string | null
           id: string
+          last_online?: string | null
           username: string
         }
         Update: {
+          avatar_color?: string | null
+          bio?: string | null
           board_skin?: string | null
           created_at?: string | null
           id?: string
+          last_online?: string | null
           username?: string
         }
         Relationships: []
@@ -549,22 +558,10 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
-      find_lobby_by_code: {
-        Args: { lobby_code: string }
-        Returns: string
-      }
-      find_match_by_code: {
-        Args: { code: string }
-        Returns: string
-      }
-      generate_lobby_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_match_code: {
-        Args: { match_uuid: string }
-        Returns: string
-      }
+      find_lobby_by_code: { Args: { lobby_code: string }; Returns: string }
+      find_match_by_code: { Args: { code: string }; Returns: string }
+      generate_lobby_code: { Args: never; Returns: string }
+      generate_match_code: { Args: { match_uuid: string }; Returns: string }
       is_blocked: {
         Args: { _blocked: string; _blocker: string }
         Returns: boolean

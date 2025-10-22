@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { UserAvatar } from '@/components/UserAvatar';
+import { Check } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
@@ -13,11 +15,18 @@ const authSchema = z.object({
   username: z.string().min(2, 'Username must be at least 2 characters').max(24, 'Username must be less than 24 characters').optional(),
 });
 
+const avatarColors = [
+  'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose',
+  'red', 'orange', 'amber', 'yellow', 'lime', 'green',
+  'emerald', 'teal', 'cyan', 'sky', 'blue'
+] as const;
+
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [avatarColor, setAvatarColor] = useState<string>('indigo');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { user, signUp, signIn } = useAuth();
@@ -43,7 +52,7 @@ export default function Auth() {
       authSchema.parse(data);
 
       const { error } = isSignUp
-        ? await signUp(email, password, username)
+        ? await signUp(email, password, username, avatarColor)
         : await signIn(email, password);
 
       if (error) {
@@ -86,18 +95,49 @@ export default function Auth() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
-              <div>
-                <Label htmlFor="username" className="text-ink">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="player_name"
-                  className="mt-1 bg-paper border-graphite/30"
-                  required
-                />
-              </div>
+              <>
+                <div>
+                  <Label htmlFor="username" className="text-ink">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="player_name"
+                    className="mt-1 bg-paper border-graphite/30"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-ink mb-3 block">Choose Your Avatar Color</Label>
+                  <div className="grid grid-cols-6 gap-2">
+                    {avatarColors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setAvatarColor(color)}
+                        className="relative aspect-square rounded-lg border-2 hover:scale-110 transition-transform"
+                        style={{
+                          borderColor: avatarColor === color ? 'var(--primary)' : 'var(--border)'
+                        }}
+                      >
+                        <UserAvatar 
+                          username={username || 'AA'} 
+                          color={color} 
+                          size="sm"
+                          className="w-full h-full"
+                        />
+                        {avatarColor === color && (
+                          <div className="absolute -top-1 -right-1 bg-primary rounded-full p-0.5">
+                            <Check className="h-3 w-3 text-primary-foreground" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
 
             <div>
