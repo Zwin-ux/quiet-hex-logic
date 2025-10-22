@@ -50,10 +50,10 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     id: 4,
     title: 'Building Connections',
     description: 'Your goal is to create an unbroken chain of your colored stones from one side to the opposite side.',
-    instruction: 'Adjacent stones of the same color form connections. Try to visualize paths across the board.',
+    instruction: '💡 Adjacent stones of the same color form connections. Try placing stones to visualize paths across the board.',
     boardSize: 7,
     showBoard: true,
-    allowInteraction: false,
+    allowInteraction: true,
   },
   {
     id: 5,
@@ -186,7 +186,6 @@ export default function Tutorial() {
       <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-ochre" />
             <h1 className="font-body text-2xl font-semibold text-foreground">
               Tutorial
             </h1>
