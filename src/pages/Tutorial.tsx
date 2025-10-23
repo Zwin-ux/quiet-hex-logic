@@ -61,16 +61,16 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 4,
     title: 'Your Turn: Build a Bridge',
-    description: 'Now you try! Complete the Indigo path from West to East. You need to place 3 stones to connect the existing pieces.',
-    instruction: 'Click to place Indigo stones and connect West to East',
+    description: 'Now you try! Complete the Indigo path from West to East by connecting these stones together.',
+    instruction: 'Click to place Indigo stones and complete the connection',
     boardSize: 5,
     showBoard: true,
     allowInteraction: true,
     winCondition: 'connect',
     prefilledBoard: [
-      [0, 1], [11, 1], [24, 1] // West, middle, East - player must connect them
+      [0, 1], [6, 1], [18, 1], [24, 1] // West to East with gaps to fill
     ],
-    maxMoves: 8,
+    maxMoves: 6,
   },
   {
     id: 5,
