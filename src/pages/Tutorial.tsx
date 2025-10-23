@@ -191,26 +191,24 @@ export default function Tutorial() {
     setHasWon(false);
     setHasFailed(false);
     
-    // Create engine with prefilled state
-    const newEngine = new Hex(size, true);
+    // Create engine and apply prefilled state deterministically (no turn alternation)
+    const baseEngine = new Hex(size, true);
     if (step.prefilledBoard) {
-      step.prefilledBoard.forEach(([cell]) => {
-        try {
-          newEngine.play(cell);
-        } catch (e) {
-          // Skip if move is invalid
-        }
+      step.prefilledBoard.forEach(([cell, color]) => {
+        baseEngine.board[cell] = color as 1 | 2;
       });
     }
-    
-    // Check if prefilled board already shows a win
-    const winner = newEngine.winner();
-    if (winner && step.prefilledBoard && !step.allowInteraction) {
-      const path = newEngine.getWinningPath();
+    // Rebuild connectivity from board state
+    const rebuilt = baseEngine.clone();
+
+    // If prefilled board already shows a win and step is non-interactive, show the path
+    const winner = rebuilt.winner();
+    if (winner && !step.allowInteraction) {
+      const path = rebuilt.getWinningPath();
       setWinningPath(path || []);
     }
-    
-    setEngine(newEngine);
+
+    setEngine(rebuilt);
   }, [currentStep]);
 
   const handleCellClick = (cell: number) => {
@@ -219,33 +217,22 @@ export default function Tutorial() {
     const newMoveCount = moveCount + 1;
     setMoveCount(newMoveCount);
     
-    // Check max moves fail condition
-    if (step.maxMoves && newMoveCount > step.maxMoves) {
-      setHasFailed(true);
-      toast.error('Too many moves!', { 
-        description: 'Try again with a more direct path' 
-      });
-      return;
-    }
-    
-    // Place a stone
+    // Place a stone on the visual board
     const newBoard = new Uint8Array(board);
-    newBoard[cell] = 1; // Always indigo for tutorial
+    newBoard[cell] = 1; // Indigo for tutorial
     setBoard(newBoard);
     setLastMove(cell);
     
-    // Update engine
-    try {
-      engine.play(cell);
-    } catch (e) {
-      console.error('Invalid move:', e);
-      return;
-    }
+    // Update engine deterministically (bypass alternating turns)
+    const updated = engine.clone();
+    updated.board[cell] = 1;
+    const rebuilt = updated.clone();
+    setEngine(rebuilt);
     
     // Check for win
-    const winner = engine.winner();
+    const winner = rebuilt.winner();
     if (winner === 1) {
-      const path = engine.getWinningPath();
+      const path = rebuilt.getWinningPath();
       setWinningPath(path || []);
       setHasWon(true);
       
@@ -259,7 +246,19 @@ export default function Tutorial() {
           description: 'You found a winning path!' 
         });
       }
-    } else if (step.expectedMoves && step.expectedMoves.includes(cell)) {
+      return;
+    }
+
+    // Auto-fail if we reached the move cap without a win
+    if (step.maxMoves && newMoveCount >= step.maxMoves) {
+      setHasFailed(true);
+      toast.error('Too many moves!', { 
+        description: 'Try again with a more direct path' 
+      });
+      return;
+    }
+    
+    if (step.expectedMoves && step.expectedMoves.includes(cell)) {
       toast.success('Great placement!');
     }
   };
@@ -298,15 +297,14 @@ export default function Tutorial() {
     setHasWon(false);
     setHasFailed(false);
     
-    const newEngine = new Hex(size, true);
+    const baseEngine = new Hex(size, true);
     if (step.prefilledBoard) {
-      step.prefilledBoard.forEach(([cell]) => {
-        try {
-          newEngine.play(cell);
-        } catch (e) {}
+      step.prefilledBoard.forEach(([cell, color]) => {
+        baseEngine.board[cell] = color as 1 | 2;
       });
     }
-    setEngine(newEngine);
+    const rebuilt = baseEngine.clone();
+    setEngine(rebuilt);
     
     toast.success('Board reset');
   };
