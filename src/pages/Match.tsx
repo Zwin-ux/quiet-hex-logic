@@ -46,6 +46,8 @@ export default function Match() {
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [showAIReasoning, setShowAIReasoning] = useState(false);
   const aiMoveInProgress = useRef(false);
+  const lastAITurnProcessed = useRef<number | null>(null);
+  const loadInFlight = useRef(false);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
 
@@ -109,96 +111,104 @@ export default function Match() {
   }, [user]);
 
   const loadMatch = useCallback(async () => {
-    if (!matchId) return;
+    if (!matchId || loadInFlight.current) return;
+    loadInFlight.current = true;
 
-    // Load match data
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('id', matchId)
-      .single();
+    try {
+      // Load match data
+      const { data: matchData } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
 
-    if (!matchData) {
-      toast.error('Match not found');
-      navigate('/lobby');
-      return;
-    }
+      if (!matchData) {
+        toast.error('Match not found');
+        navigate('/lobby');
+        return;
+      }
 
-    setMatch(matchData);
+      setMatch(matchData);
 
-    // Load players
-    const { data: playersData } = await supabase
-      .from('match_players')
-      .select(`
-        profile_id,
-        color,
-        is_bot,
-        profiles!inner(username, avatar_color)
-      `)
-      .eq('match_id', matchId);
+      // Load players
+      const { data: playersData } = await supabase
+        .from('match_players')
+        .select(`
+          profile_id,
+          color,
+          is_bot,
+          profiles!inner(username, avatar_color)
+        `)
+        .eq('match_id', matchId);
 
-    if (playersData) {
-      const enrichedPlayers = playersData.map(p => ({
-        profile_id: p.profile_id,
-        color: p.color,
-        is_bot: p.is_bot,
-        username: (p.profiles as any).username,
-        avatar_color: (p.profiles as any).avatar_color || 'indigo'
-      }));
+      if (playersData) {
+        const enrichedPlayers = playersData.map(p => ({
+          profile_id: p.profile_id,
+          color: p.color,
+          is_bot: p.is_bot,
+          username: (p.profiles as any).username,
+          avatar_color: (p.profiles as any).avatar_color || 'indigo'
+        }));
+        
+        // For AI matches, add synthetic AI player as color 2
+        if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
+          const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
+          enrichedPlayers.push({
+            profile_id: 'ai-player',
+            color: 2,
+            is_bot: true,
+            username: `Computer (${difficultyLabel})`,
+            avatar_color: 'slate'
+          });
+        }
+        
+        setPlayers(enrichedPlayers);
+      }
+
+      // Load moves and reconstruct game state
+      const { data: moves } = await supabase
+        .from('moves')
+        .select('*')
+        .eq('match_id', matchId)
+        .order('ply', { ascending: true });
+
+      const hexEngine = new Hex(matchData.size);
       
-      // For AI matches, add synthetic AI player as color 2
-      if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
-        const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
-        enrichedPlayers.push({
-          profile_id: 'ai-player',
-          color: 2,
-          is_bot: true,
-          username: `Computer (${difficultyLabel})`,
-          avatar_color: 'slate'
+      if (moves) {
+        moves.forEach(move => {
+          try {
+            hexEngine.play(move.cell);
+            setLastMove(move.cell ?? undefined);
+          } catch (e) {
+            console.error('Invalid move in history:', e);
+          }
         });
       }
-      
-      setPlayers(enrichedPlayers);
-    }
 
-    // Load moves and reconstruct game state
-    const { data: moves } = await supabase
-      .from('moves')
-      .select('*')
-      .eq('match_id', matchId)
-      .order('ply', { ascending: true });
+      setEngine(hexEngine);
 
-    const hexEngine = new Hex(matchData.size);
-    
-    if (moves) {
-      moves.forEach(move => {
-        try {
-          hexEngine.play(move.cell);
-          setLastMove(move.cell ?? undefined);
-        } catch (e) {
-          console.error('Invalid move in history:', e);
-        }
-      });
-    }
-
-    setEngine(hexEngine);
-
-    // Check for winning path
-    const winner = hexEngine.winner();
-    if (winner) {
-      const path = hexEngine.getWinningPath();
-      setWinningPath(path || []);
-    }
-
-    // Check if AI should play (immediate, no delay)
-    if (matchData.status === 'active') {
-      const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
-      const isAIMatch = matchData.ai_difficulty != null;
-      const isAITurn = isAIMatch && currentColor === 2;
-      
-      if (isAITurn && !hexEngine.winner()) {
-        makeAIMove(hexEngine, matchData);
+      // Check for winning path
+      const winner = hexEngine.winner();
+      if (winner) {
+        const path = hexEngine.getWinningPath();
+        setWinningPath(path || []);
       }
+
+      // Check if AI should play (immediate, no delay) and only once per turn
+      if (matchData.status === 'active') {
+        const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
+        const isAIMatch = matchData.ai_difficulty != null;
+        const isAITurn = isAIMatch && currentColor === 2;
+        
+        if (isAITurn && !hexEngine.winner() && lastAITurnProcessed.current !== matchData.turn) {
+          lastAITurnProcessed.current = matchData.turn;
+          makeAIMove(hexEngine, matchData);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load match:', e);
+    } finally {
+      loadInFlight.current = false;
     }
   }, [matchId, navigate]);
 
@@ -288,6 +298,11 @@ export default function Match() {
     // Check if it's user's turn
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
     const currentPlayer = players.find(p => p.color === currentColor);
+    const isAITurn = !!match.ai_difficulty && currentColor === 2;
+    if (isAITurn) {
+      toast.error('Wait for the computer to move');
+      return;
+    }
     if (!currentPlayer || currentPlayer.profile_id !== user.id) {
       toast.error('Not your turn');
       return;
@@ -459,6 +474,7 @@ export default function Match() {
   const userPlayer = players.find(p => p.profile_id === user?.id);
   const isPlayer = !!userPlayer;
   const isAIMatch = match.ai_difficulty != null;
+  const isAITurn = isAIMatch && currentColor === 2;
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -572,6 +588,7 @@ export default function Match() {
               disabled={
                 match.status !== 'active' || 
                 currentPlayer?.profile_id !== user?.id ||
+                isAITurn ||
                 isSpectating ||
                 !isPlayer
               }
