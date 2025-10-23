@@ -130,10 +130,10 @@ export default function Lobby() {
   };
 
   const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
-    // AI practice requires authentication
-    if (withAI && !user) {
+    // Guests can only play AI matches
+    if (!user && !withAI) {
       toast.error('Sign in required', {
-        description: 'Please sign in to play against AI'
+        description: 'Guest users can only play against AI. Sign in to challenge friends!'
       });
       navigate('/auth');
       return;
@@ -261,7 +261,7 @@ export default function Lobby() {
                 <div>
                   <p className="font-body font-semibold text-foreground">Playing as Guest</p>
                   <p className="text-sm text-muted-foreground">
-                    Sign in to save progress and challenge friends
+                    Try AI practice mode. Sign in to challenge friends and save your progress!
                   </p>
                 </div>
               </div>
