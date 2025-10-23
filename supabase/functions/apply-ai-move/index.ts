@@ -25,7 +25,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { matchId, cell } = await req.json();
+    const { matchId, cell, actionId } = await req.json();
+
+    if (!actionId) {
+      return new Response(JSON.stringify({ error: 'action_id required for idempotency' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -49,6 +53,29 @@ Deno.serve(async (req) => {
     const currentPlayerColor = match.turn % 2 === 1 ? 1 : 2;
     if (currentPlayerColor !== 2) return new Response(JSON.stringify({ error: 'Not AI turn' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
+    // Rate limit per user/match
+    const rateLimitOk = await supabase.rpc('check_move_rate_limit', {
+      _match_id: matchId,
+      _user_id: user.id
+    });
+    if (!rateLimitOk.data) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded - too many moves' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Idempotency: if this action_id already processed, return cached state
+    const { data: existingMove } = await supabase
+      .from('moves')
+      .select('ply')
+      .eq('match_id', matchId)
+      .eq('action_id', actionId)
+      .maybeSingle();
+
+    if (existingMove) {
+      return new Response(JSON.stringify({ success: true, turn: match.turn, winner: match.winner, status: match.status, cached: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const currentVersion = match.version ?? 0;
+
     // Build state
     const { data: moves, error: movesError } = await supabase
       .from('moves')
@@ -68,15 +95,37 @@ Deno.serve(async (req) => {
     const newTurn = validator.turn;
     const newStatus = winner ? 'finished' : 'active';
 
-    // Record move as color 2
-    const { error: moveInsertError } = await supabase.from('moves').insert({ match_id: matchId, ply: match.turn, color: 2, cell });
-    if (moveInsertError) return new Response(JSON.stringify({ error: 'Failed to record move' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Record move as color 2 with idempotency action_id
+    const { error: moveInsertError } = await supabase
+      .from('moves')
+      .insert({ match_id: matchId, ply: match.turn, color: 2, cell, action_id: actionId });
 
-    const { error: matchUpdateError } = await supabase
+    if (moveInsertError) {
+      // Duplicate action_id
+      if ((moveInsertError as any).code === '23505') {
+        return new Response(JSON.stringify({ success: true, turn: match.turn, winner: match.winner, status: match.status, cached: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ error: 'Failed to record move' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Optimistic concurrency update on matches
+    const { data: updated, error: matchUpdateError } = await supabase
       .from('matches')
-      .update({ turn: newTurn, status: newStatus, winner: winner || null, updated_at: new Date().toISOString() })
-      .eq('id', matchId);
-    if (matchUpdateError) return new Response(JSON.stringify({ error: 'Failed to update match state' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      .update({ 
+        turn: newTurn, 
+        status: newStatus, 
+        winner: winner || null, 
+        version: currentVersion + 1,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', matchId)
+      .eq('version', currentVersion)
+      .select()
+      .maybeSingle();
+
+    if (matchUpdateError || !updated) {
+      return new Response(JSON.stringify({ error: 'Match state changed - please retry' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     return new Response(JSON.stringify({ success: true, turn: newTurn, winner: winner || null, status: newStatus }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
