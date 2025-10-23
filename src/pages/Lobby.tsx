@@ -145,7 +145,7 @@ export default function Lobby() {
       const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert({
-          owner: user?.id || null, // Allow guest matches
+          owner: user?.id || null, // Guests allowed only for AI matches
           size,
           pie_rule: true, // Enable pie rule for all matches
           status: withAI ? 'active' : 'waiting',
