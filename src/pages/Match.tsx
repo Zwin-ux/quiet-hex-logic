@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,6 +45,7 @@ export default function Match() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
+  const aiMoveInProgress = useRef(false);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
 
@@ -202,6 +203,13 @@ export default function Match() {
   }, [matchId, navigate]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
+    // Prevent concurrent AI moves
+    if (aiMoveInProgress.current) {
+      console.log('AI move already in progress, skipping');
+      return;
+    }
+
+    aiMoveInProgress.current = true;
     setIsAIThinking(true);
     setAiReasoning('');
 
@@ -245,6 +253,8 @@ export default function Match() {
       // Generate action_id for idempotency
       const actionId = crypto.randomUUID();
 
+      console.log(`AI applying move: cell=${cell}, actionId=${actionId}`);
+
       // Apply move through server for validation and persistence
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
@@ -255,7 +265,16 @@ export default function Match() {
       });
 
       if (error || !result?.success) {
-        throw new Error(result?.error || error?.message || 'Failed to apply AI move');
+        const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
+        console.error('AI move failed:', errorMsg, { error, result });
+        
+        // Don't throw on "Not your turn" - this can happen if another move was already made
+        if (!errorMsg.includes('Not your turn')) {
+          throw new Error(errorMsg);
+        } else {
+          console.log('Turn already changed, ignoring error');
+          return;
+        }
       }
 
       // Reload match to get updated state
@@ -269,6 +288,7 @@ export default function Match() {
       toast.error('Computer failed to move');
     } finally {
       setIsAIThinking(false);
+      aiMoveInProgress.current = false;
     }
   };
 
