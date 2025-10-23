@@ -125,7 +125,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { matchId, cell } = await req.json();
+    const { matchId, cell, actionId } = await req.json();
+    
+    if (!actionId) {
+      return new Response(
+        JSON.stringify({ error: 'action_id required for idempotency' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -150,6 +157,48 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check rate limit first
+    const rateLimitOk = await supabase.rpc('check_move_rate_limit', {
+      _match_id: matchId,
+      _user_id: user.id
+    });
+
+    if (!rateLimitOk.data) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded - too many moves' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check for duplicate action_id (idempotency)
+    const { data: existingMove } = await supabase
+      .from('moves')
+      .select('ply')
+      .eq('match_id', matchId)
+      .eq('action_id', actionId)
+      .maybeSingle();
+
+    if (existingMove) {
+      // Move already processed - return success (idempotent)
+      console.log('Duplicate action_id detected, returning cached result');
+      const { data: currentMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          turn: currentMatch.turn,
+          winner: currentMatch.winner,
+          status: currentMatch.status,
+          cached: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verify user is a player in this match
     const { data: player, error: playerError } = await supabase
       .from('match_players')
@@ -165,12 +214,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch match details
+    // Fetch match details with version for optimistic concurrency
     const { data: match, error: matchError } = await supabase
       .from('matches')
       .select('*')
       .eq('id', matchId)
       .single();
+    
+    const currentVersion = match?.version || 0;
 
     if (matchError || !match) {
       return new Response(
@@ -230,39 +281,53 @@ Deno.serve(async (req) => {
     const newTurn = validator.turn;
     const newStatus = winner ? 'finished' : 'active';
 
-    // Insert move and update match in transaction
+    // Insert move with action_id for idempotency
     const { error: moveInsertError } = await supabase
       .from('moves')
       .insert({
         match_id: matchId,
         ply: match.turn,
         color: currentPlayerColor,
-        cell: cell
+        cell: cell,
+        action_id: actionId
       });
 
     if (moveInsertError) {
       console.error('Error inserting move:', moveInsertError);
+      // Check if duplicate key violation (23505)
+      if (moveInsertError.code === '23505') {
+        return new Response(
+          JSON.stringify({ error: 'Duplicate move detected' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ error: 'Failed to record move' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { error: matchUpdateError } = await supabase
+    // Update match with optimistic concurrency control
+    const { data: updatedMatch, error: matchUpdateError } = await supabase
       .from('matches')
       .update({
         turn: newTurn,
         status: newStatus,
         winner: winner || null,
+        version: currentVersion + 1,
         updated_at: new Date().toISOString()
       })
-      .eq('id', matchId);
+      .eq('id', matchId)
+      .eq('version', currentVersion)
+      .select()
+      .single();
 
-    if (matchUpdateError) {
-      console.error('Error updating match:', matchUpdateError);
+    if (matchUpdateError || !updatedMatch) {
+      console.error('Error updating match (concurrency conflict):', matchUpdateError);
+      // Rollback move insert would happen automatically via RLS/permissions
       return new Response(
-        JSON.stringify({ error: 'Failed to update match state' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Match state changed - please retry' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

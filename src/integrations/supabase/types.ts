@@ -269,6 +269,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           turn: number
           updated_at: string | null
+          version: number
           winner: number | null
         }
         Insert: {
@@ -283,6 +284,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["match_status"]
           turn?: number
           updated_at?: string | null
+          version?: number
           winner?: number | null
         }
         Update: {
@@ -297,6 +299,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["match_status"]
           turn?: number
           updated_at?: string | null
+          version?: number
           winner?: number | null
         }
         Relationships: [
@@ -316,8 +319,41 @@ export type Database = {
           },
         ]
       }
+      move_rate_limits: {
+        Row: {
+          last_move_at: string
+          match_id: string
+          move_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          last_move_at?: string
+          match_id: string
+          move_count?: number
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          last_move_at?: string
+          match_id?: string
+          move_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "move_rate_limits_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moves: {
         Row: {
+          action_id: string | null
           cell: number | null
           color: number
           created_at: string | null
@@ -325,6 +361,7 @@ export type Database = {
           ply: number
         }
         Insert: {
+          action_id?: string | null
           cell?: number | null
           color: number
           created_at?: string | null
@@ -332,6 +369,7 @@ export type Database = {
           ply: number
         }
         Update: {
+          action_id?: string | null
           cell?: number | null
           color?: number
           created_at?: string | null
@@ -577,6 +615,10 @@ export type Database = {
     Functions: {
       are_friends: {
         Args: { _user_a: string; _user_b: string }
+        Returns: boolean
+      }
+      check_move_rate_limit: {
+        Args: { _match_id: string; _user_id: string }
         Returns: boolean
       }
       find_lobby_by_code: { Args: { lobby_code: string }; Returns: string }

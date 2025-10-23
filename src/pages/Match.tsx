@@ -262,17 +262,37 @@ export default function Match() {
       return;
     }
 
+    // Generate action_id for idempotency
+    const actionId = crypto.randomUUID();
+
     try {
       // Server-side move application with validation
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
           matchId: match.id, 
-          cell
+          cell,
+          actionId
         }
       });
 
       if (error || !result?.success) {
+        // Check for specific error types
+        if (error?.message?.includes('Rate limit') || result?.error?.includes('Rate limit')) {
+          toast.error('Too many moves too quickly - slow down!');
+          return;
+        }
+        if (result?.error?.includes('Match state changed')) {
+          toast.error('Game state changed - reloading...');
+          await loadMatch();
+          return;
+        }
         toast.error(result?.error || error?.message || 'Invalid move');
+        return;
+      }
+
+      // Check if this was a cached/duplicate result
+      if (result.cached) {
+        console.log('Move already processed (idempotent retry)');
         return;
       }
 
@@ -299,17 +319,26 @@ export default function Match() {
       return;
     }
 
+    // Generate action_id for idempotency
+    const actionId = crypto.randomUUID();
+
     try {
       // Server-side pie rule swap with validation
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
           matchId: match.id, 
-          cell: null
+          cell: null,
+          actionId
         }
       });
 
       if (error || !result?.success) {
         toast.error(result?.error || error?.message || 'Cannot swap colors');
+        return;
+      }
+
+      if (result.cached) {
+        console.log('Swap already processed');
         return;
       }
 
