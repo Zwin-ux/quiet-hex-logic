@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, ArrowLeft, Home, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Home, Sparkles, RotateCcw } from 'lucide-react';
 import { HexBoard } from '@/components/HexBoard';
 import { Hex } from '@/lib/hex/engine';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,12 @@ interface TutorialStep {
   showBoard?: boolean;
   allowInteraction?: boolean;
   expectedMoves?: number[];
+  winCondition?: 'connect' | 'place' | 'none';
+  requiredPath?: { start: number; end: number; color: number }; // Must connect these cells
+  prefilledBoard?: number[][]; // [cell, color] pairs
+  canProceedWithoutWin?: boolean; // Allow skipping if too hard
+  maxMoves?: number; // Fail if exceed this
+  showPieRuleDemo?: boolean;
 }
 
 const TUTORIAL_STEPS: TutorialStep[] = [
@@ -27,76 +33,130 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Hexology is a connection game played on a hexagonal grid. Two players compete to connect opposite sides of the board.',
     instruction: 'Click Next to learn the basics',
     showBoard: false,
+    winCondition: 'none',
   },
   {
     id: 2,
     title: 'The Board',
     description: 'The game is played on a diamond-shaped board made of hexagons. Each player has two opposite sides to connect.',
     instruction: 'Indigo connects West to East. Ochre connects North to South.',
-    boardSize: 7,
+    boardSize: 5,
     showBoard: true,
     allowInteraction: false,
+    winCondition: 'none',
   },
   {
     id: 3,
-    title: 'Place Your First Stone',
-    description: 'Click any empty hexagon to place your stone. Stones of the same color that touch each other form connections.',
-    instruction: 'Try clicking on the center hexagon to place an Indigo stone',
-    boardSize: 7,
+    title: 'Connecting Sides: Example',
+    description: 'Here\'s an example of how Indigo wins by creating a path from West to East. Notice how the stones touch each other, forming an unbroken chain.',
+    instruction: 'Study this winning path - each stone connects to the next',
+    boardSize: 5,
     showBoard: true,
-    allowInteraction: true,
-    expectedMoves: [24], // Center of 7x7 board
+    allowInteraction: false,
+    winCondition: 'none',
+    prefilledBoard: [
+      [0, 1], [5, 1], [10, 1], [11, 1], [12, 1], [17, 1], [22, 1]
+    ],
   },
   {
     id: 4,
-    title: 'Building Connections',
-    description: 'Your goal is to create an unbroken chain of your colored stones from one side to the opposite side.',
-    instruction: '💡 Adjacent stones of the same color form connections. Try placing stones to visualize paths across the board.',
-    boardSize: 7,
+    title: 'Your Turn: Build a Bridge',
+    description: 'Now you try! Complete the Indigo path from West to East. You need to place 3 stones to connect the existing pieces.',
+    instruction: 'Click to place Indigo stones and connect West to East',
+    boardSize: 5,
     showBoard: true,
     allowInteraction: true,
+    winCondition: 'connect',
+    prefilledBoard: [
+      [0, 1], [11, 1], [24, 1] // West, middle, East - player must connect them
+    ],
+    maxMoves: 8,
   },
   {
     id: 5,
-    title: 'The Pie Rule',
-    description: 'After the first move, the second player may choose to swap colors. This balancing mechanism ensures fairness.',
-    instruction: 'The pie rule prevents first-player advantage by giving the second player a choice',
-    showBoard: false,
+    title: 'The Pie Rule Explained',
+    description: 'After the first move, the second player can swap colors. If the opening move is too strong, you can take it for yourself!',
+    instruction: 'The pie rule keeps the game fair',
+    boardSize: 5,
+    showBoard: true,
+    allowInteraction: false,
+    showPieRuleDemo: true,
+    winCondition: 'none',
+    prefilledBoard: [
+      [12, 1] // Center stone
+    ],
   },
   {
     id: 6,
-    title: 'No Draws Possible',
-    description: 'In Hexology, every game must end with a winner. It\'s mathematically impossible for the board to fill without one player connecting their sides.',
-    instruction: 'This elegant property makes every game decisive',
-    showBoard: false,
+    title: 'Pie Rule: Your Choice',
+    description: 'Your opponent played in the center (strong position). Would you want to swap colors and take this stone? In a real game, you\'d decide!',
+    instruction: 'After seeing this, think: swap or play your own color?',
+    boardSize: 5,
+    showBoard: true,
+    allowInteraction: false,
+    winCondition: 'none',
+    prefilledBoard: [
+      [12, 2] // Same stone but now ochre (swapped)
+    ],
   },
   {
     id: 7,
-    title: 'Strategy Matters',
-    description: 'Think ahead! Each move should either strengthen your connection or block your opponent. The center of the board is often crucial.',
-    instruction: 'Control the center, but don\'t forget to defend your sides',
-    boardSize: 7,
+    title: 'Block Your Opponent',
+    description: 'Ochre is trying to connect North to South. You\'re playing Indigo. Stop them while building your own path!',
+    instruction: 'Place stones to block Ochre AND connect West to East',
+    boardSize: 5,
     showBoard: true,
-    allowInteraction: false,
+    allowInteraction: true,
+    winCondition: 'connect',
+    prefilledBoard: [
+      [2, 2], [7, 2], [17, 2] // Ochre pieces forming a threat
+    ],
+    maxMoves: 10,
+    canProceedWithoutWin: true,
   },
   {
     id: 8,
+    title: 'Advanced: Full Game',
+    description: 'Here\'s what a completed game looks like. Indigo won by connecting West to East, even though Ochre had strong positions.',
+    instruction: 'Notice how Indigo found a path through Ochre\'s stones',
+    boardSize: 7,
+    showBoard: true,
+    allowInteraction: false,
+    winCondition: 'none',
+    prefilledBoard: [
+      // Winning indigo path
+      [0, 1], [7, 1], [14, 1], [21, 1], [28, 1], [35, 1], [42, 1],
+      // Ochre blocks
+      [10, 2], [11, 2], [18, 2], [25, 2], [32, 2], [38, 2],
+      // Extra indigo
+      [1, 1], [8, 1], [15, 1], [22, 1],
+      // Extra ochre
+      [3, 2], [4, 2], [17, 2], [24, 2], [31, 2]
+    ],
+  },
+  {
+    id: 9,
     title: 'Ready to Play!',
-    description: 'You\'ve learned the basics of Hexology. Now it\'s time to put your knowledge to the test.',
+    description: 'You\'ve mastered the basics of Hexology. Now it\'s time to put your skills to the test against real opponents or AI.',
     instruction: 'Play as a guest or sign in to track your progress and challenge friends',
     showBoard: false,
+    winCondition: 'none',
   },
 ];
 
 export default function Tutorial() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [board, setBoard] = useState<Uint8Array>(new Uint8Array(49)); // 7x7 board
+  const [board, setBoard] = useState<Uint8Array>(new Uint8Array(25)); // 5x5 default
   const [lastMove, setLastMove] = useState<number | undefined>(undefined);
   const [winningPath, setWinningPath] = useState<number[]>([]);
   const [engine, setEngine] = useState<Hex | null>(null);
+  const [moveCount, setMoveCount] = useState(0);
+  const [hasWon, setHasWon] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
   const navigate = useNavigate();
   
   const step = TUTORIAL_STEPS[currentStep];
+  const canProceed = step.winCondition === 'none' || hasWon || step.canProceedWithoutWin;
 
   // Keyboard navigation
   useEffect(() => {
@@ -112,63 +172,143 @@ export default function Tutorial() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentStep]);
 
-  // Reset board when step changes (but keep size the same to prevent unnecessary resets)
+  // Reset board when step changes
   useEffect(() => {
-    const size = step.boardSize || 7;
-    // Only reset if the board size changed or if we moved to a non-interactive step
-    if (board.length !== size * size || !step.allowInteraction) {
-      setBoard(new Uint8Array(size * size));
-      setLastMove(undefined);
-      setWinningPath([]);
-      setEngine(new Hex(size, true));
-    }
-  }, [currentStep, step.boardSize, step.allowInteraction]);
-
-  const handleCellClick = (cell: number) => {
-    if (!engine || !step.allowInteraction || board[cell] !== 0) return;
+    const size = step.boardSize || 5;
+    const newBoard = new Uint8Array(size * size);
     
-    // Place a stone
-    const newBoard = new Uint8Array(board);
-    newBoard[cell] = 1; // Indigo stone
-    setBoard(newBoard);
-    setLastMove(cell);
-    
-    // Update engine and check for win
-    const testEngine = new Hex(step.boardSize || 7, true);
-    for (let i = 0; i < newBoard.length; i++) {
-      if (newBoard[i] !== 0) {
-        try {
-          testEngine.play(i);
-        } catch (e) {
-          // Skip invalid moves during reconstruction
-        }
-      }
-    }
-    
-    const winner = testEngine.winner();
-    if (winner) {
-      const path = testEngine.getWinningPath();
-      setWinningPath(path || []);
-      toast.success('You created a winning path!', { 
-        description: 'Indigo connected West to East!' 
+    // Apply prefilled board
+    if (step.prefilledBoard) {
+      step.prefilledBoard.forEach(([cell, color]) => {
+        newBoard[cell] = color;
       });
     }
     
-    // Check if it's the expected move
-    if (step.expectedMoves && step.expectedMoves.includes(cell)) {
-      toast.success('Great move!', { description: 'You placed a stone correctly' });
-    } else if (step.expectedMoves) {
-      toast('Try clicking the center hexagon', { description: 'Follow the instruction' });
+    setBoard(newBoard);
+    setLastMove(undefined);
+    setWinningPath([]);
+    setMoveCount(0);
+    setHasWon(false);
+    setHasFailed(false);
+    
+    // Create engine with prefilled state
+    const newEngine = new Hex(size, true);
+    if (step.prefilledBoard) {
+      step.prefilledBoard.forEach(([cell]) => {
+        try {
+          newEngine.play(cell);
+        } catch (e) {
+          // Skip if move is invalid
+        }
+      });
+    }
+    
+    // Check if prefilled board already shows a win
+    const winner = newEngine.winner();
+    if (winner && step.prefilledBoard && !step.allowInteraction) {
+      const path = newEngine.getWinningPath();
+      setWinningPath(path || []);
+    }
+    
+    setEngine(newEngine);
+  }, [currentStep]);
+
+  const handleCellClick = (cell: number) => {
+    if (!engine || !step.allowInteraction || board[cell] !== 0 || hasWon || hasFailed) return;
+    
+    const newMoveCount = moveCount + 1;
+    setMoveCount(newMoveCount);
+    
+    // Check max moves fail condition
+    if (step.maxMoves && newMoveCount > step.maxMoves) {
+      setHasFailed(true);
+      toast.error('Too many moves!', { 
+        description: 'Try again with a more direct path' 
+      });
+      return;
+    }
+    
+    // Place a stone
+    const newBoard = new Uint8Array(board);
+    newBoard[cell] = 1; // Always indigo for tutorial
+    setBoard(newBoard);
+    setLastMove(cell);
+    
+    // Update engine
+    try {
+      engine.play(cell);
+    } catch (e) {
+      console.error('Invalid move:', e);
+      return;
+    }
+    
+    // Check for win
+    const winner = engine.winner();
+    if (winner === 1) {
+      const path = engine.getWinningPath();
+      setWinningPath(path || []);
+      setHasWon(true);
+      
+      if (step.winCondition === 'connect') {
+        toast.success('Perfect! You connected West to East!', { 
+          description: 'Click Next to continue',
+          duration: 4000
+        });
+      } else {
+        toast.success('Excellent move!', { 
+          description: 'You found a winning path!' 
+        });
+      }
+    } else if (step.expectedMoves && step.expectedMoves.includes(cell)) {
+      toast.success('Great placement!');
     }
   };
 
   const handleNext = () => {
+    if (!canProceed) {
+      toast.error('Complete the objective first!', {
+        description: step.winCondition === 'connect' 
+          ? 'Connect West to East to proceed' 
+          : 'Place the required stones'
+      });
+      return;
+    }
+    
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Tutorial complete - offer options
       navigate('/lobby');
     }
+  };
+
+  const handleReset = () => {
+    const size = step.boardSize || 5;
+    const newBoard = new Uint8Array(size * size);
+    
+    if (step.prefilledBoard) {
+      step.prefilledBoard.forEach(([cell, color]) => {
+        newBoard[cell] = color;
+      });
+    }
+    
+    setBoard(newBoard);
+    setLastMove(undefined);
+    setWinningPath([]);
+    setMoveCount(0);
+    setHasWon(false);
+    setHasFailed(false);
+    
+    const newEngine = new Hex(size, true);
+    if (step.prefilledBoard) {
+      step.prefilledBoard.forEach(([cell]) => {
+        try {
+          newEngine.play(cell);
+        } catch (e) {}
+      });
+    }
+    setEngine(newEngine);
+    
+    toast.success('Board reset');
   };
 
   const handlePrevious = () => {
@@ -260,10 +400,31 @@ export default function Tutorial() {
               {step.description}
             </p>
 
-            <div className="bg-accent/20 border-l-4 border-indigo p-4 rounded-r-lg mb-6">
+            <div className={`border-l-4 p-4 rounded-r-lg mb-6 ${
+              hasFailed 
+                ? 'bg-destructive/20 border-destructive' 
+                : hasWon 
+                ? 'bg-indigo/20 border-indigo' 
+                : 'bg-accent/20 border-indigo'
+            }`}>
               <p className="font-body text-foreground">
-                💡 {step.instruction}
+                {hasFailed && '❌ '}
+                {hasWon && '✅ '}
+                {!hasFailed && !hasWon && '💡 '}
+                {hasFailed ? 'Too many moves! Try a more direct path.' : step.instruction}
               </p>
+              
+              {step.winCondition === 'connect' && !hasWon && !hasFailed && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {step.maxMoves && `Moves: ${moveCount}/${step.maxMoves}`}
+                </p>
+              )}
+              
+              {hasWon && step.winCondition !== 'none' && (
+                <p className="text-sm text-indigo font-semibold mt-2">
+                  Objective complete! Click Next to continue.
+                </p>
+              )}
             </div>
 
             {/* Navigation Buttons */}
@@ -279,9 +440,21 @@ export default function Tutorial() {
                 </Button>
               )}
               
+              {step.allowInteraction && (hasFailed || moveCount > 0) && (
+                <Button
+                  variant="outline"
+                  onClick={handleReset}
+                  className="flex-1 gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </Button>
+              )}
+              
               <Button
                 onClick={handleNext}
-                className={`flex-1 gap-2 ${currentStep === 0 ? 'w-full' : ''}`}
+                disabled={!canProceed}
+                className={`flex-1 gap-2 ${currentStep === 0 ? 'w-full' : ''} ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {currentStep < TUTORIAL_STEPS.length - 1 ? (
                   <>
@@ -293,6 +466,20 @@ export default function Tutorial() {
                 )}
               </Button>
             </div>
+
+            {step.showPieRuleDemo && (
+              <div className="mt-4 p-4 bg-indigo/10 border border-indigo/30 rounded-lg">
+                <p className="text-sm font-body text-foreground mb-2">
+                  <strong>Pie Rule Visualization:</strong>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Before: Indigo places center stone → After: Ochre swaps and takes that stone
+                </p>
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Next step shows what the board looks like after swapping!
+                </p>
+              </div>
+            )}
 
             {/* Special actions for final step */}
             {currentStep === TUTORIAL_STEPS.length - 1 && (
@@ -338,8 +525,15 @@ export default function Tutorial() {
               {step.allowInteraction && (
                 <div className="mt-4 p-4 bg-accent/10 rounded-lg border border-border">
                   <p className="text-sm text-muted-foreground font-mono text-center">
-                    Interactive board - try clicking on hexagons!
+                    {step.winCondition === 'connect' 
+                      ? '🎯 Click hexagons to place Indigo stones and connect West to East!' 
+                      : 'Interactive board - try clicking on hexagons!'}
                   </p>
+                  {hasWon && (
+                    <p className="text-sm text-indigo font-semibold text-center mt-2">
+                      ✅ Objective Complete!
+                    </p>
+                  )}
                 </div>
               )}
             </Card>
