@@ -68,7 +68,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     allowInteraction: true,
     winCondition: 'connect',
     prefilledBoard: [
-      [0, 1], [6, 1], [18, 1], [24, 1] // West to East with gaps to fill
+      [0, 1], [2, 1], [4, 1] // Top row with two easy gaps to fill (1 and 3)
     ],
     maxMoves: 6,
   },
