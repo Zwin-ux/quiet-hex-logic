@@ -33,9 +33,16 @@ const Hero = () => {
 
       {/* Hero content */}
       <div className="relative z-20 max-w-5xl mx-auto px-6 text-center">
-        <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-12 text-ink tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-          Hexology
-        </h1>
+        <a 
+          href="https://www.bonelli.dev/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-block"
+        >
+          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-12 text-ink tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100 hover:opacity-80 transition-opacity">
+            Hexology
+          </h1>
+        </a>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Button 

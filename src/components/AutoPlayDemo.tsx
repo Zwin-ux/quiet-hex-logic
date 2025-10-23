@@ -94,7 +94,7 @@ const AutoPlayDemo = () => {
             See Hexology in Action
           </h2>
           <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
-            Watch AI players compete in real-time. Indigo connects West→East, Ochre connects North→South.
+            Watch a example of Hex with robots fighting to the death!
           </p>
         </div>
 
