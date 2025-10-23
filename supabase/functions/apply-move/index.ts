@@ -67,7 +67,7 @@ class HexValidator {
       return;
     }
     
-    const color = this.turn === 1 ? 1 : 2;
+    const color = this.turn % 2 === 1 ? 1 : 2;
     this.board[cell] = color;
     const dsu = color === 1 ? this.dsu1 : this.dsu2;
     
