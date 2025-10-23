@@ -206,18 +206,51 @@ export default function Match() {
     setAiReasoning('');
 
     try {
-      // Use simple client-side AI
       const difficulty = matchData.ai_difficulty || 'medium';
-      const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
-      const { cell, reasoning } = ai.getMove();
+      let cell: number;
+      let reasoning: string;
+
+      if (difficulty === 'expert' || difficulty === 'hard') {
+        // Use server-side MCTS AI for hard/expert
+        setAiReasoning('Analyzing with advanced AI...');
+        
+        const { data: aiResult, error: aiError } = await supabase.functions.invoke('ai-move-v2', {
+          body: { 
+            matchId: matchData.id,
+            difficulty
+          }
+        });
+
+        if (aiError || !aiResult?.cell) {
+          // Fallback to client AI if server fails
+          console.warn('Server AI failed, using client fallback:', aiError);
+          const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
+          const result = ai.getMove();
+          cell = result.cell;
+          reasoning = result.reasoning + ' (fallback)';
+        } else {
+          cell = aiResult.cell;
+          reasoning = aiResult.reasoning;
+        }
+      } else {
+        // Use client-side AI for easy/medium
+        const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
+        const result = ai.getMove();
+        cell = result.cell;
+        reasoning = result.reasoning;
+      }
       
       setAiReasoning(reasoning);
 
+      // Generate action_id for idempotency
+      const actionId = crypto.randomUUID();
+
       // Apply move through server for validation and persistence
-      const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
+      const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: { 
           matchId: matchData.id, 
-          cell
+          cell,
+          actionId
         }
       });
 

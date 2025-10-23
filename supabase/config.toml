@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.ai-move]
 verify_jwt = true
 
+[functions.ai-move-v2]
+verify_jwt = true
+
 [functions.validate-move]
 verify_jwt = true
 

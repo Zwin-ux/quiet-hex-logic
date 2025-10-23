@@ -127,7 +127,7 @@ export class SimpleHexAI {
   }
 
   /**
-   * Hard: Look-ahead with blocking
+   * Hard: Tactical patterns + Bridge detection
    */
   private getHardMove(emptyCells: number[]): { cell: number; reasoning: string } {
     const currentColor = this.game.ply % 2 === 0 ? 1 : 2;
@@ -144,9 +144,7 @@ export class SimpleHexAI {
     
     // Check if opponent can win on their next turn (and block it)
     for (const oppCell of emptyCells) {
-      // Simulate opponent playing this cell by cloning and playing directly
       const testGame = this.game.clone();
-      // Manually set the cell to test opponent's position
       testGame.board[oppCell] = opponentColor;
       
       if (testGame.winner() === opponentColor) {
@@ -154,8 +152,95 @@ export class SimpleHexAI {
       }
     }
     
-    // Otherwise use medium strategy
+    // Check for bridge opportunities
+    const bridgeMove = this.findBridgeMove(emptyCells, currentColor);
+    if (bridgeMove) {
+      return { cell: bridgeMove, reasoning: 'Creating tactical bridge connection' };
+    }
+    
+    // Check for opponent bridges to interrupt
+    const blockBridge = this.findBridgeMove(emptyCells, opponentColor);
+    if (blockBridge) {
+      return { cell: blockBridge, reasoning: 'Disrupting opponent bridge' };
+    }
+    
+    // Otherwise use medium strategy with enhanced scoring
     return this.getMediumMove(emptyCells);
+  }
+
+  /**
+   * Detect bridge patterns (H-bridge / two-distance connections)
+   * A bridge is two cells that form a strong virtual connection
+   */
+  private findBridgeMove(emptyCells: number[], color: number): number | null {
+    const myStones = [];
+    for (let i = 0; i < this.game.board.length; i++) {
+      if (this.game.board[i] === color) {
+        myStones.push(i);
+      }
+    }
+
+    // Look for pairs of my stones that are 2 hops apart
+    for (let i = 0; i < myStones.length; i++) {
+      for (let j = i + 1; j < myStones.length; j++) {
+        const stone1 = myStones[i];
+        const stone2 = myStones[j];
+        
+        // Find common neighbors (bridge points)
+        const neighbors1 = this.getNeighbors(stone1);
+        const neighbors2 = this.getNeighbors(stone2);
+        
+        const bridgePoints = neighbors1.filter(n1 => 
+          neighbors2.includes(n1) && 
+          this.game.board[n1] === 0 &&
+          emptyCells.includes(n1)
+        );
+        
+        // If there are 2 empty bridge points, play one of them
+        if (bridgePoints.length === 2) {
+          // Check if opponent hasn't blocked yet
+          const enemyNear = bridgePoints.some(bp => {
+            const bpNeighbors = this.getNeighbors(bp);
+            return bpNeighbors.some(n => this.game.board[n] !== 0 && this.game.board[n] !== color);
+          });
+          
+          if (!enemyNear) {
+            // Play the bridge point closer to our goal
+            return this.selectBestBridgePoint(bridgePoints, color);
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Select the better bridge point based on proximity to goal
+   */
+  private selectBestBridgePoint(bridgePoints: number[], color: number): number {
+    let bestPoint = bridgePoints[0];
+    let bestScore = -Infinity;
+
+    for (const point of bridgePoints) {
+      const [c, r] = this.coords(point);
+      let score = 0;
+
+      if (color === 1) {
+        // Indigo: prefer points closer to east edge
+        score = c;
+      } else {
+        // Ochre: prefer points closer to south edge
+        score = r;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestPoint = point;
+      }
+    }
+
+    return bestPoint;
   }
 
   private getNeighbors(cell: number): number[] {
