@@ -45,6 +45,7 @@ export default function Match() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [showAIReasoning, setShowAIReasoning] = useState(false);
   const aiMoveInProgress = useRef(false);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
@@ -279,10 +280,6 @@ export default function Match() {
 
       // Reload match to get updated state
       await loadMatch();
-
-      toast.success('Computer played', {
-        description: reasoning
-      });
     } catch (error) {
       console.error('AI move error:', error);
       toast.error('Computer failed to move');
@@ -529,6 +526,16 @@ export default function Match() {
               <BookOpen className="h-4 w-4 mr-2" />
               How to Play
             </Button>
+            {isAIMatch && match.ai_difficulty === 'expert' && aiReasoning && (
+              <Button
+                variant={showAIReasoning ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowAIReasoning(!showAIReasoning)}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {showAIReasoning ? 'Hide' : 'Explain Move'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -554,11 +561,18 @@ export default function Match() {
                   <Sparkles className="h-5 w-5 animate-gentle-pulse" />
                   <span className="font-mono text-sm">Computer thinking...</span>
                 </div>
-                {aiReasoning && (
-                  <p className="text-sm text-muted-foreground max-w-md text-center">
-                    {aiReasoning}
-                  </p>
-                )}
+              </div>
+            )}
+            
+            {showAIReasoning && aiReasoning && !isAIThinking && (
+              <div className="p-4 border rounded-lg bg-card max-w-md">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-mono text-sm font-medium mb-1">AI Reasoning</p>
+                    <p className="text-sm text-muted-foreground">{aiReasoning}</p>
+                  </div>
+                </div>
               </div>
             )}
 

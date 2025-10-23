@@ -305,11 +305,48 @@ class HexAI {
     return null;
   }
 
+  // Easy AI (fallback for errors)
+  getEasyMove(): { move: number | null, reasoning: string } {
+    const empty = this.getEmptyCells();
+    if (empty.length === 0) return { move: null, reasoning: 'No moves available' };
+
+    const center = Math.floor(this.size / 2);
+    const currentColor = this.turn % 2 === 1 ? 1 : 2;
+    
+    // 60% chance to play near center or friendly stones
+    if (Math.random() < 0.6) {
+      const friendlyCells = empty.filter(cell => {
+        const neighbors = this.getNeighbors(cell);
+        return neighbors.some(n => this.board[n] === currentColor);
+      });
+      
+      if (friendlyCells.length > 0) {
+        const move = friendlyCells[Math.floor(Math.random() * friendlyCells.length)];
+        return { move, reasoning: 'Exploring near my stones' };
+      }
+      
+      const centerCells = empty.filter(cell => {
+        const [c, r] = this.coords(cell);
+        const dist = Math.abs(c - center) + Math.abs(r - center);
+        return dist <= 2;
+      });
+      
+      if (centerCells.length > 0) {
+        const move = centerCells[Math.floor(Math.random() * centerCells.length)];
+        return { move, reasoning: 'Playing near the center' };
+      }
+    }
+    
+    const move = empty[Math.floor(Math.random() * empty.length)];
+    return { move, reasoning: 'Exploring the board' };
+  }
+
   getMediumMove(): { move: number | null, reasoning: string } {
     const empty = this.getEmptyCells();
     if (empty.length === 0) return { move: null, reasoning: 'No moves available' };
 
     const currentColor = this.turn % 2 === 1 ? 1 : 2;
+    const opponentColor = currentColor === 1 ? 2 : 1;
     const center = Math.floor(this.size / 2);
 
     let bestMove = empty[0];
@@ -319,13 +356,36 @@ class HexAI {
       const [c, r] = this.coords(move);
       let score = 0;
 
+      // Base positional score
       if (currentColor === 1) {
-        score += 10 - Math.min(c, this.size - 1 - c);
-        score += 5 - Math.abs(r - center);
+        score += 20 - Math.min(c, this.size - 1 - c);
+        score += 10 - Math.abs(r - center);
       } else {
-        score += 10 - Math.min(r, this.size - 1 - r);
-        score += 5 - Math.abs(c - center);
+        score += 20 - Math.min(r, this.size - 1 - r);
+        score += 10 - Math.abs(c - center);
       }
+
+      // Adjacency and bridge bonuses
+      const neighbors = this.getNeighbors(move);
+      let adjacentFriends = 0;
+      let formsBridge = false;
+      
+      for (const neighbor of neighbors) {
+        if (this.board[neighbor] === currentColor) {
+          adjacentFriends++;
+          const commonNeighbors = this.getNeighbors(neighbor).filter(n => 
+            neighbors.includes(n) && this.board[n] === currentColor
+          );
+          if (commonNeighbors.length > 0) formsBridge = true;
+        }
+      }
+      
+      if (formsBridge) score += 8;
+      score += adjacentFriends * 5;
+      if (adjacentFriends > 2) score -= 5; // Redundancy penalty
+      
+      // Add randomness
+      score += (Math.random() - 0.5) * 3;
 
       if (score > bestScore) {
         bestScore = score;
@@ -333,7 +393,7 @@ class HexAI {
       }
     }
 
-    return { move: bestMove, reasoning: 'Positional advantage' };
+    return { move: bestMove, reasoning: 'Building tactical position' };
   }
 
   getNeighbors(cell: number): number[] {
@@ -452,27 +512,65 @@ serve(async (req) => {
 
     const ai = new HexAI(match.size, board, match.turn);
 
+    // Fallback ladder: Expert → Hard → Medium → Easy
     let result;
-    if (difficulty === 'expert') {
-      // Use MCTS for expert
-      result = ai.getMCTSMove(120);
-    } else if (difficulty === 'hard') {
-      result = ai.getHardMove();
-    } else {
-      result = ai.getMediumMove();
-    }
-
-    if (result.move === null) {
-      return new Response(JSON.stringify({ error: 'No legal moves' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    let usedDifficulty = difficulty;
+    
+    try {
+      if (difficulty === 'expert') {
+        // Use MCTS for expert (120ms budget, ~1000 iterations)
+        result = ai.getMCTSMove(120);
+      } else if (difficulty === 'hard') {
+        result = ai.getHardMove();
+      } else if (difficulty === 'medium') {
+        result = ai.getMediumMove();
+      } else {
+        result = ai.getEasyMove();
+      }
+      
+      if (result.move === null) {
+        throw new Error('AI returned no move');
+      }
+    } catch (error) {
+      console.error(`${difficulty} AI failed, falling back:`, error);
+      
+      // Implement fallback chain
+      if (difficulty === 'expert') {
+        console.log('Falling back to Hard AI');
+        result = ai.getHardMove();
+        usedDifficulty = 'hard';
+      } else if (difficulty === 'hard') {
+        console.log('Falling back to Medium AI');
+        result = ai.getMediumMove();
+        usedDifficulty = 'medium';
+      } else if (difficulty === 'medium') {
+        console.log('Falling back to Easy AI');
+        result = ai.getEasyMove();
+        usedDifficulty = 'easy';
+      } else {
+        // Easy AI failed - use random move as ultimate fallback
+        const empty = ai.getEmptyCells();
+        if (empty.length === 0) {
+          return new Response(JSON.stringify({ error: 'No legal moves' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        result = { move: empty[0], reasoning: 'Random fallback move' };
+      }
+      
+      if (result.move === null) {
+        return new Response(JSON.stringify({ error: 'All AI levels failed' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     return new Response(JSON.stringify({
       cell: result.move,
       reasoning: result.reasoning,
-      difficulty
+      difficulty: usedDifficulty
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

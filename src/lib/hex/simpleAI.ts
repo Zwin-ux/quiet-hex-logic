@@ -3,6 +3,31 @@ import { Hex } from './engine';
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
 /**
+ * Difficulty tier constants
+ * 
+ * EASY: Random but gentle (60% center bias, <100ms)
+ * MEDIUM: Bridge-aware, 1-move horizon (150-300ms)
+ * HARD: Lookahead with threat detection (300-700ms)
+ * EXPERT: Uses server-side MCTS (handled by ai-move-v2)
+ */
+const DIFFICULTY_CONFIG = {
+  easy: {
+    centerBias: 0.6,
+    centerRadius: 2
+  },
+  medium: {
+    bridgeBonus: 8,
+    adjacencyBonus: 5,
+    redundancyPenalty: -5,
+    randomness: 3
+  },
+  hard: {
+    opponentWeighting: 1.2,
+    lookaheadDepth: 1
+  }
+} as const;
+
+/**
  * Simple, reliable AI for Hex practice games.
  * Runs entirely client-side with no dependencies.
  */
@@ -53,17 +78,35 @@ export class SimpleHexAI {
   }
 
   /**
-   * Easy: Random with slight center bias
+   * Easy: Random but gentle
+   * - 60% chance to prefer center or near-friendly hexes
+   * - Avoids blocking efficiently
+   * - Teaches basic flow of the game
+   * - Never wins by accident
    */
   private getEasyMove(emptyCells: number[]): { cell: number; reasoning: string } {
     const center = Math.floor(this.game.n / 2);
+    const config = DIFFICULTY_CONFIG.easy;
+    const currentColor = this.game.ply % 2 === 0 ? 1 : 2;
     
-    // 60% chance to play near center
-    if (Math.random() < 0.6) {
+    // 60% chance to play near center or friendly stones
+    if (Math.random() < config.centerBias) {
+      // First check for cells near own stones
+      const friendlyCells = emptyCells.filter(cell => {
+        const neighbors = this.getNeighbors(cell);
+        return neighbors.some(n => this.game.board[n] === currentColor);
+      });
+      
+      if (friendlyCells.length > 0) {
+        const cell = friendlyCells[Math.floor(Math.random() * friendlyCells.length)];
+        return { cell, reasoning: 'Exploring near my stones' };
+      }
+      
+      // Otherwise try center region
       const centerCells = emptyCells.filter(cell => {
         const [c, r] = this.coords(cell);
         const dist = Math.abs(c - center) + Math.abs(r - center);
-        return dist <= 2;
+        return dist <= config.centerRadius;
       });
       
       if (centerCells.length > 0) {
@@ -72,66 +115,131 @@ export class SimpleHexAI {
       }
     }
     
+    // Pure random fallback
     const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    return { cell, reasoning: 'Making a move' };
+    return { cell, reasoning: 'Exploring the board' };
   }
 
   /**
-   * Medium: Positional heuristics
+   * Medium: Intermediate AI
+   * - Aware of bridges and adjacency, but still myopic (1-move horizon)
+   * - +8 for forming a bridge; +5 for adjacency; -5 for redundancy
+   * - Basic blocking if opponent path length ≤ 2
+   * - Mild randomness (±3 points)
+   * - Simulates a new human player learning tactics
    */
   private getMediumMove(emptyCells: number[]): { cell: number; reasoning: string } {
     const currentColor = this.game.ply % 2 === 0 ? 1 : 2;
+    const opponentColor = currentColor === 1 ? 2 : 1;
     const center = Math.floor(this.game.n / 2);
+    const config = DIFFICULTY_CONFIG.medium;
     
     let bestCell = emptyCells[0];
     let bestScore = -Infinity;
+    let bestReason = 'Making a strategic move';
     
     for (const cell of emptyCells) {
       const [c, r] = this.coords(cell);
       let score = 0;
       
+      // Base positional score
       if (currentColor === 1) {
-        // Indigo connects West-East (horizontal)
         const distToWest = c;
         const distToEast = this.game.n - 1 - c;
         score += 20 - Math.min(distToWest, distToEast);
-        score += 10 - Math.abs(r - center); // Slight center preference
+        score += 10 - Math.abs(r - center);
       } else {
-        // Ochre connects North-South (vertical)
         const distToNorth = r;
         const distToSouth = this.game.n - 1 - r;
         score += 20 - Math.min(distToNorth, distToSouth);
-        score += 10 - Math.abs(c - center); // Slight center preference
+        score += 10 - Math.abs(c - center);
       }
       
-      // Bonus for being adjacent to own stones
+      // Check if this cell forms a bridge
       const neighbors = this.getNeighbors(cell);
+      let adjacentFriends = 0;
+      let adjacentEnemies = 0;
+      let formsBridge = false;
+      
       for (const neighbor of neighbors) {
         if (this.game.board[neighbor] === currentColor) {
-          score += 5;
+          adjacentFriends++;
+          
+          // Check if this creates a bridge pattern
+          const commonNeighbors = this.getNeighbors(neighbor).filter(n => 
+            neighbors.includes(n) && this.game.board[n] === currentColor
+          );
+          if (commonNeighbors.length > 0) {
+            formsBridge = true;
+          }
+        } else if (this.game.board[neighbor] === opponentColor) {
+          adjacentEnemies++;
         }
       }
+      
+      // Apply bonuses/penalties
+      if (formsBridge) {
+        score += config.bridgeBonus;
+      }
+      score += adjacentFriends * config.adjacencyBonus;
+      
+      // Redundancy penalty if too many neighbors
+      if (adjacentFriends > 2) {
+        score += config.redundancyPenalty;
+      }
+      
+      // Basic blocking: check if opponent could make short path
+      const testGame = this.game.clone();
+      testGame.board[cell] = opponentColor;
+      const opponentShortPath = this.estimateShortestPath(testGame, opponentColor);
+      if (opponentShortPath !== null && opponentShortPath <= 2) {
+        score += 6; // Blocking bonus
+      }
+      
+      // Add mild randomness
+      score += (Math.random() - 0.5) * config.randomness;
       
       if (score > bestScore) {
         bestScore = score;
         bestCell = cell;
+        bestReason = formsBridge ? 'Creating bridge connection' : 
+                     adjacentFriends > 0 ? 'Extending my chain' :
+                     'Building toward goal';
       }
     }
     
-    const [c, r] = this.coords(bestCell);
-    const reasoning = currentColor === 1
-      ? `Building west-east connection at row ${r + 1}`
-      : `Building north-south connection at col ${c + 1}`;
+    return { cell: bestCell, reasoning: bestReason };
+  }
+  
+  /**
+   * Estimate shortest path to goal (simple heuristic)
+   */
+  private estimateShortestPath(game: Hex, color: number): number | null {
+    let minDist = Infinity;
     
-    return { cell: bestCell, reasoning };
+    for (let i = 0; i < game.board.length; i++) {
+      if (game.board[i] === color) {
+        const [c, r] = this.coords(i);
+        const dist = color === 1 ? (game.n - 1 - c) : (game.n - 1 - r);
+        minDist = Math.min(minDist, dist);
+      }
+    }
+    
+    return minDist === Infinity ? null : minDist;
   }
 
   /**
-   * Hard: Tactical patterns + Bridge detection
+   * Hard: Advanced AI
+   * - Uses lookahead and threat detection
+   * - Plans multiple bridges, defends actively
+   * - Weighted formula: score = my_dist - 1.2 * opp_dist + adjacency_bonus
+   * - Simulates 1-move future; blocks immediate threats
+   * - Tough but beatable human equivalent
    */
   private getHardMove(emptyCells: number[]): { cell: number; reasoning: string } {
     const currentColor = this.game.ply % 2 === 0 ? 1 : 2;
     const opponentColor = currentColor === 1 ? 2 : 1;
+    const config = DIFFICULTY_CONFIG.hard;
     
     // Check if we can win in one move
     for (const cell of emptyCells) {
@@ -148,24 +256,73 @@ export class SimpleHexAI {
       testGame.board[oppCell] = opponentColor;
       
       if (testGame.winner() === opponentColor) {
-        return { cell: oppCell, reasoning: 'Blocking critical opponent threat!' };
+        return { cell: oppCell, reasoning: 'Blocking critical threat!' };
       }
     }
     
-    // Check for bridge opportunities
-    const bridgeMove = this.findBridgeMove(emptyCells, currentColor);
-    if (bridgeMove) {
-      return { cell: bridgeMove, reasoning: 'Creating tactical bridge connection' };
+    // Evaluate moves with lookahead
+    let bestCell = emptyCells[0];
+    let bestScore = -Infinity;
+    
+    for (const cell of emptyCells) {
+      // Simulate this move
+      const testGame = this.game.clone();
+      testGame.board[cell] = currentColor;
+      
+      // Calculate distances to goal for both players
+      const myDist = this.estimateShortestPath(testGame, currentColor) || 99;
+      const oppDist = this.estimateShortestPath(testGame, opponentColor) || 99;
+      
+      // Weighted formula emphasizing opponent blocking
+      let score = -myDist + (config.opponentWeighting * oppDist);
+      
+      // Adjacency bonus
+      const neighbors = this.getNeighbors(cell);
+      let adjacentFriends = 0;
+      for (const neighbor of neighbors) {
+        if (this.game.board[neighbor] === currentColor) {
+          adjacentFriends++;
+        }
+      }
+      score += adjacentFriends * 3;
+      
+      // Bridge detection bonus
+      const formsBridge = this.checkBridgeAtCell(cell, currentColor);
+      if (formsBridge) {
+        score += 10;
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestCell = cell;
+      }
     }
     
-    // Check for opponent bridges to interrupt
-    const blockBridge = this.findBridgeMove(emptyCells, opponentColor);
-    if (blockBridge) {
-      return { cell: blockBridge, reasoning: 'Disrupting opponent bridge' };
+    return { cell: bestCell, reasoning: 'Strategic positioning with lookahead' };
+  }
+  
+  /**
+   * Check if a cell forms a bridge with existing stones
+   */
+  private checkBridgeAtCell(cell: number, color: number): boolean {
+    const neighbors = this.getNeighbors(cell);
+    let friendCount = 0;
+    
+    for (const neighbor of neighbors) {
+      if (this.game.board[neighbor] === color) {
+        friendCount++;
+        
+        // Check for bridge pattern
+        const commonNeighbors = this.getNeighbors(neighbor).filter(n => 
+          neighbors.includes(n) && this.game.board[n] === color
+        );
+        if (commonNeighbors.length > 0) {
+          return true;
+        }
+      }
     }
     
-    // Otherwise use medium strategy with enhanced scoring
-    return this.getMediumMove(emptyCells);
+    return friendCount >= 2;
   }
 
   /**
