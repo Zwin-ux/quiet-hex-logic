@@ -43,7 +43,6 @@ export default function Match() {
   const [lastMove, setLastMove] = useState<number | undefined>();
   const [winningPath, setWinningPath] = useState<number[]>([]);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [isAIThinking, setIsAIThinking] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [showAIReasoning, setShowAIReasoning] = useState(false);
   const aiMoveInProgress = useRef(false);
@@ -191,14 +190,14 @@ export default function Match() {
       setWinningPath(path || []);
     }
 
-    // Check if AI should play
+    // Check if AI should play (immediate, no delay)
     if (matchData.status === 'active') {
       const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
       const isAIMatch = matchData.ai_difficulty != null;
       const isAITurn = isAIMatch && currentColor === 2;
       
       if (isAITurn && !hexEngine.winner()) {
-      setTimeout(() => makeAIMove(hexEngine, matchData), 800);
+        makeAIMove(hexEngine, matchData);
       }
     }
   }, [matchId, navigate]);
@@ -206,13 +205,10 @@ export default function Match() {
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
     // Prevent concurrent AI moves
     if (aiMoveInProgress.current) {
-      console.log('AI move already in progress, skipping');
       return;
     }
 
     aiMoveInProgress.current = true;
-    setIsAIThinking(true);
-    setAiReasoning('');
 
     try {
       const difficulty = matchData.ai_difficulty || 'medium';
@@ -221,8 +217,6 @@ export default function Match() {
 
       if (difficulty === 'expert' || difficulty === 'hard') {
         // Use server-side MCTS AI for hard/expert
-        setAiReasoning('Analyzing with advanced AI...');
-        
         const { data: aiResult, error: aiError } = await supabase.functions.invoke('ai-move-v2', {
           body: { 
             matchId: matchData.id,
@@ -232,7 +226,6 @@ export default function Match() {
 
         if (aiError || !aiResult?.cell) {
           // Fallback to client AI if server fails
-          console.warn('Server AI failed, using client fallback:', aiError);
           const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
           const result = ai.getMove();
           cell = result.cell;
@@ -242,7 +235,7 @@ export default function Match() {
           reasoning = aiResult.reasoning;
         }
       } else {
-        // Use client-side AI for easy/medium
+        // Use client-side AI for easy/medium (instant)
         const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
         const result = ai.getMove();
         cell = result.cell;
@@ -253,8 +246,6 @@ export default function Match() {
 
       // Generate action_id for idempotency
       const actionId = crypto.randomUUID();
-
-      console.log(`AI applying move: cell=${cell}, actionId=${actionId}`);
 
       // Apply move through server for validation and persistence
       const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
@@ -267,24 +258,20 @@ export default function Match() {
 
       if (error || !result?.success) {
         const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
-        console.error('AI move failed:', errorMsg, { error, result });
         
         // Don't throw on "Not your turn" - this can happen if another move was already made
         if (!errorMsg.includes('Not your turn')) {
-          throw new Error(errorMsg);
-        } else {
-          console.log('Turn already changed, ignoring error');
-          return;
+          console.error('AI move failed:', errorMsg);
+          toast.error('Computer failed to move');
         }
+        return;
       }
 
       // Reload match to get updated state
       await loadMatch();
     } catch (error) {
       console.error('AI move error:', error);
-      toast.error('Computer failed to move');
     } finally {
-      setIsAIThinking(false);
       aiMoveInProgress.current = false;
     }
   };
@@ -312,6 +299,12 @@ export default function Match() {
       return;
     }
 
+    // Optimistic UI update
+    const optimisticEngine = engine.clone();
+    optimisticEngine.play(cell);
+    setEngine(optimisticEngine);
+    setLastMove(cell);
+
     // Generate action_id for idempotency
     const actionId = crypto.randomUUID();
 
@@ -326,14 +319,15 @@ export default function Match() {
       });
 
       if (error || !result?.success) {
+        // Revert optimistic update on error
+        await loadMatch();
+        
         // Check for specific error types
         if (error?.message?.includes('Rate limit') || result?.error?.includes('Rate limit')) {
-          toast.error('Too many moves too quickly - slow down!');
+          toast.error('Too many moves too quickly');
           return;
         }
         if (result?.error?.includes('Match state changed')) {
-          toast.error('Game state changed - reloading...');
-          await loadMatch();
           return;
         }
         toast.error(result?.error || error?.message || 'Invalid move');
@@ -342,11 +336,10 @@ export default function Match() {
 
       // Check if this was a cached/duplicate result
       if (result.cached) {
-        console.log('Move already processed (idempotent retry)');
         return;
       }
 
-      // Reload match
+      // Reload match for server state sync
       await loadMatch();
 
       const winner = result.winner;
@@ -354,6 +347,8 @@ export default function Match() {
         toast.success(winner === currentPlayer.color ? 'You won!' : 'Computer won!');
       }
     } catch (error) {
+      // Revert optimistic update
+      await loadMatch();
       console.error('Move error:', error);
       toast.error('Failed to make move');
     }
@@ -555,16 +550,7 @@ export default function Match() {
 
           {/* Game Board */}
           <div className="order-1 lg:order-2 flex flex-col items-center gap-6">
-            {isAIThinking && (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Sparkles className="h-5 w-5 animate-gentle-pulse" />
-                  <span className="font-mono text-sm">Computer thinking...</span>
-                </div>
-              </div>
-            )}
-            
-            {showAIReasoning && aiReasoning && !isAIThinking && (
+            {showAIReasoning && aiReasoning && (
               <div className="p-4 border rounded-lg bg-card max-w-md">
                 <div className="flex items-start gap-2">
                   <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -586,7 +572,6 @@ export default function Match() {
               disabled={
                 match.status !== 'active' || 
                 currentPlayer?.profile_id !== user?.id ||
-                isAIThinking ||
                 isSpectating ||
                 !isPlayer
               }
