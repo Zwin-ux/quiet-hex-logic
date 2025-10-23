@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, ArrowLeft, Home, Sparkles } from 'lucide-react';
 import { HexBoard } from '@/components/HexBoard';
+import { Hex } from '@/lib/hex/engine';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -91,6 +92,8 @@ export default function Tutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [board, setBoard] = useState<Uint8Array>(new Uint8Array(49)); // 7x7 board
   const [lastMove, setLastMove] = useState<number | undefined>(undefined);
+  const [winningPath, setWinningPath] = useState<number[]>([]);
+  const [engine, setEngine] = useState<Hex | null>(null);
   const navigate = useNavigate();
   
   const step = TUTORIAL_STEPS[currentStep];
@@ -116,17 +119,40 @@ export default function Tutorial() {
     if (board.length !== size * size || !step.allowInteraction) {
       setBoard(new Uint8Array(size * size));
       setLastMove(undefined);
+      setWinningPath([]);
+      setEngine(new Hex(size, true));
     }
   }, [currentStep, step.boardSize, step.allowInteraction]);
 
   const handleCellClick = (cell: number) => {
-    if (!step.allowInteraction || board[cell] !== 0) return;
+    if (!engine || !step.allowInteraction || board[cell] !== 0) return;
     
     // Place a stone
     const newBoard = new Uint8Array(board);
     newBoard[cell] = 1; // Indigo stone
     setBoard(newBoard);
     setLastMove(cell);
+    
+    // Update engine and check for win
+    const testEngine = new Hex(step.boardSize || 7, true);
+    for (let i = 0; i < newBoard.length; i++) {
+      if (newBoard[i] !== 0) {
+        try {
+          testEngine.play(i);
+        } catch (e) {
+          // Skip invalid moves during reconstruction
+        }
+      }
+    }
+    
+    const winner = testEngine.winner();
+    if (winner) {
+      const path = testEngine.getWinningPath();
+      setWinningPath(path || []);
+      toast.success('You created a winning path!', { 
+        description: 'Indigo connected West to East!' 
+      });
+    }
     
     // Check if it's the expected move
     if (step.expectedMoves && step.expectedMoves.includes(cell)) {
@@ -303,6 +329,7 @@ export default function Tutorial() {
                   size={step.boardSize || 7}
                   board={board}
                   lastMove={lastMove}
+                  winningPath={winningPath}
                   onCellClick={step.allowInteraction ? handleCellClick : undefined}
                   disabled={!step.allowInteraction}
                 />
