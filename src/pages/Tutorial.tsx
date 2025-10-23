@@ -116,22 +116,31 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: 8,
-    title: 'Advanced: Full Game',
-    description: 'Here\'s what a completed game looks like. Indigo won by connecting West to East, even though Ochre had strong positions.',
-    instruction: 'Notice how Indigo found a path through Ochre\'s stones',
+    title: 'Advanced: Diagonal Breakthrough',
+    description: 'Watch how Indigo wins by cutting diagonally through Ochre\'s defenses. Ochre blocked two routes, but Indigo found the third path—a classic tactical breakthrough.',
+    instruction: 'Study the glowing winning path—notice how it bridges between Ochre\'s walls',
     boardSize: 7,
     showBoard: true,
     allowInteraction: false,
     winCondition: 'none',
     prefilledBoard: [
-      // Winning indigo path
-      [0, 1], [7, 1], [14, 1], [21, 1], [28, 1], [35, 1], [42, 1],
-      // Ochre blocks
-      [10, 2], [11, 2], [18, 2], [25, 2], [32, 2], [38, 2],
-      // Extra indigo
-      [1, 1], [8, 1], [15, 1], [22, 1],
-      // Extra ochre
-      [3, 2], [4, 2], [17, 2], [24, 2], [31, 2]
+      // Indigo's winning diagonal path (West to East through row 4)
+      [0, 1], [7, 1], [14, 1], [15, 1], [22, 1], [29, 1], [30, 1], [31, 1], [32, 1], [33, 1], [34, 1],
+      
+      // Ochre's upper defensive wall (blocking route 1)
+      [2, 2], [3, 2], [9, 2], [10, 2], [16, 2], [17, 2],
+      
+      // Ochre's middle defensive wall (blocking route 2)
+      [23, 2], [24, 2], [25, 2],
+      
+      // Ochre's lower attempted block (too late)
+      [35, 2], [36, 2], [42, 2], [43, 2],
+      
+      // Additional Indigo stones showing alternative attempts
+      [1, 1], [8, 1],
+      
+      // Additional Ochre reinforcements
+      [4, 2], [11, 2], [18, 2]
     ],
   },
   {
