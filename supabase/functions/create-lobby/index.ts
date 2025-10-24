@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       throw new Error('Missing authorization header');
     }
 
@@ -22,18 +23,28 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('Getting user...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
+      console.error('Auth error:', userError);
       throw new Error('Unauthorized');
     }
+    console.log('User authenticated:', user.id);
 
     const { boardSize, pieRule, turnTimer } = await req.json();
+    console.log('Lobby settings:', { boardSize, pieRule, turnTimer });
 
     // Generate unique code
+    console.log('Generating lobby code...');
     const { data: code, error: codeError } = await supabase.rpc('generate_lobby_code');
-    if (codeError) throw codeError;
+    if (codeError) {
+      console.error('Code generation error:', codeError);
+      throw codeError;
+    }
+    console.log('Code generated:', code);
 
     // Create lobby
+    console.log('Creating lobby...');
     const { data: lobby, error: lobbyError } = await supabase
       .from('lobbies')
       .insert({
@@ -47,9 +58,14 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (lobbyError) throw lobbyError;
+    if (lobbyError) {
+      console.error('Lobby creation error:', lobbyError);
+      throw lobbyError;
+    }
+    console.log('Lobby created:', lobby.id);
 
     // Add host as first player
+    console.log('Adding host to lobby_players...');
     const { error: playerError } = await supabase
       .from('lobby_players')
       .insert({
@@ -59,9 +75,13 @@ Deno.serve(async (req) => {
         is_ready: false
       });
 
-    if (playerError) throw playerError;
+    if (playerError) {
+      console.error('Player insertion error:', playerError);
+      throw playerError;
+    }
+    console.log('Host added to lobby');
 
-    console.log(`Lobby created: ${code} by ${user.id}`);
+    console.log(`Lobby created successfully: ${code} by ${user.id}`);
 
     return new Response(
       JSON.stringify({ lobby, code }),
@@ -70,8 +90,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error creating lobby:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const details = error instanceof Error ? error : { error: 'Unknown error' };
+    console.error('Error details:', JSON.stringify(details));
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: message, details }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
