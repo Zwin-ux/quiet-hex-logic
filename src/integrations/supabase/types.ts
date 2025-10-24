@@ -629,6 +629,10 @@ export type Database = {
         Args: { _blocked: string; _blocker: string }
         Returns: boolean
       }
+      user_in_lobby: {
+        Args: { _lobby_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_in_match: {
         Args: { _match_id: string; _user_id: string }
         Returns: boolean
