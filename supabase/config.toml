@@ -3,6 +3,9 @@ project_id = "ptuxqfwicdpdslqwnswd"
 [functions.cleanup-empty-lobbies]
 verify_jwt = false
 
+[functions.cleanup-old-matches]
+verify_jwt = false
+
 [functions.ai-move]
 verify_jwt = true
 
