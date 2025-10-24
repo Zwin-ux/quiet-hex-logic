@@ -25,7 +25,7 @@ type LobbyPlayer = {
 type LobbyPlayerWithProfile = LobbyPlayer & {
   profiles: {
     username: string;
-    avatar_url?: string;
+    avatar_color?: string;
   };
 };
 
@@ -58,7 +58,7 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
         // Fetch players
         const { data: playersData, error: playersError } = await supabase
           .from('lobby_players')
-          .select('*, profiles(username, avatar_url)')
+          .select('*, profiles(username, avatar_color)')
           .eq('lobby_id', lobbyId);
 
         if (playersError) throw playersError;
@@ -103,7 +103,7 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
             // Refetch players on any player change
             const { data } = await supabase
               .from('lobby_players')
-              .select('*, profiles(username, avatar_url)')
+              .select('*, profiles(username, avatar_color)')
               .eq('lobby_id', lobbyId);
             
             if (data) setPlayers(data as any);
