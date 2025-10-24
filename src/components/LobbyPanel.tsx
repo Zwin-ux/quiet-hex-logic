@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,12 +19,59 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const [copied, setCopied] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [hasNavigated, setHasNavigated] = useState(false);
   const navigate = useNavigate();
 
   const isHost = lobby?.host_id === userId;
   const currentPlayer = players.find(p => p.player_id === userId);
   const allReady = players.length === 2 && players.every(p => p.is_ready);
   const canStart = isHost && allReady;
+
+  // Auto-navigate both players when match starts (critical for guest navigation)
+  useEffect(() => {
+    if (!lobby || hasNavigated) return;
+
+    // Detect when lobby status changes to 'starting'
+    if (lobby.status === 'starting') {
+      console.log(`[LobbyPanel] Lobby ${lobbyId} starting, fetching match...`);
+      setHasNavigated(true); // Prevent duplicate navigation
+
+      // Query for the match that was created from this lobby
+      const fetchMatchAndNavigate = async () => {
+        try {
+          const { data: match, error } = await supabase
+            .from('matches')
+            .select('id')
+            .eq('lobby_id', lobbyId)
+            .single();
+
+          if (error) {
+            console.error('[LobbyPanel] Error fetching match:', error);
+            toast.error('Failed to join match', {
+              description: 'Please try refreshing the page'
+            });
+            setHasNavigated(false); // Allow retry
+            return;
+          }
+
+          if (match) {
+            console.log(`[LobbyPanel] Match ${match.id} found, navigating...`);
+            toast.success('Match starting!');
+            navigate(`/match/${match.id}`);
+          } else {
+            console.warn('[LobbyPanel] No match found for lobby');
+            setHasNavigated(false); // Allow retry
+          }
+        } catch (err) {
+          console.error('[LobbyPanel] Exception fetching match:', err);
+          toast.error('Failed to start match');
+          setHasNavigated(false); // Allow retry
+        }
+      };
+
+      fetchMatchAndNavigate();
+    }
+  }, [lobby?.status, lobbyId, navigate, hasNavigated]);
 
   const copyCode = async () => {
     if (lobby?.code) {

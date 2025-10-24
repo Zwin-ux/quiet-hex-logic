@@ -100,10 +100,13 @@ Deno.serve(async (req) => {
 
     if (player2Error) throw player2Error;
 
-    // Update lobby status
+    // Update lobby status and force realtime event
     await supabase
       .from('lobbies')
-      .update({ status: 'starting' })
+      .update({
+        status: 'starting',
+        updated_at: new Date().toISOString() // Force realtime event trigger
+      })
       .eq('id', lobbyId);
 
     console.log(`Match ${match.id} started from lobby ${lobbyId}`);
