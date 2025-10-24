@@ -11,6 +11,7 @@ import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
 import { JoinGameCTA } from '@/components/JoinGameCTA';
+import { LobbyCard } from '@/components/LobbyCard';
 import { usePresence } from '@/hooks/usePresence';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
@@ -36,9 +37,22 @@ type Match = {
   allow_spectators: boolean;
 };
 
+type LobbyWithDetails = {
+  id: string;
+  code: string;
+  host_id: string;
+  board_size: number;
+  pie_rule: boolean;
+  status: string;
+  created_at: string;
+  profiles?: { username: string } | null;
+  player_count?: number;
+};
+
 export default function Lobby() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeMatches, setActiveMatches] = useState<Match[]>([]);
+  const [lobbies, setLobbies] = useState<LobbyWithDetails[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('medium');
@@ -61,11 +75,12 @@ export default function Lobby() {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch waiting and active matches
+    // Fetch waiting and active matches + lobbies
     fetchWaitingMatches();
     fetchActiveMatches();
+    fetchWaitingLobbies();
 
-    // Subscribe to match changes
+    // Subscribe to match and lobby changes
     const channel = supabase
       .channel('lobby')
       .on(
@@ -90,6 +105,29 @@ export default function Lobby() {
         },
         () => {
           fetchActiveMatches();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'lobbies',
+          filter: `status=eq.waiting`,
+        },
+        () => {
+          fetchWaitingLobbies();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'lobby_players',
+        },
+        () => {
+          fetchWaitingLobbies(); // Refetch when players join/leave
         }
       )
       .subscribe();
@@ -128,6 +166,37 @@ export default function Lobby() {
     } else {
       setActiveMatches(data || []);
     }
+  };
+
+  const fetchWaitingLobbies = async () => {
+    const { data: lobbyData, error } = await supabase
+      .from('lobbies')
+      .select('id, code, host_id, board_size, pie_rule, status, created_at, profiles!lobbies_host_id_fkey(username)')
+      .eq('status', 'waiting')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Error fetching lobbies:', error);
+      return;
+    }
+
+    // Get player counts for each lobby
+    const lobbiesWithCounts = await Promise.all(
+      (lobbyData || []).map(async (lobby) => {
+        const { count } = await supabase
+          .from('lobby_players')
+          .select('*', { count: 'exact', head: true })
+          .eq('lobby_id', lobby.id);
+
+        return {
+          ...lobby,
+          player_count: count || 0
+        } as LobbyWithDetails;
+      })
+    );
+
+    setLobbies(lobbiesWithCounts);
   };
 
   const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
@@ -445,6 +514,45 @@ export default function Lobby() {
             </div>
           </div>
         </Card>
+
+        {/* Open Lobbies Section - NEW: Show waiting lobbies with rich info */}
+        {user && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-body text-xl font-semibold text-foreground">
+                  Open Lobbies
+                </h2>
+                <p className="text-sm text-muted-foreground font-body">
+                  Join a waiting game or create your own above
+                </p>
+              </div>
+              <Badge variant="outline" className="font-mono text-xs">
+                {lobbies.length} waiting
+              </Badge>
+            </div>
+
+            {lobbies.length === 0 ? (
+              <Card className="p-8 text-center shadow-soft border-2 border-dashed">
+                <div className="text-4xl mb-3 opacity-20">⬡</div>
+                <p className="text-sm text-muted-foreground font-body">
+                  No open lobbies yet — create one above to get started
+                </p>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {lobbies.map((lobby) => (
+                  <LobbyCard
+                    key={lobby.id}
+                    lobby={lobby}
+                    playerCount={lobby.player_count || 0}
+                    currentUserId={user.id}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Live Matches Section - UX: Enhanced info (board size, players, time), clear CTA */}
         <div className="mb-12">

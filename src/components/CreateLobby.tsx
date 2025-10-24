@@ -35,24 +35,29 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
       if (data.error) throw new Error(data.error);
 
       setCreatedCode(data.code);
-      
+
       // Auto-copy code
       await navigator.clipboard.writeText(data.code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
 
       toast.success('Lobby created!', {
-        description: `Code: ${data.code} - Copied to clipboard!`,
-        duration: 6000
+        description: `Code: ${data.code} - Navigating to lobby...`,
+        duration: 4000
       });
 
-      // Navigate to lobby view
+      console.log(`[CreateLobby] Successfully created lobby ${data.lobby.id}, navigating...`);
+
+      // Navigate to lobby view - keep loading state during navigation
       navigate(`/lobby/${data.lobby.id}`);
+
+      // Don't set creating to false - let the navigation happen
+      // This prevents UI flickering during page transition
     } catch (err: any) {
+      console.error('[CreateLobby] Error creating lobby:', err);
       toast.error('Failed to create lobby', {
         description: err.message
       });
-    } finally {
       setCreating(false);
     }
   };

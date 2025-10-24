@@ -129,11 +129,16 @@ export default function Friends() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success(`Challenge sent to ${friendUsername}!`);
+      toast.success(`Challenge sent to ${friendUsername}!`, {
+        description: 'Navigating to lobby...'
+      });
+
+      console.log(`[Friends] Challenge sent, lobby ${data.lobby_id} created, navigating...`);
 
       // Navigate challenger to the lobby immediately
       navigate(`/lobby/${data.lobby_id}`);
     } catch (err: any) {
+      console.error('[Friends] Error sending challenge:', err);
       toast.error('Failed to send challenge', {
         description: err.message
       });
