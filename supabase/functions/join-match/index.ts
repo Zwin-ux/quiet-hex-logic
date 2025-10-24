@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const joinMatchSchema = z.object({
+  matchId: z.string().uuid('Invalid match ID')
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,15 +19,20 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { matchId } = body;
-
+    
     // Validate input
-    if (!matchId || typeof matchId !== 'string') {
+    const validationResult = joinMatchSchema.safeParse(body);
+    if (!validationResult.success) {
       return new Response(
-        JSON.stringify({ error: 'Invalid match ID' }),
+        JSON.stringify({ 
+          error: 'Invalid input parameters', 
+          details: validationResult.error.format() 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    const { matchId } = validationResult.data;
 
     // Get authenticated user from JWT
     const authHeader = req.headers.get('Authorization');

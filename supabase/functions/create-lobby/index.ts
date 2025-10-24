@@ -1,9 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const createLobbySchema = z.object({
+  boardSize: z.number().int().min(5).max(19).optional(),
+  pieRule: z.boolean().optional(),
+  turnTimer: z.number().int().min(10).max(300).optional()
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -31,7 +39,22 @@ Deno.serve(async (req) => {
     }
     console.log('User authenticated:', user.id);
 
-    const { boardSize, pieRule, turnTimer } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = createLobbySchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input parameters', 
+          details: validationResult.error.format() 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { boardSize, pieRule, turnTimer } = validationResult.data;
     console.log('Lobby settings:', { boardSize, pieRule, turnTimer });
 
     // Generate unique code

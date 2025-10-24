@@ -1,9 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const toggleReadySchema = z.object({
+  lobbyId: z.string().uuid('Invalid lobby ID'),
+  isReady: z.boolean()
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,7 +34,21 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { lobbyId, isReady } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = toggleReadySchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input parameters', 
+          details: validationResult.error.format() 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { lobbyId, isReady } = validationResult.data;
 
     // Toggle ready state
     const { data: player, error: updateError } = await supabase

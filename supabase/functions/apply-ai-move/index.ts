@@ -1,9 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const applyAIMoveSchema = z.object({
+  matchId: z.string().uuid('Invalid match ID'),
+  cell: z.number().int().min(0).max(10000).nullable(),
+  actionId: z.string().uuid('Invalid action ID')
+});
 
 // Minimal validator (mirrors apply-move)
 class DSU {
@@ -25,11 +33,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { matchId, cell, actionId } = await req.json();
-
-    if (!actionId) {
-      return new Response(JSON.stringify({ error: 'action_id required for idempotency' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = applyAIMoveSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input parameters', 
+        details: validationResult.error.format() 
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+    
+    const { matchId, cell, actionId } = validationResult.data;
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

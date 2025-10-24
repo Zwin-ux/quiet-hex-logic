@@ -1,9 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const updateLobbySettingsSchema = z.object({
+  lobbyId: z.string().uuid('Invalid lobby ID'),
+  boardSize: z.number().int().min(5).max(19).optional(),
+  pieRule: z.boolean().optional(),
+  turnTimer: z.number().int().min(10).max(300).optional()
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,7 +36,21 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { lobbyId, boardSize, pieRule, turnTimer } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = updateLobbySettingsSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input parameters', 
+          details: validationResult.error.format() 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { lobbyId, boardSize, pieRule, turnTimer } = validationResult.data;
 
     // Verify user is host
     const { data: lobby, error: lobbyError } = await supabase
