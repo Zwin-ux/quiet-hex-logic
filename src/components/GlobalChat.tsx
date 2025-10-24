@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { MessageCircle, Send, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MessageCircle, Send, ChevronUp, ChevronDown, Users } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -21,16 +22,18 @@ type ChatMessage = {
 };
 
 export function GlobalChat() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastReadIdRef = useRef<string | null>(null);
 
-  // Fetch initial messages
+  // Fetch initial messages - always fetch, not just when expanded
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!user) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -45,15 +48,18 @@ export function GlobalChat() {
       }
 
       setMessages(data as any);
+      if (data && data.length > 0) {
+        lastReadIdRef.current = data[data.length - 1].id;
+      }
       setTimeout(() => scrollToBottom(), 100);
     };
 
     fetchMessages();
-  }, [isOpen, user]);
+  }, [user]);
 
-  // Subscribe to new messages
+  // Subscribe to new messages - always subscribe
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!user) return;
 
     const channel = supabase
       .channel('global-chat')
@@ -74,6 +80,12 @@ export function GlobalChat() {
 
           if (data) {
             setMessages((prev) => [...prev, data as any]);
+
+            // Increment unread count if chat is collapsed and message is not from current user
+            if (!isExpanded && data.user_id !== user.id) {
+              setUnreadCount((prev) => prev + 1);
+            }
+
             setTimeout(() => scrollToBottom(), 100);
           }
         }
@@ -83,7 +95,15 @@ export function GlobalChat() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOpen, user]);
+  }, [user, isExpanded]);
+
+  // Reset unread count when expanded
+  useEffect(() => {
+    if (isExpanded && messages.length > 0) {
+      setUnreadCount(0);
+      lastReadIdRef.current = messages[messages.length - 1].id;
+    }
+  }, [isExpanded, messages]);
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -110,62 +130,144 @@ export function GlobalChat() {
 
   if (!user) return null;
 
+  const latestMessage = messages[messages.length - 1];
+
   return (
     <>
-      {/* Floating chat button */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        size="icon"
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-      </Button>
-
-      {/* Chat window */}
-      {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-96 h-[500px] shadow-2xl z-50 flex flex-col">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-lg">Global Chat</h3>
-            <p className="text-xs text-muted-foreground">Chat with other players</p>
-          </div>
-
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <div key={msg.id} className="flex gap-3">
-                  <UserAvatar
-                    username={msg.profiles.username}
-                    color={msg.profiles.avatar_color}
-                    size="sm"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-medium text-sm">{msg.profiles.username}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-                      </span>
+      {/* Persistent Bottom Chat Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+        <div className="pointer-events-auto">
+          {/* Expanded Chat View */}
+          {isExpanded && (
+            <Card className="mx-auto max-w-4xl mb-0 rounded-b-none shadow-2xl border-x border-t border-b-0 animate-in slide-in-from-bottom-4 duration-300">
+              <div className="h-[400px] flex flex-col">
+                {/* Header */}
+                <div className="px-4 py-3 border-b flex items-center justify-between bg-gradient-to-r from-primary/5 to-primary/10">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    <div>
+                      <h3 className="font-semibold text-base">Global Chat</h3>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        Chat with other players
+                      </p>
                     </div>
-                    <p className="text-sm break-words">{msg.message}</p>
+                  </div>
+                  <Button
+                    onClick={() => setIsExpanded(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    Minimize
+                  </Button>
+                </div>
+
+                {/* Messages */}
+                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                  <div className="space-y-4">
+                    {messages.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">No messages yet. Start the conversation!</p>
+                      </div>
+                    ) : (
+                      messages.map((msg) => (
+                        <div key={msg.id} className="flex gap-3 animate-in fade-in duration-300">
+                          <UserAvatar
+                            username={msg.profiles.username}
+                            color={msg.profiles.avatar_color}
+                            size="sm"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-medium text-sm">{msg.profiles.username}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <p className="text-sm break-words">{msg.message}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {/* Input */}
+                <form onSubmit={handleSend} className="p-3 border-t flex gap-2 bg-background">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    maxLength={500}
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button type="submit" size="icon" disabled={loading || !newMessage.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
+            </Card>
+          )}
+
+          {/* Collapsed Chat Bar */}
+          {!isExpanded && (
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="w-full bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-t border-border hover:from-primary/20 hover:via-primary/10 hover:to-primary/20 transition-all duration-200 shadow-lg"
+            >
+              <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+                {/* Left: Chat Icon + Latest Message */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="relative">
+                    <MessageCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-ochre animate-pulse">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">Global Chat</span>
+                      {unreadCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {unreadCount} new
+                        </Badge>
+                      )}
+                    </div>
+                    {latestMessage ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                        <span className="font-medium text-foreground">
+                          {latestMessage.profiles.username}:
+                        </span>
+                        <span className="truncate">{latestMessage.message}</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No messages yet</p>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
 
-          <form onSubmit={handleSend} className="p-4 border-t flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              maxLength={500}
-              disabled={loading}
-            />
-            <Button type="submit" size="icon" disabled={loading || !newMessage.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </Card>
-      )}
+                {/* Right: Expand Button */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    Click to expand
+                  </span>
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Spacer to prevent content from being hidden behind chat bar */}
+      <div className={isExpanded ? 'h-[400px]' : 'h-[60px]'} />
     </>
   );
 }
