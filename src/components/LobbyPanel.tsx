@@ -156,37 +156,47 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
           </div>
           
           <div className="space-y-3">
-            {players.map((player) => (
-              <div
-                key={player.player_id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">
-                      {player.profiles.username[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{player.profiles.username}</span>
-                      {player.role === 'host' && (
-                        <Crown className="h-4 w-4 text-yellow-500" />
+            {players.map((player) => {
+              // Defensive null-safety for profiles
+              const username = player.profiles?.username || 'Unknown';
+              const avatarLetter = username[0]?.toUpperCase() || '?';
+              const avatarColor = player.profiles?.avatar_color || 'indigo';
+
+              return (
+                <div
+                  key={player.player_id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: `var(--${avatarColor}-500, rgb(99 102 241 / 0.1))` }}
+                    >
+                      <span className="font-bold" style={{ color: `var(--${avatarColor}-700, rgb(67 56 202))` }}>
+                        {avatarLetter}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{username}</span>
+                        {player.role === 'host' && (
+                          <Crown className="h-4 w-4 text-yellow-500" />
+                        )}
+                      </div>
+                      {player.player_id === userId && (
+                        <span className="text-xs text-muted-foreground">You</span>
                       )}
                     </div>
-                    {player.player_id === userId && (
-                      <span className="text-xs text-muted-foreground">You</span>
-                    )}
                   </div>
+
+                  {player.is_ready ? (
+                    <Badge className="bg-green-500">Ready</Badge>
+                  ) : (
+                    <Badge variant="outline">Not Ready</Badge>
+                  )}
                 </div>
-                
-                {player.is_ready ? (
-                  <Badge className="bg-green-500">Ready</Badge>
-                ) : (
-                  <Badge variant="outline">Not Ready</Badge>
-                )}
-              </div>
-            ))}
+              );
+            })}
             
             {players.length < 2 && (
               <div className="p-4 border-2 border-dashed rounded-lg text-center">

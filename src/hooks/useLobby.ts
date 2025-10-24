@@ -55,14 +55,26 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
         if (lobbyError) throw lobbyError;
         setLobby(lobbyData);
 
-        // Fetch players
+        // Fetch players with defensive null-safety for profiles
         const { data: playersData, error: playersError } = await supabase
           .from('lobby_players')
           .select('*, profiles(username, avatar_color)')
           .eq('lobby_id', lobbyId);
 
         if (playersError) throw playersError;
-        setPlayers(playersData as any);
+
+        // Filter out players with null profiles and add fallback data
+        const validPlayers = (playersData || [])
+          .filter(p => p.profiles)
+          .map(p => ({
+            ...p,
+            profiles: {
+              username: p.profiles?.username || 'Unknown',
+              avatar_color: p.profiles?.avatar_color || 'indigo'
+            }
+          }));
+
+        setPlayers(validPlayers as any);
 
         setLoading(false);
       } catch (err: any) {
@@ -100,13 +112,24 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
             filter: `lobby_id=eq.${lobbyId}`
           },
           async () => {
-            // Refetch players on any player change
+            // Refetch players on any player change with null-safety
             const { data } = await supabase
               .from('lobby_players')
               .select('*, profiles(username, avatar_color)')
               .eq('lobby_id', lobbyId);
-            
-            if (data) setPlayers(data as any);
+
+            if (data) {
+              const validPlayers = data
+                .filter(p => p.profiles)
+                .map(p => ({
+                  ...p,
+                  profiles: {
+                    username: p.profiles?.username || 'Unknown',
+                    avatar_color: p.profiles?.avatar_color || 'indigo'
+                  }
+                }));
+              setPlayers(validPlayers as any);
+            }
           }
         )
         .subscribe();

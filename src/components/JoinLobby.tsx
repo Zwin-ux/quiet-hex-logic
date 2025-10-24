@@ -16,7 +16,7 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
   const [joining, setJoining] = useState(false);
   const navigate = useNavigate();
 
-  const joinLobby = async () => {
+  const joinLobby = async (retryCount = 0) => {
     if (!code || code.length < 4) {
       toast.error('Please enter a valid lobby code');
       return;
@@ -29,15 +29,49 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) {
+        // Provide specific error messages for common failures
+        const errorMsg = data.error.toLowerCase();
+        if (errorMsg.includes('not found') || errorMsg.includes('already started')) {
+          throw new Error('Invalid code or lobby already started');
+        } else if (errorMsg.includes('full')) {
+          throw new Error('This lobby already has 2 players');
+        } else {
+          throw new Error(data.error);
+        }
+      }
+
+      if (!data?.lobby?.id) {
+        throw new Error('Invalid response from server');
+      }
 
       toast.success('Joined lobby!');
+      // Ensure navigation happens
       navigate(`/lobby/${data.lobby.id}`);
     } catch (err: any) {
+      const errorMessage = err.message || 'Unknown error occurred';
+
+      // Check if it's a network error and retry
+      if (
+        retryCount < 2 &&
+        (errorMessage.includes('network') ||
+          errorMessage.includes('fetch') ||
+          errorMessage.includes('timeout'))
+      ) {
+        // Exponential backoff: 500ms, 1000ms
+        const delay = 500 * Math.pow(2, retryCount);
+        toast.info(`Connection issue, retrying in ${delay}ms...`);
+
+        setTimeout(() => {
+          joinLobby(retryCount + 1);
+        }, delay);
+        return;
+      }
+
+      // Show user-friendly error
       toast.error('Failed to join lobby', {
-        description: err.message
+        description: errorMessage
       });
-    } finally {
       setJoining(false);
     }
   };

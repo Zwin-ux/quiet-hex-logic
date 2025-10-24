@@ -10,6 +10,7 @@ import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check,
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
+import { JoinGameCTA } from '@/components/JoinGameCTA';
 import { usePresence } from '@/hooks/usePresence';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
@@ -311,9 +312,29 @@ export default function Lobby() {
                             <Button
                               size="sm"
                               onClick={async () => {
-                                if (notif.payload.match_id) {
-                                  await markAsRead(notif.id);
-                                  navigate(`/match/${notif.payload.match_id}`);
+                                try {
+                                  // Check for lobby_code (new flow) or match_id (legacy flow)
+                                  if (notif.payload.lobby_code) {
+                                    // New flow: Join the lobby
+                                    const { data, error } = await supabase.functions.invoke('join-lobby', {
+                                      body: { code: notif.payload.lobby_code }
+                                    });
+
+                                    if (error) throw error;
+                                    if (data.error) throw new Error(data.error);
+
+                                    await markAsRead(notif.id);
+                                    toast.success('Joined challenge lobby!');
+                                    navigate(`/lobby/${data.lobby.id}`);
+                                  } else if (notif.payload.match_id) {
+                                    // Legacy flow: Direct to match
+                                    await markAsRead(notif.id);
+                                    navigate(`/match/${notif.payload.match_id}`);
+                                  }
+                                } catch (err: any) {
+                                  toast.error('Failed to accept challenge', {
+                                    description: err.message
+                                  });
                                 }
                               }}
                             >
@@ -364,6 +385,9 @@ export default function Lobby() {
             )}
           </div>
         </div>
+
+        {/* Recovery CTA for pending lobbies */}
+        {user && <JoinGameCTA userId={user.id} />}
 
         {/* Lobby Creation Section - UX: Horizontal layout for symmetry, clear flow */}
         {user && (

@@ -114,12 +114,30 @@ export default function Friends() {
 
   const sendChallenge = async (friendId: string, friendUsername: string) => {
     if (!user) return;
-    const { data: matchData, error: matchError } = await supabase.from('matches').insert({ owner: user.id, size: 11, status: 'waiting', pie_rule: true }).select().single();
-    if (matchError || !matchData) { toast.error('Failed to create challenge'); return; }
-    await supabase.from('match_players').insert({ match_id: matchData.id, profile_id: user.id, color: 1 });
-    const { error: notifError } = await supabase.from('notifications').insert({ type: 'friend_challenge', sender_id: user.id, receiver_id: friendId, payload: { sender_name: user.email?.split('@')[0] || 'Someone', match_id: matchData.id, board_size: 11 }});
-    if (notifError) { toast.error('Failed to send challenge'); return; }
-    toast.success(`Challenge sent to ${friendUsername}!`);
+
+    try {
+      // Create lobby using new friend challenge endpoint
+      const { data, error } = await supabase.functions.invoke('create-friend-challenge', {
+        body: {
+          friendId,
+          boardSize: 11,
+          pieRule: true,
+          turnTimer: 45
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success(`Challenge sent to ${friendUsername}!`);
+
+      // Navigate challenger to the lobby immediately
+      navigate(`/lobby/${data.lobby_id}`);
+    } catch (err: any) {
+      toast.error('Failed to send challenge', {
+        description: err.message
+      });
+    }
   };
 
   const sendFriendRequest = async () => {
