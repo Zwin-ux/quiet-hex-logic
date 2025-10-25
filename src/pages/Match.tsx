@@ -36,7 +36,7 @@ interface Player {
 export default function Match() {
   const { matchId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [match, setMatch] = useState<MatchData | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [engine, setEngine] = useState<Hex | null>(null);
@@ -58,7 +58,16 @@ export default function Match() {
   const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(matchId);
 
   useEffect(() => {
-    if (!matchId || !user) return;
+    if (!matchId) return;
+    
+    // Check authentication for AI games
+    if (!loading && !user) {
+      toast.error('Please sign in to play');
+      navigate('/auth');
+      return;
+    }
+    
+    if (!user) return;
 
     // Load board skin preference
     loadBoardSkin();
@@ -92,7 +101,7 @@ export default function Match() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [matchId, user]);
+  }, [matchId, user, loading, navigate]);
 
   const loadBoardSkin = useCallback(async () => {
     if (!user) return;

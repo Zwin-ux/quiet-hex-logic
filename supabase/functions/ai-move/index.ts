@@ -161,8 +161,102 @@ class HexAI {
       }
     }
 
-    // Use medium strategy with enhanced scoring
-    return this.getMediumMove(canUsePieRule);
+    // Advanced positional scoring with bridge patterns
+    let bestMove = empty[0];
+    let bestScore = -Infinity;
+
+    for (const move of empty) {
+      let score = 0;
+      const [c, r] = this.coords(move);
+
+      // Distance to goal edges
+      if (currentColor === 1) {
+        const westDist = c;
+        const eastDist = this.size - 1 - c;
+        score += 20 - Math.min(westDist, eastDist);
+        
+        // Prefer center rows
+        score += 10 - Math.abs(r - center);
+      } else {
+        const northDist = r;
+        const southDist = this.size - 1 - r;
+        score += 20 - Math.min(northDist, southDist);
+        
+        // Prefer center columns
+        score += 10 - Math.abs(c - center);
+      }
+
+      // Connectivity bonus
+      let friendlyNeighbors = 0;
+      let opponentNeighbors = 0;
+      const neighbors = this.getNeighbors(move);
+      
+      for (const nb of neighbors) {
+        if (this.board[nb] === currentColor) friendlyNeighbors++;
+        if (this.board[nb] === opponentColor) opponentNeighbors++;
+      }
+      
+      score += friendlyNeighbors * 15;
+      score += opponentNeighbors * 8; // Blocking value
+      
+      // Check for bridge patterns
+      if (this.createsBridge(move, currentColor)) {
+        score += 25;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+    }
+
+    return { move: bestMove, reasoning: 'Strategic position with strong connectivity' };
+  }
+  
+  // Check if a move creates a bridge pattern
+  createsBridge(move: number, color: number): boolean {
+    const [c, r] = this.coords(move);
+    
+    // Check bridge patterns (two friendly stones with this move completing a bridge)
+    const bridgePatterns = [
+      [[c-1, r], [c+1, r+1]],
+      [[c+1, r], [c-1, r-1]],
+      [[c, r-1], [c+1, r+1]],
+      [[c, r+1], [c-1, r-1]],
+      [[c-1, r+1], [c+1, r]],
+      [[c+1, r-1], [c-1, r]]
+    ];
+    
+    for (const [pos1, pos2] of bridgePatterns) {
+      const idx1 = pos1[1] * this.size + pos1[0];
+      const idx2 = pos2[1] * this.size + pos2[0];
+      
+      if (pos1[0] >= 0 && pos1[0] < this.size && pos1[1] >= 0 && pos1[1] < this.size &&
+          pos2[0] >= 0 && pos2[0] < this.size && pos2[1] >= 0 && pos2[1] < this.size) {
+        if (this.board[idx1] === color && this.board[idx2] === color) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  // Get neighbors of a cell
+  getNeighbors(cell: number): number[] {
+    const [c, r] = this.coords(cell);
+    const neighbors: number[] = [];
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+    
+    for (const [dc, dr] of deltas) {
+      const nc = c + dc;
+      const nr = r + dr;
+      if (nc >= 0 && nc < this.size && nr >= 0 && nr < this.size) {
+        neighbors.push(nr * this.size + nc);
+      }
+    }
+    
+    return neighbors;
   }
 
   // Simple winner check for threat detection

@@ -68,9 +68,36 @@ class HexValidator {
     }
     
     if (cell === null) {
-      // Pie rule: swap all stones on the board
+      // Pie rule: swap colors and rebuild DSU
       this.board = this.board.map(c => c === 1 ? 2 : c === 2 ? 1 : 0) as (0 | 1 | 2)[];
-      // After swap, increment turn normally (next player's turn)
+      
+      // Rebuild DSU after swap
+      this.dsu1 = new DSU(this.n * this.n + 2);
+      this.dsu2 = new DSU(this.n * this.n + 2);
+      
+      // Reconnect borders
+      for (let r = 0; r < this.n; r++) {
+        this.dsu1.union(r * this.n, this.board.length);
+        this.dsu1.union(r * this.n + this.n - 1, this.board.length + 1);
+      }
+      for (let c = 0; c < this.n; c++) {
+        this.dsu2.union(c, this.board.length);
+        this.dsu2.union((this.n - 1) * this.n + c, this.board.length + 1);
+      }
+      
+      // Reconnect stones
+      for (let i = 0; i < this.board.length; i++) {
+        if (this.board[i] !== 0) {
+          const color = this.board[i];
+          const dsu = color === 1 ? this.dsu1 : this.dsu2;
+          for (const nb of this.getNeighbors(i)) {
+            if (this.board[nb] === color) {
+              dsu.union(i, nb);
+            }
+          }
+        }
+      }
+      
       this.turn++;
       return;
     }
