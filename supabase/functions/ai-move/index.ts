@@ -32,6 +32,22 @@ class HexAI {
     return [i % this.size, Math.floor(i / this.size)];
   }
 
+  getNeighbors(cell: number): number[] {
+    const [c, r] = this.coords(cell);
+    const neighbors: number[] = [];
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+    
+    for (const [dc, dr] of deltas) {
+      const nc = c + dc;
+      const nr = r + dr;
+      if (nc >= 0 && nc < this.size && nr >= 0 && nr < this.size) {
+        neighbors.push(nr * this.size + nc);
+      }
+    }
+    
+    return neighbors;
+  }
+
   // Easy AI: Random with center bias
   getEasyMove(canUsePieRule: boolean): { move: number | null, reasoning: string } {
     const empty = this.getEmptyCells();
@@ -68,7 +84,6 @@ class HexAI {
     const center = Math.floor(this.size / 2);
 
     if (canUsePieRule) {
-      // Check if opponent played in center
       for (let i = 0; i < this.size * this.size; i++) {
         if (this.board[i] !== 0) {
           const [c, r] = this.coords(i);
@@ -81,8 +96,6 @@ class HexAI {
     }
 
     const currentColor = this.turn % 2 === 1 ? 1 : 2;
-
-    // Score each move based on position
     let bestMove = empty[0];
     let bestScore = -Infinity;
 
@@ -91,13 +104,11 @@ class HexAI {
       let score = 0;
 
       if (currentColor === 1) {
-        // Indigo connects W-E
         const westDist = c;
         const eastDist = this.size - 1 - c;
         score += Math.max(0, 10 - Math.min(westDist, eastDist));
         score += Math.max(0, 5 - Math.abs(r - center));
       } else {
-        // Ochre connects N-S
         const northDist = r;
         const southDist = this.size - 1 - r;
         score += Math.max(0, 10 - Math.min(northDist, southDist));
@@ -161,7 +172,7 @@ class HexAI {
       }
     }
 
-    // Advanced positional scoring with bridge patterns
+    // Advanced positional scoring
     let bestMove = empty[0];
     let bestScore = -Infinity;
 
@@ -169,27 +180,23 @@ class HexAI {
       let score = 0;
       const [c, r] = this.coords(move);
 
-      // Distance to goal edges
+      // Distance to goal
       if (currentColor === 1) {
         const westDist = c;
         const eastDist = this.size - 1 - c;
         score += 20 - Math.min(westDist, eastDist);
-        
-        // Prefer center rows
         score += 10 - Math.abs(r - center);
       } else {
         const northDist = r;
         const southDist = this.size - 1 - r;
         score += 20 - Math.min(northDist, southDist);
-        
-        // Prefer center columns
         score += 10 - Math.abs(c - center);
       }
 
       // Connectivity bonus
+      const neighbors = this.getNeighbors(move);
       let friendlyNeighbors = 0;
       let opponentNeighbors = 0;
-      const neighbors = this.getNeighbors(move);
       
       for (const nb of neighbors) {
         if (this.board[nb] === currentColor) friendlyNeighbors++;
@@ -197,12 +204,7 @@ class HexAI {
       }
       
       score += friendlyNeighbors * 15;
-      score += opponentNeighbors * 8; // Blocking value
-      
-      // Check for bridge patterns
-      if (this.createsBridge(move, currentColor)) {
-        score += 25;
-      }
+      score += opponentNeighbors * 8;
 
       if (score > bestScore) {
         bestScore = score;
@@ -212,58 +214,12 @@ class HexAI {
 
     return { move: bestMove, reasoning: 'Strategic position with strong connectivity' };
   }
-  
-  // Check if a move creates a bridge pattern
-  createsBridge(move: number, color: number): boolean {
-    const [c, r] = this.coords(move);
-    
-    // Check bridge patterns (two friendly stones with this move completing a bridge)
-    const bridgePatterns = [
-      [[c-1, r], [c+1, r+1]],
-      [[c+1, r], [c-1, r-1]],
-      [[c, r-1], [c+1, r+1]],
-      [[c, r+1], [c-1, r-1]],
-      [[c-1, r+1], [c+1, r]],
-      [[c+1, r-1], [c-1, r]]
-    ];
-    
-    for (const [pos1, pos2] of bridgePatterns) {
-      const idx1 = pos1[1] * this.size + pos1[0];
-      const idx2 = pos2[1] * this.size + pos2[0];
-      
-      if (pos1[0] >= 0 && pos1[0] < this.size && pos1[1] >= 0 && pos1[1] < this.size &&
-          pos2[0] >= 0 && pos2[0] < this.size && pos2[1] >= 0 && pos2[1] < this.size) {
-        if (this.board[idx1] === color && this.board[idx2] === color) {
-          return true;
-        }
-      }
-    }
-    
-    return false;
-  }
-  
-  // Get neighbors of a cell
-  getNeighbors(cell: number): number[] {
-    const [c, r] = this.coords(cell);
-    const neighbors: number[] = [];
-    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
-    
-    for (const [dc, dr] of deltas) {
-      const nc = c + dc;
-      const nr = r + dr;
-      if (nc >= 0 && nc < this.size && nr >= 0 && nr < this.size) {
-        neighbors.push(nr * this.size + nc);
-      }
-    }
-    
-    return neighbors;
-  }
 
-  // Simple winner check for threat detection
+  // Winner check for threat detection
   checkWinner(board: number[], color: number): boolean {
     const start = color === 1 ? 
-      Array.from({length: this.size}, (_, i) => i * this.size) : // West edge for player 1
-      Array.from({length: this.size}, (_, i) => i); // North edge for player 2
+      Array.from({length: this.size}, (_, i) => i * this.size) :
+      Array.from({length: this.size}, (_, i) => i);
     
     const visited = new Set<number>();
     const queue: number[] = [];
@@ -279,11 +235,9 @@ class HexAI {
       const cell = queue.shift()!;
       const [col, row] = this.coords(cell);
       
-      // Check if reached goal
-      if (color === 1 && col === this.size - 1) return true; // East edge
-      if (color === 2 && row === this.size - 1) return true; // South edge
+      if (color === 1 && col === this.size - 1) return true;
+      if (color === 2 && row === this.size - 1) return true;
       
-      // Check neighbors
       const neighbors = [
         [1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]
       ];
@@ -313,7 +267,6 @@ serve(async (req) => {
   try {
     const { matchId, difficulty = 'expert' } = await req.json() as { matchId: string, difficulty?: AIDifficulty };
     
-    // Get authenticated user from JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -327,7 +280,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Verify the user is authenticated and is a player in this match
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
@@ -338,7 +290,6 @@ serve(async (req) => {
       );
     }
 
-    // Fetch match first to decide authorization rules
     const { data: match, error: matchError } = await supabase
       .from('matches')
       .select('size, pie_rule, turn, owner, ai_difficulty')
@@ -347,7 +298,7 @@ serve(async (req) => {
 
     if (matchError || !match) throw matchError || new Error('Match not found');
 
-    // Authorization: allow owner in AI practice matches even if not in match_players
+    // Allow owner in AI matches
     const isAIMatch = match.ai_difficulty !== null;
     if (!(isAIMatch && match.owner === user.id)) {
       const { data: player, error: playerError } = await supabase
@@ -373,7 +324,6 @@ serve(async (req) => {
 
     if (movesError) throw movesError;
 
-    // Build board state representation
     const boardSize = match.size;
     const board = Array(boardSize * boardSize).fill(0);
     let canUsePieRule = false;
@@ -384,145 +334,33 @@ serve(async (req) => {
       }
     }
 
-    // Check if pie rule is available
     if (match.pie_rule && moves.length === 1 && moves[0].cell !== null) {
       canUsePieRule = true;
     }
 
-    // Get available moves
-    const emptyCells = board
-      .map((val, idx) => val === 0 ? idx : -1)
-      .filter(idx => idx !== -1);
+    // Use traditional AI
+    const hexAI = new HexAI(boardSize, board, match.pie_rule, match.turn);
+    let result: { move: number | null, reasoning: string };
 
-    // For non-expert difficulty, use traditional AI
-    if (difficulty !== 'expert') {
-      const hexAI = new HexAI(boardSize, board, match.pie_rule, match.turn);
-      let result: { move: number | null, reasoning: string };
-
-      switch (difficulty) {
-        case 'easy':
-          result = hexAI.getEasyMove(canUsePieRule);
-          break;
-        case 'medium':
-          result = hexAI.getMediumMove(canUsePieRule);
-          break;
-        case 'hard':
-          result = hexAI.getHardMove(canUsePieRule);
-          break;
-        default:
-          result = hexAI.getEasyMove(canUsePieRule);
-      }
-
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    switch (difficulty) {
+      case 'easy':
+        result = hexAI.getEasyMove(canUsePieRule);
+        break;
+      case 'medium':
+        result = hexAI.getMediumMove(canUsePieRule);
+        break;
+      case 'hard':
+      case 'expert':
+        result = hexAI.getHardMove(canUsePieRule);
+        break;
+      default:
+        result = hexAI.getEasyMove(canUsePieRule);
     }
 
-    // Expert difficulty: Prefer LLM, but always fallback to deterministic AI
-    const hexAIFallback = () => {
-      const hexAI = new HexAI(boardSize, board, match.pie_rule, match.turn);
-      return hexAI.getHardMove(canUsePieRule);
-    };
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      const result = hexAIFallback();
-      return new Response(
-        JSON.stringify({ ...result, reasoning: result.reasoning + ' (LLM unavailable)' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    try {
-      const systemPrompt = `You are an expert Hex game AI. Hex is played on a ${boardSize}×${boardSize} rhombus board. 
-Player 1 (indigo) connects West-East. Player 2 (ochre) connects North-South.
-Players alternate placing stones. First to connect their sides wins.
-
-Key strategies:
-- Control the center
-- Build bridges (two stones separated by specific empty cells that guarantee connection)
-- Block opponent's connections
-- Create multiple threats simultaneously
-
-Current turn: Player ${match.turn}`;
-
-      const userPrompt = `Board state (0=empty, 1=indigo, 2=ochre):
-${board.map((v, i) => (i % boardSize === 0 ? '\n' : '') + v).join(' ')}
-
-Available moves: ${emptyCells.slice(0, 20).join(', ')}${emptyCells.length > 20 ? '...' : ''}
-${canUsePieRule ? '\nPie rule available: You can swap colors instead of playing.' : ''}
-
-Analyze and choose the best move. ${canUsePieRule ? 'Consider whether swapping is better than playing a move.' : ''}`;
-
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          tools: [{
-            type: 'function',
-            function: {
-              name: 'make_move',
-              description: 'Make a move in the Hex game',
-              parameters: {
-                type: 'object',
-                properties: {
-                  move: {
-                    type: ['number', 'null'],
-                    description: 'Cell index (0 to board_size²-1) or null for pie swap'
-                  },
-                  reasoning: {
-                    type: 'string',
-                    description: 'Brief explanation of why this move is strong (20-40 words)'
-                  }
-                },
-                required: ['move', 'reasoning'],
-                additionalProperties: false
-              }
-            }
-          }],
-          tool_choice: { type: 'function', function: { name: 'make_move' } }
-        })
-      });
-
-      if (!aiResponse.ok) throw new Error(`AI gateway error ${aiResponse.status}: ${await aiResponse.text()}`);
-
-      const aiData = await aiResponse.json();
-      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-      
-      if (toolCall?.function?.arguments) {
-        const args = JSON.parse(toolCall.function.arguments);
-        const move = args.move === null ? null : Number(args.move);
-        
-        // Validate move
-        if (move !== null && (move < 0 || move >= boardSize * boardSize || board[move] !== 0)) {
-          throw new Error('AI suggested invalid move');
-        }
-        
-        return new Response(
-          JSON.stringify({ move, reasoning: args.reasoning || 'Expert analysis' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      throw new Error('No valid AI response');
-    } catch (e) {
-      console.error('LLM path failed:', e);
-      const fallback = hexAIFallback();
-      return new Response(
-        JSON.stringify({ ...fallback, reasoning: fallback.reasoning + ' (fallback used)' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    return new Response(
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in ai-move:', error);

@@ -383,10 +383,11 @@ export default function Lobby() {
                               onClick={async () => {
                                 try {
                                   // Check for lobby_code (new flow) or match_id (legacy flow)
-                                  if (notif.payload.lobby_code) {
+                                  const payload = notif.payload as any;
+                                  if (payload.lobby_code) {
                                     // New flow: Join the lobby
                                     const { data, error } = await supabase.functions.invoke('join-lobby', {
-                                      body: { code: notif.payload.lobby_code }
+                                      body: { code: payload.lobby_code }
                                     });
 
                                     if (error) throw error;

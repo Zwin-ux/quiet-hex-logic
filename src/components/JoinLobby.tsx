@@ -104,7 +104,7 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
         </div>
 
         <Button 
-          onClick={joinLobby} 
+          onClick={() => joinLobby()} 
           disabled={joining || code.length < 4}
           className="w-full h-9 font-medium"
           variant="secondary"
