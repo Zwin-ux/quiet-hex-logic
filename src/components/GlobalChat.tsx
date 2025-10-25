@@ -61,8 +61,9 @@ export function GlobalChat() {
   useEffect(() => {
     if (!user) return;
 
+    console.log('[GlobalChat] Subscribing to global_chat channel');
     const channel = supabase
-      .channel('global-chat')
+      .channel('global_chat') // Use consistent channel name
       .on(
         'postgres_changes',
         {
@@ -71,6 +72,7 @@ export function GlobalChat() {
           table: 'global_chat_messages',
         },
         async (payload) => {
+          console.log('[GlobalChat] New message received:', payload.new.id);
           // Fetch the full message with profile data
           const { data } = await supabase
             .from('global_chat_messages')
@@ -79,7 +81,13 @@ export function GlobalChat() {
             .single();
 
           if (data) {
-            setMessages((prev) => [...prev, data as any]);
+            setMessages((prev) => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === data.id)) {
+                return prev;
+              }
+              return [...prev, data as any];
+            });
 
             // Increment unread count if chat is collapsed and message is not from current user
             if (!isExpanded && data.user_id !== user.id) {
@@ -90,9 +98,12 @@ export function GlobalChat() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[GlobalChat] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[GlobalChat] Unsubscribing from global_chat channel');
       supabase.removeChannel(channel);
     };
   }, [user, isExpanded]);

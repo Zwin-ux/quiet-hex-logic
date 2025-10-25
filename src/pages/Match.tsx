@@ -620,6 +620,22 @@ export default function Match() {
                   : `Waiting for ${currentPlayer?.username}...`}
               </p>
             )}
+
+            {match.status === 'finished' && match.winner && (
+              <div className="mt-6 p-6 border-2 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center">
+                  <h2 className="font-body text-3xl font-bold mb-2">
+                    {match.winner === userPlayer?.color ? '🎉 Victory!' : '💫 Game Over'}
+                  </h2>
+                  <p className="text-lg text-muted-foreground mb-4">
+                    {match.winner === 1 ? player1?.username : player2?.username} wins as {match.winner === 1 ? 'Indigo' : 'Ochre'}!
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {match.winner === 1 ? 'Connected West to East' : 'Connected North to South'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Player 2 Panel */}

@@ -1,4 +1,5 @@
 import { Hex } from './engine';
+import { getSmartAIMove, getSmartAIReasoning } from './smartAI';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
@@ -50,17 +51,15 @@ export class SimpleHexAI {
       throw new Error('No legal moves available');
     }
 
-    switch (this.difficulty) {
-      case 'easy':
-        return this.getEasyMove(emptyCells);
-      case 'medium':
-        return this.getMediumMove(emptyCells);
-      case 'hard':
-      case 'expert': // Expert uses hard difficulty
-        return this.getHardMove(emptyCells);
-      default:
-        return this.getMediumMove(emptyCells);
+    // Use smart AI for medium, hard and expert difficulties for better blocking
+    if (this.difficulty === 'medium' || this.difficulty === 'hard' || this.difficulty === 'expert') {
+      const cell = getSmartAIMove(this.game, this.difficulty);
+      const reasoning = getSmartAIReasoning(this.game, cell, this.difficulty);
+      return { cell, reasoning };
     }
+
+    // Easy difficulty uses simple logic
+    return this.getEasyMove(emptyCells);
   }
 
   private getEmptyCells(): number[] {
