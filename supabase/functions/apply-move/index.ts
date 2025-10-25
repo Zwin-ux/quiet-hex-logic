@@ -75,7 +75,7 @@ class HexValidator {
       this.dsu1 = new DSU(this.n * this.n + 2);
       this.dsu2 = new DSU(this.n * this.n + 2);
       
-      // Reconnect borders
+      // Reconnect borders to virtual nodes (initially empty)
       for (let r = 0; r < this.n; r++) {
         this.dsu1.union(r * this.n, this.board.length);
         this.dsu1.union(r * this.n + this.n - 1, this.board.length + 1);
@@ -85,15 +85,28 @@ class HexValidator {
         this.dsu2.union((this.n - 1) * this.n + c, this.board.length + 1);
       }
       
-      // Reconnect stones
+      // Reconnect stones to each other and to borders
       for (let i = 0; i < this.board.length; i++) {
         if (this.board[i] !== 0) {
           const color = this.board[i];
           const dsu = color === 1 ? this.dsu1 : this.dsu2;
+          const row = Math.floor(i / this.n);
+          const col = i % this.n;
+          
+          // Connect to neighbors
           for (const nb of this.getNeighbors(i)) {
             if (this.board[nb] === color) {
               dsu.union(i, nb);
             }
+          }
+          
+          // Connect to borders if on edge
+          if (color === 1) {
+            if (col === 0) dsu.union(i, this.board.length);
+            if (col === this.n - 1) dsu.union(i, this.board.length + 1);
+          } else {
+            if (row === 0) dsu.union(i, this.board.length);
+            if (row === this.n - 1) dsu.union(i, this.board.length + 1);
           }
         }
       }

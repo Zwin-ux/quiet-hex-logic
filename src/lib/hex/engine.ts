@@ -137,8 +137,57 @@ export class Hex {
 
     // Handle pie swap
     if (cell === null) {
+      // Swap all stones and rebuild DSU
+      for (let i = 0; i < this.board.length; i++) {
+        if (this.board[i] === 1) this.board[i] = 2;
+        else if (this.board[i] === 2) this.board[i] = 1;
+      }
+      
+      // Rebuild DSU structures
+      this.dsu1 = new DSU(this.n * this.n + 2);
+      this.dsu2 = new DSU(this.n * this.n + 2);
+      this.v1a = this.n * this.n;
+      this.v1b = this.n * this.n + 1;
+      this.v2a = this.n * this.n;
+      this.v2b = this.n * this.n + 1;
+      
+      // Reconnect border cells to virtual nodes
+      for (let r = 0; r < this.n; r++) {
+        this.dsu1.union(this.idx(0, r), this.v1a);
+        this.dsu1.union(this.idx(this.n - 1, r), this.v1b);
+      }
+      for (let c = 0; c < this.n; c++) {
+        this.dsu2.union(this.idx(c, 0), this.v2a);
+        this.dsu2.union(this.idx(c, this.n - 1), this.v2b);
+      }
+      
+      // Reconnect all stones
+      for (let i = 0; i < this.board.length; i++) {
+        const color = this.board[i];
+        if (color === 0) continue;
+        
+        const dsu = color === 1 ? this.dsu1 : this.dsu2;
+        
+        // Connect to neighbors
+        for (const nb of this.neighbors(i)) {
+          if (this.board[nb] === color) {
+            dsu.union(i, nb);
+          }
+        }
+        
+        // Connect to borders if on edge
+        const [c, r] = this.coords(i);
+        if (color === 1) {
+          if (c === 0) dsu.union(i, this.v1a);
+          if (c === this.n - 1) dsu.union(i, this.v1b);
+        } else {
+          if (r === 0) dsu.union(i, this.v2a);
+          if (r === this.n - 1) dsu.union(i, this.v2b);
+        }
+      }
+      
       this.swapped = true;
-      this.turn = 1; // indigo plays again after swap
+      this.turn = 1;
       this.ply++;
       return;
     }
