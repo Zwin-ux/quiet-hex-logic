@@ -278,12 +278,26 @@ export default function Match() {
       if (error || !result?.success) {
         const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
         
+        console.error('AI move failed:', {
+          error: errorMsg,
+          statusCode: error?.status,
+          cell,
+          matchId: matchData.id,
+          turn: matchData.turn
+        });
+        
         // Don't throw on "Not your turn" - this can happen if another move was already made
-        if (!errorMsg.includes('Not your turn')) {
-          console.error('AI move failed:', errorMsg);
-          toast.error('Computer failed to move');
+        if (!errorMsg.includes('Not your turn') && !errorMsg.includes('Not AI turn')) {
+          toast.error('Computer move failed', {
+            description: 'The game will continue when ready'
+          });
         }
         return;
+      }
+
+      // Check if move resulted in a win
+      if (result.winner) {
+        console.log('AI move resulted in win:', result.winner);
       }
 
       // Reload match to get updated state
@@ -368,7 +382,13 @@ export default function Match() {
 
       const winner = result.winner;
       if (winner) {
-        toast.success(winner === currentPlayer.color ? 'You won!' : 'Computer won!');
+        const isVictory = winner === currentPlayer.color;
+        toast.success(isVictory ? '🎉 Victory!' : 'Game Over', {
+          description: isVictory 
+            ? `You won as ${winner === 1 ? 'Indigo' : 'Ochre'}!` 
+            : `${winner === 1 ? 'Indigo' : 'Ochre'} wins!`,
+          duration: 5000
+        });
       }
     } catch (error) {
       // Revert optimistic update
@@ -622,17 +642,32 @@ export default function Match() {
             )}
 
             {match.status === 'finished' && match.winner && (
-              <div className="mt-6 p-6 border-2 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center">
-                  <h2 className="font-body text-3xl font-bold mb-2">
-                    {match.winner === userPlayer?.color ? '🎉 Victory!' : '💫 Game Over'}
+              <div className="mt-6 p-8 border-2 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center space-y-4">
+                  <div className="text-6xl mb-2">
+                    {match.winner === userPlayer?.color ? '🎉' : match.winner === 2 && isAIMatch ? '🤖' : '💫'}
+                  </div>
+                  <h2 className="font-body text-4xl font-bold">
+                    {match.winner === userPlayer?.color ? 'Victory!' : isAIMatch && match.winner === 2 ? 'Computer Wins!' : 'Game Over'}
                   </h2>
-                  <p className="text-lg text-muted-foreground mb-4">
-                    {match.winner === 1 ? player1?.username : player2?.username} wins as {match.winner === 1 ? 'Indigo' : 'Ochre'}!
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {match.winner === 1 ? 'Connected West to East' : 'Connected North to South'}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xl font-semibold">
+                      {match.winner === 1 ? player1?.username : player2?.username} wins as {match.winner === 1 ? 'Indigo' : 'Ochre'}!
+                    </p>
+                    <p className="text-base text-muted-foreground font-medium">
+                      {match.winner === 1 ? '🔵 Connected West to East' : '🟡 Connected North to South'}
+                    </p>
+                  </div>
+                  {isAIMatch && match.winner === userPlayer?.color && (
+                    <p className="text-sm text-muted-foreground italic">
+                      You defeated the {match.ai_difficulty} AI!
+                    </p>
+                  )}
+                  {isAIMatch && match.winner !== userPlayer?.color && (
+                    <p className="text-sm text-muted-foreground italic">
+                      Better luck next time! Try again to improve your strategy.
+                    </p>
+                  )}
                 </div>
               </div>
             )}

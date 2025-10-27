@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
     // Validate input
     const validationResult = applyAIMoveSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error('AI move validation failed:', validationResult.error.format());
       return new Response(JSON.stringify({ 
         error: 'Invalid input parameters', 
         details: validationResult.error.format() 
@@ -45,14 +46,21 @@ Deno.serve(async (req) => {
     }
     
     const { matchId, cell, actionId } = validationResult.data;
+    console.log('Applying AI move:', { matchId, cell, actionId });
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!authHeader) {
+      console.error('No authorization header');
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (authError || !user) {
+      console.error('Auth failed:', authError);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     // Load match
     const { data: match, error: matchError } = await supabase
@@ -60,13 +68,25 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('id', matchId)
       .single();
-    if (matchError || !match) return new Response(JSON.stringify({ error: 'Match not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (matchError || !match) {
+      console.error('Match not found:', matchError);
+      return new Response(JSON.stringify({ error: 'Match not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     // Authorization: AI practice only, requester must be owner, and it must be AI's turn
-    if (!match.ai_difficulty) return new Response(JSON.stringify({ error: 'Not an AI practice match' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    if (match.owner !== user.id) return new Response(JSON.stringify({ error: 'Only the owner can trigger AI moves' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!match.ai_difficulty) {
+      console.error('Not an AI match');
+      return new Response(JSON.stringify({ error: 'Not an AI practice match' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (match.owner !== user.id) {
+      console.error('Not match owner');
+      return new Response(JSON.stringify({ error: 'Only the owner can trigger AI moves' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const currentPlayerColor = match.turn % 2 === 1 ? 1 : 2;
-    if (currentPlayerColor !== 2) return new Response(JSON.stringify({ error: 'Not AI turn' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (currentPlayerColor !== 2) {
+      console.error('Not AI turn, current color:', currentPlayerColor);
+      return new Response(JSON.stringify({ error: 'Not AI turn' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     // Rate limit per user/match
     const rateLimitOk = await supabase.rpc('check_move_rate_limit', {
@@ -110,6 +130,8 @@ Deno.serve(async (req) => {
     const newTurn = validator.turn;
     const newStatus = winner ? 'finished' : 'active';
 
+    console.log('AI move applied:', { cell, winner, newTurn, newStatus });
+
     // Record move as color 2 with idempotency action_id
     const { error: moveInsertError } = await supabase
       .from('moves')
@@ -118,8 +140,10 @@ Deno.serve(async (req) => {
     if (moveInsertError) {
       // Duplicate action_id
       if ((moveInsertError as any).code === '23505') {
+        console.log('Duplicate action_id, returning cached result');
         return new Response(JSON.stringify({ success: true, turn: match.turn, winner: match.winner, status: match.status, cached: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+      console.error('Failed to insert move:', moveInsertError);
       return new Response(JSON.stringify({ error: 'Failed to record move' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -139,9 +163,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (matchUpdateError || !updated) {
+      console.error('Match update failed:', matchUpdateError);
       return new Response(JSON.stringify({ error: 'Match state changed - please retry' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    console.log('AI move completed successfully');
     return new Response(JSON.stringify({ success: true, turn: newTurn, winner: winner || null, status: newStatus }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
     console.error('apply-ai-move error', e);
