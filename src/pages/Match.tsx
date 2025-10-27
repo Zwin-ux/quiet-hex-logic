@@ -647,26 +647,36 @@ export default function Match() {
                   <div className="text-6xl mb-2">
                     {match.winner === userPlayer?.color ? '🎉' : match.winner === 2 && isAIMatch ? '🤖' : '💫'}
                   </div>
-                  <h2 className="font-body text-4xl font-bold">
-                    {match.winner === userPlayer?.color ? 'Victory!' : isAIMatch && match.winner === 2 ? 'Computer Wins!' : 'Game Over'}
+                  <h2 className="font-body text-4xl font-bold text-primary">
+                    {match.winner === userPlayer?.color ? '🏆 Victory!' : isAIMatch && match.winner === 2 ? '🤖 Computer Wins!' : '🎮 Game Over'}
                   </h2>
-                  <div className="space-y-2">
-                    <p className="text-xl font-semibold">
-                      {match.winner === 1 ? player1?.username : player2?.username} wins as {match.winner === 1 ? 'Indigo' : 'Ochre'}!
+                  <div className="space-y-3 p-4 bg-card rounded-lg border">
+                    <p className="text-2xl font-bold" style={{ color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)' }}>
+                      {match.winner === 1 ? player1?.username : player2?.username} wins!
                     </p>
-                    <p className="text-base text-muted-foreground font-medium">
-                      {match.winner === 1 ? '🔵 Connected West to East' : '🟡 Connected North to South'}
-                    </p>
+                    <div className="flex items-center justify-center gap-3 text-lg font-semibold">
+                      <span className="px-3 py-1 rounded-full" style={{ 
+                        backgroundColor: match.winner === 1 ? 'hsl(223 45% 29% / 0.2)' : 'hsl(40 76% 43% / 0.2)',
+                        color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)'
+                      }}>
+                        {match.winner === 1 ? '🔵 Indigo' : '🟡 Ochre'}
+                      </span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-muted-foreground">
+                        {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
+                      </span>
+                    </div>
                   </div>
                   {isAIMatch && match.winner === userPlayer?.color && (
-                    <p className="text-sm text-muted-foreground italic">
-                      You defeated the {match.ai_difficulty} AI!
+                    <p className="text-lg text-primary font-semibold">
+                      🎯 You defeated the {match.ai_difficulty?.toUpperCase()} AI!
                     </p>
                   )}
                   {isAIMatch && match.winner !== userPlayer?.color && (
-                    <p className="text-sm text-muted-foreground italic">
-                      Better luck next time! Try again to improve your strategy.
-                    </p>
+                    <div className="text-base text-muted-foreground space-y-1">
+                      <p className="font-semibold">The AI found a winning path!</p>
+                      <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
+                    </div>
                   )}
                 </div>
               </div>
