@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         owner: lobby.host_id,
         size: lobby.board_size,
         pie_rule: lobby.pie_rule,
+        turn_timer_seconds: lobby.turn_timer_seconds,
         status: 'active'
       })
       .select()

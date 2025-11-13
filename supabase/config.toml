@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.cleanup-old-lobbies-extended]
 verify_jwt = false
+
+[functions.check-turn-timeouts]
+verify_jwt = false

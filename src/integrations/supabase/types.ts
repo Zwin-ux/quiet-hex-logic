@@ -307,6 +307,8 @@ export type Database = {
           size: number
           status: Database["public"]["Enums"]["match_status"]
           turn: number
+          turn_started_at: string | null
+          turn_timer_seconds: number | null
           updated_at: string | null
           version: number
           winner: number | null
@@ -322,6 +324,8 @@ export type Database = {
           size: number
           status?: Database["public"]["Enums"]["match_status"]
           turn?: number
+          turn_started_at?: string | null
+          turn_timer_seconds?: number | null
           updated_at?: string | null
           version?: number
           winner?: number | null
@@ -337,6 +341,8 @@ export type Database = {
           size?: number
           status?: Database["public"]["Enums"]["match_status"]
           turn?: number
+          turn_started_at?: string | null
+          turn_timer_seconds?: number | null
           updated_at?: string | null
           version?: number
           winner?: number | null

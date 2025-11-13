@@ -23,6 +23,8 @@ interface MatchData {
   turn: number;
   winner: number | null;
   ai_difficulty?: AIDifficulty | null;
+  turn_timer_seconds?: number | null;
+  turn_started_at?: string | null;
 }
 
 interface Player {
@@ -51,6 +53,7 @@ export default function Match() {
   const [rematchLoading, setRematchLoading] = useState(false);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   // Track presence in this match
   usePresence(user?.id, matchId);
@@ -221,6 +224,33 @@ export default function Match() {
       loadInFlight.current = false;
     }
   }, [matchId, navigate]);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (!match || match.status !== 'active' || !match.turn_timer_seconds || !match.turn_started_at) {
+      setTimeRemaining(null);
+      return;
+    }
+
+    const updateTimer = () => {
+      const turnStartTime = new Date(match.turn_started_at!).getTime();
+      const now = Date.now();
+      const elapsed = Math.floor((now - turnStartTime) / 1000);
+      const remaining = Math.max(0, match.turn_timer_seconds! - elapsed);
+      
+      setTimeRemaining(remaining);
+
+      // If time runs out, reload to see the forfeit
+      if (remaining === 0) {
+        setTimeout(() => loadMatch(), 2000);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [match, loadMatch]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
     // Prevent concurrent AI moves
@@ -600,6 +630,7 @@ export default function Match() {
                 username={player1.username}
                 color={1}
                 isCurrentTurn={currentColor === 1 && match.status === 'active'}
+                timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                 isAI={player1.is_bot}
                 avatarColor={player1.avatar_color}
               />
@@ -736,6 +767,7 @@ export default function Match() {
                 username={player2.username}
                 color={2}
                 isCurrentTurn={currentColor === 2 && match.status === 'active'}
+                timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                 isAI={player2.is_bot}
                 avatarColor={player2.avatar_color}
               />
