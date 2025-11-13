@@ -55,15 +55,6 @@ const Hero = () => {
             variant="outline" 
             size="lg" 
             className="min-w-[200px] group hover:scale-105 transition-all shadow-md hover:shadow-lg"
-            onClick={() => navigate('/tournaments')}
-          >
-            <Trophy className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-            Tournaments
-          </Button>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="min-w-[200px] group hover:scale-105 transition-all shadow-md hover:shadow-lg"
             onClick={() => navigate('/lobby')}
           >
             <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
