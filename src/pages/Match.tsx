@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
-import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -48,6 +48,7 @@ export default function Match() {
   const aiMoveInProgress = useRef(false);
   const lastAITurnProcessed = useRef<number | null>(null);
   const loadInFlight = useRef(false);
+  const [rematchLoading, setRematchLoading] = useState(false);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
 
@@ -468,21 +469,33 @@ export default function Match() {
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
-      toast.success('Rematch lobby created!', {
-        description: `Share code ${data.code} with your opponent`,
-        duration: 6000
+      toast.success('Rematch lobby created! 🎮', {
+        description: `Navigating to new lobby...`,
+        duration: 3000
       });
 
       navigate(`/lobby/${data.lobby.id}`);
     } catch (error: any) {
+      console.error('Rematch error:', error);
       toast.error('Failed to create rematch', {
         description: error.message
       });
     } finally {
       setRequestingRematch(false);
     }
+  };
+
+  const handlePlayAgainAI = () => {
+    if (!match) return;
+    navigate('/lobby', { 
+      state: { 
+        createAI: true, 
+        difficulty: match.ai_difficulty,
+        boardSize: match.size 
+      } 
+    });
   };
 
   if (!match || !engine) {
@@ -678,6 +691,39 @@ export default function Match() {
                       <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
                     </div>
                   )}
+                  
+                  {/* Rematch Buttons */}
+                  <div className="flex gap-3 justify-center pt-4">
+                    {isAIMatch ? (
+                      <Button
+                        size="lg"
+                        onClick={handlePlayAgainAI}
+                        className="gap-2 font-semibold"
+                      >
+                        <RefreshCw className="h-5 w-5" />
+                        Play Again
+                      </Button>
+                    ) : isPlayer && (
+                      <Button
+                        size="lg"
+                        onClick={handleRematch}
+                        disabled={requestingRematch}
+                        className="gap-2 font-semibold"
+                      >
+                        <RefreshCw className={`h-5 w-5 ${requestingRematch ? 'animate-spin' : ''}`} />
+                        {requestingRematch ? 'Creating Rematch...' : 'Instant Rematch'}
+                      </Button>
+                    )}
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => navigate('/lobby')}
+                      className="gap-2"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                      {isAIMatch ? 'New Game' : 'Back to Lobby'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -58,12 +58,69 @@ export default function Lobby() {
   const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('medium');
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Track user presence
   usePresence(user?.id);
 
   // Listen for notifications
   const { notifications, markAsRead } = useNotifications(user?.id);
+
+  // Handle auto-create AI match from location state (e.g., Play Again)
+  useEffect(() => {
+    if (!user) return;
+    const state = location.state as any;
+    if (state?.createAI && state?.difficulty) {
+      const difficulty = state.difficulty;
+      const boardSize = state.boardSize || 11;
+      
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      // Create AI match automatically
+      setAiDifficulty(difficulty);
+      setTimeout(() => {
+        createAIMatch(difficulty, boardSize);
+      }, 100);
+    }
+  }, [user, location.state]);
+
+  const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
+    if (!user) return;
+    
+    setCreatingMatch(true);
+    try {
+      const { data: newMatch, error } = await supabase
+        .from('matches')
+        .insert({
+          size,
+          pie_rule: true,
+          status: 'active',
+          turn: 1,
+          owner: user.id,
+          ai_difficulty: difficulty,
+          allow_spectators: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add both players
+      await supabase.from('match_players').insert([
+        { match_id: newMatch.id, profile_id: user.id, color: 1, is_bot: false },
+        { match_id: newMatch.id, profile_id: user.id, color: 2, is_bot: true }
+      ]);
+
+      toast.success(`AI match created! Difficulty: ${difficulty.toUpperCase()}`);
+      navigate(`/match/${newMatch.id}`);
+    } catch (error: any) {
+      console.error('Error creating AI match:', error);
+      toast.error('Failed to create AI match');
+    } finally {
+      setCreatingMatch(false);
+    }
+  };
 
   // Allow guest access - don't redirect to auth
   // useEffect(() => {
@@ -209,24 +266,30 @@ export default function Lobby() {
       return;
     }
     
+    // Use dedicated AI match creation function
+    if (withAI) {
+      await createAIMatch(aiDifficulty || 'medium', size);
+      return;
+    }
+    
     setCreatingMatch(true);
 
     try {
       const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert({
-          owner: user?.id || null, // Guests allowed only for AI matches
+          owner: user?.id || null,
           size,
-          pie_rule: true, // Enable pie rule for all matches
-          status: withAI ? 'active' : 'waiting',
-          ai_difficulty: withAI ? (aiDifficulty || 'medium') : null,
+          pie_rule: true,
+          status: 'waiting',
+          ai_difficulty: null,
         })
         .select()
         .single();
 
       if (matchError) throw matchError;
 
-      // Only add player record if user is authenticated
+      // Add player record
       if (user) {
         const { error: playerError } = await supabase
           .from('match_players')
@@ -239,23 +302,15 @@ export default function Lobby() {
         if (playerError) throw playerError;
       }
 
-      // For AI matches, go directly to the match
-      if (withAI) {
-        toast.success('AI match created!', {
-          description: 'The AI will play as Ochre'
-        });
-        navigate(`/match/${match.id}`);
-      } else {
-        // For friend matches, stay on lobby and show the code
-        const code = await getMatchCode(match.id);
-        await copyMatchCode(match.id);
-        toast.success('Match created!', {
-          description: `Share code ${code} with your friend. Code copied to clipboard!`,
-          duration: 6000,
-        });
-        // Refresh matches list to show the new match
-        fetchWaitingMatches();
-      }
+      // For friend matches, stay on lobby and show the code
+      const code = await getMatchCode(match.id);
+      await copyMatchCode(match.id);
+      toast.success('Match created!', {
+        description: `Share code ${code} with your friend. Code copied to clipboard!`,
+        duration: 6000,
+      });
+      // Refresh matches list to show the new match
+      fetchWaitingMatches();
     } catch (error: any) {
       toast.error('Failed to create match', {
         description: error.message
