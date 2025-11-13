@@ -44,3 +44,9 @@ verify_jwt = true
 
 [functions.rematch-lobby]
 verify_jwt = true
+
+[functions.cleanup-stale-lobby-players]
+verify_jwt = false
+
+[functions.cleanup-old-lobbies-extended]
+verify_jwt = false

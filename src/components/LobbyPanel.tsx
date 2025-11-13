@@ -54,37 +54,44 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       console.log(`[LobbyPanel] Lobby ${lobbyId} starting, fetching match...`);
       setHasNavigated(true); // Prevent duplicate navigation
 
-      // Query for the match that was created from this lobby
+      // Quick poll with timeout to get matchId
       const fetchMatchAndNavigate = async () => {
-        try {
-          const { data: match, error } = await supabase
-            .from('matches')
-            .select('id')
-            .eq('lobby_id', lobbyId)
-            .single();
+        const maxAttempts = 5;
+        const delayMs = 500;
 
-          if (error) {
-            console.error('[LobbyPanel] Error fetching match:', error);
-            toast.error('Failed to join match', {
-              description: 'Please try refreshing the page'
-            });
-            setHasNavigated(false); // Allow retry
-            return;
-          }
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          try {
+            const { data: match, error } = await supabase
+              .from('matches')
+              .select('id')
+              .eq('lobby_id', lobbyId)
+              .maybeSingle();
 
-          if (match) {
-            console.log(`[LobbyPanel] Match ${match.id} found, navigating...`);
-            toast.success('Match starting!');
-            navigate(`/match/${match.id}`);
-          } else {
-            console.warn('[LobbyPanel] No match found for lobby');
-            setHasNavigated(false); // Allow retry
+            if (match?.id) {
+              console.log(`[LobbyPanel] Match ${match.id} found, navigating...`);
+              toast.success('Match starting!');
+              navigate(`/match/${match.id}`);
+              return;
+            }
+
+            if (error) {
+              console.error('[LobbyPanel] Error fetching match:', error);
+            }
+
+            // Wait before retry
+            if (attempt < maxAttempts - 1) {
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+          } catch (err) {
+            console.error('[LobbyPanel] Exception fetching match:', err);
           }
-        } catch (err) {
-          console.error('[LobbyPanel] Exception fetching match:', err);
-          toast.error('Failed to start match');
-          setHasNavigated(false); // Allow retry
         }
+
+        // Failed to find match after retries
+        toast.error('Failed to join match', {
+          description: 'Please try refreshing the page'
+        });
+        setHasNavigated(false);
       };
 
       fetchMatchAndNavigate();
@@ -233,13 +240,20 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Match starting!');
-      navigate(`/match/${data.matchId}`);
+      console.log('[LobbyPanel] Host received matchId:', data.matchId);
+      
+      // Host navigates immediately with matchId
+      if (data.matchId) {
+        toast.success('Match starting!');
+        setHasNavigated(true);
+        navigate(`/match/${data.matchId}`);
+      } else {
+        throw new Error('No matchId returned');
+      }
     } catch (err: any) {
       toast.error('Failed to start match', {
         description: err.message
       });
-    } finally {
       setStarting(false);
     }
   };
@@ -309,6 +323,12 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               const username = player.profiles?.username || 'Unknown';
               const avatarLetter = username[0]?.toUpperCase() || '?';
               const avatarColor = player.profiles?.avatar_color || 'indigo';
+              
+              // Connection status based on last_seen
+              const lastSeen = new Date(player.last_seen);
+              const now = new Date();
+              const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
+              const isConnected = secondsSinceLastSeen < 30;
 
               return (
                 <div
@@ -316,13 +336,22 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
                   className="flex items-center justify-between p-3 border rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `var(--${avatarColor}-500, rgb(99 102 241 / 0.1))` }}
-                    >
-                      <span className="font-bold" style={{ color: `var(--${avatarColor}-700, rgb(67 56 202))` }}>
-                        {avatarLetter}
-                      </span>
+                    <div className="relative">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `var(--${avatarColor}-500, rgb(99 102 241 / 0.1))` }}
+                      >
+                        <span className="font-bold" style={{ color: `var(--${avatarColor}-700, rgb(67 56 202))` }}>
+                          {avatarLetter}
+                        </span>
+                      </div>
+                      {/* Connection indicator */}
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
+                          isConnected ? 'bg-green-500' : 'bg-gray-400'
+                        }`}
+                        title={isConnected ? 'Connected' : 'Disconnected'}
+                      />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
