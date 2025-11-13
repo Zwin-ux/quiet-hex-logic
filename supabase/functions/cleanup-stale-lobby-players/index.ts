@@ -24,8 +24,7 @@ Deno.serve(async (req) => {
     const { data: stalePlayers, error: fetchError } = await supabase
       .from('lobby_players')
       .select('lobby_id, player_id, last_seen, profiles(username)')
-      .lt('last_seen', cutoffTime)
-      .eq('lobbies.status', 'waiting');
+      .lt('last_seen', cutoffTime);
 
     if (fetchError) {
       console.error('[cleanup-stale-lobby-players] Error fetching stale players:', fetchError);

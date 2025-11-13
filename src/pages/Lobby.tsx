@@ -107,16 +107,21 @@ export default function Lobby() {
       if (error) throw error;
 
       // Add both players
-      await supabase.from('match_players').insert([
+      const { error: playersError } = await supabase.from('match_players').insert([
         { match_id: newMatch.id, profile_id: user.id, color: 1, is_bot: false },
         { match_id: newMatch.id, profile_id: user.id, color: 2, is_bot: true }
       ]);
+
+      if (playersError) {
+        console.error('Error inserting match players:', playersError);
+        throw new Error('Failed to add players to match');
+      }
 
       toast.success(`AI match created! Difficulty: ${difficulty.toUpperCase()}`);
       navigate(`/match/${newMatch.id}`);
     } catch (error: any) {
       console.error('Error creating AI match:', error);
-      toast.error('Failed to create AI match');
+      toast.error(error.message || 'Failed to create AI match');
     } finally {
       setCreatingMatch(false);
     }
