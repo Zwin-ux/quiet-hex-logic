@@ -375,224 +375,268 @@ export default function Lobby() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/10">
+      {/* Decorative floating hexagons */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5">
+        <div className="absolute top-20 left-10 text-6xl animate-float" style={{ animationDelay: '0s' }}>⬡</div>
+        <div className="absolute top-40 right-20 text-5xl animate-float" style={{ animationDelay: '2s' }}>⬡</div>
+        <div className="absolute bottom-32 left-1/4 text-7xl animate-float" style={{ animationDelay: '4s' }}>⬡</div>
+        <div className="absolute bottom-20 right-1/3 text-4xl animate-float" style={{ animationDelay: '1s' }}>⬡</div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto p-4 md:p-8">
+        {/* Floating Navigation Bar */}
+        <div className="fixed top-4 right-4 z-50 flex gap-2">
+          {user && (
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="relative shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur"
+                  >
+                    <Bell className="h-4 w-4" />
+                    {notifications.length > 0 && (
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre animate-gentle-pulse">
+                        {notifications.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-card/95 backdrop-blur shadow-xl border-2" align="end">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Challenges</h3>
+                    {notifications.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No pending challenges</p>
+                    ) : (
+                      notifications.map((notif) => (
+                        <Card key={notif.id} className="p-3">
+                          <div className="flex flex-col gap-2">
+                            <p className="text-sm">
+                              <span className="font-semibold">{notif.payload.sender_name}</span> challenged you to {notif.payload.board_size}×{notif.payload.board_size}
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const payload = notif.payload as any;
+                                    if (payload.lobby_code) {
+                                      const { data, error } = await supabase.functions.invoke('join-lobby', {
+                                        body: { code: payload.lobby_code }
+                                      });
+                                      if (error) throw error;
+                                      if (data.error) throw new Error(data.error);
+                                      await markAsRead(notif.id);
+                                      toast.success('Joined challenge lobby!');
+                                      navigate(`/lobby/${data.lobby.id}`);
+                                    } else if (notif.payload.match_id) {
+                                      await markAsRead(notif.id);
+                                      navigate(`/match/${notif.payload.match_id}`);
+                                    }
+                                  } catch (err: any) {
+                                    toast.error('Failed to accept challenge', { description: err.message });
+                                  }
+                                }}
+                              >
+                                Accept
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => markAsRead(notif.id)}>
+                                Decline
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <div className="flex gap-1 bg-card/95 backdrop-blur rounded-lg shadow-lg p-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/profile')}
+                  className="hover:bg-accent transition-all"
+                >
+                  <User className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/friends')}
+                  className="hover:bg-accent transition-all"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/history')}
+                  className="hover:bg-accent transition-all"
+                >
+                  <HistoryIcon className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleSignOut}
+                  className="hover:bg-destructive/10 hover:text-destructive transition-all"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
+          
+          {!user && (
+            <Button 
+              onClick={() => navigate('/auth')} 
+              className="shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur"
+              size="sm"
+            >
+              Sign In
+            </Button>
+          )}
+        </div>
+
         {/* Guest Mode Banner */}
         {!user && (
-          <Card className="mb-6 p-4 bg-ochre/10 border-ochre/30">
+          <Card className="mb-8 p-6 bg-gradient-to-r from-ochre/10 to-ochre/5 border-2 border-ochre/30 shadow-medium animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User className="h-5 w-5 text-ochre" />
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-ochre/20 flex items-center justify-center">
+                  <User className="h-6 w-6 text-ochre" />
+                </div>
                 <div>
-                  <p className="font-body font-semibold text-foreground">Playing as Guest</p>
+                  <p className="font-body font-bold text-foreground text-lg">Playing as Guest</p>
                   <p className="text-sm text-muted-foreground">
                     Try AI practice mode. Sign in to challenge friends and save your progress!
                   </p>
                 </div>
               </div>
-              <Button onClick={() => navigate('/auth')} variant="default">
+              <Button 
+                onClick={() => navigate('/auth')} 
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-all hover:scale-105"
+              >
                 Sign In
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Header */}
-        <div className="flex justify-between items-start mb-12">
-          <div>
-            <h1 className="font-body text-4xl md:text-5xl font-semibold text-foreground mb-3">
-              The Lobby
-            </h1>
-            <p className="text-muted-foreground text-lg font-body">
-              Start a game
-            </p>
+        {/* Hero Header */}
+        <div className="mb-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="inline-block mb-4">
+            <div className="text-6xl mb-2 animate-gentle-pulse">⬡</div>
           </div>
-          <div className="flex gap-2">
-            {user && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2 relative">
-                    <Bell className="h-4 w-4" />
-                    {notifications.length > 0 && (
-                      <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre">
-                        {notifications.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Challenges</h3>
-                  {notifications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No pending challenges</p>
-                  ) : (
-                    notifications.map((notif) => (
-                      <Card key={notif.id} className="p-3">
-                        <div className="flex flex-col gap-2">
-                          <p className="text-sm">
-                            <span className="font-semibold">{notif.payload.sender_name}</span> challenged you to {notif.payload.board_size}×{notif.payload.board_size}
-                          </p>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={async () => {
-                                try {
-                                  // Check for lobby_code (new flow) or match_id (legacy flow)
-                                  const payload = notif.payload as any;
-                                  if (payload.lobby_code) {
-                                    // New flow: Join the lobby
-                                    const { data, error } = await supabase.functions.invoke('join-lobby', {
-                                      body: { code: payload.lobby_code }
-                                    });
-
-                                    if (error) throw error;
-                                    if (data.error) throw new Error(data.error);
-
-                                    await markAsRead(notif.id);
-                                    toast.success('Joined challenge lobby!');
-                                    navigate(`/lobby/${data.lobby.id}`);
-                                  } else if (notif.payload.match_id) {
-                                    // Legacy flow: Direct to match
-                                    await markAsRead(notif.id);
-                                    navigate(`/match/${notif.payload.match_id}`);
-                                  }
-                                } catch (err: any) {
-                                  toast.error('Failed to accept challenge', {
-                                    description: err.message
-                                  });
-                                }
-                              }}
-                            >
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => markAsRead(notif.id)}
-                            >
-                              Decline
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-            )}
-
-            {user && (
-              <>
-                <Button variant="outline" onClick={() => navigate('/profile')} className="gap-2">
-                  <User className="h-4 w-4" />
-                  Profile
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/friends')} className="gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Friends
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/history')} className="gap-2">
-                  <HistoryIcon className="h-4 w-4" />
-                  History
-                </Button>
-                <Button variant="outline" onClick={handleSignOut} className="gap-2">
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </Button>
-              </>
-            )}
-            
-            {!user && (
-              <Button onClick={() => navigate('/auth')} className="gap-2">
-                Sign In
-              </Button>
-            )}
-          </div>
+          <h1 className="font-body text-5xl md:text-7xl font-bold text-foreground mb-4 tracking-tight">
+            The Lobby
+          </h1>
+          <p className="text-muted-foreground text-xl font-body max-w-2xl mx-auto">
+            Challenge friends, practice with AI, or join open games
+          </p>
         </div>
 
         {/* Recovery CTA for pending lobbies */}
         {user && <JoinGameCTA userId={user.id} />}
 
-        {/* Lobby Creation Section - UX: Horizontal layout for symmetry, clear flow */}
+        {/* Lobby Creation Section */}
         {user && (
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <div className="grid md:grid-cols-2 gap-6 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CreateLobby userId={user.id} />
             <JoinLobby userId={user.id} />
           </div>
         )}
 
-        {/* AI Practice Section - UX: Separated for clarity, full-width for prominence */}
-        <Card className="p-6 shadow-soft border-2 border-border hover:border-ochre/20 transition-all duration-300 mb-12">
-          <div className="flex items-center gap-3 mb-3">
-            <Sparkles className="h-5 w-5 text-ochre" />
-            <h2 className="font-body text-xl font-semibold text-foreground">
-              AI Practice
-            </h2>
-          </div>
-          <p className="text-muted-foreground mb-4 font-body text-sm leading-relaxed">
-            Train against AI opponents with adjustable difficulty
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="sm:w-64">
-              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
-                Difficulty Level
-              </label>
-              <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy - Beginner</SelectItem>
-                  <SelectItem value="medium">Medium - Intermediate</SelectItem>
-                  <SelectItem value="hard">Hard - Advanced</SelectItem>
-                  <SelectItem value="expert">Expert - Master</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* AI Practice Section - Featured Design */}
+        <Card className="relative p-8 mb-12 overflow-hidden shadow-xl border-2 border-ochre/20 hover:border-ochre/40 transition-all duration-500 hover:shadow-2xl group animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-ochre/5 via-transparent to-indigo/5 opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+          
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-ochre to-ochre/70 flex items-center justify-center shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="font-body text-2xl font-bold text-foreground">
+                  AI Practice Arena
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Master your strategy against adaptive AI opponents
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
-                Board Size
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[7, 9, 11, 13].map((size) => (
-                  <Button
-                    key={size}
-                    onClick={() => createMatch(size, true, aiDifficulty)}
-                    disabled={creatingMatch}
-                    className="font-mono h-9 font-medium"
-                    variant="secondary"
-                  >
-                    {size}×{size}
-                  </Button>
-                ))}
+            
+            <div className="flex flex-col lg:flex-row gap-6 mt-6">
+              <div className="lg:w-80">
+                <label className="text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-ochre animate-gentle-pulse" />
+                  Difficulty Level
+                </label>
+                <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
+                  <SelectTrigger className="h-12 bg-card hover:bg-accent transition-colors border-2">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card/95 backdrop-blur border-2">
+                    <SelectItem value="easy">🎮 Easy - Beginner</SelectItem>
+                    <SelectItem value="medium">⚡ Medium - Intermediate</SelectItem>
+                    <SelectItem value="hard">🔥 Hard - Advanced</SelectItem>
+                    <SelectItem value="expert">👑 Expert - Master</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex-1">
+                <label className="text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-indigo animate-gentle-pulse" />
+                  Board Size
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[7, 9, 11, 13].map((size) => (
+                    <Button
+                      key={size}
+                      onClick={() => createMatch(size, true, aiDifficulty)}
+                      disabled={creatingMatch}
+                      className="h-16 font-mono text-lg font-bold hover:scale-105 transition-all shadow-md hover:shadow-xl"
+                      variant="secondary"
+                    >
+                      {size}×{size}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Open Lobbies Section - NEW: Show waiting lobbies with rich info */}
+        {/* Open Lobbies Section */}
         {user && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="font-body text-xl font-semibold text-foreground">
+                <h2 className="font-body text-3xl font-bold text-foreground mb-1">
                   Open Lobbies
                 </h2>
-                <p className="text-sm text-muted-foreground font-body">
-                  Join a waiting game or create your own above
+                <p className="text-muted-foreground">
+                  Jump into a waiting game or create your own
                 </p>
               </div>
-              <Badge variant="outline" className="font-mono text-xs">
-                {lobbies.length} waiting
+              <Badge variant="outline" className="font-mono text-sm px-4 py-2 border-2">
+                {lobbies.length} open
               </Badge>
             </div>
 
             {lobbies.length === 0 ? (
-              <Card className="p-8 text-center shadow-soft border-2 border-dashed">
-                <div className="text-4xl mb-3 opacity-20">⬡</div>
-                <p className="text-sm text-muted-foreground font-body">
-                  No open lobbies yet — create one above to get started
+              <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-ochre/30 transition-all duration-300">
+                <div className="text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+                <p className="text-lg font-medium text-muted-foreground mb-2">No open lobbies</p>
+                <p className="text-sm text-muted-foreground">
+                  Be the first to create a lobby!
                 </p>
               </Card>
             ) : (
@@ -610,21 +654,27 @@ export default function Lobby() {
           </div>
         )}
 
-        {/* Live Matches Section - UX: Enhanced info (board size, players, time), clear CTA */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-body text-xl font-semibold text-foreground">
-              Live Matches
-            </h2>
-            <Badge variant="outline" className="font-mono text-xs">
-              {activeMatches.length} ongoing
+        {/* Live Matches Section */}
+        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-body text-3xl font-bold text-foreground mb-1">
+                Live Matches
+              </h2>
+              <p className="text-muted-foreground">
+                Watch games in progress and learn from others
+              </p>
+            </div>
+            <Badge variant="outline" className="font-mono text-sm px-4 py-2 border-2">
+              {activeMatches.length} live
             </Badge>
           </div>
           {activeMatches.length === 0 ? (
-            <Card className="p-8 text-center shadow-soft border-2 border-dashed">
-              <div className="text-4xl mb-3 opacity-20">⬡</div>
-              <p className="text-sm text-muted-foreground font-body">
-                No live matches yet — start one above
+            <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-indigo/30 transition-all duration-300">
+              <div className="text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+              <p className="text-lg font-medium text-muted-foreground mb-2">No active matches</p>
+              <p className="text-sm text-muted-foreground">
+                Start a game to see it here!
               </p>
             </Card>
           ) : (
@@ -634,17 +684,17 @@ export default function Lobby() {
                 return (
                   <Card
                     key={match.id}
-                    className="p-4 flex items-center justify-between shadow-soft hover:shadow-medium transition-all duration-300 border hover:border-ochre/40"
+                    className="p-5 flex items-center justify-between shadow-md hover:shadow-xl transition-all duration-300 border-2 hover:border-indigo/40 hover:scale-[1.02] group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-3xl text-muted-foreground/30">⬡</div>
+                      <div className="text-4xl text-muted-foreground/20 group-hover:text-indigo/30 transition-colors">⬡</div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge className="font-mono bg-ochre text-primary-foreground text-xs px-2 py-0.5">
+                          <Badge className="font-mono bg-indigo text-primary-foreground px-3 py-1">
                             {match.size}×{match.size}
                           </Badge>
                           <span className="text-sm font-medium text-muted-foreground">
-                            <span className="text-indigo font-semibold">Indigo</span> vs <span className="text-ochre font-semibold">Ochre</span>
+                            <span className="text-indigo font-bold">Indigo</span> vs <span className="text-ochre font-bold">Ochre</span>
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground font-mono">
@@ -660,22 +710,28 @@ export default function Lobby() {
           )}
         </div>
 
-        {/* Open Matches Section - UX: Clear empty state */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-body text-xl font-semibold text-foreground">
-              Open Matches
-            </h2>
-            <Badge variant="outline" className="font-mono text-xs">
-              {matches.length} waiting
+        {/* Open Matches Section */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-body text-3xl font-bold text-foreground mb-1">
+                Open Matches
+              </h2>
+              <p className="text-muted-foreground">
+                Challenge someone directly with a match code
+              </p>
+            </div>
+            <Badge variant="outline" className="font-mono text-sm px-4 py-2 border-2">
+              {matches.length} open
             </Badge>
           </div>
           
           {matches.length === 0 ? (
-            <Card className="p-8 text-center shadow-soft border-2 border-dashed">
-              <div className="text-4xl mb-3 opacity-20">⬡</div>
-              <p className="text-sm text-muted-foreground font-body">
-                No open matches yet — create one above
+            <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-primary/30 transition-all duration-300">
+              <div className="text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+              <p className="text-lg font-medium text-muted-foreground mb-2">No open matches</p>
+              <p className="text-sm text-muted-foreground">
+                Direct matches will appear here when created
               </p>
             </Card>
           ) : (
@@ -683,17 +739,17 @@ export default function Lobby() {
               {matches.map((match) => (
                 <Card
                   key={match.id}
-                  className="p-6 flex items-center justify-between shadow-soft hover:shadow-medium transition-all duration-300 border-2 hover:border-indigo/30"
+                  className="p-6 flex items-center justify-between shadow-md hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/40 hover:scale-[1.01] group"
                 >
                   <div className="flex items-center gap-6">
-                    <div className="text-4xl text-muted-foreground/30">⬡</div>
+                    <div className="text-5xl text-muted-foreground/20 group-hover:text-primary/30 transition-colors">⬡</div>
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <Badge className="font-mono bg-indigo text-primary-foreground">
+                        <Badge className="font-mono bg-primary text-primary-foreground px-3 py-1">
                           {match.size}×{match.size}
                         </Badge>
                         {match.pie_rule && (
-                          <Badge variant="outline" className="font-mono text-xs">
+                          <Badge variant="outline" className="font-mono text-xs px-2 py-1 border-2">
                             Pie Rule
                           </Badge>
                         )}
@@ -709,7 +765,7 @@ export default function Lobby() {
                         <Button
                           variant="outline"
                           onClick={() => copyMatchCode(match.id)}
-                          className="gap-2"
+                          className="gap-2 hover:scale-105 transition-all"
                         >
                           {copiedCode === match.id ? (
                             <Check className="h-4 w-4" />
@@ -718,12 +774,18 @@ export default function Lobby() {
                           )}
                           {copiedCode === match.id ? 'Copied!' : 'Copy Code'}
                         </Button>
-                        <Button onClick={() => navigate(`/match/${match.id}`)}>
+                        <Button 
+                          onClick={() => navigate(`/match/${match.id}`)}
+                          className="hover:scale-105 transition-all shadow-md"
+                        >
                           Enter Match
                         </Button>
                       </div>
                     ) : (
-                      <Button onClick={() => joinMatch(match.id)}>
+                      <Button 
+                        onClick={() => joinMatch(match.id)}
+                        className="hover:scale-105 transition-all shadow-md"
+                      >
                         Join Match
                       </Button>
                     )}
