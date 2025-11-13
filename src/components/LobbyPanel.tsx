@@ -1,17 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useLobby } from '@/hooks/useLobby';
-import { Crown, Users, Copy, Check, LogOut, Play } from 'lucide-react';
+import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 type LobbyPanelProps = {
   lobbyId: string;
   userId: string;
+};
+
+type ChatMessage = {
+  id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  profiles?: {
+    username: string;
+    avatar_color?: string;
+  };
 };
 
 export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
@@ -20,6 +34,10 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const [updating, setUpdating] = useState(false);
   const [starting, setStarting] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const isHost = lobby?.host_id === userId;
@@ -73,6 +91,65 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
     }
   }, [lobby?.status, lobbyId, navigate, hasNavigated]);
 
+  // Fetch and subscribe to chat messages
+  useEffect(() => {
+    if (!lobbyId) return;
+
+    let chatChannel: RealtimeChannel;
+
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('lobby_chat_messages')
+        .select('*, profiles(username, avatar_color)')
+        .eq('lobby_id', lobbyId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching chat messages:', error);
+      } else {
+        setChatMessages(data || []);
+      }
+    };
+
+    fetchMessages();
+
+    // Subscribe to new messages
+    chatChannel = supabase
+      .channel(`lobby-chat:${lobbyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'lobby_chat_messages',
+          filter: `lobby_id=eq.${lobbyId}`
+        },
+        async (payload) => {
+          // Fetch the message with profile data
+          const { data } = await supabase
+            .from('lobby_chat_messages')
+            .select('*, profiles(username, avatar_color)')
+            .eq('id', payload.new.id)
+            .single();
+
+          if (data) {
+            setChatMessages(prev => [...prev, data]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(chatChannel);
+    };
+  }, [lobbyId]);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
   const copyCode = async () => {
     if (lobby?.code) {
       await navigator.clipboard.writeText(lobby.code);
@@ -96,6 +173,30 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       toast.error('Failed to update ready state', {
         description: err.message
       });
+    }
+  };
+
+  const sendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sendingMessage) return;
+
+    setSendingMessage(true);
+    try {
+      const { error } = await supabase
+        .from('lobby_chat_messages')
+        .insert({
+          lobby_id: lobbyId,
+          user_id: userId,
+          message: newMessage.trim()
+        });
+
+      if (error) throw error;
+      setNewMessage('');
+    } catch (err: any) {
+      console.error('Error sending message:', err);
+      toast.error('Failed to send message');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -302,6 +403,89 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               Only the host can change settings
             </p>
           )}
+        </Card>
+
+        {/* Chat Section */}
+        <Card className="p-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <h3 className="font-body text-lg font-semibold">Lobby Chat</h3>
+          </div>
+
+          <div className="space-y-4">
+            {/* Messages */}
+            <ScrollArea className="h-[300px] pr-4 border rounded-lg bg-muted/30">
+              <div className="p-4 space-y-3">
+                {chatMessages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No messages yet. Say hello! 👋
+                  </p>
+                ) : (
+                  chatMessages.map((msg) => {
+                    const isOwnMessage = msg.user_id === userId;
+                    const username = msg.profiles?.username || 'Unknown';
+                    const avatarColor = msg.profiles?.avatar_color || 'indigo';
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex gap-2 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm"
+                          style={{ backgroundColor: `hsl(var(--${avatarColor}))` }}
+                        >
+                          {username[0]?.toUpperCase()}
+                        </div>
+                        <div className={`flex-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                          <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+                            <span className="text-xs font-semibold">
+                              {isOwnMessage ? 'You' : username}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(msg.created_at).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
+                          <div
+                            className={`mt-1 inline-block px-3 py-2 rounded-lg text-sm ${
+                              isOwnMessage
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
+                            }`}
+                          >
+                            {msg.message}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={chatEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Message Input */}
+            <form onSubmit={sendChatMessage} className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                maxLength={200}
+                disabled={sendingMessage}
+                className="flex-1"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!newMessage.trim() || sendingMessage}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
         </Card>
       </div>
 

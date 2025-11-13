@@ -178,6 +178,38 @@ export type Database = {
           },
         ]
       }
+      lobby_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          lobby_id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lobby_id: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lobby_id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobby_chat_messages_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lobby_players: {
         Row: {
           is_ready: boolean
