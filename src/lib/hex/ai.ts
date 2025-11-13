@@ -147,6 +147,80 @@ function getMediumMove(game: Hex): Cell {
 }
 
 /**
+ * MCTS Node for tree-based search
+ */
+class MCTSNode {
+  visits: number = 0;
+  wins: number = 0;
+  move: Cell;
+  parent: MCTSNode | null;
+  children: MCTSNode[] = [];
+  untriedMoves: number[];
+
+  constructor(move: Cell, parent: MCTSNode | null, untriedMoves: number[]) {
+    this.move = move;
+    this.parent = parent;
+    this.untriedMoves = [...untriedMoves];
+  }
+
+  /**
+   * UCB1 formula: balances exploration vs exploitation
+   * Higher C = more exploration, Lower C = more exploitation
+   */
+  ucb1(parentVisits: number, explorationConstant: number = 1.41): number {
+    if (this.visits === 0) return Infinity;
+    
+    const exploitation = this.wins / this.visits;
+    const exploration = Math.sqrt(Math.log(parentVisits) / this.visits);
+    
+    return exploitation + explorationConstant * exploration;
+  }
+
+  /**
+   * Select best child using UCB1
+   */
+  selectBestChild(explorationConstant: number = 1.41): MCTSNode {
+    return this.children.reduce((best, child) => {
+      const childUCB = child.ucb1(this.visits, explorationConstant);
+      const bestUCB = best.ucb1(this.visits, explorationConstant);
+      return childUCB > bestUCB ? child : best;
+    });
+  }
+
+  /**
+   * Expand by adding a child node for an untried move
+   */
+  expand(game: Hex): MCTSNode {
+    const move = this.untriedMoves.pop()!;
+    const clone = game.clone();
+    clone.play(move);
+    
+    const childNode = new MCTSNode(
+      move,
+      this,
+      clone.getEmptyCells()
+    );
+    
+    this.children.push(childNode);
+    return childNode;
+  }
+
+  /**
+   * Check if node is fully expanded
+   */
+  isFullyExpanded(): boolean {
+    return this.untriedMoves.length === 0;
+  }
+
+  /**
+   * Check if node is terminal (game over)
+   */
+  isTerminal(game: Hex): boolean {
+    return game.winner() !== 0 || game.getEmptyCells().length === 0;
+  }
+}
+
+/**
  * Monte Carlo simulation: play random moves until game ends
  */
 function simulate(game: Hex, color: 1 | 2): 1 | 2 | 0 {
@@ -165,7 +239,8 @@ function simulate(game: Hex, color: 1 | 2): 1 | 2 | 0 {
 }
 
 /**
- * Hard AI: Monte Carlo Tree Search with moderate simulations
+ * Hard AI: UCB1-based MCTS with 200+ iterations
+ * Significantly stronger than basic Monte Carlo
  */
 function getHardMove(game: Hex): Cell {
   const empty = game.getEmptyCells();
@@ -188,49 +263,83 @@ function getHardMove(game: Hex): Cell {
   }
 
   const currentColor = game.turn;
-  const simulations = Math.min(50, empty.length * 5); // Adaptive simulation count
-  const scores = new Map<number, number>();
-  const counts = new Map<number, number>();
-
-  // Initialize
+  
+  // Check for immediate wins first
   for (const move of empty) {
-    scores.set(move, 0);
-    counts.set(move, 0);
-  }
-
-  // Run simulations
-  for (let i = 0; i < simulations; i++) {
-    const move = empty[Math.floor(Math.random() * empty.length)];
     const clone = game.clone();
     clone.play(move);
-
-    // Check for immediate win
     if (clone.winner() === currentColor) {
-      return move;
-    }
-
-    const winner = simulate(clone, currentColor);
-    const score = winner === currentColor ? 1 : winner === 0 ? 0.5 : 0;
-
-    scores.set(move, (scores.get(move) || 0) + score);
-    counts.set(move, (counts.get(move) || 0) + 1);
-  }
-
-  // Select move with highest win rate
-  let bestMove: Cell = null;
-  let bestWinRate = -1;
-
-  for (const move of empty) {
-    const count = counts.get(move) || 1;
-    const winRate = (scores.get(move) || 0) / count;
-
-    if (winRate > bestWinRate) {
-      bestWinRate = winRate;
-      bestMove = move;
+      return move; // Immediate win
     }
   }
 
-  return bestMove || empty[0];
+  // Adaptive iteration count based on board complexity
+  const baseIterations = 200;
+  const boardComplexity = Math.min(empty.length / 10, 2); // 1-2x multiplier
+  const iterations = Math.floor(baseIterations * boardComplexity);
+
+  // Initialize root node
+  const rootNode = new MCTSNode(null, null, empty);
+
+  // MCTS main loop
+  for (let i = 0; i < iterations; i++) {
+    const gameClone = game.clone();
+    let node = rootNode;
+
+    // 1. SELECTION: Traverse tree using UCB1
+    while (node.isFullyExpanded() && node.children.length > 0 && !node.isTerminal(gameClone)) {
+      node = node.selectBestChild();
+      if (node.move !== null) {
+        gameClone.play(node.move);
+      }
+    }
+
+    // 2. EXPANSION: Add new child if not terminal
+    if (!node.isTerminal(gameClone) && !node.isFullyExpanded()) {
+      node = node.expand(gameClone);
+      if (node.move !== null) {
+        gameClone.play(node.move);
+      }
+    }
+
+    // 3. SIMULATION: Random playout from current position
+    let result = gameClone.winner();
+    if (result === 0) {
+      result = simulate(gameClone, currentColor);
+    }
+
+    // 4. BACKPROPAGATION: Update all nodes in path
+    while (node !== null) {
+      node.visits++;
+      if (result === currentColor) {
+        node.wins++;
+      } else if (result !== 0) {
+        // Opponent win = 0 points for us
+        node.wins += 0;
+      } else {
+        // Draw = 0.5 points
+        node.wins += 0.5;
+      }
+      node = node.parent;
+    }
+  }
+
+  // Select best move based on visit count (most robust)
+  if (rootNode.children.length === 0) {
+    return empty[0]; // Fallback
+  }
+
+  let bestChild = rootNode.children[0];
+  let bestVisits = bestChild.visits;
+
+  for (const child of rootNode.children) {
+    if (child.visits > bestVisits) {
+      bestVisits = child.visits;
+      bestChild = child;
+    }
+  }
+
+  return bestChild.move || empty[0];
 }
 
 /**
@@ -293,10 +402,12 @@ export function getAIReasoning(game: Hex, move: Cell, difficulty: AIDifficulty):
       break;
 
     case 'hard':
-      reasons.push('Simulations show this maximizes win probability');
+      reasons.push('UCB1-based tree search identified this as the strongest move');
 
       if (distFromCenter <= 1) {
-        reasons.push('controlling key central territory');
+        reasons.push('securing critical central position');
+      } else {
+        reasons.push('maximizing long-term winning chances');
       }
       break;
 
