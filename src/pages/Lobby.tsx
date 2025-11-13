@@ -59,9 +59,16 @@ export default function Lobby() {
   const [aiBoardSize, setAiBoardSize] = useState<number>(11);
   const [loadingLobbies, setLoadingLobbies] = useState(true);
   const [loadingMatches, setLoadingMatches] = useState(true);
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, signInAnonymously } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Auto sign-in guest users anonymously
+  useEffect(() => {
+    if (!loading && !user) {
+      signInAnonymously();
+    }
+  }, [loading, user, signInAnonymously]);
 
   // Track user presence
   usePresence(user?.id);
@@ -89,7 +96,10 @@ export default function Lobby() {
   }, [user, location.state]);
 
   const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
-    if (!user) return;
+    if (!user) {
+      toast.error('Please wait while we set up your guest session...');
+      return;
+    }
     
     setCreatingMatch(true);
     try {
