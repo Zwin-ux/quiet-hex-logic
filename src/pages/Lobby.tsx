@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useGuestMode } from '@/hooks/useGuestMode';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
 import { JoinGameCTA } from '@/components/JoinGameCTA';
 import { LobbyCard } from '@/components/LobbyCard';
+import { GuestModeBanner } from '@/components/GuestModeBanner';
+import { GuestBadge } from '@/components/GuestBadge';
+import { FeatureLockedModal } from '@/components/FeatureLockedModal';
 import { usePresence } from '@/hooks/usePresence';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
@@ -26,6 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type Match = {
   id: string;
@@ -59,7 +69,9 @@ export default function Lobby() {
   const [aiBoardSize, setAiBoardSize] = useState<number>(11);
   const [loadingLobbies, setLoadingLobbies] = useState(true);
   const [loadingMatches, setLoadingMatches] = useState(true);
+  const [lockedFeatureModal, setLockedFeatureModal] = useState<string | null>(null);
   const { user, loading, signOut, signInAnonymously } = useAuth();
+  const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -414,6 +426,9 @@ export default function Lobby() {
       <div className="relative max-w-7xl mx-auto p-4 md:p-8">
         {/* Floating Navigation Bar */}
         <div className="fixed top-4 right-4 z-50 flex flex-col sm:flex-row gap-2">
+          {isGuest && !guestLoading && (
+            <GuestBadge username={guestUsername} />
+          )}
           {user && (
             <>
               <Popover>
@@ -528,30 +543,10 @@ export default function Lobby() {
             </Button>
           )}
         </div>
+        
         {/* Guest Mode Banner */}
-        {!user && (
-          <Card className="mb-8 p-4 sm:p-6 bg-gradient-to-r from-ochre/10 to-ochre/5 border-2 border-ochre/30 shadow-medium animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center gap-4">
-                <div className="h-12 w-12 shrink-0 rounded-full bg-ochre/20 flex items-center justify-center">
-                  <User className="h-6 w-6 text-ochre" />
-                </div>
-                <div>
-                  <p className="font-body font-bold text-foreground text-base sm:text-lg">Playing as Guest</p>
-                  <p className="text-sm text-muted-foreground">
-                    Try AI practice mode. Sign in to challenge friends and save your progress!
-                  </p>
-                </div>
-              </div>
-              <Button 
-                onClick={() => navigate('/auth')} 
-                size="lg"
-                className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all hover:scale-105 h-12"
-              >
-                Sign In
-              </Button>
-            </div>
-          </Card>
+        {isGuest && !guestLoading && (
+          <GuestModeBanner guestUsername={guestUsername} />
         )}
 
         {/* Hero Header */}
@@ -570,12 +565,38 @@ export default function Lobby() {
         {/* Recovery CTA for pending lobbies */}
         {user && <JoinGameCTA userId={user.id} />}
 
-        {/* Lobby Creation Section */}
-        {user && (
+        {/* Lobby Creation Section - Hidden for guests */}
+        {user && !isGuest && (
           <div className="grid md:grid-cols-2 gap-6 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CreateLobby userId={user.id} />
             <JoinLobby userId={user.id} />
           </div>
+        )}
+        
+        {/* Locked Multiplayer for Guests */}
+        {isGuest && !guestLoading && (
+          <Card className="p-6 sm:p-8 mb-12 border-2 border-border/50 bg-muted/30 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-violet/20 flex items-center justify-center">
+                <Lock className="h-8 w-8 text-violet" />
+              </div>
+              <div>
+                <h3 className="font-body text-xl font-bold text-foreground mb-2">
+                  Multiplayer Lobbies Locked
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Create a free account to challenge friends, join lobbies, and compete in tournaments!
+                </p>
+              </div>
+              <Button 
+                onClick={() => navigate('/auth')}
+                size="lg"
+                className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
+              >
+                Create Free Account
+              </Button>
+            </div>
+          </Card>
         )}
 
         {/* AI Practice Section - Featured Design */}
@@ -640,8 +661,8 @@ export default function Lobby() {
           </div>
         </Card>
 
-        {/* Open Lobbies Section */}
-        {user && (
+        {/* Open Lobbies Section - Hidden for guests */}
+        {user && !isGuest && lobbies.length > 0 && (
           <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -768,7 +789,8 @@ export default function Lobby() {
           )}
         </div>
 
-        {/* Open Matches Section */}
+        {/* Open Matches Section - Hidden for guests */}
+        {user && !isGuest && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -853,7 +875,15 @@ export default function Lobby() {
             </div>
           )}
         </div>
+        )}
       </div>
+      
+      {/* Feature Locked Modal */}
+      <FeatureLockedModal 
+        open={!!lockedFeatureModal}
+        onOpenChange={(open) => !open && setLockedFeatureModal(null)}
+        featureName={lockedFeatureModal || ''}
+      />
     </div>
   );
 }
