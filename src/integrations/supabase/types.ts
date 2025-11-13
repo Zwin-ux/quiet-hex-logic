@@ -208,6 +208,13 @@ export type Database = {
             referencedRelation: "lobbies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lobby_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lobby_players: {
