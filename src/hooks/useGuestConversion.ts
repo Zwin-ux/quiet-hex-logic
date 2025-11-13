@@ -8,6 +8,7 @@ export function useGuestConversion() {
   const { isGuest } = useGuestMode();
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [hasShownModal, setHasShownModal] = useState(false);
+  const [matchesCompleted, setMatchesCompleted] = useState(0);
 
   useEffect(() => {
     if (!user || !isGuest || hasShownModal) return;
@@ -19,16 +20,18 @@ export function useGuestConversion() {
         .select('id, status')
         .eq('owner', user.id)
         .eq('status', 'finished')
-        .not('ai_difficulty', 'is', null)
-        .limit(1);
+        .not('ai_difficulty', 'is', null);
 
       if (error) {
         console.error('Error checking guest matches:', error);
         return;
       }
 
+      const matchCount = completedMatches?.length || 0;
+      setMatchesCompleted(matchCount);
+
       // Show modal after first completed AI match
-      if (completedMatches && completedMatches.length > 0) {
+      if (matchCount > 0) {
         // Check if user has seen the modal in this session
         const modalShown = sessionStorage.getItem('guest_conversion_modal_shown');
         if (!modalShown) {
@@ -56,9 +59,19 @@ export function useGuestConversion() {
           table: 'matches',
           filter: `owner=eq.${user.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const newMatch = payload.new as any;
           if (newMatch.status === 'finished' && newMatch.ai_difficulty) {
+            // Update match count
+            const { data: completedMatches } = await supabase
+              .from('matches')
+              .select('id')
+              .eq('owner', user.id)
+              .eq('status', 'finished')
+              .not('ai_difficulty', 'is', null);
+            
+            setMatchesCompleted(completedMatches?.length || 0);
+            
             const modalShown = sessionStorage.getItem('guest_conversion_modal_shown');
             if (!modalShown) {
               setShowConversionModal(true);
@@ -78,5 +91,6 @@ export function useGuestConversion() {
   return {
     showConversionModal,
     setShowConversionModal,
+    matchesCompleted,
   };
 }

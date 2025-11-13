@@ -34,13 +34,15 @@ interface ConvertAccountModalProps {
   onOpenChange: (open: boolean) => void;
   guestId: string;
   onConversionComplete: () => void;
+  matchesCompleted: number;
 }
 
 export function ConvertAccountModal({ 
   open, 
   onOpenChange, 
   guestId,
-  onConversionComplete 
+  onConversionComplete,
+  matchesCompleted 
 }: ConvertAccountModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -102,11 +104,26 @@ export function ConvertAccountModal({
           <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-violet to-indigo flex items-center justify-center">
             <Sparkles className="h-8 w-8 text-white" />
           </div>
-          <DialogTitle className="text-center text-2xl">Great First Match!</DialogTitle>
+          <DialogTitle className="text-center text-2xl">
+            {matchesCompleted === 1 ? 'Great First Match!' : `${matchesCompleted} Matches Completed!`}
+          </DialogTitle>
           <DialogDescription className="text-center">
             Create a free account to save your progress and unlock all features.
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Guest Progress Stats */}
+        <div className="flex justify-center gap-6 py-3 px-4 bg-muted/50 rounded-lg border border-border/50">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-foreground">{matchesCompleted}</div>
+            <div className="text-xs text-muted-foreground">Match{matchesCompleted !== 1 ? 'es' : ''} Played</div>
+          </div>
+          <div className="h-12 w-px bg-border" />
+          <div className="text-center">
+            <div className="text-2xl font-bold text-amber-500">5</div>
+            <div className="text-xs text-muted-foreground">Features Locked</div>
+          </div>
+        </div>
 
         {/* Benefits Grid */}
         <div className="grid grid-cols-2 gap-3 py-4">
@@ -203,19 +220,23 @@ export function ConvertAccountModal({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
               type="button" 
-              variant="outline" 
+              variant="ghost" 
               onClick={() => onOpenChange(false)}
               disabled={converting}
+              className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
             >
-              Maybe Later
+              <div className="flex items-center gap-2">
+                <span>Continue as Guest</span>
+                <span className="text-xs opacity-60">({5 - Math.min(matchesCompleted, 5)} features locked)</span>
+              </div>
             </Button>
             <Button 
               type="submit" 
               disabled={converting}
-              className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
+              className="w-full sm:w-auto bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
             >
               {converting ? 'Creating Account...' : 'Create Free Account'}
             </Button>

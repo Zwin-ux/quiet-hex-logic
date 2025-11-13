@@ -74,7 +74,7 @@ export default function Lobby() {
   const [lockedFeatureModal, setLockedFeatureModal] = useState<string | null>(null);
   const { user, loading, signOut, signInAnonymously } = useAuth();
   const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
-  const { showConversionModal, setShowConversionModal } = useGuestConversion();
+  const { showConversionModal, setShowConversionModal, matchesCompleted } = useGuestConversion();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -894,6 +894,7 @@ export default function Lobby() {
           open={showConversionModal}
           onOpenChange={setShowConversionModal}
           guestId={user.id}
+          matchesCompleted={matchesCompleted}
           onConversionComplete={() => {
             toast.success('Welcome to Hexology!');
           }}
