@@ -1,9 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const joinTournamentSchema = z.object({
+  tournamentId: z.string().uuid('Invalid tournament ID format')
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,7 +33,22 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { tournamentId } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = joinTournamentSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input parameters', 
+          details: validationResult.error.format() 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { tournamentId } = validationResult.data;
 
     // Get tournament details
     const { data: tournament, error: tournamentError } = await supabase

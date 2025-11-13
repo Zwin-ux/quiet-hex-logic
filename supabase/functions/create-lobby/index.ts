@@ -6,11 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Input validation schema
+// Comprehensive input validation schema
 const createLobbySchema = z.object({
-  boardSize: z.number().int().min(5).max(19).optional(),
-  pieRule: z.boolean().optional(),
-  turnTimer: z.number().int().min(10).max(300).optional()
+  boardSize: z.number()
+    .int('Board size must be an integer')
+    .min(5, 'Board size must be at least 5')
+    .max(19, 'Board size cannot exceed 19')
+    .optional()
+    .default(11),
+  pieRule: z.boolean()
+    .optional()
+    .default(true),
+  turnTimer: z.number()
+    .int('Turn timer must be an integer')
+    .min(10, 'Turn timer must be at least 10 seconds')
+    .max(600, 'Turn timer cannot exceed 600 seconds (10 minutes)')
+    .optional()
+    .default(45)
 });
 
 Deno.serve(async (req) => {
