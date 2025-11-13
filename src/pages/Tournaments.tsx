@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useGuestMode } from '@/hooks/useGuestMode';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ interface Tournament {
 export default function Tournaments() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isGuest, guestUsername } = useGuestMode();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -115,6 +117,32 @@ export default function Tournaments() {
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Guest Mode Banner */}
+        {isGuest && (
+          <Card className="mb-8 p-6 bg-gradient-to-r from-violet/10 to-indigo/10 border-2 border-violet/30">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-violet/20 flex items-center justify-center">
+                <Trophy className="h-8 w-8 text-violet" />
+              </div>
+              <div>
+                <h3 className="font-body text-xl font-bold text-foreground mb-2">
+                  Tournaments Locked
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Playing as {guestUsername}. Create a free account to join tournaments and compete for glory!
+                </p>
+              </div>
+              <Button 
+                onClick={() => navigate('/auth')}
+                size="lg"
+                className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
+              >
+                Create Free Account
+              </Button>
+            </div>
+          </Card>
+        )}
+        
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -122,7 +150,7 @@ export default function Tournaments() {
               <h1 className="font-body text-4xl font-bold mb-2">Tournaments</h1>
               <p className="text-muted-foreground">Compete against players in organized brackets</p>
             </div>
-            {user && (
+            {user && !isGuest && (
               <Button onClick={() => setShowCreateDialog(true)} size="lg">
                 <Plus className="h-5 w-5 mr-2" />
                 Create Tournament
