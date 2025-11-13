@@ -106,11 +106,13 @@ export default function Lobby() {
 
       if (error) throw error;
 
-      // Add both players (bot has NULL profile_id to avoid PK constraint)
-      const { error: playersError } = await supabase.from('match_players').insert([
-        { match_id: newMatch.id, profile_id: user.id, color: 1, is_bot: false },
-        { match_id: newMatch.id, profile_id: null, color: 2, is_bot: true }
-      ]);
+      // Add only the human player; AI is synthetic and handled server-side
+      const { error: playersError } = await supabase.from('match_players').insert({
+        match_id: newMatch.id,
+        profile_id: user.id,
+        color: 1,
+        is_bot: false
+      });
 
       if (playersError) {
         console.error('Error inserting match players:', playersError);
