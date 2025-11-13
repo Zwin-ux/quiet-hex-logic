@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuestMode } from '@/hooks/useGuestMode';
+import { useGuestConversion } from '@/hooks/useGuestConversion';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,6 +17,7 @@ import { LobbyCard } from '@/components/LobbyCard';
 import { GuestModeBanner } from '@/components/GuestModeBanner';
 import { GuestBadge } from '@/components/GuestBadge';
 import { FeatureLockedModal } from '@/components/FeatureLockedModal';
+import { ConvertAccountModal } from '@/components/ConvertAccountModal';
 import { usePresence } from '@/hooks/usePresence';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
@@ -72,6 +74,7 @@ export default function Lobby() {
   const [lockedFeatureModal, setLockedFeatureModal] = useState<string | null>(null);
   const { user, loading, signOut, signInAnonymously } = useAuth();
   const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
+  const { showConversionModal, setShowConversionModal } = useGuestConversion();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -884,6 +887,18 @@ export default function Lobby() {
         onOpenChange={(open) => !open && setLockedFeatureModal(null)}
         featureName={lockedFeatureModal || ''}
       />
+      
+      {/* Guest Account Conversion Modal */}
+      {user && isGuest && (
+        <ConvertAccountModal 
+          open={showConversionModal}
+          onOpenChange={setShowConversionModal}
+          guestId={user.id}
+          onConversionComplete={() => {
+            toast.success('Welcome to Hexology!');
+          }}
+        />
+      )}
     </div>
   );
 }

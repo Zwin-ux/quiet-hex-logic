@@ -65,3 +65,7 @@ verify_jwt = true
 
 [functions.start-tournament]
 verify_jwt = true
+
+[functions.convert-guest-account]
+verify_jwt = true
+
