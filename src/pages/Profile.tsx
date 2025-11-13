@@ -83,31 +83,43 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-12">
+    <div className="min-h-screen">
+      {/* Hero Header with Gradient Background */}
+      <div className="relative bg-gradient-to-br from-indigo/10 via-background to-ochre/10 border-b border-border/50 overflow-hidden">
+        {/* Floating hexagons background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 left-[10%] text-6xl opacity-5 animate-float">⬡</div>
+          <div className="absolute top-40 right-[15%] text-8xl opacity-5 animate-float" style={{ animationDelay: '1s' }}>⬡</div>
+          <div className="absolute bottom-20 left-[20%] text-7xl opacity-5 animate-float" style={{ animationDelay: '2s' }}>⬡</div>
+        </div>
+
+        <div className="relative max-w-5xl mx-auto p-4 md:p-8 pb-12">
           <Button
             variant="ghost"
             onClick={() => navigate('/lobby')}
-            className="mb-6 gap-2 hover:gap-3 transition-all"
+            className="mb-8 gap-2 hover:gap-3 transition-all hover:bg-background/60 backdrop-blur-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Lobby
           </Button>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          
+          <div className="flex items-center justify-between flex-wrap gap-6">
             <div className="flex items-center gap-6">
-              <UserAvatar 
-                username={profile?.username || 'User'}
-                color={profile?.avatar_color || 'indigo'}
-                size="xl"
-              />
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo to-ochre rounded-full blur-xl opacity-30 animate-gentle-pulse"></div>
+                <UserAvatar 
+                  username={profile?.username || 'User'}
+                  color={profile?.avatar_color || 'indigo'}
+                  size="xl"
+                  className="relative"
+                />
+              </div>
               <div>
-                <h1 className="font-body text-5xl font-bold mb-2 bg-gradient-to-br from-indigo to-ochre bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h1 className="font-body text-5xl md:text-6xl font-bold mb-3 bg-gradient-to-br from-indigo via-indigo/80 to-ochre bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-4 duration-700">
                   {profile?.username || 'Your Profile'}
                 </h1>
                 {profile?.bio && (
-                  <p className="text-muted-foreground font-mono">
+                  <p className="text-muted-foreground font-mono text-lg max-w-md">
                     {profile.bio}
                   </p>
                 )}
@@ -116,158 +128,199 @@ export default function Profile() {
             <Button
               variant="outline"
               onClick={() => navigate('/profile/edit')}
-              className="gap-2"
+              className="gap-2 hover:bg-indigo/10 hover:border-indigo/50 hover:scale-105 transition-all group"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
               Edit Profile
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto p-4 md:p-8">
 
         {/* Stats Grid with animations */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 group">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-indigo/10 group-hover:bg-indigo/20 transition-colors">
-                <Target className="h-6 w-6 text-indigo" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 mt-8">
+          <Card className="relative p-6 bg-gradient-to-br from-indigo/5 to-background hover:from-indigo/10 border-indigo/20 hover:border-indigo/40 hover:shadow-[0_0_30px_-5px_hsl(var(--indigo)/0.3)] transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 group overflow-hidden">
+            <div className="absolute top-0 right-0 text-6xl opacity-5 pointer-events-none group-hover:scale-110 transition-transform">⬡</div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-indigo/10 group-hover:bg-indigo/20 group-hover:scale-110 transition-all duration-300">
+                  <Target className="h-6 w-6 text-indigo" />
+                </div>
+                <span className="text-sm text-muted-foreground font-mono font-medium">Games Played</span>
               </div>
-              <span className="text-sm text-muted-foreground font-mono font-medium">Games Played</span>
+              <p className="text-5xl font-bold tabular-nums">{stats?.total_games || 0}</p>
             </div>
-            <p className="text-4xl font-bold tabular-nums">{stats?.total_games || 0}</p>
           </Card>
 
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 group">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-ochre/10 group-hover:bg-ochre/20 transition-colors">
-                <Trophy className="h-6 w-6 text-ochre" />
+          <Card className="relative p-6 bg-gradient-to-br from-ochre/5 to-background hover:from-ochre/10 border-ochre/20 hover:border-ochre/40 hover:shadow-[0_0_30px_-5px_hsl(var(--ochre)/0.3)] transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 group overflow-hidden">
+            <div className="absolute top-0 right-0 text-6xl opacity-5 pointer-events-none group-hover:scale-110 transition-transform">🏆</div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-ochre/10 group-hover:bg-ochre/20 group-hover:scale-110 transition-all duration-300">
+                  <Trophy className="h-6 w-6 text-ochre" />
+                </div>
+                <span className="text-sm text-muted-foreground font-mono font-medium">Victories</span>
               </div>
-              <span className="text-sm text-muted-foreground font-mono font-medium">Victories</span>
+              <p className="text-5xl font-bold tabular-nums mb-2">{stats?.wins || 0}</p>
+              {stats && stats.total_games > 0 && (
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-emerald-500 animate-gentle-pulse" />
+                  <span className="text-sm font-bold text-emerald-500">
+                    {winRate}% win rate
+                  </span>
+                </div>
+              )}
             </div>
-            <p className="text-4xl font-bold tabular-nums">{stats?.wins || 0}</p>
-            {stats && stats.total_games > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm font-semibold text-emerald-500">
-                  {winRate}% win rate
-                </span>
-              </div>
-            )}
           </Card>
 
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 group">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-muted group-hover:bg-muted/70 transition-colors">
-                <Clock className="h-6 w-6 text-foreground" />
+          <Card className="relative p-6 bg-gradient-to-br from-muted/30 to-background hover:from-muted/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 group overflow-hidden">
+            <div className="absolute top-0 right-0 text-6xl opacity-5 pointer-events-none group-hover:scale-110 transition-transform">⏱️</div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-muted group-hover:bg-muted/70 group-hover:scale-110 transition-all duration-300">
+                  <Clock className="h-6 w-6 text-foreground" />
+                </div>
+                <span className="text-sm text-muted-foreground font-mono font-medium">Avg Game</span>
               </div>
-              <span className="text-sm text-muted-foreground font-mono font-medium">Avg Game</span>
+              <p className="text-5xl font-bold tabular-nums">
+                {stats?.avg_game_length_minutes || 0}
+                <span className="text-2xl text-muted-foreground ml-2">min</span>
+              </p>
             </div>
-            <p className="text-4xl font-bold tabular-nums">
-              {stats?.avg_game_length_minutes || 0}
-              <span className="text-xl text-muted-foreground ml-2">min</span>
-            </p>
           </Card>
 
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[400ms] group">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-muted group-hover:bg-muted/70 transition-colors">
-                <Grid3x3 className="h-6 w-6 text-foreground" />
+          <Card className="relative p-6 bg-gradient-to-br from-muted/30 to-background hover:from-muted/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[400ms] group overflow-hidden">
+            <div className="absolute top-0 right-0 text-6xl opacity-5 pointer-events-none group-hover:scale-110 transition-transform">📐</div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-muted group-hover:bg-muted/70 group-hover:scale-110 transition-all duration-300">
+                  <Grid3x3 className="h-6 w-6 text-foreground" />
+                </div>
+                <span className="text-sm text-muted-foreground font-mono font-medium">Favorite Size</span>
               </div>
-              <span className="text-sm text-muted-foreground font-mono font-medium">Favorite</span>
+              <p className="text-5xl font-bold tabular-nums">
+                {stats?.favorite_board_size ? `${stats.favorite_board_size}×${stats.favorite_board_size}` : '—'}
+              </p>
             </div>
-            <p className="text-4xl font-bold tabular-nums">
-              {stats?.favorite_board_size ? `${stats.favorite_board_size}×${stats.favorite_board_size}` : '—'}
-            </p>
           </Card>
         </div>
 
         {/* Board Theme Selector */}
-        <Card className="p-8 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
-          <div className="flex items-center gap-3 mb-6">
-            <Palette className="h-6 w-6 text-indigo" />
-            <h2 className="font-body text-2xl font-semibold">Board Theme</h2>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="skin-select" className="text-base mb-2 block">Choose your style</Label>
-              <Select value={selectedSkin} onValueChange={handleSkinChange} disabled={saving}>
-                <SelectTrigger id="skin-select" className="w-full md:w-96">
-                  <SelectValue placeholder="Select theme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {boardSkins.map((skin) => (
-                    <SelectItem key={skin.id} value={skin.id}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{skin.preview}</span>
-                        <div>
-                          <p className="font-semibold">{skin.name}</p>
-                          <p className="text-xs text-muted-foreground">{skin.description}</p>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <Card className="relative p-8 mb-12 bg-gradient-to-br from-indigo/5 via-background to-ochre/5 border-indigo/20 hover:border-indigo/40 hover:shadow-[0_0_40px_-10px_hsl(var(--indigo)/0.2)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 delay-500 group overflow-hidden">
+          <div className="absolute top-4 right-4 text-8xl opacity-5 pointer-events-none group-hover:rotate-12 transition-transform duration-500">🎨</div>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 rounded-xl bg-indigo/10 group-hover:bg-indigo/20 group-hover:scale-110 transition-all duration-300">
+                <Palette className="h-7 w-7 text-indigo" />
+              </div>
+              <h2 className="font-body text-3xl font-bold bg-gradient-to-br from-indigo to-ochre bg-clip-text text-transparent">
+                Board Theme
+              </h2>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Your theme will apply to all game boards
-            </p>
+            <div className="space-y-5">
+              <div>
+                <Label htmlFor="skin-select" className="text-base mb-3 block font-semibold">
+                  Choose your style
+                </Label>
+                <Select value={selectedSkin} onValueChange={handleSkinChange} disabled={saving}>
+                  <SelectTrigger 
+                    id="skin-select" 
+                    className="w-full md:w-96 h-14 text-lg hover:border-indigo/50 hover:bg-indigo/5 transition-all"
+                  >
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent className="w-full md:w-96">
+                    {boardSkins.map((skin) => (
+                      <SelectItem key={skin.id} value={skin.id} className="h-16 cursor-pointer">
+                        <div className="flex items-center gap-4">
+                          <span className="text-3xl">{skin.preview}</span>
+                          <div>
+                            <p className="font-semibold text-base">{skin.name}</p>
+                            <p className="text-xs text-muted-foreground">{skin.description}</p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
+                <span className="inline-block w-2 h-2 bg-indigo rounded-full animate-gentle-pulse"></span>
+                Your theme will apply to all game boards
+              </p>
+            </div>
           </div>
         </Card>
 
         {/* Achievements */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[600ms]">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-body text-3xl font-semibold flex items-center gap-3">
-              <Trophy className="h-8 w-8 text-ochre" />
-              Achievements
-            </h2>
-            <Badge variant="outline" className="font-mono text-lg px-4 py-2">
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-ochre/20 to-ochre/10 animate-gentle-pulse">
+                <Trophy className="h-8 w-8 text-ochre" />
+              </div>
+              <h2 className="font-body text-4xl font-bold bg-gradient-to-br from-ochre via-ochre/80 to-indigo bg-clip-text text-transparent">
+                Achievements
+              </h2>
+            </div>
+            <Badge 
+              variant="outline" 
+              className="font-mono text-lg px-5 py-2.5 bg-gradient-to-br from-ochre/10 to-background border-ochre/30 hover:border-ochre/50 transition-all"
+            >
               {earnedAchievements.length} / {achievements.length}
             </Badge>
           </div>
 
           {achievements.length === 0 ? (
-            <Card className="p-16 text-center">
-              <div className="text-8xl mb-6 opacity-10">🏆</div>
-              <p className="text-xl text-muted-foreground font-body">Play to unlock achievements</p>
+            <Card className="relative p-20 text-center bg-gradient-to-br from-muted/30 to-background overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-ochre/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative">
+                <div className="text-9xl mb-8 opacity-10 group-hover:scale-110 transition-transform duration-500">🏆</div>
+                <p className="text-2xl text-muted-foreground font-body">Play to unlock achievements</p>
+              </div>
             </Card>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {achievements.map((achievement, idx) => (
                 <Card
                   key={achievement.id}
-                  className={`p-6 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+                  className={`relative p-7 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 group overflow-hidden ${
                     achievement.earned
-                      ? 'border-2 border-ochre/50 bg-gradient-to-br from-ochre/5 to-transparent hover:shadow-xl hover:scale-[1.02]'
-                      : 'opacity-50 hover:opacity-70'
+                      ? 'border-2 border-ochre/50 bg-gradient-to-br from-ochre/10 via-ochre/5 to-background hover:shadow-[0_0_40px_-10px_hsl(var(--ochre)/0.4)] hover:-translate-y-1 hover:border-ochre/70'
+                      : 'opacity-40 hover:opacity-60 border-border/50'
                   }`}
                   style={{ animationDelay: `${700 + idx * 50}ms` }}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`text-5xl ${achievement.earned ? 'animate-bounce' : ''}`}>
+                  {achievement.earned && (
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-ochre/20 to-transparent rounded-full blur-3xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
+                  )}
+                  <div className="relative flex items-start gap-5">
+                    <div className={`text-6xl ${achievement.earned ? 'group-hover:scale-110 transition-transform duration-300' : 'grayscale'}`}>
                       {achievement.icon}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-body font-semibold text-lg">{achievement.name}</h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-body font-bold text-xl">{achievement.name}</h3>
                         {achievement.earned && (
-                          <Badge className="bg-ochre text-primary-foreground">
-                            Earned
+                          <Badge className="bg-gradient-to-br from-ochre to-ochre/80 text-primary-foreground border-0 px-3 py-1 animate-gentle-pulse">
+                            ✓ Earned
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                         {achievement.description}
                       </p>
                       {achievement.earned && achievement.earned_at && (
-                        <p className="text-xs text-muted-foreground mt-3 font-mono flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-background/50 rounded-lg px-3 py-2 w-fit">
+                          <Clock className="h-3.5 w-3.5 text-ochre" />
                           {new Date(achievement.earned_at).toLocaleDateString('en-US', { 
                             year: 'numeric', 
                             month: 'short', 
                             day: 'numeric' 
                           })}
-                        </p>
+                        </div>
                       )}
                     </div>
                   </div>
