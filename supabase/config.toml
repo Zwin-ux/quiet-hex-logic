@@ -53,3 +53,15 @@ verify_jwt = false
 
 [functions.check-turn-timeouts]
 verify_jwt = false
+
+[functions.create-tournament]
+verify_jwt = true
+
+[functions.join-tournament]
+verify_jwt = true
+
+[functions.leave-tournament]
+verify_jwt = true
+
+[functions.start-tournament]
+verify_jwt = true

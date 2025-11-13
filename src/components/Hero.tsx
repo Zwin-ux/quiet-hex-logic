@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Play, Users, BookOpen, Sparkles } from "lucide-react";
+import { Play, Users, BookOpen, Trophy } from "lucide-react";
 import heroBoard from "@/assets/hero-board.jpg";
 
 const Hero = () => {
@@ -50,6 +50,15 @@ const Hero = () => {
           >
             <Play className="h-5 w-5 mr-2 group-hover:translate-x-1 transition-transform" />
             Play Now
+          </Button>
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="min-w-[200px] group hover:scale-105 transition-all shadow-md hover:shadow-lg"
+            onClick={() => navigate('/tournaments')}
+          >
+            <Trophy className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
+            Tournaments
           </Button>
           <Button 
             variant="outline" 

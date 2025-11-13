@@ -17,6 +17,8 @@ import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Tutorial from "./pages/Tutorial";
 import LobbyView from "./pages/LobbyView";
+import Tournaments from "./pages/Tournaments";
+import TournamentView from "./pages/TournamentView";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/lobby" element={<Lobby />} />
           <Route path="/lobby/:lobbyId" element={<LobbyView />} />
           <Route path="/match/:matchId" element={<Match />} />
+          <Route path="/tournaments" element={<Tournaments />} />
+          <Route path="/tournament/:tournamentId" element={<TournamentView />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/history" element={<History />} />
           <Route path="/replay/:matchId" element={<Replay />} />
