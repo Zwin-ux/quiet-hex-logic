@@ -20,15 +20,15 @@ export function useGuestMode() {
       const isAnonymous = session?.user?.is_anonymous || false;
       
       if (isAnonymous) {
-        // Fetch guest profile
+        // Fetch guest profile (with type assertion until types are regenerated)
         const { data: profile } = await supabase
           .from('profiles')
           .select('username, is_guest')
           .eq('id', user.id)
-          .single();
+          .single() as any;
 
-        setIsGuest(profile?.is_guest || false);
-        setGuestUsername(profile?.username || '');
+        setIsGuest((profile as any)?.is_guest || false);
+        setGuestUsername((profile as any)?.username || '');
       } else {
         setIsGuest(false);
       }
