@@ -78,95 +78,165 @@ export default function EditProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-paper p-4">
-      <div className="max-w-2xl mx-auto py-8">
-        <div className="mb-6">
+    <div className="min-h-screen p-4">
+      {/* Hero Header */}
+      <div className="relative bg-gradient-to-br from-indigo/10 via-background to-ochre/10 border-b border-border/50 mb-8 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-10 left-[15%] text-5xl opacity-5 animate-float">✏️</div>
+          <div className="absolute top-20 right-[10%] text-6xl opacity-5 animate-float" style={{ animationDelay: '1s' }}>🎨</div>
+        </div>
+        
+        <div className="relative max-w-2xl mx-auto py-8">
           <Button
             variant="ghost"
             onClick={() => navigate('/profile')}
-            className="mb-4"
+            className="mb-6 gap-2 hover:gap-3 transition-all hover:bg-background/60 backdrop-blur-sm"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4" />
             Back to Profile
           </Button>
-          <h1 className="font-body text-4xl text-ink mb-2">Edit Profile</h1>
-          <p className="text-ink/60">Customize your Hexology identity</p>
+          <h1 className="font-body text-5xl font-bold mb-3 bg-gradient-to-br from-indigo via-indigo/80 to-ochre bg-clip-text text-transparent">
+            Edit Profile
+          </h1>
+          <p className="text-muted-foreground font-mono text-lg">Customize your Hexology identity</p>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto">
+        {/* Live Preview Card */}
+        <div className="mb-8 p-8 bg-gradient-to-br from-indigo/5 via-background to-ochre/5 border border-indigo/20 rounded-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <p className="text-sm text-muted-foreground font-mono mb-4 flex items-center gap-2">
+            <span className="inline-block w-2 h-2 bg-indigo rounded-full animate-gentle-pulse"></span>
+            Live Preview
+          </p>
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo to-ochre rounded-full blur-xl opacity-30 animate-gentle-pulse"></div>
+              <UserAvatar 
+                username={username || 'Player'}
+                color={avatarColor}
+                size="xl"
+                className="relative transition-all duration-300"
+              />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-body text-3xl font-bold mb-2 transition-all duration-300">
+                {username || 'Your Name'}
+              </h2>
+              <p className="text-muted-foreground transition-all duration-300">
+                {bio || 'Your bio will appear here...'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-card border rounded-xl p-6">
-          <div>
-            <Label htmlFor="username" className="text-ink">Username</Label>
+        <form onSubmit={handleSubmit} className="space-y-8 bg-card border border-border/50 rounded-2xl p-8 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+          <div className="space-y-3">
+            <Label htmlFor="username" className="text-base font-semibold flex items-center gap-2">
+              Username
+              <span className="text-xs text-muted-foreground font-normal">(2-24 characters)</span>
+            </Label>
             <Input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="player_name"
-              className="mt-1"
+              className="h-12 text-lg transition-all focus:scale-[1.02]"
               required
               minLength={2}
               maxLength={24}
             />
           </div>
 
-          <div>
-            <Label htmlFor="bio" className="text-ink">Bio</Label>
+          <div className="space-y-3">
+            <Label htmlFor="bio" className="text-base font-semibold flex items-center gap-2">
+              Bio
+              <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            </Label>
             <Textarea
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us about yourself..."
-              className="mt-1 resize-none"
-              rows={3}
+              className="resize-none text-base transition-all focus:scale-[1.01]"
+              rows={4}
               maxLength={160}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {bio.length}/160 characters
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-muted-foreground font-mono">
+                {bio.length}/160 characters
+              </p>
+              {bio.length >= 150 && (
+                <p className="text-xs text-ochre font-mono animate-gentle-pulse">
+                  Almost at limit!
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <Label className="text-ink mb-3 block">Avatar Color</Label>
+          <div className="space-y-4">
+            <Label className="text-base font-semibold block">
+              Avatar Color
+              <span className="text-sm text-muted-foreground font-normal ml-2">
+                Pick your favorite!
+              </span>
+            </Label>
             <div className="grid grid-cols-6 sm:grid-cols-9 gap-3">
-              {avatarColors.map((color) => (
+              {avatarColors.map((color, index) => (
                 <button
                   key={color}
                   type="button"
                   onClick={() => setAvatarColor(color)}
-                  className="relative aspect-square rounded-lg border-2 hover:scale-110 transition-transform"
+                  className="relative aspect-square rounded-xl border-2 hover:scale-110 active:scale-95 transition-all duration-200 group animate-in fade-in zoom-in"
                   style={{
-                    borderColor: avatarColor === color ? 'var(--primary)' : 'var(--border)'
+                    borderColor: avatarColor === color ? 'hsl(var(--indigo))' : 'hsl(var(--border))',
+                    animationDelay: `${index * 30}ms`,
+                    boxShadow: avatarColor === color ? '0 0 20px hsl(var(--indigo) / 0.3)' : 'none'
                   }}
+                  title={color.charAt(0).toUpperCase() + color.slice(1)}
                 >
                   <UserAvatar 
                     username={username || 'AA'} 
                     color={color} 
                     size="md"
-                    className="w-full h-full"
+                    className="w-full h-full group-hover:scale-90 transition-transform"
                   />
                   {avatarColor === color && (
-                    <div className="absolute -top-1 -right-1 bg-primary rounded-full p-0.5">
-                      <Check className="h-3 w-3 text-primary-foreground" />
+                    <div className="absolute -top-1 -right-1 bg-gradient-to-br from-indigo to-ochre rounded-full p-1 animate-in zoom-in duration-200">
+                      <Check className="h-3 w-3 text-white" />
                     </div>
                   )}
                 </button>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground font-mono text-center">
+              ✨ Click any color to try it out
+            </p>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 pt-4">
             <Button
               type="submit"
-              variant="hero"
-              className="flex-1"
+              className="flex-1 h-12 text-lg bg-gradient-to-r from-indigo to-ochre hover:from-indigo/90 hover:to-ochre/90 transition-all hover:scale-[1.02] active:scale-95"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting ? (
+                <>
+                  <span className="animate-gentle-pulse">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-5 w-5 mr-2" />
+                  Save Changes
+                </>
+              )}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate('/profile')}
+              className="h-12 px-8 hover:bg-muted transition-all"
             >
               Cancel
             </Button>

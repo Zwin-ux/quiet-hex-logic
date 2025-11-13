@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp, Settings } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp, Settings, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { boardSkins } from '@/lib/boardSkins';
 import { toast } from 'sonner';
@@ -219,37 +219,47 @@ export default function Profile() {
                 Board Theme
               </h2>
             </div>
-            <div className="space-y-5">
-              <div>
-                <Label htmlFor="skin-select" className="text-base mb-3 block font-semibold">
-                  Choose your style
-                </Label>
-                <Select value={selectedSkin} onValueChange={handleSkinChange} disabled={saving}>
-                  <SelectTrigger 
-                    id="skin-select" 
-                    className="w-full md:w-96 h-14 text-lg hover:border-indigo/50 hover:bg-indigo/5 transition-all"
+            <div className="space-y-6">
+              {/* Visual Theme Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {boardSkins.map((skin, index) => (
+                  <button
+                    key={skin.id}
+                    onClick={() => handleSkinChange(skin.id)}
+                    disabled={saving}
+                    className={`relative p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 active:scale-95 group/skin animate-in fade-in slide-in-from-bottom-4 ${
+                      selectedSkin === skin.id
+                        ? 'border-indigo bg-gradient-to-br from-indigo/10 to-ochre/10 shadow-[0_0_20px_hsl(var(--indigo)/0.3)]'
+                        : 'border-border hover:border-indigo/30 hover:bg-indigo/5'
+                    }`}
+                    style={{ animationDelay: `${550 + index * 50}ms` }}
                   >
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent className="w-full md:w-96">
-                    {boardSkins.map((skin) => (
-                      <SelectItem key={skin.id} value={skin.id} className="h-16 cursor-pointer">
-                        <div className="flex items-center gap-4">
-                          <span className="text-3xl">{skin.preview}</span>
-                          <div>
-                            <p className="font-semibold text-base">{skin.name}</p>
-                            <p className="text-xs text-muted-foreground">{skin.description}</p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <div className="text-5xl mb-3 group-hover/skin:scale-110 transition-transform">
+                      {skin.preview}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-base mb-1">{skin.name}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{skin.description}</p>
+                    </div>
+                    {selectedSkin === skin.id && (
+                      <div className="absolute -top-2 -right-2 bg-gradient-to-br from-indigo to-ochre rounded-full p-1.5 animate-in zoom-in duration-200 shadow-lg">
+                        <Check className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
-              <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
-                <span className="inline-block w-2 h-2 bg-indigo rounded-full animate-gentle-pulse"></span>
-                Your theme will apply to all game boards
-              </p>
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-indigo rounded-full animate-gentle-pulse"></span>
+                  Theme applies to all your games
+                </p>
+                {saving && (
+                  <p className="text-sm text-indigo font-mono animate-gentle-pulse">
+                    Saving...
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </Card>
