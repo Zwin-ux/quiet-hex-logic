@@ -72,15 +72,15 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
   };
 
   return (
-    <Card className="p-6 shadow-soft border-2 border-border hover:border-indigo/30 transition-all duration-300">
+    <Card className="p-4 sm:p-6 shadow-soft border-2 border-border hover:border-indigo/30 transition-all duration-300">
       <div className="flex items-center gap-3 mb-3">
         <Users className="h-5 w-5 text-indigo" />
-        <h2 className="font-body text-xl font-semibold text-foreground">
+        <h2 className="font-body text-lg sm:text-xl font-semibold text-foreground">
           Create Lobby
         </h2>
       </div>
       
-      <p className="text-muted-foreground mb-4 font-body text-sm leading-relaxed">
+      <p className="text-muted-foreground mb-4 font-body text-xs sm:text-sm leading-relaxed">
         Start a private match and share the code
       </p>
 
@@ -90,7 +90,7 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
             Board Size
           </label>
           <Select value={boardSize.toString()} onValueChange={(v) => setBoardSize(parseInt(v))}>
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-10 sm:h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -115,11 +115,11 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
         <div className="space-y-2">
           <div className="p-3 bg-indigo/5 rounded-lg border-2 border-indigo/20 text-center">
             <p className="text-xs text-muted-foreground mb-0.5">Lobby Code</p>
-            <p className="text-2xl font-mono font-bold tracking-wider text-indigo">
+            <p className="text-2xl font-mono font-bold tracking-wider text-indigo break-all">
               {createdCode}
             </p>
           </div>
-          <Button onClick={copyCode} className="w-full gap-2 h-9">
+          <Button onClick={copyCode} className="w-full gap-2 h-11 touch-manipulation">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied!' : 'Copy Code'}
           </Button>
@@ -128,7 +128,7 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
         <Button 
           onClick={createLobby} 
           disabled={creating}
-          className="w-full h-9 font-medium"
+          className="w-full h-11 font-medium touch-manipulation"
         >
           {creating ? 'Creating...' : 'Create & Share'}
         </Button>

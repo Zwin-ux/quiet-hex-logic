@@ -56,6 +56,9 @@ export default function Lobby() {
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('medium');
+  const [aiBoardSize, setAiBoardSize] = useState<number>(11);
+  const [loadingLobbies, setLoadingLobbies] = useState(true);
+  const [loadingMatches, setLoadingMatches] = useState(true);
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -202,18 +205,21 @@ export default function Lobby() {
   }, [user]);
 
   const fetchWaitingMatches = async () => {
+    setLoadingMatches(true);
     const { data, error } = await supabase
       .from('matches')
       .select('*')
       .eq('status', 'waiting')
       .order('created_at', { ascending: false })
-      .limit(20); // Limit to prevent performance issues
+      .limit(20);
 
     if (error) {
       console.error('Error fetching matches:', error);
+      toast.error('Failed to load matches');
     } else {
       setMatches(data || []);
     }
+    setLoadingMatches(false);
   };
 
   const fetchActiveMatches = async () => {
@@ -233,6 +239,7 @@ export default function Lobby() {
   };
 
   const fetchWaitingLobbies = async () => {
+    setLoadingLobbies(true);
     const { data: lobbyData, error } = await supabase
       .from('lobbies')
       .select('id, code, host_id, board_size, pie_rule, status, created_at, profiles!lobbies_host_id_fkey(username)')
@@ -242,6 +249,8 @@ export default function Lobby() {
 
     if (error) {
       console.error('Error fetching lobbies:', error);
+      toast.error('Failed to load lobbies');
+      setLoadingLobbies(false);
       return;
     }
 
@@ -261,6 +270,7 @@ export default function Lobby() {
     );
 
     setLobbies(lobbiesWithCounts);
+    setLoadingLobbies(false);
   };
 
   const createMatch = async (size: number, withAI: boolean = false, aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert') => {
@@ -585,7 +595,7 @@ export default function Lobby() {
                   Difficulty Level
                 </label>
                 <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
-                  <SelectTrigger className="h-12 sm:h-12 bg-card hover:bg-accent transition-colors border-2 text-base">
+                  <SelectTrigger className="h-12 bg-card hover:bg-accent transition-colors border-2 text-base">
                     <SelectValue placeholder="Select difficulty" />
                   </SelectTrigger>
                   <SelectContent className="bg-card/95 backdrop-blur border-2">
@@ -606,12 +616,12 @@ export default function Lobby() {
                   {[7, 9, 11, 13].map((size) => (
                     <Button
                       key={size}
-                      onClick={() => createMatch(size, true, aiDifficulty)}
+                      onClick={() => createAIMatch(aiDifficulty, size)}
                       disabled={creatingMatch}
                       className="h-14 sm:h-16 font-mono text-base sm:text-lg font-bold hover:scale-105 transition-all shadow-md hover:shadow-xl touch-manipulation"
                       variant="secondary"
                     >
-                      {size}×{size}
+                      {creatingMatch ? '...' : `${size}×${size}`}
                     </Button>
                   ))}
                 </div>
@@ -637,10 +647,25 @@ export default function Lobby() {
               </Badge>
             </div>
 
-            {lobbies.length === 0 ? (
-              <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-ochre/30 transition-all duration-300">
-                <div className="text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
-                <p className="text-lg font-medium text-muted-foreground mb-2">No open lobbies</p>
+            {loadingLobbies ? (
+              <div className="grid gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="p-6 animate-pulse">
+                    <div className="flex items-center gap-6">
+                      <div className="h-12 w-12 bg-muted rounded" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-6 bg-muted rounded w-32" />
+                        <div className="h-4 bg-muted rounded w-48" />
+                      </div>
+                      <div className="h-10 w-24 bg-muted rounded" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : lobbies.length === 0 ? (
+              <Card className="p-12 sm:p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-ochre/30 transition-all duration-300">
+                <div className="text-5xl sm:text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+                <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No open lobbies</p>
                 <p className="text-sm text-muted-foreground">
                   Be the first to create a lobby!
                 </p>
@@ -675,10 +700,27 @@ export default function Lobby() {
               {activeMatches.length} live
             </Badge>
           </div>
-          {activeMatches.length === 0 ? (
-            <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-indigo/30 transition-all duration-300">
-              <div className="text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
-              <p className="text-lg font-medium text-muted-foreground mb-2">No active matches</p>
+          {loadingMatches ? (
+            <div className="grid gap-3">
+              {[1, 2].map((i) => (
+                <Card key={i} className="p-5 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="h-10 w-10 bg-muted rounded" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-5 bg-muted rounded w-40" />
+                        <div className="h-4 bg-muted rounded w-24" />
+                      </div>
+                    </div>
+                    <div className="h-9 w-24 bg-muted rounded" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : activeMatches.length === 0 ? (
+            <Card className="p-12 sm:p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-indigo/30 transition-all duration-300">
+              <div className="text-5xl sm:text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+              <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No active matches</p>
               <p className="text-sm text-muted-foreground">
                 Start a game to see it here!
               </p>

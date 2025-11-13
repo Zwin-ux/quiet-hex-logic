@@ -294,27 +294,27 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Code Display */}
-      <Card className="p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Lobby Code</p>
-            <p className="text-4xl font-mono font-bold tracking-wider text-primary">
+      <Card className="p-4 sm:p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-1">Lobby Code</p>
+            <p className="text-3xl sm:text-4xl font-mono font-bold tracking-wider text-primary break-all">
               {lobby.code}
             </p>
           </div>
-          <Button onClick={copyCode} variant="outline" className="gap-2">
+          <Button onClick={copyCode} variant="outline" className="gap-2 w-full sm:w-auto h-11 touch-manipulation">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? 'Copied!' : 'Copy Code'}
           </Button>
         </div>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid gap-6">
         {/* Players */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Users className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Players ({players.length}/2)</h3>
+            <h3 className="font-semibold text-base sm:text-lg">Players ({players.length}/2)</h3>
           </div>
           
           <div className="space-y-3">
@@ -386,8 +386,8 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
         </Card>
 
         {/* Settings */}
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Game Settings</h3>
+        <Card className="p-4 sm:p-6">
+          <h3 className="font-semibold mb-4 text-base sm:text-lg">Game Settings</h3>
           
           <div className="space-y-4">
             <div>
@@ -435,16 +435,16 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
         </Card>
 
         {/* Chat Section */}
-        <Card className="p-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
+        <Card className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="h-5 w-5 text-primary" />
-            <h3 className="font-body text-lg font-semibold">Lobby Chat</h3>
+            <h3 className="font-body text-base sm:text-lg font-semibold">Lobby Chat</h3>
           </div>
 
           <div className="space-y-4">
             {/* Messages */}
-            <ScrollArea className="h-[300px] pr-4 border rounded-lg bg-muted/30">
-              <div className="p-4 space-y-3">
+            <ScrollArea className="h-[250px] sm:h-[300px] pr-4 border rounded-lg bg-muted/30">
+              <div className="p-3 sm:p-4 space-y-3">
                 {chatMessages.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     No messages yet. Say hello! 👋
@@ -519,11 +519,11 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <Button
           variant="outline"
           onClick={leaveLobby}
-          className="gap-2"
+          className="gap-2 h-11 touch-manipulation order-3 sm:order-1"
         >
           <LogOut className="h-4 w-4" />
           Leave Lobby
@@ -532,7 +532,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
         <Button
           onClick={toggleReady}
           variant={currentPlayer?.is_ready ? 'outline' : 'default'}
-          className="flex-1"
+          className="flex-1 h-11 touch-manipulation order-1 sm:order-2"
         >
           {currentPlayer?.is_ready ? 'Not Ready' : 'Ready Up'}
         </Button>
@@ -541,7 +541,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
           <Button
             onClick={startMatch}
             disabled={!canStart || starting}
-            className="gap-2 flex-1"
+            className="gap-2 flex-1 h-11 touch-manipulation order-2 sm:order-3"
           >
             <Play className="h-4 w-4" />
             {starting ? 'Starting...' : 'Start Match'}
@@ -550,7 +550,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       </div>
 
       {!allReady && players.length === 2 && (
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-xs sm:text-sm text-muted-foreground">
           Both players must be ready to start
         </p>
       )}
