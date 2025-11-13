@@ -181,4 +181,11 @@ All colors MUST be HSL.
   .dust-mote:nth-child(3) { animation-delay: 4s; animation-duration: 12s; }
   .dust-mote:nth-child(4) { animation-delay: 1s; animation-duration: 9s; }
   .dust-mote:nth-child(5) { animation-delay: 3s; animation-duration: 11s; }
+  
+  /* Mobile touch optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
 }

@@ -386,7 +386,7 @@ export default function Lobby() {
 
       <div className="relative max-w-7xl mx-auto p-4 md:p-8">
         {/* Floating Navigation Bar */}
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
+        <div className="fixed top-4 right-4 z-50 flex flex-col sm:flex-row gap-2">
           {user && (
             <>
               <Popover>
@@ -394,9 +394,9 @@ export default function Lobby() {
                   <Button 
                     variant="outline" 
                     size="icon"
-                    className="relative shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur"
+                    className="relative shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur h-11 w-11"
                   >
-                    <Bell className="h-4 w-4" />
+                    <Bell className="h-5 w-5" />
                     {notifications.length > 0 && (
                       <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre animate-gentle-pulse">
                         {notifications.length}
@@ -459,33 +459,33 @@ export default function Lobby() {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/profile')}
-                  className="hover:bg-accent transition-all"
+                  className="hover:bg-accent transition-all h-9 w-9"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/friends')}
-                  className="hover:bg-accent transition-all"
+                  className="hover:bg-accent transition-all h-9 w-9"
                 >
-                  <UserPlus className="h-4 w-4" />
+                  <UserPlus className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/history')}
-                  className="hover:bg-accent transition-all"
+                  className="hover:bg-accent transition-all h-9 w-9"
                 >
-                  <HistoryIcon className="h-4 w-4" />
+                  <HistoryIcon className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={handleSignOut}
-                  className="hover:bg-destructive/10 hover:text-destructive transition-all"
+                  className="hover:bg-destructive/10 hover:text-destructive transition-all h-9 w-9"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </div>
             </>
@@ -494,24 +494,23 @@ export default function Lobby() {
           {!user && (
             <Button 
               onClick={() => navigate('/auth')} 
-              className="shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur"
+              className="shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur h-11"
               size="sm"
             >
               Sign In
             </Button>
           )}
         </div>
-
         {/* Guest Mode Banner */}
         {!user && (
-          <Card className="mb-8 p-6 bg-gradient-to-r from-ochre/10 to-ochre/5 border-2 border-ochre/30 shadow-medium animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-ochre/20 flex items-center justify-center">
+          <Card className="mb-8 p-4 sm:p-6 bg-gradient-to-r from-ochre/10 to-ochre/5 border-2 border-ochre/30 shadow-medium animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-4">
+                <div className="h-12 w-12 shrink-0 rounded-full bg-ochre/20 flex items-center justify-center">
                   <User className="h-6 w-6 text-ochre" />
                 </div>
                 <div>
-                  <p className="font-body font-bold text-foreground text-lg">Playing as Guest</p>
+                  <p className="font-body font-bold text-foreground text-base sm:text-lg">Playing as Guest</p>
                   <p className="text-sm text-muted-foreground">
                     Try AI practice mode. Sign in to challenge friends and save your progress!
                   </p>
@@ -520,7 +519,7 @@ export default function Lobby() {
               <Button 
                 onClick={() => navigate('/auth')} 
                 size="lg"
-                className="shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all hover:scale-105 h-12"
               >
                 Sign In
               </Button>
@@ -529,14 +528,14 @@ export default function Lobby() {
         )}
 
         {/* Hero Header */}
-        <div className="mb-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="mb-12 sm:mb-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700 px-4">
           <div className="inline-block mb-4">
-            <div className="text-6xl mb-2 animate-gentle-pulse">⬡</div>
+            <div className="text-5xl sm:text-6xl mb-2 animate-gentle-pulse">⬡</div>
           </div>
-          <h1 className="font-body text-5xl md:text-7xl font-bold text-foreground mb-4 tracking-tight">
+          <h1 className="font-body text-4xl sm:text-5xl md:text-7xl font-bold text-foreground mb-4 tracking-tight">
             The Lobby
           </h1>
-          <p className="text-muted-foreground text-xl font-body max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base sm:text-xl font-body max-w-2xl mx-auto">
             Challenge friends, practice with AI, or join open games
           </p>
         </div>
@@ -553,33 +552,33 @@ export default function Lobby() {
         )}
 
         {/* AI Practice Section - Featured Design */}
-        <Card className="relative p-8 mb-12 overflow-hidden shadow-xl border-2 border-ochre/20 hover:border-ochre/40 transition-all duration-500 hover:shadow-2xl group animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+        <Card className="relative p-6 sm:p-8 mb-12 overflow-hidden shadow-xl border-2 border-ochre/20 hover:border-ochre/40 transition-all duration-500 hover:shadow-2xl group animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-ochre/5 via-transparent to-indigo/5 opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
           
           <div className="relative">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-ochre to-ochre/70 flex items-center justify-center shadow-lg">
-                <Sparkles className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-3 sm:gap-4 mb-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-gradient-to-br from-ochre to-ochre/70 flex items-center justify-center shadow-lg">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h2 className="font-body text-2xl font-bold text-foreground">
+                <h2 className="font-body text-xl sm:text-2xl font-bold text-foreground">
                   AI Practice Arena
                 </h2>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-xs sm:text-sm">
                   Master your strategy against adaptive AI opponents
                 </p>
               </div>
             </div>
             
-            <div className="flex flex-col lg:flex-row gap-6 mt-6">
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mt-6">
               <div className="lg:w-80">
-                <label className="text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
+                <label className="text-xs sm:text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-ochre animate-gentle-pulse" />
                   Difficulty Level
                 </label>
                 <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
-                  <SelectTrigger className="h-12 bg-card hover:bg-accent transition-colors border-2">
+                  <SelectTrigger className="h-12 sm:h-12 bg-card hover:bg-accent transition-colors border-2 text-base">
                     <SelectValue placeholder="Select difficulty" />
                   </SelectTrigger>
                   <SelectContent className="bg-card/95 backdrop-blur border-2">
@@ -592,17 +591,17 @@ export default function Lobby() {
               </div>
               
               <div className="flex-1">
-                <label className="text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
+                <label className="text-xs sm:text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-indigo animate-gentle-pulse" />
                   Board Size
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                   {[7, 9, 11, 13].map((size) => (
                     <Button
                       key={size}
                       onClick={() => createMatch(size, true, aiDifficulty)}
                       disabled={creatingMatch}
-                      className="h-16 font-mono text-lg font-bold hover:scale-105 transition-all shadow-md hover:shadow-xl"
+                      className="h-14 sm:h-16 font-mono text-base sm:text-lg font-bold hover:scale-105 transition-all shadow-md hover:shadow-xl touch-manipulation"
                       variant="secondary"
                     >
                       {size}×{size}

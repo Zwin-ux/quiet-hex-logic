@@ -42,10 +42,10 @@ const Hero = () => {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center w-full max-w-md sm:max-w-none px-4 sm:px-0 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Button 
             size="lg" 
-            className="min-w-[200px] group hover:scale-105 transition-all shadow-lg hover:shadow-xl"
+            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-lg hover:shadow-xl text-base"
             onClick={() => navigate('/lobby')}
           >
             <Play className="h-5 w-5 mr-2 group-hover:translate-x-1 transition-transform" />
@@ -54,7 +54,7 @@ const Hero = () => {
           <Button 
             variant="outline" 
             size="lg" 
-            className="min-w-[200px] group hover:scale-105 transition-all shadow-md hover:shadow-lg"
+            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-md hover:shadow-lg text-base"
             onClick={() => navigate('/lobby')}
           >
             <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
@@ -63,7 +63,7 @@ const Hero = () => {
           <Button 
             variant="ghost" 
             size="lg" 
-            className="min-w-[200px] group"
+            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group text-base"
             onClick={() => navigate('/tutorial')}
           >
             <BookOpen className="h-5 w-5 mr-2" />

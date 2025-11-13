@@ -72,25 +72,25 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
 
   return (
     <Card
-      className={`p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-soft hover:shadow-medium transition-all duration-300 border-2 ${
+      className={`p-4 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-soft hover:shadow-medium transition-all duration-300 border-2 ${
         isHost ? 'border-indigo/40 bg-indigo/5' : 'hover:border-ochre/30'
       }`}
     >
-      <div className="flex items-start md:items-center gap-6 flex-1">
+      <div className="flex items-start md:items-center gap-4 sm:gap-6 flex-1">
         {/* Hex icon */}
-        <div className="text-5xl text-muted-foreground/30">⬡</div>
+        <div className="text-4xl sm:text-5xl text-muted-foreground/30 shrink-0">⬡</div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {/* Lobby Code - Large and prominent */}
-          <div className="flex items-center gap-3 mb-3">
-            <h3 className="text-3xl font-mono font-bold tracking-wider text-foreground">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 flex-wrap">
+            <h3 className="text-2xl sm:text-3xl font-mono font-bold tracking-wider text-foreground">
               {lobby.code}
             </h3>
             <Button
               variant="ghost"
               size="sm"
               onClick={copyCode}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 touch-manipulation"
             >
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -99,23 +99,24 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
               )}
             </Button>
             {isHost && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 text-xs">
                 <Crown className="h-3 w-3" />
-                Your Lobby
+                <span className="hidden sm:inline">Your Lobby</span>
+                <span className="sm:hidden">You</span>
               </Badge>
             )}
           </div>
 
           {/* Host and player info */}
-          <div className="flex items-center gap-4 mb-2">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
+            <span className="text-xs sm:text-sm text-muted-foreground truncate">
               Host: <span className="font-semibold text-foreground">{hostUsername}</span>
             </span>
 
             {/* Player count indicator */}
             <div className="flex items-center gap-2">
               <UsersIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">
+              <span className="text-xs sm:text-sm font-medium">
                 {playerCount}/2 players
               </span>
               {/* Visual indicator */}
@@ -146,14 +147,14 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
       {/* Action button */}
       <div className="flex-shrink-0">
         {isHost ? (
-          <Button onClick={enterLobby} className="w-full md:w-auto gap-2">
+          <Button onClick={enterLobby} className="w-full md:w-auto gap-2 h-11 touch-manipulation">
             Enter Lobby
           </Button>
         ) : (
           <Button
             onClick={joinLobby}
             disabled={joining || playerCount >= 2}
-            className="w-full md:w-auto gap-2"
+            className="w-full md:w-auto gap-2 h-11 touch-manipulation"
             variant={playerCount >= 2 ? 'secondary' : 'default'}
           >
             {playerCount >= 2 ? 'Full' : joining ? 'Joining...' : 'Join Lobby'}
