@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Trophy, TrendingDown, Play } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingDown, Play, Sparkles } from 'lucide-react';
 
 type MatchHistory = {
   id: string;
@@ -14,6 +14,7 @@ type MatchHistory = {
   winner: number | null;
   created_at: string;
   updated_at: string;
+  ai_difficulty: 'easy' | 'medium' | 'hard' | 'expert' | null;
   players: Array<{
     color: number;
     profile_id: string;
@@ -142,6 +143,12 @@ export default function History() {
                           <Badge className={`font-mono ${won ? 'bg-indigo' : 'bg-graphite'}`}>
                             {match.size}×{match.size}
                           </Badge>
+                          {match.ai_difficulty && (
+                            <Badge variant="outline" className="font-mono text-xs border-ochre/30 text-ochre">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              AI {match.ai_difficulty.toUpperCase()}
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="font-body">
                             vs {opponent}
                           </Badge>

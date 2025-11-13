@@ -47,6 +47,7 @@ export default function Match() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [showAIReasoning, setShowAIReasoning] = useState(false);
+  const [aiThinking, setAiThinking] = useState(false);
   const aiMoveInProgress = useRef(false);
   const lastAITurnProcessed = useRef<number | null>(null);
   const loadInFlight = useRef(false);
@@ -252,13 +253,14 @@ export default function Match() {
     return () => clearInterval(interval);
   }, [match, loadMatch]);
 
-  const makeAIMove = async (hexEngine: Hex, matchData: MatchData) => {
+  const makeAIMove = async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
     // Prevent concurrent AI moves
     if (aiMoveInProgress.current) {
       return;
     }
 
     aiMoveInProgress.current = true;
+    setAiThinking(true);
 
     try {
       const difficulty = matchData.ai_difficulty || 'medium';
@@ -314,13 +316,26 @@ export default function Match() {
           statusCode: error?.status,
           cell,
           matchId: matchData.id,
-          turn: matchData.turn
+          turn: matchData.turn,
+          retryCount
         });
+        
+        // Handle rate limits with exponential backoff retry
+        if ((errorMsg.includes('Rate limit') || error?.status === 429) && retryCount < 3) {
+          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+          console.log(`Rate limited, retrying in ${delay}ms...`);
+          setTimeout(() => {
+            aiMoveInProgress.current = false;
+            setAiThinking(false);
+            makeAIMove(hexEngine, matchData, retryCount + 1);
+          }, delay);
+          return;
+        }
         
         // Don't throw on "Not your turn" - this can happen if another move was already made
         if (!errorMsg.includes('Not your turn') && !errorMsg.includes('Not AI turn')) {
           toast.error('Computer move failed', {
-            description: 'The game will continue when ready'
+            description: retryCount > 0 ? 'Failed after retries' : 'The game will continue when ready'
           });
         }
         return;
@@ -335,8 +350,12 @@ export default function Match() {
       await loadMatch();
     } catch (error) {
       console.error('AI move error:', error);
+      toast.error('Unexpected error', {
+        description: 'AI move encountered an error'
+      });
     } finally {
       aiMoveInProgress.current = false;
+      setAiThinking(false);
     }
   };
 
@@ -763,14 +782,24 @@ export default function Match() {
           {/* Player 2 Panel */}
           <div className="order-3">
             {player2 && (
-              <PlayerPanel
-                username={player2.username}
-                color={2}
-                isCurrentTurn={currentColor === 2 && match.status === 'active'}
-                timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
-                isAI={player2.is_bot}
-                avatarColor={player2.avatar_color}
-              />
+              <div className="relative">
+                <PlayerPanel
+                  username={player2.username}
+                  color={2}
+                  isCurrentTurn={currentColor === 2 && match.status === 'active'}
+                  timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+                  isAI={player2.is_bot}
+                  avatarColor={player2.avatar_color}
+                />
+                {aiThinking && isAIMatch && currentColor === 2 && (
+                  <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 text-sm text-ochre">
+                      <div className="animate-spin h-4 w-4 border-2 border-ochre border-t-transparent rounded-full" />
+                      <span className="font-medium">Computing move...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Spectators - only for non-AI matches */}
