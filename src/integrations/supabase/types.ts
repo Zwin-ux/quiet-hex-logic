@@ -491,8 +491,10 @@ export type Database = {
           avatar_color: string | null
           bio: string | null
           board_skin: string | null
+          converted_from_anonymous_id: string | null
           created_at: string | null
           id: string
+          is_guest: boolean | null
           last_online: string | null
           username: string
         }
@@ -500,8 +502,10 @@ export type Database = {
           avatar_color?: string | null
           bio?: string | null
           board_skin?: string | null
+          converted_from_anonymous_id?: string | null
           created_at?: string | null
           id: string
+          is_guest?: boolean | null
           last_online?: string | null
           username: string
         }
@@ -509,8 +513,10 @@ export type Database = {
           avatar_color?: string | null
           bio?: string | null
           board_skin?: string | null
+          converted_from_anonymous_id?: string | null
           created_at?: string | null
           id?: string
+          is_guest?: boolean | null
           last_online?: string | null
           username?: string
         }
