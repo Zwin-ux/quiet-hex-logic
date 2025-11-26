@@ -493,6 +493,8 @@ export type Database = {
           board_skin: string | null
           converted_from_anonymous_id: string | null
           created_at: string | null
+          discord_id: string | null
+          discord_username: string | null
           id: string
           is_guest: boolean | null
           last_online: string | null
@@ -504,6 +506,8 @@ export type Database = {
           board_skin?: string | null
           converted_from_anonymous_id?: string | null
           created_at?: string | null
+          discord_id?: string | null
+          discord_username?: string | null
           id: string
           is_guest?: boolean | null
           last_online?: string | null
@@ -515,6 +519,8 @@ export type Database = {
           board_skin?: string | null
           converted_from_anonymous_id?: string | null
           created_at?: string | null
+          discord_id?: string | null
+          discord_username?: string | null
           id?: string
           is_guest?: boolean | null
           last_online?: string | null
