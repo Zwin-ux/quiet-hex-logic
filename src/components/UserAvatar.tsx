@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 
 interface UserAvatarProps {
@@ -6,6 +6,8 @@ interface UserAvatarProps {
   color?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  discordId?: string | null;
+  discordAvatar?: string | null;
 }
 
 const colorClasses = {
@@ -26,6 +28,7 @@ const colorClasses = {
   cyan: 'bg-cyan-500 text-gray-900',
   sky: 'bg-sky-500 text-white',
   blue: 'bg-blue-500 text-white',
+  discord: 'bg-[#5865F2] text-white',
 };
 
 const sizeClasses = {
@@ -35,12 +38,31 @@ const sizeClasses = {
   xl: 'h-20 w-20 text-xl',
 };
 
-export function UserAvatar({ username, color = 'indigo', size = 'md', className = '' }: UserAvatarProps) {
+export function UserAvatar({ 
+  username, 
+  color = 'indigo', 
+  size = 'md', 
+  className = '',
+  discordId,
+  discordAvatar,
+}: UserAvatarProps) {
   const colorClass = colorClasses[color as keyof typeof colorClasses] || colorClasses.indigo;
   const sizeClass = sizeClasses[size];
+  
+  // Build Discord avatar URL if available
+  const discordAvatarUrl = discordId && discordAvatar 
+    ? `https://cdn.discordapp.com/avatars/${discordId}/${discordAvatar}.png?size=128`
+    : null;
 
   return (
     <Avatar className={`${sizeClass} border-2 border-border ${className}`}>
+      {discordAvatarUrl && (
+        <AvatarImage 
+          src={discordAvatarUrl} 
+          alt={username || 'User avatar'}
+          className="object-cover"
+        />
+      )}
       <AvatarFallback className={colorClass}>
         {username ? username.slice(0, 2).toUpperCase() : <User className="h-4 w-4" />}
       </AvatarFallback>
