@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown, Play, Loader2 } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown, Play, Loader2, Zap, BookOpen, Target, Flame, Brain, Skull } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
@@ -123,6 +123,20 @@ export default function Lobby() {
       return;
     }
     
+    // Check if user has seen tutorial suggestion
+    const hasSeenTutorial = localStorage.getItem('hexology_tutorial_suggested');
+    if (!hasSeenTutorial) {
+      localStorage.setItem('hexology_tutorial_suggested', 'true');
+      toast('New to Hexology?', {
+        description: 'Learn the basics in our interactive tutorial!',
+        action: {
+          label: 'Tutorial',
+          onClick: () => navigate('/tutorial'),
+        },
+        duration: 8000,
+      });
+    }
+    
     setCreatingMatch(true);
     try {
       const { data: newMatch, error } = await supabase
@@ -154,7 +168,7 @@ export default function Lobby() {
         throw new Error('Failed to add players to match');
       }
 
-      toast.success(`AI match created! Difficulty: ${difficulty.toUpperCase()}`);
+      toast.success(`Starting ${difficulty} AI match!`);
       navigate(`/match/${newMatch.id}`);
     } catch (error: any) {
       console.error('Error creating AI match:', error);
@@ -559,58 +573,89 @@ export default function Lobby() {
 
         {/* Quick Play Hero - Main Focus */}
         <div className="mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Play Hexology</h1>
-          <p className="text-muted-foreground mb-8">Choose your challenge</p>
+          <div className="flex items-center gap-3 mb-2">
+            <Zap className="h-7 w-7 text-ochre" />
+            <h1 className="text-3xl sm:text-4xl font-bold">Quick Play</h1>
+          </div>
+          <p className="text-muted-foreground mb-6">Select a board size to start playing against the AI</p>
           
-          {/* Quick AI Play - Primary Action */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {/* Quick AI Play - Premium Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             {[
-              { size: 7, label: '7×7', desc: 'Quick' },
-              { size: 9, label: '9×9', desc: 'Standard' },
-              { size: 11, label: '11×11', desc: 'Classic' },
-              { size: 13, label: '13×13', desc: 'Extended' },
-            ].map(({ size, label, desc }) => (
+              { size: 7, label: '7×7', desc: 'Quick Game', time: '~3 min', color: 'from-emerald-500/20 to-emerald-600/10', borderColor: 'border-emerald-500/30 hover:border-emerald-500/60', textColor: 'text-emerald-600' },
+              { size: 9, label: '9×9', desc: 'Standard', time: '~5 min', color: 'from-blue-500/20 to-blue-600/10', borderColor: 'border-blue-500/30 hover:border-blue-500/60', textColor: 'text-blue-600' },
+              { size: 11, label: '11×11', desc: 'Classic', time: '~8 min', color: 'from-ochre/20 to-ochre/10', borderColor: 'border-ochre/30 hover:border-ochre/60', textColor: 'text-ochre' },
+              { size: 13, label: '13×13', desc: 'Extended', time: '~12 min', color: 'from-purple-500/20 to-purple-600/10', borderColor: 'border-purple-500/30 hover:border-purple-500/60', textColor: 'text-purple-600' },
+            ].map(({ size, label, desc, time, color, borderColor, textColor }) => (
               <button
                 key={size}
                 onClick={() => createAIMatch(aiDifficulty, size)}
                 disabled={creatingMatch}
-                className="group relative h-24 sm:h-28 rounded-xl bg-gradient-to-br from-ochre/10 to-ochre/5 border-2 border-ochre/20 hover:border-ochre/50 hover:from-ochre/20 hover:to-ochre/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${color} border-2 ${borderColor} transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-wait disabled:hover:scale-100`}
               >
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[140px]">
                   {creatingMatch ? (
-                    <Loader2 className="h-8 w-8 text-ochre animate-spin" />
+                    <Loader2 className={`h-10 w-10 ${textColor} animate-spin`} />
                   ) : (
                     <>
-                      <span className="text-2xl sm:text-3xl font-bold font-mono text-ochre group-hover:scale-110 transition-transform">
+                      <span className={`text-3xl sm:text-4xl font-bold font-mono ${textColor} group-hover:scale-110 transition-transform duration-200`}>
                         {label}
                       </span>
-                      <span className="text-xs text-muted-foreground mt-1">{desc}</span>
+                      <span className="text-sm font-medium text-foreground mt-2">{desc}</span>
+                      <span className="text-xs text-muted-foreground mt-1">{time}</span>
                     </>
                   )}
                 </div>
+                {/* Subtle shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </button>
             ))}
           </div>
           
-          {/* Difficulty Selector */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm text-muted-foreground">AI Difficulty:</span>
-            <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
-              {(['easy', 'medium', 'hard', 'expert'] as const).map((diff) => (
-                <button
-                  key={diff}
-                  onClick={() => setAiDifficulty(diff)}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-all ${
-                    aiDifficulty === diff 
-                      ? 'bg-background shadow-sm font-medium' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                </button>
-              ))}
+          {/* Difficulty Selector - Enhanced */}
+          <Card className="p-4 bg-muted/30 border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">AI Difficulty</span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { diff: 'easy' as const, icon: Zap, label: 'Easy', desc: 'Learning' },
+                  { diff: 'medium' as const, icon: Flame, label: 'Medium', desc: 'Casual' },
+                  { diff: 'hard' as const, icon: Brain, label: 'Hard', desc: 'Challenge' },
+                  { diff: 'expert' as const, icon: Skull, label: 'Expert', desc: 'Brutal' },
+                ].map(({ diff, icon: Icon, label, desc }) => (
+                  <button
+                    key={diff}
+                    onClick={() => setAiDifficulty(diff)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 ${
+                      aiDifficulty === diff 
+                        ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                        : 'bg-background/80 text-muted-foreground hover:text-foreground hover:bg-background border border-border/50'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <div className="text-left">
+                      <div className="text-sm font-medium">{label}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+            
+            {/* Tutorial Link */}
+            <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <BookOpen className="h-4 w-4" />
+                <span>New to Hexology?</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/tutorial')} className="gap-2">
+                Learn the basics
+                <BookOpen className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </Card>
         </div>
 
         {/* Multiplayer Section */}
