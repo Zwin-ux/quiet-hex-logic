@@ -44,36 +44,34 @@ const Hero = () => {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center w-full max-w-md sm:max-w-none px-4 sm:px-0 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-stretch sm:items-center w-full max-w-md sm:max-w-none px-4 sm:px-0 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Button 
             size="lg" 
-            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-lg hover:shadow-xl text-base bg-primary"
+            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 shadow-medium hover:shadow-lg text-base font-semibold bg-gradient-to-br from-indigo to-indigo/80 text-primary-foreground border-2 border-indigo/20"
             onClick={handleQuickPlay}
             disabled={isLoading}
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             ) : (
-              <Zap className="h-5 w-5 mr-2 group-hover:animate-pulse" />
+              <Zap className="h-5 w-5 mr-2 group-hover:animate-pulse drop-shadow-sm" />
             )}
             {isLoading ? 'Starting...' : 'Quick Play'}
           </Button>
           <Button 
-            variant="outline" 
             size="lg" 
-            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-md hover:shadow-lg text-base"
+            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 shadow-soft hover:shadow-medium text-base font-semibold bg-card/80 backdrop-blur-sm border-2 border-graphite/30 text-foreground hover:bg-card hover:border-ochre/40"
             onClick={() => navigate('/lobby')}
           >
-            <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
+            <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform text-ochre" />
             Multiplayer
           </Button>
           <Button 
-            variant="ghost" 
             size="lg" 
-            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group text-base"
+            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 text-base font-medium bg-paper/60 backdrop-blur-sm border-2 border-graphite/20 text-ink/80 hover:bg-paper/80 hover:text-ink hover:border-graphite/40"
             onClick={() => navigate('/tutorial')}
           >
-            <BookOpen className="h-5 w-5 mr-2" />
+            <BookOpen className="h-5 w-5 mr-2 text-indigo/70 group-hover:text-indigo transition-colors" />
             Learn to Play
           </Button>
         </div>
