@@ -71,37 +71,14 @@ serve(async (req) => {
       });
     }
 
-    // Get or create the price
-    const products = await stripe.products.list({ active: true, limit: 100 });
-    let product = products.data.find((p: { metadata?: { hexology?: string } }) => p.metadata?.hexology === 'plus');
-    
-    if (!product) {
-      product = await stripe.products.create({
-        name: 'Hexology+',
-        description: 'Premium subscription for Hexology',
-        metadata: { hexology: 'plus' },
-      });
-    }
-
-    const prices = await stripe.prices.list({ product: product.id, active: true });
-    let price = prices.data.find((p: { unit_amount: number | null; recurring?: { interval?: string } | null }) => 
-      p.unit_amount === 500 && p.recurring?.interval === 'month'
-    );
-    
-    if (!price) {
-      price = await stripe.prices.create({
-        product: product.id,
-        unit_amount: 500, // $5.00
-        currency: 'usd',
-        recurring: { interval: 'month' },
-      });
-    }
+    // Hexology+ Monthly Price ID ($5/month)
+    const HEXOLOGY_PLUS_PRICE_ID = 'price_1Sf366KHzChTixtj9IVQyey9';
 
     // Create checkout session
     const origin = req.headers.get('origin') || 'http://localhost:5173';
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      line_items: [{ price: price.id, quantity: 1 }],
+      line_items: [{ price: HEXOLOGY_PLUS_PRICE_ID, quantity: 1 }],
       mode: 'subscription',
       success_url: `${origin}/premium?success=true`,
       cancel_url: `${origin}/premium?canceled=true`,
