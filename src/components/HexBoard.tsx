@@ -17,7 +17,21 @@ interface HexBoardProps {
 interface AnimatedCell {
   cell: number;
   timestamp: number;
+  type: 'place' | 'ripple';
 }
+
+// Easing function for bouncy effect
+const easeOutBack = (t: number): number => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+
+// Easing function for elastic pop
+const easeOutElastic = (t: number): number => {
+  if (t === 0 || t === 1) return t;
+  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1;
+};
 
 const HexBoardComponent = ({ 
   size, 
@@ -35,12 +49,16 @@ const HexBoardComponent = ({
   const [animatedCells, setAnimatedCells] = useState<AnimatedCell[]>([]);
   const animationRef = useRef<number>();
   const lastRenderTime = useRef<number>(0);
-  const mouseMoveTimeout = useRef<number>();
+  
 
   // Track new placements for animation
   useEffect(() => {
     if (lastMove !== undefined) {
-      setAnimatedCells(prev => [...prev, { cell: lastMove, timestamp: Date.now() }]);
+      // Add main placement animation
+      setAnimatedCells(prev => [
+        ...prev, 
+        { cell: lastMove, timestamp: Date.now(), type: 'place' }
+      ]);
     }
   }, [lastMove]);
 
@@ -48,8 +66,8 @@ const HexBoardComponent = ({
   useEffect(() => {
     const cleanup = setInterval(() => {
       const now = Date.now();
-      setAnimatedCells(prev => prev.filter(a => now - a.timestamp < 500));
-    }, 100);
+      setAnimatedCells(prev => prev.filter(a => now - a.timestamp < 400));
+    }, 50);
     return () => clearInterval(cleanup);
   }, []);
 
@@ -63,8 +81,8 @@ const HexBoardComponent = ({
     const now = Date.now();
     const shouldAnimate = winningPath.length > 0 || animatedCells.length > 0;
     
-    // Throttle animations to 30fps for better performance
-    if (shouldAnimate && now - lastRenderTime.current < 33) {
+    // Throttle to 60fps for smooth animations
+    if (shouldAnimate && now - lastRenderTime.current < 16) {
       animationRef.current = requestAnimationFrame(() => {
         setHoveredCell(prev => prev);
       });
@@ -147,32 +165,44 @@ const HexBoardComponent = ({
         const isHovered = cell === hoveredCell && !color && !disabled;
         
         // Check if this cell is being animated
-        const animatedCell = animatedCells.find(a => a.cell === cell);
+        const animatedCell = animatedCells.find(a => a.cell === cell && a.type === 'place');
+        const animDuration = 250; // Faster animation
         const animationProgress = animatedCell 
-          ? Math.min(1, (Date.now() - animatedCell.timestamp) / 300)
+          ? Math.min(1, (Date.now() - animatedCell.timestamp) / animDuration)
           : 1;
-        const scale = animatedCell ? 0.5 + (animationProgress * 0.5) : 1;
+        
+        // Bouncy scale animation
+        const scale = animatedCell ? easeOutBack(animationProgress) : 1;
+        // Start from tiny, overshoot, then settle
+        const displayScale = animatedCell ? scale * 1.0 : 1;
 
         if (color === 1) {
-          // Player 1 stone with scale animation
+          // Player 1 stone with bouncy animation
           ctx.save();
           ctx.translate(x, y);
-          ctx.scale(scale, scale);
+          ctx.scale(displayScale, displayScale);
           ctx.translate(-x, -y);
+          
+          // Glow effect during animation
+          if (animatedCell && animationProgress < 1) {
+            ctx.shadowColor = skin.colors.player1Glow;
+            ctx.shadowBlur = 20 * (1 - animationProgress);
+          }
           
           ctx.fillStyle = isWinning ? skin.colors.player1Winning : skin.colors.player1;
           
           // Draw winning path with pulsing glow
           if (isWinning) {
-            const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+            const pulse = Math.sin(Date.now() / 200) * 0.4 + 0.6;
             ctx.shadowColor = skin.colors.player1Glow;
-            ctx.shadowBlur = 25 * pulse;
+            ctx.shadowBlur = 30 * pulse;
           }
           
           ctx.fill();
           ctx.shadowBlur = 0;
           
-          if (isLast) {
+          // Ring indicator for last move
+          if (isLast && !animatedCell) {
             ctx.strokeStyle = skin.colors.player2;
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -180,25 +210,32 @@ const HexBoardComponent = ({
           
           ctx.restore();
         } else if (color === 2) {
-          // Player 2 stone with scale animation
+          // Player 2 stone with bouncy animation
           ctx.save();
           ctx.translate(x, y);
-          ctx.scale(scale, scale);
+          ctx.scale(displayScale, displayScale);
           ctx.translate(-x, -y);
+          
+          // Glow effect during animation
+          if (animatedCell && animationProgress < 1) {
+            ctx.shadowColor = skin.colors.player2Glow;
+            ctx.shadowBlur = 20 * (1 - animationProgress);
+          }
           
           ctx.fillStyle = isWinning ? skin.colors.player2Winning : skin.colors.player2;
           
           // Draw winning path with pulsing glow
           if (isWinning) {
-            const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+            const pulse = Math.sin(Date.now() / 200) * 0.4 + 0.6;
             ctx.shadowColor = skin.colors.player2Glow;
-            ctx.shadowBlur = 25 * pulse;
+            ctx.shadowBlur = 30 * pulse;
           }
           
           ctx.fill();
           ctx.shadowBlur = 0;
           
-          if (isLast) {
+          // Ring indicator for last move
+          if (isLast && !animatedCell) {
             ctx.strokeStyle = skin.colors.player1;
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -206,9 +243,20 @@ const HexBoardComponent = ({
           
           ctx.restore();
         } else {
-          // Empty cell
-          ctx.fillStyle = isHovered ? skin.colors.emptyHover : skin.colors.empty;
-          ctx.fill();
+          // Empty cell with hover effect
+          if (isHovered) {
+            // Slightly larger and glowing when hovered
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.15)';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = skin.colors.emptyHover;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+          } else {
+            ctx.fillStyle = skin.colors.empty;
+            ctx.fill();
+          }
           ctx.strokeStyle = skin.colors.emptyBorder;
           ctx.lineWidth = 1.5;
           ctx.stroke();
@@ -282,54 +330,46 @@ const HexBoardComponent = ({
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (disabled) return;
 
-    // Debounce mouse move for better performance
-    if (mouseMoveTimeout.current) {
-      clearTimeout(mouseMoveTimeout.current);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const padding = 40;
+    const availableWidth = rect.width - 2 * padding;
+    const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
+    const hexHeight = Math.sqrt(3) * hexRadius;
+
+    const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
+    const offsetX = (rect.width - boardWidth) / 2;
+    const offsetY = (rect.height - size * hexHeight) / 2;
+
+    let hovering: number | null = null;
+
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
+        const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
+        
+        if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
+          const cell = row * size + col;
+          if (!board[cell]) {
+            hovering = cell;
+          }
+          break;
+        }
+      }
+      if (hovering !== null) break;
     }
 
-    mouseMoveTimeout.current = window.setTimeout(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const padding = 40;
-      const availableWidth = rect.width - 2 * padding;
-      const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
-      const hexHeight = Math.sqrt(3) * hexRadius;
-
-      const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
-      const offsetX = (rect.width - boardWidth) / 2;
-      const offsetY = (rect.height - size * hexHeight) / 2;
-
-      let hovering: number | null = null;
-
-      for (let row = 0; row < size; row++) {
-        for (let col = 0; col < size; col++) {
-          const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
-          const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-          
-          if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
-            const cell = row * size + col;
-            if (!board[cell]) {
-              hovering = cell;
-            }
-            break;
-          }
-        }
-        if (hovering !== null) break;
-      }
-
+    if (hovering !== hoveredCell) {
       setHoveredCell(hovering);
-    }, 16); // ~60fps
-  }, [disabled, size, board]);
+    }
+  }, [disabled, size, board, hoveredCell]);
 
   const handleMouseLeave = useCallback(() => {
-    if (mouseMoveTimeout.current) {
-      clearTimeout(mouseMoveTimeout.current);
-    }
     setHoveredCell(null);
   }, []);
 
