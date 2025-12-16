@@ -546,6 +546,57 @@ export type Database = {
         }
         Relationships: []
       }
+      puzzles: {
+        Row: {
+          board_size: number
+          category: string
+          created_at: string
+          daily_date: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          is_daily: boolean
+          rating: number
+          setup_moves: Json
+          solution_moves: Json
+          times_played: number
+          times_solved: number
+          title: string
+        }
+        Insert: {
+          board_size?: number
+          category?: string
+          created_at?: string
+          daily_date?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_daily?: boolean
+          rating?: number
+          setup_moves?: Json
+          solution_moves?: Json
+          times_played?: number
+          times_solved?: number
+          title: string
+        }
+        Update: {
+          board_size?: number
+          category?: string
+          created_at?: string
+          daily_date?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_daily?: boolean
+          rating?: number
+          setup_moves?: Json
+          solution_moves?: Json
+          times_played?: number
+          times_solved?: number
+          title?: string
+        }
+        Relationships: []
+      }
       rating_history: {
         Row: {
           created_at: string | null
@@ -976,6 +1027,42 @@ export type Database = {
           },
         ]
       }
+      user_daily_puzzles: {
+        Row: {
+          completed: boolean
+          puzzle_date: string
+          puzzle_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          puzzle_date?: string
+          puzzle_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          puzzle_date?: string
+          puzzle_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_daily_puzzles_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_daily_puzzles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_presence: {
         Row: {
           match_id: string | null
@@ -1007,6 +1094,54 @@ export type Database = {
             foreignKeyName: "user_presence_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_puzzle_attempts: {
+        Row: {
+          attempts: number
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          puzzle_id: string
+          time_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          puzzle_id: string
+          time_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          puzzle_id?: string
+          time_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_puzzle_attempts_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_puzzle_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
