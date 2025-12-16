@@ -8,6 +8,7 @@ export type BoardSkin = {
   name: string;
   description: string;
   preview: string;
+  isPremium?: boolean;
   colors: {
     background: string;
     empty: string;
@@ -145,7 +146,95 @@ export const boardSkins: BoardSkin[] = [
       edgePlayer2: 'hsl(50 95% 50% / 0.5)',
     },
   },
+  // Premium skins
+  {
+    id: 'galaxy',
+    name: 'Galaxy',
+    description: 'Cosmic space theme',
+    preview: '🌌',
+    isPremium: true,
+    colors: {
+      background: 'hsl(270 50% 8%)',
+      empty: 'hsl(270 40% 12%)',
+      emptyHover: 'hsl(270 50% 18%)',
+      emptyBorder: 'hsl(270 30% 25%)',
+      player1: 'hsl(200 100% 60%)',
+      player1Glow: '#60a5fa',
+      player1Winning: 'hsl(200 100% 70%)',
+      player2: 'hsl(320 100% 60%)',
+      player2Glow: '#f472b6',
+      player2Winning: 'hsl(320 100% 70%)',
+      edgePlayer1: 'hsl(200 100% 60% / 0.6)',
+      edgePlayer2: 'hsl(320 100% 60% / 0.6)',
+    },
+  },
+  {
+    id: 'royal',
+    name: 'Royal',
+    description: 'Gold and purple luxury',
+    preview: '👑',
+    isPremium: true,
+    colors: {
+      background: 'hsl(280 50% 12%)',
+      empty: 'hsl(280 40% 18%)',
+      emptyHover: 'hsl(280 50% 25%)',
+      emptyBorder: 'hsl(280 30% 35%)',
+      player1: 'hsl(45 100% 50%)',
+      player1Glow: '#fbbf24',
+      player1Winning: 'hsl(45 100% 60%)',
+      player2: 'hsl(280 80% 60%)',
+      player2Glow: '#a855f7',
+      player2Winning: 'hsl(280 80% 70%)',
+      edgePlayer1: 'hsl(45 100% 50% / 0.6)',
+      edgePlayer2: 'hsl(280 80% 60% / 0.6)',
+    },
+  },
+  {
+    id: 'retro',
+    name: 'Retro',
+    description: 'Pixel art nostalgia',
+    preview: '🕹️',
+    isPremium: true,
+    colors: {
+      background: 'hsl(220 15% 15%)',
+      empty: 'hsl(220 15% 22%)',
+      emptyHover: 'hsl(220 20% 30%)',
+      emptyBorder: 'hsl(220 10% 40%)',
+      player1: 'hsl(120 80% 45%)',
+      player1Glow: '#4ade80',
+      player1Winning: 'hsl(120 80% 55%)',
+      player2: 'hsl(0 90% 55%)',
+      player2Glow: '#f87171',
+      player2Winning: 'hsl(0 90% 65%)',
+      edgePlayer1: 'hsl(120 80% 45% / 0.6)',
+      edgePlayer2: 'hsl(0 90% 55% / 0.6)',
+    },
+  },
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    description: 'Northern lights magic',
+    preview: '✨',
+    isPremium: true,
+    colors: {
+      background: 'hsl(210 35% 10%)',
+      empty: 'hsl(210 30% 15%)',
+      emptyHover: 'hsl(210 35% 22%)',
+      emptyBorder: 'hsl(210 25% 30%)',
+      player1: 'hsl(160 90% 50%)',
+      player1Glow: '#2dd4bf',
+      player1Winning: 'hsl(160 90% 60%)',
+      player2: 'hsl(280 90% 60%)',
+      player2Glow: '#c084fc',
+      player2Winning: 'hsl(280 90% 70%)',
+      edgePlayer1: 'hsl(160 90% 50% / 0.6)',
+      edgePlayer2: 'hsl(280 90% 60% / 0.6)',
+    },
+  },
 ];
+
+export const freeSkins = boardSkins.filter(s => !s.isPremium);
+export const premiumSkins = boardSkins.filter(s => s.isPremium);
 
 export const getDefaultSkin = (): BoardSkin => boardSkins[0];
 

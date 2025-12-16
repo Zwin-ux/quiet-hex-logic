@@ -21,6 +21,8 @@ import Tutorial from "./pages/Tutorial";
 import LobbyView from "./pages/LobbyView";
 import Tournaments from "./pages/Tournaments";
 import TournamentView from "./pages/TournamentView";
+import Premium from "./pages/Premium";
+import Leaderboard from "./pages/Leaderboard";
 
 const queryClient = new QueryClient();
 
@@ -47,7 +49,10 @@ const App = () => (
               <Route path="/history" element={<History />} />
               <Route path="/replay/:matchId" element={<Replay />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<Profile />} />
               <Route path="/profile/edit" element={<EditProfile />} />
+              <Route path="/premium" element={<Premium />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

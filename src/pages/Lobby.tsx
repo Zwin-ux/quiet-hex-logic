@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
@@ -523,6 +523,22 @@ export default function Lobby() {
                   className="hover:bg-accent transition-all h-9 w-9"
                 >
                   <HistoryIcon className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/leaderboard')}
+                  className="hover:bg-accent transition-all h-9 w-9"
+                >
+                  <Trophy className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/premium')}
+                  className="hover:bg-amber-500/10 hover:text-amber-500 transition-all h-9 w-9"
+                >
+                  <Crown className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
