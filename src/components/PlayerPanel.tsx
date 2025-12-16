@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/UserAvatar';
+import { PremiumBadge } from '@/components/PremiumBadge';
 import { Clock } from 'lucide-react';
 import { memo } from 'react';
 
@@ -10,6 +11,7 @@ interface PlayerPanelProps {
   timeRemaining?: number;
   isAI?: boolean;
   avatarColor?: string;
+  isPremium?: boolean;
 }
 
 const PlayerPanelComponent = ({ 
@@ -18,7 +20,8 @@ const PlayerPanelComponent = ({
   isCurrentTurn,
   timeRemaining,
   isAI = false,
-  avatarColor = 'indigo'
+  avatarColor = 'indigo',
+  isPremium = false
 }: PlayerPanelProps) => {
   const colorName = color === 1 ? 'Indigo' : 'Ochre';
   const colorClass = color === 1 ? 'bg-indigo text-primary-foreground' : 'bg-ochre text-secondary-foreground';
@@ -60,6 +63,7 @@ const PlayerPanelComponent = ({
             <h3 className="font-body font-semibold text-lg text-foreground">
               {username}
             </h3>
+            {isPremium && <PremiumBadge size="sm" />}
             {isAI && (
               <Badge variant="outline" className="font-mono text-xs">
                 AI

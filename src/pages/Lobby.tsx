@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown, Play } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
@@ -418,12 +418,12 @@ export default function Lobby() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/10">
-      {/* Decorative floating hexagons */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5">
-        <div className="absolute top-20 left-10 text-6xl animate-float" style={{ animationDelay: '0s' }}>⬡</div>
-        <div className="absolute top-40 right-20 text-5xl animate-float" style={{ animationDelay: '2s' }}>⬡</div>
-        <div className="absolute bottom-32 left-1/4 text-7xl animate-float" style={{ animationDelay: '4s' }}>⬡</div>
-        <div className="absolute bottom-20 right-1/3 text-4xl animate-float" style={{ animationDelay: '1s' }}>⬡</div>
+      {/* Subtle geometric background pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.03]">
+        <div className="absolute top-20 left-10 h-24 w-24 border-2 border-current rotate-12 rounded-xl" />
+        <div className="absolute top-40 right-20 h-20 w-20 border-2 border-current -rotate-6 rounded-xl" />
+        <div className="absolute bottom-32 left-1/4 h-32 w-32 border-2 border-current rotate-45 rounded-xl" />
+        <div className="absolute bottom-20 right-1/3 h-16 w-16 border-2 border-current rotate-12 rounded-xl" />
       </div>
 
       <div className="relative max-w-7xl mx-auto p-4 md:p-8">
@@ -571,7 +571,9 @@ export default function Lobby() {
         {/* Hero Header */}
         <div className="mb-12 sm:mb-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700 px-4">
           <div className="inline-block mb-4">
-            <div className="text-5xl sm:text-6xl mb-2 animate-gentle-pulse">⬡</div>
+            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-indigo to-ochre flex items-center justify-center shadow-lg">
+              <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
+            </div>
           </div>
           <h1 className="font-body text-4xl sm:text-5xl md:text-7xl font-bold text-foreground mb-4 tracking-tight">
             The Lobby
@@ -649,10 +651,10 @@ export default function Lobby() {
                     <SelectValue placeholder="Select difficulty" />
                   </SelectTrigger>
                   <SelectContent className="bg-card/95 backdrop-blur border-2">
-                    <SelectItem value="easy">🎮 Easy - Beginner</SelectItem>
-                    <SelectItem value="medium">⚡ Medium - Intermediate</SelectItem>
-                    <SelectItem value="hard">🔥 Hard - Advanced</SelectItem>
-                    <SelectItem value="expert">👑 Expert - Master</SelectItem>
+                    <SelectItem value="easy">Easy - Beginner</SelectItem>
+                    <SelectItem value="medium">Medium - Intermediate</SelectItem>
+                    <SelectItem value="hard">Hard - Advanced</SelectItem>
+                    <SelectItem value="expert">Expert - Master</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -714,7 +716,7 @@ export default function Lobby() {
               </div>
             ) : lobbies.length === 0 ? (
               <Card className="p-12 sm:p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-ochre/30 transition-all duration-300">
-                <div className="text-5xl sm:text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+                <div className="h-16 w-16 mx-auto mb-4 rounded-xl border-2 border-muted-foreground/10 rotate-12" />
                 <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No open lobbies</p>
                 <p className="text-sm text-muted-foreground">
                   Be the first to create a lobby!
@@ -769,7 +771,7 @@ export default function Lobby() {
             </div>
           ) : activeMatches.length === 0 ? (
             <Card className="p-12 sm:p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-indigo/30 transition-all duration-300">
-              <div className="text-5xl sm:text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+              <div className="h-16 w-16 mx-auto mb-4 rounded-xl border-2 border-muted-foreground/10 rotate-12" />
               <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No active matches</p>
               <p className="text-sm text-muted-foreground">
                 Start a game to see it here!
@@ -785,7 +787,9 @@ export default function Lobby() {
                     className="p-5 flex items-center justify-between shadow-md hover:shadow-xl transition-all duration-300 border-2 hover:border-indigo/40 hover:scale-[1.02] group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-4xl text-muted-foreground/20 group-hover:text-indigo/30 transition-colors">⬡</div>
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo/20 to-ochre/20 flex items-center justify-center">
+                        <Play className="h-4 w-4 text-muted-foreground" />
+                      </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <Badge className="font-mono bg-indigo text-primary-foreground px-3 py-1">
@@ -827,7 +831,7 @@ export default function Lobby() {
           
           {matches.length === 0 ? (
             <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-primary/30 transition-all duration-300">
-              <div className="text-6xl mb-4 opacity-10 animate-gentle-pulse">⬡</div>
+              <div className="h-16 w-16 mx-auto mb-4 rounded-xl border-2 border-muted-foreground/10 rotate-12" />
               <p className="text-lg font-medium text-muted-foreground mb-2">No open matches</p>
               <p className="text-sm text-muted-foreground">
                 Direct matches will appear here when created
@@ -841,7 +845,9 @@ export default function Lobby() {
                   className="p-6 flex items-center justify-between shadow-md hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/40 hover:scale-[1.01] group"
                 >
                   <div className="flex items-center gap-6">
-                    <div className="text-5xl text-muted-foreground/20 group-hover:text-primary/30 transition-colors">⬡</div>
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <Users className="h-5 w-5 text-primary" />
+                    </div>
                     <div>
                       <div className="flex items-center gap-3 mb-2">
                         <Badge className="font-mono bg-primary text-primary-foreground px-3 py-1">
