@@ -91,24 +91,31 @@ export default function Lobby() {
   // Listen for notifications
   const { notifications, markAsRead } = useNotifications(user?.id);
 
-  // Handle auto-create AI match from location state (e.g., Play Again)
+  // Track if we've already handled the auto-create
+  const [handledAutoCreate, setHandledAutoCreate] = useState(false);
+
+  // Handle auto-create AI match from location state (e.g., Quick Play, Play Again)
   useEffect(() => {
-    if (!user) return;
-    const state = location.state as any;
-    if (state?.createAI && state?.difficulty) {
-      const difficulty = state.difficulty;
+    // Wait for user to be ready
+    if (loading || !user) return;
+    
+    const state = location.state as { createAI?: boolean; difficulty?: string; boardSize?: number };
+    
+    // Only process once and only if we have the right state
+    if (state?.createAI && state?.difficulty && !handledAutoCreate) {
+      setHandledAutoCreate(true);
+      
+      const difficulty = state.difficulty as 'easy' | 'medium' | 'hard' | 'expert';
       const boardSize = state.boardSize || 11;
       
-      // Clear the state to prevent re-triggering
+      // Clear the navigation state
       navigate(location.pathname, { replace: true, state: {} });
       
-      // Create AI match automatically
+      // Create AI match immediately
       setAiDifficulty(difficulty);
-      setTimeout(() => {
-        createAIMatch(difficulty, boardSize);
-      }, 100);
+      createAIMatch(difficulty, boardSize);
     }
-  }, [user, location.state]);
+  }, [loading, user, location.state, handledAutoCreate]);
 
   const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
     if (!user) {
