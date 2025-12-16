@@ -433,7 +433,7 @@ export default function Match() {
       const winner = result.winner;
       if (winner) {
         const isVictory = winner === currentPlayer.color;
-        toast.success(isVictory ? '🎉 Victory!' : 'Game Over', {
+        toast.success(isVictory ? 'Victory!' : 'Game Over', {
           description: isVictory 
             ? `You won as ${winner === 1 ? 'Indigo' : 'Ochre'}!` 
             : `${winner === 1 ? 'Indigo' : 'Ochre'} wins!`,

@@ -23,17 +23,11 @@ const Hero = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/10 to-background/60" />
       </div>
 
-      {/* Animated hexagon pattern overlay */}
-      <div className="absolute inset-0 z-10 pointer-events-none opacity-10">
-        <div className="absolute top-1/4 left-1/4 text-8xl animate-float" style={{ animationDelay: '0s' }}>
-          ⬡
-        </div>
-        <div className="absolute top-1/3 right-1/4 text-6xl animate-float" style={{ animationDelay: '1s' }}>
-          ⬡
-        </div>
-        <div className="absolute bottom-1/3 left-1/3 text-7xl animate-float" style={{ animationDelay: '2s' }}>
-          ⬡
-        </div>
+      {/* Subtle geometric background pattern */}
+      <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.05]">
+        <div className="absolute top-1/4 left-1/4 h-32 w-32 border-2 border-current rotate-12 rounded-2xl" />
+        <div className="absolute top-1/3 right-1/4 h-24 w-24 border-2 border-current -rotate-6 rounded-2xl" />
+        <div className="absolute bottom-1/3 left-1/3 h-28 w-28 border-2 border-current rotate-45 rounded-2xl" />
       </div>
 
       {/* Hero content */}
