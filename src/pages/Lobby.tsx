@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown, Play } from 'lucide-react';
+import { Sparkles, Users, LogOut, History as HistoryIcon, UserPlus, Copy, Check, Bell, User, Lock, Trophy, Crown, Play, Loader2 } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
@@ -574,13 +574,19 @@ export default function Lobby() {
                 key={size}
                 onClick={() => createAIMatch(aiDifficulty, size)}
                 disabled={creatingMatch}
-                className="group relative h-24 sm:h-28 rounded-xl bg-gradient-to-br from-ochre/10 to-ochre/5 border-2 border-ochre/20 hover:border-ochre/50 hover:from-ochre/20 hover:to-ochre/10 transition-all duration-200 disabled:opacity-50"
+                className="group relative h-24 sm:h-28 rounded-xl bg-gradient-to-br from-ochre/10 to-ochre/5 border-2 border-ochre/20 hover:border-ochre/50 hover:from-ochre/20 hover:to-ochre/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
               >
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl sm:text-3xl font-bold font-mono text-ochre group-hover:scale-110 transition-transform">
-                    {label}
-                  </span>
-                  <span className="text-xs text-muted-foreground mt-1">{desc}</span>
+                  {creatingMatch ? (
+                    <Loader2 className="h-8 w-8 text-ochre animate-spin" />
+                  ) : (
+                    <>
+                      <span className="text-2xl sm:text-3xl font-bold font-mono text-ochre group-hover:scale-110 transition-transform">
+                        {label}
+                      </span>
+                      <span className="text-xs text-muted-foreground mt-1">{desc}</span>
+                    </>
+                  )}
                 </div>
               </button>
             ))}

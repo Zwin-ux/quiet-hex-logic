@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Play, Users, BookOpen, Zap } from "lucide-react";
+import { Users, BookOpen, Zap, Loader2 } from "lucide-react";
 import heroBoard from "@/assets/hero-board.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleQuickPlay = () => {
+    setIsLoading(true);
     // Navigate to lobby with state to auto-create AI match
     navigate('/lobby', { state: { createAI: true, difficulty: 'easy', boardSize: 11 } });
   };
@@ -46,9 +49,14 @@ const Hero = () => {
             size="lg" 
             className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-lg hover:shadow-xl text-base bg-primary"
             onClick={handleQuickPlay}
+            disabled={isLoading}
           >
-            <Zap className="h-5 w-5 mr-2 group-hover:animate-pulse" />
-            Quick Play
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+            ) : (
+              <Zap className="h-5 w-5 mr-2 group-hover:animate-pulse" />
+            )}
+            {isLoading ? 'Starting...' : 'Quick Play'}
           </Button>
           <Button 
             variant="outline" 
