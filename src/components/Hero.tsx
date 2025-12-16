@@ -1,10 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Play, Users, BookOpen, Trophy } from "lucide-react";
+import { Play, Users, BookOpen, Zap } from "lucide-react";
 import heroBoard from "@/assets/hero-board.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
+
+  const handleQuickPlay = () => {
+    // Navigate to lobby with state to auto-create AI match
+    navigate('/lobby', { state: { createAI: true, difficulty: 'easy', boardSize: 11 } });
+  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -45,11 +50,11 @@ const Hero = () => {
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center w-full max-w-md sm:max-w-none px-4 sm:px-0 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Button 
             size="lg" 
-            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-lg hover:shadow-xl text-base"
-            onClick={() => navigate('/lobby')}
+            className="w-full sm:w-auto sm:min-w-[200px] h-14 sm:h-auto group hover:scale-105 transition-all shadow-lg hover:shadow-xl text-base bg-primary"
+            onClick={handleQuickPlay}
           >
-            <Play className="h-5 w-5 mr-2 group-hover:translate-x-1 transition-transform" />
-            Play Now
+            <Zap className="h-5 w-5 mr-2 group-hover:animate-pulse" />
+            Quick Play
           </Button>
           <Button 
             variant="outline" 
@@ -58,7 +63,7 @@ const Hero = () => {
             onClick={() => navigate('/lobby')}
           >
             <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-            Challenge Friends
+            Multiplayer
           </Button>
           <Button 
             variant="ghost" 
