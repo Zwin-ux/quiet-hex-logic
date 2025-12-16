@@ -23,6 +23,7 @@ import Tournaments from "./pages/Tournaments";
 import TournamentView from "./pages/TournamentView";
 import Premium from "./pages/Premium";
 import Leaderboard from "./pages/Leaderboard";
+import Puzzles from "./pages/Puzzles";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/profile/edit" element={<EditProfile />} />
               <Route path="/premium" element={<Premium />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/puzzles" element={<Puzzles />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
