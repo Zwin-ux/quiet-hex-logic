@@ -301,6 +301,7 @@ export type Database = {
           allow_spectators: boolean
           created_at: string | null
           id: string
+          is_ranked: boolean | null
           lobby_id: string | null
           owner: string | null
           pie_rule: boolean
@@ -319,6 +320,7 @@ export type Database = {
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
+          is_ranked?: boolean | null
           lobby_id?: string | null
           owner?: string | null
           pie_rule?: boolean
@@ -337,6 +339,7 @@ export type Database = {
           allow_spectators?: boolean
           created_at?: string | null
           id?: string
+          is_ranked?: boolean | null
           lobby_id?: string | null
           owner?: string | null
           pie_rule?: boolean
@@ -495,9 +498,14 @@ export type Database = {
           created_at: string | null
           discord_id: string | null
           discord_username: string | null
+          elo_rating: number | null
+          games_rated: number | null
           id: string
           is_guest: boolean | null
+          is_premium: boolean | null
           last_online: string | null
+          premium_expires_at: string | null
+          rating_deviation: number | null
           username: string
         }
         Insert: {
@@ -508,9 +516,14 @@ export type Database = {
           created_at?: string | null
           discord_id?: string | null
           discord_username?: string | null
+          elo_rating?: number | null
+          games_rated?: number | null
           id: string
           is_guest?: boolean | null
+          is_premium?: boolean | null
           last_online?: string | null
+          premium_expires_at?: string | null
+          rating_deviation?: number | null
           username: string
         }
         Update: {
@@ -521,12 +534,62 @@ export type Database = {
           created_at?: string | null
           discord_id?: string | null
           discord_username?: string | null
+          elo_rating?: number | null
+          games_rated?: number | null
           id?: string
           is_guest?: boolean | null
+          is_premium?: boolean | null
           last_online?: string | null
+          premium_expires_at?: string | null
+          rating_deviation?: number | null
           username?: string
         }
         Relationships: []
+      }
+      rating_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          match_id: string | null
+          new_rating: number
+          old_rating: number
+          profile_id: string
+          rating_change: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          match_id?: string | null
+          new_rating: number
+          old_rating: number
+          profile_id: string
+          rating_change: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          match_id?: string | null
+          new_rating?: number
+          old_rating?: number
+          profile_id?: string
+          rating_change?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rating_history_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spectators: {
         Row: {
@@ -556,6 +619,56 @@ export type Database = {
             foreignKeyName: "spectators_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -899,6 +1012,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       user_stats: {
@@ -935,6 +1069,13 @@ export type Database = {
       find_match_by_code: { Args: { code: string }; Returns: string }
       generate_lobby_code: { Args: never; Returns: string }
       generate_match_code: { Args: { match_uuid: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_blocked: {
         Args: { _blocked: string; _blocker: string }
         Returns: boolean
@@ -950,6 +1091,7 @@ export type Database = {
     }
     Enums: {
       ai_difficulty: "easy" | "medium" | "hard" | "expert"
+      app_role: "admin" | "moderator" | "user"
       match_status: "waiting" | "active" | "finished" | "aborted"
     }
     CompositeTypes: {
@@ -1079,6 +1221,7 @@ export const Constants = {
   public: {
     Enums: {
       ai_difficulty: ["easy", "medium", "hard", "expert"],
+      app_role: ["admin", "moderator", "user"],
       match_status: ["waiting", "active", "finished", "aborted"],
     },
   },
