@@ -417,391 +417,258 @@ export default function Lobby() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/10">
-      {/* Subtle geometric background pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.03]">
-        <div className="absolute top-20 left-10 h-24 w-24 border-2 border-current rotate-12 rounded-xl" />
-        <div className="absolute top-40 right-20 h-20 w-20 border-2 border-current -rotate-6 rounded-xl" />
-        <div className="absolute bottom-32 left-1/4 h-32 w-32 border-2 border-current rotate-45 rounded-xl" />
-        <div className="absolute bottom-20 right-1/3 h-16 w-16 border-2 border-current rotate-12 rounded-xl" />
+    <div className="min-h-screen bg-background">
+      {/* Top Navigation Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          <button 
+            onClick={() => navigate('/')}
+            className="font-display text-xl font-bold tracking-tight hover:text-primary transition-colors"
+          >
+            Hexology
+          </button>
+          
+          <div className="flex items-center gap-2">
+            {isGuest && !guestLoading && (
+              <GuestBadge username={guestUsername} />
+            )}
+            {user && (
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                      <Bell className="h-4 w-4" />
+                      {notifications.length > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-ochre text-[10px] font-bold flex items-center justify-center text-white">
+                          {notifications.length}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="end">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm">Challenges</h3>
+                      {notifications.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No pending challenges</p>
+                      ) : (
+                        notifications.map((notif) => (
+                          <Card key={notif.id} className="p-3">
+                            <div className="flex flex-col gap-2">
+                              <p className="text-sm">
+                                <span className="font-semibold">{notif.payload.sender_name}</span> challenged you
+                              </p>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      const payload = notif.payload as any;
+                                      if (payload.lobby_code) {
+                                        const { data, error } = await supabase.functions.invoke('join-lobby', {
+                                          body: { code: payload.lobby_code }
+                                        });
+                                        if (error) throw error;
+                                        if (data.error) throw new Error(data.error);
+                                        await markAsRead(notif.id);
+                                        toast.success('Joined!');
+                                        navigate(`/lobby/${data.lobby.id}`);
+                                      } else if (notif.payload.match_id) {
+                                        await markAsRead(notif.id);
+                                        navigate(`/match/${notif.payload.match_id}`);
+                                      }
+                                    } catch (err: any) {
+                                      toast.error(err.message);
+                                    }
+                                  }}
+                                >
+                                  Accept
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => markAsRead(notif.id)}>
+                                  Decline
+                                </Button>
+                              </div>
+                            </div>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                <div className="flex items-center border-l border-border/50 ml-2 pl-2">
+                  <TooltipProvider>
+                    {[
+                      { icon: User, path: '/profile', label: 'Profile' },
+                      { icon: UserPlus, path: '/friends', label: 'Friends' },
+                      { icon: HistoryIcon, path: '/history', label: 'History' },
+                      { icon: Trophy, path: '/leaderboard', label: 'Leaderboard' },
+                    ].map(({ icon: Icon, path, label }) => (
+                      <Tooltip key={path}>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => navigate(path)} className="h-9 w-9">
+                            <Icon className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{label}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => navigate('/premium')}
+                          className="h-9 w-9 text-amber-500"
+                        >
+                          <Crown className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Hexology+</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button variant="ghost" size="icon" onClick={handleSignOut} className="h-9 w-9 text-muted-foreground hover:text-destructive">
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+            {!user && (
+              <Button onClick={() => navigate('/auth')} size="sm">Sign In</Button>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto p-4 md:p-8">
-        {/* Floating Navigation Bar */}
-        <div className="fixed top-4 right-4 z-50 flex flex-col sm:flex-row gap-2">
-          {isGuest && !guestLoading && (
-            <GuestBadge username={guestUsername} />
-          )}
-          {user && (
-            <>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    className="relative shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur h-11 w-11"
-                  >
-                    <Bell className="h-5 w-5" />
-                    {notifications.length > 0 && (
-                      <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-ochre animate-gentle-pulse">
-                        {notifications.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 bg-card/95 backdrop-blur shadow-xl border-2" align="end">
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Challenges</h3>
-                    {notifications.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No pending challenges</p>
-                    ) : (
-                      notifications.map((notif) => (
-                        <Card key={notif.id} className="p-3">
-                          <div className="flex flex-col gap-2">
-                            <p className="text-sm">
-                              <span className="font-semibold">{notif.payload.sender_name}</span> challenged you to {notif.payload.board_size}×{notif.payload.board_size}
-                            </p>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={async () => {
-                                  try {
-                                    const payload = notif.payload as any;
-                                    if (payload.lobby_code) {
-                                      const { data, error } = await supabase.functions.invoke('join-lobby', {
-                                        body: { code: payload.lobby_code }
-                                      });
-                                      if (error) throw error;
-                                      if (data.error) throw new Error(data.error);
-                                      await markAsRead(notif.id);
-                                      toast.success('Joined challenge lobby!');
-                                      navigate(`/lobby/${data.lobby.id}`);
-                                    } else if (notif.payload.match_id) {
-                                      await markAsRead(notif.id);
-                                      navigate(`/match/${notif.payload.match_id}`);
-                                    }
-                                  } catch (err: any) {
-                                    toast.error('Failed to accept challenge', { description: err.message });
-                                  }
-                                }}
-                              >
-                                Accept
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => markAsRead(notif.id)}>
-                                Decline
-                              </Button>
-                            </div>
-                          </div>
-                        </Card>
-                      ))
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              
-              <div className="flex gap-1 bg-card/95 backdrop-blur rounded-lg shadow-lg p-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/profile')}
-                  className="hover:bg-accent transition-all h-9 w-9"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/friends')}
-                  className="hover:bg-accent transition-all h-9 w-9"
-                >
-                  <UserPlus className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/history')}
-                  className="hover:bg-accent transition-all h-9 w-9"
-                >
-                  <HistoryIcon className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/leaderboard')}
-                  className="hover:bg-accent transition-all h-9 w-9"
-                >
-                  <Trophy className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/premium')}
-                  className="hover:bg-amber-500/10 hover:text-amber-500 transition-all h-9 w-9"
-                >
-                  <Crown className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={handleSignOut}
-                  className="hover:bg-destructive/10 hover:text-destructive transition-all h-9 w-9"
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </div>
-            </>
-          )}
-          
-          {!user && (
-            <Button 
-              onClick={() => navigate('/auth')} 
-              className="shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-card/95 backdrop-blur h-11"
-              size="sm"
-            >
-              Sign In
-            </Button>
-          )}
-        </div>
-        
+      <div className="pt-20 pb-12 px-4 max-w-5xl mx-auto">
         {/* Guest Mode Banner */}
         {isGuest && !guestLoading && (
-          <GuestModeBanner guestUsername={guestUsername} />
+          <div className="mb-6">
+            <GuestModeBanner guestUsername={guestUsername} />
+          </div>
         )}
 
-        {/* Hero Header */}
-        <div className="mb-12 sm:mb-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700 px-4">
-          <div className="inline-block mb-4">
-            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-indigo to-ochre flex items-center justify-center shadow-lg">
-              <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="font-body text-4xl sm:text-5xl md:text-7xl font-bold text-foreground mb-4 tracking-tight">
-            The Lobby
-          </h1>
-          <p className="text-muted-foreground text-base sm:text-xl font-body max-w-2xl mx-auto">
-            Challenge friends, practice with AI, or join open games
-          </p>
-        </div>
-
-        {/* Recovery CTA for pending lobbies */}
+        {/* Recovery CTA */}
         {user && <JoinGameCTA userId={user.id} />}
 
-        {/* Lobby Creation Section - Hidden for guests */}
+        {/* Quick Play Hero - Main Focus */}
+        <div className="mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Play Hexology</h1>
+          <p className="text-muted-foreground mb-8">Choose your challenge</p>
+          
+          {/* Quick AI Play - Primary Action */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            {[
+              { size: 7, label: '7×7', desc: 'Quick' },
+              { size: 9, label: '9×9', desc: 'Standard' },
+              { size: 11, label: '11×11', desc: 'Classic' },
+              { size: 13, label: '13×13', desc: 'Extended' },
+            ].map(({ size, label, desc }) => (
+              <button
+                key={size}
+                onClick={() => createAIMatch(aiDifficulty, size)}
+                disabled={creatingMatch}
+                className="group relative h-24 sm:h-28 rounded-xl bg-gradient-to-br from-ochre/10 to-ochre/5 border-2 border-ochre/20 hover:border-ochre/50 hover:from-ochre/20 hover:to-ochre/10 transition-all duration-200 disabled:opacity-50"
+              >
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl sm:text-3xl font-bold font-mono text-ochre group-hover:scale-110 transition-transform">
+                    {label}
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-1">{desc}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          {/* Difficulty Selector */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm text-muted-foreground">AI Difficulty:</span>
+            <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
+              {(['easy', 'medium', 'hard', 'expert'] as const).map((diff) => (
+                <button
+                  key={diff}
+                  onClick={() => setAiDifficulty(diff)}
+                  className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                    aiDifficulty === diff 
+                      ? 'bg-background shadow-sm font-medium' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Multiplayer Section */}
         {user && !isGuest && (
-          <div className="grid md:grid-cols-2 gap-6 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="grid md:grid-cols-2 gap-4 mb-10">
             <CreateLobby userId={user.id} />
             <JoinLobby userId={user.id} />
           </div>
         )}
         
-        {/* Locked Multiplayer for Guests */}
+        {/* Locked for Guests */}
         {isGuest && !guestLoading && (
-          <Card className="p-6 sm:p-8 mb-12 border-2 border-border/50 bg-muted/30 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-violet/20 flex items-center justify-center">
-                <Lock className="h-8 w-8 text-violet" />
+          <Card className="p-6 mb-10 border-dashed">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <Lock className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <h3 className="font-body text-xl font-bold text-foreground mb-2">
-                  Multiplayer Lobbies Locked
-                </h3>
-                <p className="text-muted-foreground mb-4 max-w-md">
-                  Create a free account to challenge friends, join lobbies, and compete in tournaments!
-                </p>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Multiplayer Locked</h3>
+                <p className="text-sm text-muted-foreground">Create a free account to play with friends</p>
               </div>
-              <Button 
-                onClick={() => navigate('/auth')}
-                size="lg"
-                className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
-              >
-                Create Free Account
+              <Button onClick={() => navigate('/auth')} variant="outline">
+                Sign Up
               </Button>
             </div>
           </Card>
         )}
 
-        {/* AI Practice Section - Featured Design */}
-        <Card className="relative p-6 sm:p-8 mb-12 overflow-hidden shadow-xl border-2 border-ochre/20 hover:border-ochre/40 transition-all duration-500 hover:shadow-2xl group animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-ochre/5 via-transparent to-indigo/5 opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
-          
-          <div className="relative">
-            <div className="flex items-center gap-3 sm:gap-4 mb-4">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-gradient-to-br from-ochre to-ochre/70 flex items-center justify-center shadow-lg">
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="font-body text-xl sm:text-2xl font-bold text-foreground">
-                  AI Practice Arena
-                </h2>
-                <p className="text-muted-foreground text-xs sm:text-sm">
-                  Master your strategy against adaptive AI opponents
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mt-6">
-              <div className="lg:w-80">
-                <label className="text-xs sm:text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-ochre animate-gentle-pulse" />
-                  Difficulty Level
-                </label>
-                <Select value={aiDifficulty} onValueChange={(value: any) => setAiDifficulty(value)}>
-                  <SelectTrigger className="h-12 bg-card hover:bg-accent transition-colors border-2 text-base">
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card/95 backdrop-blur border-2">
-                    <SelectItem value="easy">Easy - Beginner</SelectItem>
-                    <SelectItem value="medium">Medium - Intermediate</SelectItem>
-                    <SelectItem value="hard">Hard - Advanced</SelectItem>
-                    <SelectItem value="expert">Expert - Master</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex-1">
-                <label className="text-xs sm:text-sm font-semibold mb-3 block text-foreground flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-indigo animate-gentle-pulse" />
-                  Board Size
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                  {[7, 9, 11, 13].map((size) => (
-                    <Button
-                      key={size}
-                      onClick={() => createAIMatch(aiDifficulty, size)}
-                      disabled={creatingMatch}
-                      className="h-14 sm:h-16 font-mono text-base sm:text-lg font-bold hover:scale-105 transition-all shadow-md hover:shadow-xl touch-manipulation"
-                      variant="secondary"
-                    >
-                      {creatingMatch ? '...' : `${size}×${size}`}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Open Lobbies Section - Hidden for guests */}
+        {/* Open Lobbies */}
         {user && !isGuest && lobbies.length > 0 && (
-          <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="font-body text-3xl font-bold text-foreground mb-1">
-                  Open Lobbies
-                </h2>
-                <p className="text-muted-foreground">
-                  Jump into a waiting game or create your own
-                </p>
-              </div>
-              <Badge variant="outline" className="font-mono text-sm px-4 py-2 border-2">
-                {lobbies.length} open
-              </Badge>
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Open Lobbies</h2>
+              <Badge variant="outline" className="font-mono">{lobbies.length} open</Badge>
             </div>
-
-            {loadingLobbies ? (
-              <div className="grid gap-4">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="p-6 animate-pulse">
-                    <div className="flex items-center gap-6">
-                      <div className="h-12 w-12 bg-muted rounded" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-6 bg-muted rounded w-32" />
-                        <div className="h-4 bg-muted rounded w-48" />
-                      </div>
-                      <div className="h-10 w-24 bg-muted rounded" />
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : lobbies.length === 0 ? (
-              <Card className="p-12 sm:p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-ochre/30 transition-all duration-300">
-                <div className="h-16 w-16 mx-auto mb-4 rounded-xl border-2 border-muted-foreground/10 rotate-12" />
-                <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No open lobbies</p>
-                <p className="text-sm text-muted-foreground">
-                  Be the first to create a lobby!
-                </p>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {lobbies.map((lobby) => (
-                  <LobbyCard
-                    key={lobby.id}
-                    lobby={lobby}
-                    playerCount={lobby.player_count || 0}
-                    currentUserId={user.id}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="grid gap-3">
+              {lobbies.map((lobby) => (
+                <LobbyCard
+                  key={lobby.id}
+                  lobby={lobby}
+                  playerCount={lobby.player_count || 0}
+                  currentUserId={user.id}
+                />
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Live Matches Section */}
-        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="font-body text-3xl font-bold text-foreground mb-1">
-                Live Matches
-              </h2>
-              <p className="text-muted-foreground">
-                Watch games in progress and learn from others
-              </p>
+        {/* Live Matches */}
+        {activeMatches.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Live Matches</h2>
+              <Badge variant="outline" className="font-mono">{activeMatches.length} live</Badge>
             </div>
-            <Badge variant="outline" className="font-mono text-sm px-4 py-2 border-2">
-              {activeMatches.length} live
-            </Badge>
-          </div>
-          {loadingMatches ? (
-            <div className="grid gap-3">
-              {[1, 2].map((i) => (
-                <Card key={i} className="p-5 animate-pulse">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="h-10 w-10 bg-muted rounded" />
-                      <div className="space-y-2 flex-1">
-                        <div className="h-5 bg-muted rounded w-40" />
-                        <div className="h-4 bg-muted rounded w-24" />
-                      </div>
-                    </div>
-                    <div className="h-9 w-24 bg-muted rounded" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : activeMatches.length === 0 ? (
-            <Card className="p-12 sm:p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-indigo/30 transition-all duration-300">
-              <div className="h-16 w-16 mx-auto mb-4 rounded-xl border-2 border-muted-foreground/10 rotate-12" />
-              <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No active matches</p>
-              <p className="text-sm text-muted-foreground">
-                Start a game to see it here!
-              </p>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {activeMatches.map((match) => {
                 const elapsed = Math.floor((Date.now() - new Date(match.created_at).getTime()) / 60000);
                 return (
-                  <Card
-                    key={match.id}
-                    className="p-5 flex items-center justify-between shadow-md hover:shadow-xl transition-all duration-300 border-2 hover:border-indigo/40 hover:scale-[1.02] group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo/20 to-ochre/20 flex items-center justify-center">
-                        <Play className="h-4 w-4 text-muted-foreground" />
+                  <Card key={match.id} className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-indigo/10 flex items-center justify-center">
+                        <Play className="h-3.5 w-3.5 text-indigo" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className="font-mono bg-indigo text-primary-foreground px-3 py-1">
-                            {match.size}×{match.size}
-                          </Badge>
-                          <span className="text-sm font-medium text-muted-foreground">
-                            <span className="text-indigo font-bold">Indigo</span> vs <span className="text-ochre font-bold">Ochre</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-medium">{match.size}×{match.size}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {elapsed < 1 ? 'Just started' : `${elapsed}m`}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground font-mono">
-                          {elapsed < 1 ? 'Just started' : `${elapsed} min elapsed`}
-                        </p>
                       </div>
                     </div>
                     <SpectateButton matchId={match.id} />
@@ -809,97 +676,44 @@ export default function Lobby() {
                 );
               })}
             </div>
-          )}
-        </div>
-
-        {/* Open Matches Section - Hidden for guests */}
-        {user && !isGuest && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="font-body text-3xl font-bold text-foreground mb-1">
-                Open Matches
-              </h2>
-              <p className="text-muted-foreground">
-                Challenge someone directly with a match code
-              </p>
-            </div>
-            <Badge variant="outline" className="font-mono text-sm px-4 py-2 border-2">
-              {matches.length} open
-            </Badge>
           </div>
-          
-          {matches.length === 0 ? (
-            <Card className="p-16 text-center shadow-lg border-2 border-dashed hover:border-solid hover:border-primary/30 transition-all duration-300">
-              <div className="h-16 w-16 mx-auto mb-4 rounded-xl border-2 border-muted-foreground/10 rotate-12" />
-              <p className="text-lg font-medium text-muted-foreground mb-2">No open matches</p>
-              <p className="text-sm text-muted-foreground">
-                Direct matches will appear here when created
-              </p>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
+        )}
+
+        {/* Open Matches */}
+        {user && !isGuest && matches.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Open Matches</h2>
+              <Badge variant="outline" className="font-mono">{matches.length} open</Badge>
+            </div>
+            <div className="grid gap-2">
               {matches.map((match) => (
-                <Card
-                  key={match.id}
-                  className="p-6 flex items-center justify-between shadow-md hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/40 hover:scale-[1.01] group"
-                >
-                  <div className="flex items-center gap-6">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <Users className="h-5 w-5 text-primary" />
+                <Card key={match.id} className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Users className="h-3.5 w-3.5 text-primary" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge className="font-mono bg-primary text-primary-foreground px-3 py-1">
-                          {match.size}×{match.size}
-                        </Badge>
-                        {match.pie_rule && (
-                          <Badge variant="outline" className="font-mono text-xs px-2 py-1 border-2">
-                            Pie Rule
-                          </Badge>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium">{match.size}×{match.size}</span>
+                        {match.pie_rule && <Badge variant="secondary" className="text-xs">Pie</Badge>}
                       </div>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        Created {new Date(match.created_at).toLocaleTimeString()}
-                      </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {match.owner === user?.id ? (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => copyMatchCode(match.id)}
-                          className="gap-2 hover:scale-105 transition-all"
-                        >
-                          {copiedCode === match.id ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                          {copiedCode === match.id ? 'Copied!' : 'Copy Code'}
-                        </Button>
-                        <Button 
-                          onClick={() => navigate(`/match/${match.id}`)}
-                          className="hover:scale-105 transition-all shadow-md"
-                        >
-                          Enter Match
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button 
-                        onClick={() => joinMatch(match.id)}
-                        className="hover:scale-105 transition-all shadow-md"
-                      >
-                        Join Match
+                  {match.owner === user?.id ? (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => copyMatchCode(match.id)}>
+                        {copiedCode === match.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       </Button>
-                    )}
-                  </div>
+                      <Button size="sm" onClick={() => navigate(`/match/${match.id}`)}>Enter</Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" onClick={() => joinMatch(match.id)}>Join</Button>
+                  )}
                 </Card>
               ))}
             </div>
-          )}
-        </div>
+          </div>
         )}
       </div>
       
