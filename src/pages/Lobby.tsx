@@ -77,13 +77,17 @@ export default function Lobby() {
   }, [loading, user, location.state, handledAutoCreate]);
 
   const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
-    if (!user) {
-      toast.error('Please wait while we set up your session...');
-      return;
-    }
-    
     setCreatingMatch(true);
     try {
+      // Get current session to avoid race conditions with stale user state
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error('Please wait while we set up your session...');
+        setCreatingMatch(false);
+        return;
+      }
+      const currentUserId = session.user.id;
+
       const { data: newMatch, error } = await supabase
         .from('matches')
         .insert({
@@ -91,7 +95,7 @@ export default function Lobby() {
           pie_rule: true,
           status: 'active',
           turn: 1,
-          owner: user.id,
+          owner: currentUserId,
           ai_difficulty: difficulty,
           allow_spectators: false
         })
@@ -102,7 +106,7 @@ export default function Lobby() {
 
       const { error: playersError } = await supabase.from('match_players').insert({
         match_id: newMatch.id,
-        profile_id: user.id,
+        profile_id: currentUserId,
         color: 1,
         is_bot: false
       });
