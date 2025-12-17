@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import { useGuestConversion } from '@/hooks/useGuestConversion';
+import { useDiscord } from '@/lib/discord/DiscordContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -49,23 +50,31 @@ export default function Lobby() {
   const { user, loading, signOut, signInAnonymously } = useAuth();
   const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
   const { showConversionModal, setShowConversionModal, matchesCompleted } = useGuestConversion();
+  const { isDiscordEnvironment, isAuthenticated: isDiscordAuth, discordUser } = useDiscord();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Auto sign-in guest users
+  // For Discord users, we'll use local state for AI matches
+  const [discordMatchId, setDiscordMatchId] = useState<string | null>(null);
+
+  // Auto sign-in guest users (skip for Discord environment)
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isDiscordEnvironment && !loading && !user) {
       signInAnonymously();
     }
-  }, [loading, user, signInAnonymously]);
+  }, [loading, user, signInAnonymously, isDiscordEnvironment]);
 
   usePresence(user?.id);
 
   const [handledAutoCreate, setHandledAutoCreate] = useState(false);
 
+  // Determine if user is ready to play
+  const isReadyToPlay = isDiscordEnvironment ? isDiscordAuth : !!user;
+  const isLoading = isDiscordEnvironment ? !isDiscordAuth : loading;
+
   // Handle auto-create AI match from location state
   useEffect(() => {
-    if (loading || !user) return;
+    if (isLoading || !isReadyToPlay) return;
     const state = location.state as { createAI?: boolean; difficulty?: string; boardSize?: number };
     if (state?.createAI && state?.difficulty && !handledAutoCreate) {
       setHandledAutoCreate(true);
@@ -74,12 +83,31 @@ export default function Lobby() {
       navigate(location.pathname, { replace: true, state: {} });
       createAIMatch(difficulty, boardSize);
     }
-  }, [loading, user, location.state, handledAutoCreate]);
+  }, [isLoading, isReadyToPlay, location.state, handledAutoCreate]);
 
   const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
     setCreatingMatch(true);
     try {
-      // Get current session to avoid race conditions with stale user state
+      // Discord users: navigate directly to a local AI match
+      if (isDiscordEnvironment && discordUser) {
+        console.log('[Discord] Creating local AI match for Discord user:', discordUser.username);
+        // Generate a local match ID for Discord (no database needed for single-player AI)
+        const localMatchId = `discord-${discordUser.id}-${Date.now()}`;
+        toast.success(`Starting ${difficulty} AI match!`);
+        // Navigate to match page with Discord-specific state
+        navigate(`/match/${localMatchId}`, { 
+          state: { 
+            isDiscordLocal: true, 
+            aiDifficulty: difficulty, 
+            boardSize: size,
+            discordUser: discordUser 
+          } 
+        });
+        setCreatingMatch(false);
+        return;
+      }
+
+      // Standard Supabase flow for non-Discord users
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         toast.error('Please wait while we set up your session...');
@@ -173,10 +201,23 @@ export default function Lobby() {
     setLoadingLobbies(false);
   };
 
-  if (loading) {
+  // Show loading for non-Discord users while auth loads
+  if (!isDiscordEnvironment && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // For Discord, show loading until authenticated
+  if (isDiscordEnvironment && !isDiscordAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-2">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
+          <p className="text-sm text-muted-foreground">Connecting to Discord...</p>
+        </div>
       </div>
     );
   }
