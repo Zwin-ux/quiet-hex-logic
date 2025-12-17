@@ -349,10 +349,41 @@ Deno.serve(async (req) => {
 
     if (moveInsertError) {
       console.error('Error inserting move:', moveInsertError);
-      // Check if duplicate key violation (23505)
+      // Check if duplicate key violation (23505) - treat as idempotent if same cell
       if (moveInsertError.code === '23505') {
+        // Check if the existing move at this ply has the same cell (idempotent success)
+        const { data: existingMoveAtPly } = await supabase
+          .from('moves')
+          .select('cell')
+          .eq('match_id', matchId)
+          .eq('ply', match.turn)
+          .maybeSingle();
+        
+        if (existingMoveAtPly && existingMoveAtPly.cell === cell) {
+          // Same move already recorded - return success (idempotent)
+          console.log('Idempotent duplicate detected - same cell at same ply');
+          const { data: currentMatch } = await supabase
+            .from('matches')
+            .select('turn, winner, status')
+            .eq('id', matchId)
+            .single();
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              turn: currentMatch?.turn || newTurn,
+              winner: currentMatch?.winner || null,
+              status: currentMatch?.status || newStatus,
+              cached: true
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Different move at same ply - real conflict (shouldn't happen in normal play)
+        console.log('Real conflict: different move at same ply');
         return new Response(
-          JSON.stringify({ error: 'Duplicate move detected' }),
+          JSON.stringify({ error: 'Move already made - refresh to see current state' }),
           { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
