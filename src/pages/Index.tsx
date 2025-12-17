@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import Hero from "@/components/Hero";
 import AutoPlayDemo from "@/components/AutoPlayDemo";
+import { TournamentBanner } from "@/components/TournamentBanner";
 
 const Index = () => {
   return (
     <div className="relative">
+      <TournamentBanner />
       <Hero />
       <AutoPlayDemo />
       
