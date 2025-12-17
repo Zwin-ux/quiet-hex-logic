@@ -7,13 +7,25 @@
 export type Color = 1 | 2; // 1 = indigo (W-E), 2 = ochre (N-S)
 export type Cell = number | null; // null represents pie swap
 
-const DIRS = [
-  [-1, 0],
-  [1, 0],
-  [0, -1],
-  [0, 1],
-  [-1, 1],
-  [1, -1],
+// Offset coordinate neighbor directions (odd-q vertical layout)
+// For EVEN columns (col % 2 == 0):
+const DIRS_EVEN = [
+  [1, -1],  // NE
+  [1, 0],   // SE
+  [0, 1],   // S
+  [-1, 0],  // SW
+  [-1, -1], // NW
+  [0, -1],  // N
+] as const;
+
+// For ODD columns (col % 2 == 1):
+const DIRS_ODD = [
+  [1, 0],   // NE
+  [1, 1],   // SE
+  [0, 1],   // S
+  [-1, 1],  // SW
+  [-1, 0],  // NW
+  [0, -1],  // N
 ] as const;
 
 /**
@@ -106,11 +118,12 @@ export class Hex {
     return [i % this.n, Math.floor(i / this.n)] as const;
   }
 
-  // Get all neighbors of a cell
+  // Get all neighbors of a cell using offset coordinates (odd-q)
   neighbors(i: number): number[] {
     const [c, r] = this.coords(i);
     const out: number[] = [];
-    for (const [dc, dr] of DIRS) {
+    const dirs = c % 2 === 0 ? DIRS_EVEN : DIRS_ODD;
+    for (const [dc, dr] of dirs) {
       const nc = c + dc;
       const nr = r + dr;
       if (nc >= 0 && nr >= 0 && nc < this.n && nr < this.n) {
