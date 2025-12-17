@@ -35,7 +35,12 @@ class HexAI {
   getNeighbors(cell: number): number[] {
     const [c, r] = this.coords(cell);
     const neighbors: number[] = [];
-    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+    
+    // Offset coordinates (odd-q): odd columns shifted down
+    const deltasEven = [[1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1], [0, -1]]; // [dc, dr]
+    const deltasOdd = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [0, -1]];   // [dc, dr]
+    
+    const deltas = c % 2 === 0 ? deltasEven : deltasOdd;
     
     for (const [dc, dr] of deltas) {
       const nc = c + dc;
@@ -238,11 +243,12 @@ class HexAI {
       if (color === 1 && col === this.size - 1) return true;
       if (color === 2 && row === this.size - 1) return true;
       
-      const neighbors = [
-        [1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]
-      ];
+      // Use offset coordinates for neighbors
+      const deltasEven = [[1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1], [0, -1]];
+      const deltasOdd = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [0, -1]];
+      const deltas = col % 2 === 0 ? deltasEven : deltasOdd;
       
-      for (const [dc, dr] of neighbors) {
+      for (const [dc, dr] of deltas) {
         const nc = col + dc;
         const nr = row + dr;
         if (nc >= 0 && nc < this.size && nr >= 0 && nr < this.size) {

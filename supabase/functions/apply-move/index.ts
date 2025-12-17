@@ -144,9 +144,14 @@ class HexValidator {
     const col = cell % this.n;
     const neighbors: number[] = [];
     
-    const deltas = [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0]];
+    // Offset coordinates (odd-q): odd columns are shifted down by 0.5
+    // Different deltas for even vs odd columns
+    const deltasEven = [[1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1], [0, -1]]; // [dc, dr]
+    const deltasOdd = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [0, -1]];   // [dc, dr]
     
-    for (const [dr, dc] of deltas) {
+    const deltas = col % 2 === 0 ? deltasEven : deltasOdd;
+    
+    for (const [dc, dr] of deltas) {
       const newRow = row + dr;
       const newCol = col + dc;
       if (newRow >= 0 && newRow < this.n && newCol >= 0 && newCol < this.n) {
