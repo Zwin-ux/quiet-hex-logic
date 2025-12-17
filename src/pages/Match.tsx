@@ -62,6 +62,8 @@ export default function Match() {
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [matchStartTime, setMatchStartTime] = useState<number>(Date.now());
+  const [matchStats, setMatchStats] = useState<{ moves: number; duration: string } | null>(null);
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
@@ -143,6 +145,8 @@ export default function Match() {
     
     // Initialize engine
     setEngine(new Hex(boardSize));
+    setMatchStartTime(Date.now());
+    setMatchStats(null);
   }, [isDiscordLocalMatch, discordLocalState, matchId, discordUser]);
 
   useEffect(() => {
@@ -189,7 +193,7 @@ export default function Match() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [matchId, user, loading, navigate]);
+  }, [matchId, user, loading, navigate, isDiscordEnvironment, isDiscordLocalMatch, loadBoardSkin, loadMatch]);
 
   const loadBoardSkin = useCallback(async () => {
     if (!user) return;
@@ -199,8 +203,8 @@ export default function Match() {
         .select('board_skin')
         .eq('id', user.id)
         .single();
-      if (data && (data as any).board_skin) {
-        setBoardSkin(getSkinById((data as any).board_skin));
+      if (data && data.board_skin) {
+        setBoardSkin(getSkinById(data.board_skin as string));
       }
     } catch (error) {
       console.error('Failed to load board skin:', error);
@@ -239,12 +243,12 @@ export default function Match() {
         .eq('match_id', matchId);
 
       if (playersData) {
-        const enrichedPlayers = playersData.map(p => ({
+        const enrichedPlayers: Player[] = playersData.map(p => ({
           profile_id: p.profile_id,
           color: p.color,
           is_bot: p.is_bot,
-          username: (p.profiles as any).username,
-          avatar_color: (p.profiles as any).avatar_color || 'indigo'
+          username: (p.profiles as any).username as string,
+          avatar_color: ((p.profiles as any).avatar_color as string) || 'indigo'
         }));
         
         // For AI matches, add synthetic AI player as color 2
@@ -307,7 +311,7 @@ export default function Match() {
     } finally {
       loadInFlight.current = false;
     }
-  }, [matchId, navigate]);
+  }, [matchId, navigate, makeAIMove]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -334,7 +338,7 @@ export default function Match() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [match, loadMatch]);
+  }, [match, loadMatch, isDiscordLocalMatch]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
     // Prevent concurrent AI moves
@@ -475,9 +479,17 @@ export default function Match() {
       if (winner) {
         setWinningPath(hexEngine.getWinningPath() || []);
         setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
+        
+        // Calculate stats
+        const duration = formatDuration(Date.now() - matchStartTime);
+        setMatchStats({
+          moves: hexEngine.ply,
+          duration: duration
+        });
+
         playLoseSound(); // AI won
         toast.success('Game Over', {
-          description: 'Computer wins!',
+          description: `Computer wins in ${hexEngine.ply} moves (${duration})`,
           duration: 5000
         });
       }
@@ -485,7 +497,7 @@ export default function Match() {
       aiMoveInProgress.current = false;
       setAiThinking(false);
     }
-  }, [playPlaceSound, playLoseSound]);
+  }, [playPlaceSound, playLoseSound, formatDuration, matchStartTime]);
 
   const handleCellClick = useCallback(async (cell: number) => {
     if (!engine || !match) return;
@@ -522,9 +534,17 @@ export default function Match() {
       if (winner) {
         setWinningPath(newEngine.getWinningPath() || []);
         setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
+        
+        // Calculate stats
+        const duration = formatDuration(Date.now() - matchStartTime);
+        setMatchStats({
+          moves: newEngine.ply,
+          duration: duration
+        });
+
         playWinSound();
         toast.success('Victory!', {
-          description: 'You won!',
+          description: `You won in ${newEngine.ply} moves (${duration})!`,
           duration: 5000
         });
         moveInProgress.current = false;
@@ -653,7 +673,7 @@ export default function Match() {
       // Release lock
       moveInProgress.current = false;
     }
-  }, [engine, match, user, players, isSpectating, isDiscordLocalMatch, loadMatch, makeDiscordLocalAIMove, playPlaceSound, playWinSound, playLoseSound, playErrorSound]);
+  }, [engine, match, user, players, isSpectating, isDiscordLocalMatch, loadMatch, makeDiscordLocalAIMove, playPlaceSound, playWinSound, playLoseSound, playErrorSound, formatDuration, matchStartTime]);
 
   const handleSwapColors = useCallback(async () => {
     if (!engine || !match || !user) return;
@@ -753,6 +773,43 @@ export default function Match() {
       } 
     });
   };
+
+  const formatDuration = useCallback((ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, []);
+
+  const handleDiscordRematch = useCallback(() => {
+    if (!match || !engine) return;
+    
+    console.log('[Discord Match] Resetting for rematch');
+    const boardSize = match.size;
+    const difficulty = match.ai_difficulty || 'easy';
+    
+    // Reset engine
+    const newEngine = new Hex(boardSize);
+    setEngine(newEngine);
+    setLastMove(undefined);
+    setWinningPath([]);
+    
+    // Reset match state
+    setMatch({
+      ...match,
+      status: 'active',
+      turn: 1,
+      winner: null,
+      turn_started_at: null
+    });
+    
+    // Reset stats
+    setMatchStartTime(Date.now());
+    setMatchStats(null);
+    setAiReasoning('');
+    
+    toast.success('New game started!');
+  }, [match, engine]);
 
   if (!match || !engine) {
     return (
@@ -956,6 +1013,18 @@ export default function Match() {
                         {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
                       </span>
                     </div>
+                    {matchStats && (
+                      <div className="pt-2 flex justify-center gap-6 text-sm font-mono border-t border-white/5 mt-2">
+                        <div className="flex flex-col items-center">
+                          <span className="text-muted-foreground uppercase text-[10px] tracking-wider">Moves Made</span>
+                          <span className="text-primary font-bold">{matchStats.moves}</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-muted-foreground uppercase text-[10px] tracking-wider">Time Played</span>
+                          <span className="text-primary font-bold">{matchStats.duration}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {isAIMatch && match.winner === userPlayer?.color && (
                     <p className="text-lg text-primary font-semibold">
@@ -971,7 +1040,16 @@ export default function Match() {
                   
                   {/* Rematch Buttons */}
                   <div className="flex gap-3 justify-center pt-4">
-                    {isAIMatch ? (
+                    {isDiscordEnvironment ? (
+                      <Button
+                        size="lg"
+                        onClick={handleDiscordRematch}
+                        className="gap-2 font-semibold bg-primary hover:bg-primary/90"
+                      >
+                        <RefreshCw className="h-5 w-5" />
+                        Quick Rematch
+                      </Button>
+                    ) : isAIMatch ? (
                       <Button
                         size="lg"
                         onClick={handlePlayAgainAI}

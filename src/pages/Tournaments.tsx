@@ -154,18 +154,29 @@ export default function Tournaments() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="text-center">
-          <Trophy className="h-12 w-12 mx-auto mb-4 text-amber-500 animate-gentle-pulse" />
-          <p className="font-mono text-muted-foreground">Syncing tournament data...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden">
+        {/* Ambient background glow */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        
+        <div className="relative z-10 text-center">
+          <Trophy className="h-16 w-16 mx-auto mb-6 text-amber-500 animate-bounce" />
+          <h2 className="text-2xl font-body font-bold text-white mb-2">Syncing Data...</h2>
+          <p className="font-mono text-muted-foreground">Accessing the Arena network</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-foreground p-4 md:p-8 space-y-12">
-      <div className="max-w-7xl mx-auto space-y-12">
+    <div className="min-h-screen bg-[#0a0a0a] text-foreground p-4 md:p-8 space-y-12 relative overflow-hidden">
+      {/* Background elements to fix "pitch black" feel */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[150px]" />
+      </div>
+
+      <div className="max-w-7xl mx-auto space-y-12 relative z-10">
         
         {/* Header Section */}
         <section className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
