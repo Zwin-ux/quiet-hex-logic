@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Target, Zap, Crown, Check, Lock } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Zap, Crown, Check, Lock, Flame, Calendar, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,26 +21,30 @@ export default function Puzzles() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium } = usePremium(user?.id);
-  const { puzzles, attempts, loading } = usePuzzles(user?.id);
+  const { puzzles, dailyPuzzle, attempts, streakInfo, loading, recordAttempt, completeDailyPuzzle } = usePuzzles(user?.id);
   const [selectedPuzzle, setSelectedPuzzle] = useState<Puzzle | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('daily');
 
   const filteredPuzzles = activeTab === 'all' 
     ? puzzles 
+    : activeTab === 'daily'
+    ? dailyPuzzle ? [dailyPuzzle] : []
     : puzzles.filter(p => p.difficulty === activeTab);
 
   const solvedCount = Object.values(attempts).filter(a => a.completed).length;
+
+  const handlePuzzleComplete = async (success: boolean) => {
+    if (success && selectedPuzzle && dailyPuzzle && selectedPuzzle.id === dailyPuzzle.id) {
+      await completeDailyPuzzle();
+    }
+  };
 
   if (selectedPuzzle) {
     return (
       <PuzzleSolver 
         puzzle={selectedPuzzle} 
         onBack={() => setSelectedPuzzle(null)}
-        onComplete={(success) => {
-          if (success) {
-            // Refresh will happen via hook
-          }
-        }}
+        onComplete={handlePuzzleComplete}
       />
     );
   }
@@ -50,13 +54,7 @@ export default function Puzzles() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button
           variant="ghost"
-          onClick={() => {
-            if (window.history.length > 1) {
-              navigate(-1);
-            } else {
-              navigate('/');
-            }
-          }}
+          onClick={() => navigate(-1)}
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -69,7 +67,7 @@ export default function Puzzles() {
           <p className="text-muted-foreground">
             Sharpen your skills with tactical puzzles
           </p>
-          <div className="flex items-center justify-center gap-4 mt-4">
+          <div className="flex items-center justify-center gap-4 mt-4 flex-wrap">
             <Badge variant="secondary" className="text-sm px-3 py-1">
               <Check className="h-4 w-4 mr-1" />
               {solvedCount} / {puzzles.length} Solved
@@ -83,12 +81,74 @@ export default function Puzzles() {
           </div>
         </div>
 
+        {/* Streak Card */}
+        <Card className="mb-6 border-2 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Flame className="h-7 w-7 text-amber-500" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">{streakInfo.currentStreak}</div>
+                  <div className="text-sm text-muted-foreground">Day Streak</div>
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <div className="text-xl font-semibold">{streakInfo.bestStreak}</div>
+                  <div className="text-xs text-muted-foreground">Best Streak</div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {streakInfo.completedToday ? (
+                      <Check className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <span className="text-amber-500 font-medium">!</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {streakInfo.completedToday ? 'Done Today' : 'Do Today'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Daily Puzzle Highlight */}
+        {dailyPuzzle && !streakInfo.completedToday && (
+          <Card 
+            className="mb-6 border-2 border-indigo/50 bg-indigo/5 cursor-pointer hover:shadow-lg transition-all"
+            onClick={() => setSelectedPuzzle(dailyPuzzle)}
+          >
+            <CardContent className="py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-lg bg-indigo/20 flex items-center justify-center">
+                    <Star className="h-6 w-6 text-indigo" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Daily Puzzle</h3>
+                    <p className="text-sm text-muted-foreground">{dailyPuzzle.title}</p>
+                  </div>
+                </div>
+                <Button className="bg-indigo hover:bg-indigo/90">
+                  Solve Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Difficulty Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
+            <TabsTrigger value="daily">Daily</TabsTrigger>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="beginner">Beginner</TabsTrigger>
-            <TabsTrigger value="intermediate">Intermediate</TabsTrigger>
+            <TabsTrigger value="intermediate">Medium</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
             <TabsTrigger value="master">Master</TabsTrigger>
           </TabsList>
@@ -98,7 +158,11 @@ export default function Puzzles() {
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Loading puzzles...</div>
         ) : filteredPuzzles.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">No puzzles found</div>
+          <div className="text-center py-12 text-muted-foreground">
+            {activeTab === 'daily' && streakInfo.completedToday 
+              ? "You've completed today's puzzle! Come back tomorrow."
+              : 'No puzzles found'}
+          </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {filteredPuzzles.map((puzzle) => {
@@ -119,6 +183,7 @@ export default function Puzzles() {
                         <CardTitle className="text-lg flex items-center gap-2">
                           {puzzle.title}
                           {solved && <Check className="h-4 w-4 text-green-500" />}
+                          {puzzle.is_daily && <Star className="h-4 w-4 text-amber-500" />}
                         </CardTitle>
                         <CardDescription>{puzzle.description}</CardDescription>
                       </div>
