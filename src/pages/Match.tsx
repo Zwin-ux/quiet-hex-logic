@@ -906,7 +906,7 @@ export default function Match() {
               skin={boardSkin}
               disabled={
                 match.status !== 'active' || 
-                currentPlayer?.profile_id !== user?.id ||
+                !(currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
                 isAITurn ||
                 isSpectating ||
                 !isPlayer
@@ -915,7 +915,7 @@ export default function Match() {
                 match.pie_rule &&
                 engine.ply === 1 &&
                 !engine.swapped &&
-                currentPlayer?.profile_id === user?.id &&
+                (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) &&
                 match.status === 'active'
               }
               onSwapColors={handleSwapColors}
@@ -925,7 +925,7 @@ export default function Match() {
               <p className="font-mono text-sm text-muted-foreground">
                 {isSpectating
                   ? `Watching ${currentPlayer?.username}'s turn`
-                  : currentPlayer?.profile_id === user?.id
+                  : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
                   ? "Your turn"
                   : `Waiting for ${currentPlayer?.username}...`}
               </p>
