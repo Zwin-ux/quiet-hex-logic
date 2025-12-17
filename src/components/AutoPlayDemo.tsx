@@ -87,53 +87,39 @@ const AutoPlayDemo = () => {
   };
 
   return (
-    <section className="py-16 px-6 bg-gradient-to-b from-background to-accent/10">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="font-body text-4xl md:text-5xl font-semibold text-foreground mb-4">
-            See Hexology in Action
-          </h2>
-          <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
-            Watch a example of Hex with robots fighting to the death!
-          </p>
-        </div>
-
-        <Card className="p-8 shadow-paper border-2 border-border bg-background/50 backdrop-blur">
-          <div className="flex flex-col items-center gap-6">
-            {/* Board */}
-            <div className="w-full max-w-2xl">
+    <section className="py-12 px-6 bg-gradient-to-b from-background to-accent/5">
+      <div className="max-w-3xl mx-auto">
+        <Card className="p-6 shadow-soft border border-border bg-background/50 backdrop-blur">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-sm font-mono text-muted-foreground">{caption}</p>
+            
+            <div className="w-full max-w-md">
               <HexBoard
                 size={7}
                 board={board}
                 lastMove={lastMove}
                 winningPath={winningPath}
-                onCellClick={() => {}} // Non-interactive
+                onCellClick={() => {}}
                 disabled={true}
               />
             </div>
 
-            {/* Caption */}
-            <div className="text-center">
-              <p className="text-xl font-body text-foreground animate-fade-in">
-                {caption}
-              </p>
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all ${
-                  currentPlayer === 1 && !winningPath.length
-                    ? 'border-indigo bg-indigo/10' 
-                    : 'border-border bg-background/50'
-                }`}>
-                  <div className="w-3 h-3 rounded-full bg-indigo" />
-                  <span className="text-sm font-mono">Indigo</span>
-                </div>
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all ${
-                  currentPlayer === 2 && !winningPath.length
-                    ? 'border-ochre bg-ochre/10' 
-                    : 'border-border bg-background/50'
-                }`}>
-                  <div className="w-3 h-3 rounded-full bg-ochre" />
-                  <span className="text-sm font-mono">Ochre</span>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                currentPlayer === 1 && !winningPath.length
+                  ? 'border-indigo bg-indigo/10' 
+                  : 'border-border bg-background/50'
+              }`}>
+                <div className="w-2 h-2 rounded-full bg-indigo" />
+                <span className="text-xs font-mono">Indigo</span>
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                currentPlayer === 2 && !winningPath.length
+                  ? 'border-ochre bg-ochre/10' 
+                  : 'border-border bg-background/50'
+              }`}>
+                <div className="w-2 h-2 rounded-full bg-ochre" />
+                <span className="text-xs font-mono">Ochre</span>
               </div>
             </div>
           </div>
