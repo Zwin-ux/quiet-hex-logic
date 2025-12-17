@@ -27,10 +27,9 @@ const easeOutBack = (t: number): number => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 };
 
-// Easing function for elastic pop
-const easeOutElastic = (t: number): number => {
-  if (t === 0 || t === 1) return t;
-  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1;
+// Easing function for smooth reveal
+const easeOutCubic = (t: number): number => {
+  return 1 - Math.pow(1 - t, 3);
 };
 
 const HexBoardComponent = ({ 
@@ -50,6 +49,9 @@ const HexBoardComponent = ({
   const animationRef = useRef<number>();
   const lastRenderTime = useRef<number>(0);
   
+  // Track winning path animation
+  const [winPathAnimStart, setWinPathAnimStart] = useState<number | null>(null);
+  const prevWinningPathRef = useRef<number[]>([]);
 
   // Track new placements for animation
   useEffect(() => {
@@ -61,6 +63,16 @@ const HexBoardComponent = ({
       ]);
     }
   }, [lastMove]);
+
+  // Start winning path trace animation when path appears
+  useEffect(() => {
+    if (winningPath.length > 0 && prevWinningPathRef.current.length === 0) {
+      setWinPathAnimStart(Date.now());
+    } else if (winningPath.length === 0) {
+      setWinPathAnimStart(null);
+    }
+    prevWinningPathRef.current = winningPath;
+  }, [winningPath]);
 
   // Clean up old animations
   useEffect(() => {
@@ -160,9 +172,30 @@ const HexBoardComponent = ({
 
         // Fill based on state
         const color = board[cell];
-        const isWinning = winningPath.includes(cell);
+        const winPathIndex = winningPath.indexOf(cell);
+        const isInWinPath = winPathIndex !== -1;
         const isLast = cell === lastMove;
         const isHovered = cell === hoveredCell && !color && !disabled;
+        
+        // Calculate winning path trace animation
+        let isWinningRevealed = false;
+        let winRevealProgress = 0;
+        if (isInWinPath && winPathAnimStart) {
+          const elapsed = Date.now() - winPathAnimStart;
+          const delayPerCell = 80; // ms delay between each cell reveal
+          const revealDuration = 300; // ms for each cell to fully reveal
+          const cellDelay = winPathIndex * delayPerCell;
+          const cellElapsed = elapsed - cellDelay;
+          
+          if (cellElapsed > 0) {
+            isWinningRevealed = true;
+            winRevealProgress = Math.min(1, cellElapsed / revealDuration);
+          }
+        } else if (isInWinPath && !winPathAnimStart) {
+          // No animation, just show it
+          isWinningRevealed = true;
+          winRevealProgress = 1;
+        }
         
         // Check if this cell is being animated
         const animatedCell = animatedCells.find(a => a.cell === cell && a.type === 'place');
@@ -189,13 +222,22 @@ const HexBoardComponent = ({
             ctx.shadowBlur = 20 * (1 - animationProgress);
           }
           
-          ctx.fillStyle = isWinning ? skin.colors.player1Winning : skin.colors.player1;
+          ctx.fillStyle = isWinningRevealed ? skin.colors.player1Winning : skin.colors.player1;
           
-          // Draw winning path with pulsing glow
-          if (isWinning) {
-            const pulse = Math.sin(Date.now() / 200) * 0.4 + 0.6;
+          // Draw winning path with pulsing glow and trace effect
+          if (isWinningRevealed) {
+            const baseGlow = easeOutCubic(winRevealProgress);
+            const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
             ctx.shadowColor = skin.colors.player1Glow;
-            ctx.shadowBlur = 30 * pulse;
+            ctx.shadowBlur = 35 * baseGlow * pulse;
+            
+            // Add scale pop when cell is revealed
+            if (winRevealProgress < 1) {
+              const popScale = 1 + 0.15 * easeOutCubic(winRevealProgress) * (1 - winRevealProgress);
+              ctx.translate(x, y);
+              ctx.scale(popScale, popScale);
+              ctx.translate(-x, -y);
+            }
           }
           
           ctx.fill();
@@ -222,13 +264,22 @@ const HexBoardComponent = ({
             ctx.shadowBlur = 20 * (1 - animationProgress);
           }
           
-          ctx.fillStyle = isWinning ? skin.colors.player2Winning : skin.colors.player2;
+          ctx.fillStyle = isWinningRevealed ? skin.colors.player2Winning : skin.colors.player2;
           
-          // Draw winning path with pulsing glow
-          if (isWinning) {
-            const pulse = Math.sin(Date.now() / 200) * 0.4 + 0.6;
+          // Draw winning path with pulsing glow and trace effect
+          if (isWinningRevealed) {
+            const baseGlow = easeOutCubic(winRevealProgress);
+            const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
             ctx.shadowColor = skin.colors.player2Glow;
-            ctx.shadowBlur = 30 * pulse;
+            ctx.shadowBlur = 35 * baseGlow * pulse;
+            
+            // Add scale pop when cell is revealed
+            if (winRevealProgress < 1) {
+              const popScale = 1 + 0.15 * easeOutCubic(winRevealProgress) * (1 - winRevealProgress);
+              ctx.translate(x, y);
+              ctx.scale(popScale, popScale);
+              ctx.translate(-x, -y);
+            }
           }
           
           ctx.fill();
@@ -276,7 +327,7 @@ const HexBoardComponent = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [size, board, lastMove, winningPath, hoveredCell, disabled, animatedCells, skin]);
+  }, [size, board, lastMove, winningPath, winPathAnimStart, hoveredCell, disabled, animatedCells, skin]);
 
   // Point-in-hexagon test for accurate click detection
   const pointInHex = (px: number, py: number, cx: number, cy: number, size: number): boolean => {
