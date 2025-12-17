@@ -111,14 +111,29 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
         });
 
         console.log('[Discord] Exchanging code for token...');
-        const response = await fetch(
-          `https://ptuxqfwicdpdslqwnswd.supabase.co/functions/v1/discord-token-exchange`,
-          {
+
+        // In Discord Activities, outbound HTTP requests may require a proxy mapping.
+        // If you configured a Discord "Proxy Path Mapping" like:
+        //   Prefix: /api
+        //   Target: https://<your-backend-domain>/functions/v1
+        // then we should call the token exchange via a relative URL.
+        const tokenExchangeUrl = isDiscord
+          ? `/api/discord-token-exchange`
+          : `https://ptuxqfwicdpdslqwnswd.supabase.co/functions/v1/discord-token-exchange`;
+
+        console.log('[Discord] Token exchange URL:', tokenExchangeUrl);
+
+        let response: Response;
+        try {
+          response = await fetch(tokenExchangeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code }),
-          }
-        );
+          });
+        } catch (fetchErr) {
+          console.error('[Discord] Token exchange fetch failed:', fetchErr);
+          throw new Error('Failed to fetch (token exchange)');
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
