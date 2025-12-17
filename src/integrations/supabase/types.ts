@@ -555,6 +555,41 @@ export type Database = {
         }
         Relationships: []
       }
+      puzzle_rush_scores: {
+        Row: {
+          created_at: string
+          id: string
+          puzzles_solved: number
+          score: number
+          time_limit_seconds: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          puzzles_solved?: number
+          score?: number
+          time_limit_seconds?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          puzzles_solved?: number
+          score?: number
+          time_limit_seconds?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "puzzle_rush_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       puzzles: {
         Row: {
           board_size: number
