@@ -48,9 +48,13 @@ export function GuestModeBanner({ guestUsername }: GuestModeBannerProps) {
         <Button 
           onClick={() => navigate('/auth')} 
           size="lg"
-          className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all hover:scale-105 h-12 bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
+          className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all hover:scale-105 h-12 bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90 animate-pulse hover:animate-none ring-2 ring-violet/50 ring-offset-2 ring-offset-background"
         >
-          Create Account
+          <span className="relative flex items-center gap-2">
+            <span className="absolute -left-1 -top-1 h-3 w-3 rounded-full bg-green-400 animate-ping" />
+            <span className="relative h-2 w-2 rounded-full bg-green-400" />
+            Create Account
+          </span>
         </Button>
       </div>
     </Card>
