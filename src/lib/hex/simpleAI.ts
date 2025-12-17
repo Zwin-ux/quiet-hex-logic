@@ -403,14 +403,13 @@ export class SimpleHexAI {
     const [col, row] = this.coords(cell);
     const neighbors: number[] = [];
     
-    // Hex grid has 6 neighbors - correct directions for axial coordinates
-    const directions = [
-      [1, 0], [-1, 0],      // E, W
-      [0, 1], [0, -1],      // SE, NW
-      [1, -1], [-1, 1]      // NE, SW
-    ];
+    // Offset coordinates (odd-q): odd columns shifted down
+    const deltasEven = [[1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1], [0, -1]]; // [dc, dr]
+    const deltasOdd = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [0, -1]];   // [dc, dr]
     
-    for (const [dc, dr] of directions) {
+    const deltas = col % 2 === 0 ? deltasEven : deltasOdd;
+    
+    for (const [dc, dr] of deltas) {
       const nc = col + dc;
       const nr = row + dr;
       if (nc >= 0 && nc < this.game.n && nr >= 0 && nr < this.game.n) {
