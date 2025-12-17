@@ -49,6 +49,7 @@ export default function Match() {
   const [showAIReasoning, setShowAIReasoning] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
   const aiMoveInProgress = useRef(false);
+  const moveInProgress = useRef(false);
   const lastAITurnProcessed = useRef<number | null>(null);
   const loadInFlight = useRef(false);
   const [rematchLoading, setRematchLoading] = useState(false);
@@ -362,6 +363,11 @@ export default function Match() {
   const handleCellClick = useCallback(async (cell: number) => {
     if (!engine || !match || !user) return;
 
+    // Prevent duplicate submissions
+    if (moveInProgress.current) {
+      return;
+    }
+
     // Spectators can't make moves
     if (isSpectating) {
       toast.error('Spectators cannot make moves');
@@ -386,6 +392,9 @@ export default function Match() {
       toast.error('Invalid move');
       return;
     }
+
+    // Lock to prevent duplicate submissions
+    moveInProgress.current = true;
 
     // Optimistic UI update
     const optimisticEngine = engine.clone();
@@ -445,6 +454,9 @@ export default function Match() {
       await loadMatch();
       console.error('Move error:', error);
       toast.error('Failed to make move');
+    } finally {
+      // Release lock
+      moveInProgress.current = false;
     }
   }, [engine, match, user, players, isSpectating, loadMatch]);
 
