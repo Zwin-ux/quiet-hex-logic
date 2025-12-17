@@ -1,7 +1,8 @@
 /**
- * Hex Game Engine
+ * Hex Game Engine v2
  * Implements the game of Hex with Disjoint Set Union (DSU) for win detection
  * and support for the pie rule.
+ * Uses odd-q offset coordinates for hex grid.
  */
 
 export type Color = 1 | 2; // 1 = indigo (W-E), 2 = ochre (N-S)
