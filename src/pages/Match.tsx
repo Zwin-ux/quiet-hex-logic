@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useSpectators } from '@/hooks/useSpectators';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import { HexBoard } from '@/components/HexBoard';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
@@ -62,6 +63,9 @@ export default function Match() {
 
   // Track spectators
   const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(matchId);
+
+  // Game sounds
+  const { playPlaceSound, playWinSound, playLoseSound, playErrorSound } = useGameSounds();
 
   useEffect(() => {
     if (!matchId) return;
@@ -342,9 +346,14 @@ export default function Match() {
         return;
       }
 
+      // Play AI move sound
+      playPlaceSound();
+
       // Check if move resulted in a win
       if (result.winner) {
         console.log('AI move resulted in win:', result.winner);
+        // AI won, play lose sound for player
+        playLoseSound();
       }
 
       // Reload match to get updated state
@@ -370,6 +379,7 @@ export default function Match() {
 
     // Spectators can't make moves
     if (isSpectating) {
+      playErrorSound();
       toast.error('Spectators cannot make moves');
       return;
     }
@@ -379,22 +389,28 @@ export default function Match() {
     const currentPlayer = players.find(p => p.color === currentColor);
     const isAITurn = !!match.ai_difficulty && currentColor === 2;
     if (isAITurn) {
+      playErrorSound();
       toast.error('Wait for the computer to move');
       return;
     }
     if (!currentPlayer || currentPlayer.profile_id !== user.id) {
+      playErrorSound();
       toast.error('Not your turn');
       return;
     }
 
     // Client-side validation
     if (!engine.legal(cell)) {
+      playErrorSound();
       toast.error('Invalid move');
       return;
     }
 
     // Lock to prevent duplicate submissions
     moveInProgress.current = true;
+
+    // Play place sound immediately for responsive feedback
+    playPlaceSound();
 
     // Optimistic UI update
     const optimisticEngine = engine.clone();
@@ -442,6 +458,12 @@ export default function Match() {
       const winner = result.winner;
       if (winner) {
         const isVictory = winner === currentPlayer.color;
+        // Play win/lose sound
+        if (isVictory) {
+          playWinSound();
+        } else {
+          playLoseSound();
+        }
         toast.success(isVictory ? 'Victory!' : 'Game Over', {
           description: isVictory 
             ? `You won as ${winner === 1 ? 'Indigo' : 'Ochre'}!` 
@@ -458,7 +480,7 @@ export default function Match() {
       // Release lock
       moveInProgress.current = false;
     }
-  }, [engine, match, user, players, isSpectating, loadMatch]);
+  }, [engine, match, user, players, isSpectating, loadMatch, playPlaceSound, playWinSound, playLoseSound, playErrorSound]);
 
   const handleSwapColors = useCallback(async () => {
     if (!engine || !match || !user) return;
