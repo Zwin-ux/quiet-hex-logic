@@ -19,9 +19,9 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but allow anonymous/guest users to stay)
   useEffect(() => {
-    if (user) {
+    if (user && !user.is_anonymous) {
       navigate('/lobby');
     }
   }, [user, navigate]);
