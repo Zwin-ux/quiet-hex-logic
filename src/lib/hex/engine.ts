@@ -230,17 +230,29 @@ export class Hex {
     const w = this.winner();
     if (w === 0) return null;
 
-    const dsu = w === 1 ? this.dsu1 : this.dsu2;
-    const startVirtual = w === 1 ? this.v1a : this.v2a;
-    const endVirtual = w === 1 ? this.v1b : this.v2b;
+    // Helper to check if cell is on the start border
+    const isOnStartBorder = (cell: number): boolean => {
+      const [c, r] = this.coords(cell);
+      if (w === 1) return c === 0; // West border for indigo
+      return r === 0; // North border for ochre
+    };
 
-    // Find all cells connected to start border
+    // Helper to check if cell is on the end border
+    const isOnEndBorder = (cell: number): boolean => {
+      const [c, r] = this.coords(cell);
+      if (w === 1) return c === this.n - 1; // East border for indigo
+      return r === this.n - 1; // South border for ochre
+    };
+
+    // Find all cells of the winning color that are on the start border
     const startCells: number[] = [];
     for (let i = 0; i < this.n * this.n; i++) {
-      if (this.board[i] === w && dsu.find(i) === dsu.find(startVirtual)) {
+      if (this.board[i] === w && isOnStartBorder(i)) {
         startCells.push(i);
       }
     }
+
+    if (startCells.length === 0) return null;
 
     // BFS from start border to end border
     const queue: number[] = [...startCells];
@@ -250,8 +262,8 @@ export class Hex {
     while (queue.length > 0) {
       const current = queue.shift()!;
       
-      // Check if connected to end border
-      if (dsu.find(current) === dsu.find(endVirtual)) {
+      // Check if this cell is on the end border (actual positional check)
+      if (isOnEndBorder(current)) {
         // Reconstruct path
         const path: number[] = [current];
         let node = current;
@@ -262,7 +274,7 @@ export class Hex {
         return path;
       }
 
-      // Explore neighbors
+      // Explore neighbors of the same color
       for (const nb of this.neighbors(current)) {
         if (!visited.has(nb) && this.board[nb] === w) {
           visited.add(nb);
