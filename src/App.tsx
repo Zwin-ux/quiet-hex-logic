@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AchievementToast } from "@/components/AchievementToast";
 import { DiscordProvider } from "@/lib/discord/DiscordContext";
 import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
+import { GlobalChat } from "@/components/GlobalChat";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -59,9 +60,9 @@ const App = () => (
               <Route path="/puzzles" element={<Puzzles />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <GlobalChat />
           </DiscordActivityWrapper>
         </BrowserRouter>
       </TooltipProvider>
