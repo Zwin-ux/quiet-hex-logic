@@ -137,20 +137,47 @@ const HexBoardComponent = ({
     ctx.fillStyle = skin.colors.background;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    // Draw edge markers
-    ctx.font = `${hexRadius * 0.4}px "IBM Plex Mono", monospace`;
+    // Draw coordinate labels
+    ctx.font = `bold ${Math.max(10, hexRadius * 0.35)}px "IBM Plex Mono", monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    
+    // Column labels (A, B, C...) at top and bottom
+    for (let col = 0; col < size; col++) {
+      const label = String.fromCharCode(65 + col); // A, B, C...
+      const x = offsetX + col * hexRadius * 1.5 + hexRadius;
+      const topY = offsetY - hexRadius * 0.6;
+      const bottomY = offsetY + boardHeight + hexRadius * 0.6;
+      
+      ctx.fillStyle = skin.colors.edgePlayer2;
+      ctx.fillText(label, x, topY);
+      ctx.fillText(label, x + (size % 2 === 0 ? hexHeight / 2 : 0), bottomY);
+    }
+    
+    // Row labels (1, 2, 3...) at left and right
+    for (let row = 0; row < size; row++) {
+      const label = String(row + 1);
+      const y = offsetY + row * hexHeight + hexRadius * Math.sqrt(3) / 2;
+      const leftX = offsetX - hexRadius * 0.8;
+      const rightX = offsetX + boardWidth + hexRadius * 0.8;
+      
+      ctx.fillStyle = skin.colors.edgePlayer1;
+      ctx.fillText(label, leftX, y);
+      ctx.fillText(label, rightX, y + (size - 1) * hexHeight / 2);
+    }
+
+    // Draw edge markers
+    ctx.font = `${hexRadius * 0.4}px "IBM Plex Mono", monospace`;
 
     // West/East markers (Player 1)
     ctx.fillStyle = skin.colors.edgePlayer1;
-    ctx.fillText('W', offsetX - 20, offsetY + boardHeight / 2);
-    ctx.fillText('E', offsetX + boardWidth + 20, offsetY + boardHeight / 2);
+    ctx.fillText('W', offsetX - hexRadius * 1.8, offsetY + boardHeight / 2);
+    ctx.fillText('E', offsetX + boardWidth + hexRadius * 1.8, offsetY + boardHeight / 2);
 
     // North/South markers (Player 2)
     ctx.fillStyle = skin.colors.edgePlayer2;
-    ctx.fillText('N', offsetX + boardWidth / 2, offsetY - 20);
-    ctx.fillText('S', offsetX + boardWidth / 2, offsetY + boardHeight + 20);
+    ctx.fillText('N', offsetX + boardWidth / 2, offsetY - hexRadius * 1.2);
+    ctx.fillText('S', offsetX + boardWidth / 2, offsetY + boardHeight + hexRadius * 1.2);
 
     // Draw hexagons
     for (let row = 0; row < size; row++) {
@@ -312,6 +339,77 @@ const HexBoardComponent = ({
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
+      }
+    }
+    
+    // Draw smooth curved winning path line
+    if (winningPath.length >= 2 && winPathAnimStart) {
+      const elapsed = Date.now() - winPathAnimStart;
+      const delayPerCell = 80;
+      const totalAnimTime = winningPath.length * delayPerCell + 300;
+      const lineProgress = Math.min(1, elapsed / totalAnimTime);
+      
+      // Calculate center positions for each winning cell
+      const pathPoints: { x: number; y: number }[] = [];
+      for (const cell of winningPath) {
+        const [col, row] = [cell % size, Math.floor(cell / size)];
+        const x = offsetX + col * hexRadius * 1.5 + hexRadius;
+        const y = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
+        pathPoints.push({ x, y });
+      }
+      
+      if (pathPoints.length >= 2) {
+        // Determine line color based on winner (check first cell)
+        const firstCell = winningPath[0];
+        const winnerColor = board[firstCell];
+        const lineColor = winnerColor === 1 ? skin.colors.player1Glow : skin.colors.player2Glow;
+        
+        ctx.save();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = hexRadius * 0.15;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = lineColor;
+        ctx.shadowBlur = 15;
+        ctx.globalAlpha = 0.9;
+        
+        // Draw smooth curved path using quadratic bezier curves
+        ctx.beginPath();
+        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+        
+        // Calculate how many points to draw based on animation progress
+        const pointsToDraw = Math.floor(pathPoints.length * lineProgress);
+        const partialProgress = (pathPoints.length * lineProgress) - pointsToDraw;
+        
+        for (let i = 0; i < pointsToDraw && i < pathPoints.length - 1; i++) {
+          const current = pathPoints[i];
+          const next = pathPoints[i + 1];
+          
+          // Use midpoint for smooth curves
+          const midX = (current.x + next.x) / 2;
+          const midY = (current.y + next.y) / 2;
+          
+          if (i === 0) {
+            ctx.quadraticCurveTo(current.x, current.y, midX, midY);
+          } else {
+            ctx.quadraticCurveTo(current.x, current.y, midX, midY);
+          }
+        }
+        
+        // Draw partial segment for smooth animation
+        if (pointsToDraw < pathPoints.length - 1 && pointsToDraw >= 0) {
+          const current = pathPoints[pointsToDraw];
+          const next = pathPoints[pointsToDraw + 1];
+          const partialX = current.x + (next.x - current.x) * partialProgress;
+          const partialY = current.y + (next.y - current.y) * partialProgress;
+          ctx.lineTo(partialX, partialY);
+        } else if (pointsToDraw === pathPoints.length - 1) {
+          // Draw to the last point
+          ctx.lineTo(pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y);
+        }
+        
+        ctx.stroke();
+        ctx.restore();
       }
     }
     
