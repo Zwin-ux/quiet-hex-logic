@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/UserAvatar';
 import { PremiumBadge } from '@/components/PremiumBadge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Clock } from 'lucide-react';
 import { memo } from 'react';
 
@@ -12,6 +13,7 @@ interface PlayerPanelProps {
   isAI?: boolean;
   avatarColor?: string;
   isPremium?: boolean;
+  discordAvatarUrl?: string;
 }
 
 const PlayerPanelComponent = ({ 
@@ -21,7 +23,8 @@ const PlayerPanelComponent = ({
   timeRemaining,
   isAI = false,
   avatarColor = 'indigo',
-  isPremium = false
+  isPremium = false,
+  discordAvatarUrl
 }: PlayerPanelProps) => {
   const colorName = color === 1 ? 'Indigo' : 'Ochre';
   const colorClass = color === 1 ? 'bg-indigo text-primary-foreground' : 'bg-ochre text-secondary-foreground';
@@ -52,11 +55,20 @@ const PlayerPanelComponent = ({
       )}
 
       <div className="flex items-center gap-4">
-        <UserAvatar 
-          username={username}
-          color={avatarColor}
-          size="lg"
-        />
+        {discordAvatarUrl ? (
+          <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+            <AvatarImage src={discordAvatarUrl} alt={username} />
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {username.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <UserAvatar 
+            username={username}
+            color={avatarColor}
+            size="lg"
+          />
+        )}
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">

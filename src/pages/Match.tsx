@@ -769,10 +769,21 @@ export default function Match() {
   const player2 = players.find(p => p.color === 2);
   const currentColor = match.turn % 2 === 1 ? 1 : 2;
   const currentPlayer = players.find(p => p.color === currentColor);
-  const userPlayer = players.find(p => p.profile_id === user?.id);
-  const isPlayer = !!userPlayer;
+  const userPlayer = players.find(p => p.profile_id === user?.id || p.profile_id === 'discord-player');
+  const isPlayer = !!userPlayer || isDiscordLocalMatch;
   const isAIMatch = match.ai_difficulty != null;
   const isAITurn = isAIMatch && currentColor === 2;
+
+  // Build Discord avatar URL if available
+  const getDiscordAvatarUrl = (userId?: string, avatarHash?: string | null) => {
+    if (!userId || !avatarHash) return undefined;
+    return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png?size=128`;
+  };
+
+  // Get Discord avatar URL for the human player in Discord local matches
+  const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar 
+    ? getDiscordAvatarUrl(discordUser.id, discordUser.avatar) 
+    : undefined;
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -867,6 +878,7 @@ export default function Match() {
                 timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                 isAI={player1.is_bot}
                 avatarColor={player1.avatar_color}
+                discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
               />
             )}
           </div>
@@ -1005,6 +1017,7 @@ export default function Match() {
                   timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                   isAI={player2.is_bot}
                   avatarColor={player2.avatar_color}
+                  discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                 />
                 {aiThinking && isAIMatch && currentColor === 2 && (
                   <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2">
