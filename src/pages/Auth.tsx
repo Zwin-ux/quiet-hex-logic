@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Loader2, ArrowLeft, Lock, User, Trophy, Users, Swords, Crown, CheckCircle2 } from 'lucide-react';
+import { Mail, Loader2, ArrowLeft, Lock, User, Trophy, Users, Swords, Crown, CheckCircle2, KeyRound } from 'lucide-react';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Invalid email address');
@@ -14,6 +14,7 @@ const usernameSchema = z.string().min(3, 'Username must be at least 3 characters
 
 type AuthMode = 'magic-link' | 'password';
 type AuthTab = 'signin' | 'signup';
+type AuthView = 'main' | 'forgot-password' | 'reset-password';
 
 const UNLOCK_FEATURES = [
   { icon: Swords, label: 'Multiplayer Matches', description: 'Challenge real players' },
@@ -23,25 +24,36 @@ const UNLOCK_FEATURES = [
 ];
 
 export default function Auth() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('magic-link');
   const [authTab, setAuthTab] = useState<AuthTab>('signup');
+  const [authView, setAuthView] = useState<AuthView>('main');
   const [socialLoading, setSocialLoading] = useState<'google' | 'discord' | null>(null);
   
-  const { user, signInWithMagicLink, signIn, signUp, signInWithGoogle, signInWithDiscord } = useAuth();
+  const { user, signInWithMagicLink, signIn, signUp, signInWithGoogle, signInWithDiscord, resetPassword, updatePassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Check if this is a password reset redirect
+  useEffect(() => {
+    if (searchParams.get('reset') === 'true') {
+      setAuthView('reset-password');
+    }
+  }, [searchParams]);
+
   // Redirect if already authenticated (but allow anonymous/guest users to stay)
   useEffect(() => {
-    if (user && !user.is_anonymous) {
+    if (user && !user.is_anonymous && authView !== 'reset-password') {
       navigate('/lobby');
     }
-  }, [user, navigate]);
+  }, [user, navigate, authView]);
 
   const handleSocialLogin = async (provider: 'google' | 'discord') => {
     setSocialLoading(provider);
@@ -57,6 +69,88 @@ export default function Auth() {
       }
     } finally {
       setSocialLoading(null);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      emailSchema.parse(email);
+      const { error } = await resetPassword(email);
+
+      if (error) {
+        toast({
+          title: 'Failed to send reset link',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        setEmailSent(true);
+        toast({
+          title: 'Check your email!',
+          description: 'We sent you a password reset link.',
+        });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: 'Invalid email',
+          description: error.issues[0].message,
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      passwordSchema.parse(newPassword);
+      
+      if (newPassword !== confirmPassword) {
+        toast({
+          title: 'Passwords do not match',
+          description: 'Please make sure both passwords are the same.',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error } = await updatePassword(newPassword);
+
+      if (error) {
+        toast({
+          title: 'Failed to reset password',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Password updated!',
+          description: 'You can now sign in with your new password.',
+        });
+        setAuthView('main');
+        setAuthMode('password');
+        setAuthTab('signin');
+        navigate('/auth', { replace: true });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: 'Invalid password',
+          description: error.issues[0].message,
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,10 +240,169 @@ export default function Auth() {
     }
   };
 
+  // Forgot Password View
+  if (authView === 'forgot-password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
+            <div className="text-center mb-6">
+              <h1 className="font-body text-4xl text-ink mb-2">Reset Password</h1>
+              <p className="text-ink/60 text-sm">
+                {emailSent ? 'Check your inbox' : "Enter your email to receive a reset link"}
+              </p>
+            </div>
+
+            {emailSent ? (
+              <div className="text-center space-y-6">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <Mail className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <p className="text-ink mb-2">We sent a reset link to</p>
+                  <p className="font-semibold text-ink">{email}</p>
+                </div>
+                <p className="text-ink/60 text-sm">
+                  Click the link in your email to reset your password.
+                </p>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setEmailSent(false);
+                    setAuthView('main');
+                  }}
+                  className="text-ink/60"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to sign in
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <Label htmlFor="reset-email" className="text-ink">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="mt-1 bg-paper border-graphite/30"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="hero"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Reset Link
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-ink/60"
+                  onClick={() => setAuthView('main')}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to sign in
+                </Button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Reset Password View (after clicking email link)
+  if (authView === 'reset-password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <KeyRound className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="font-body text-4xl text-ink mb-2">New Password</h1>
+              <p className="text-ink/60 text-sm">Enter your new password below</p>
+            </div>
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <Label htmlFor="new-password" className="text-ink">New Password</Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-10 bg-paper border-graphite/30"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="confirm-password" className="text-ink">Confirm Password</Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-10 bg-paper border-graphite/30"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                variant="hero"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-paper p-4">
       <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-8">
-        {/* Features Unlock Preview */}
+        {/* Features Unlock Preview - Desktop */}
         <div className="hidden lg:flex flex-col justify-center flex-1 pr-8">
           <h2 className="text-2xl font-bold text-ink mb-2">Unlock Full Access</h2>
           <p className="text-ink/60 mb-6">Create an account to access all features</p>
@@ -175,6 +428,23 @@ export default function Auth() {
 
         {/* Auth Form */}
         <div className="w-full lg:w-96">
+          {/* Mobile Features Preview */}
+          <div className="lg:hidden mb-6">
+            <div className="bg-gradient-to-r from-primary/10 to-violet/10 rounded-xl p-4 border border-primary/20">
+              <p className="text-sm font-medium text-ink mb-3 text-center">Unlock with an account:</p>
+              <div className="flex justify-center gap-6">
+                {UNLOCK_FEATURES.map((feature) => (
+                  <div key={feature.label} className="flex flex-col items-center gap-1">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <feature.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-xs text-ink/70 text-center max-w-[60px]">{feature.label.split(' ')[0]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
             <div className="text-center mb-6">
               <h1 className="font-body text-4xl text-ink mb-2">Hexology</h1>
@@ -388,7 +658,18 @@ export default function Auth() {
                       </div>
 
                       <div>
-                        <Label htmlFor="password" className="text-ink">Password</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="password" className="text-ink">Password</Label>
+                          {authTab === 'signin' && (
+                            <button
+                              type="button"
+                              onClick={() => setAuthView('forgot-password')}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Forgot password?
+                            </button>
+                          )}
+                        </div>
                         <div className="relative mt-1">
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
