@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Crown, Sparkles, Trophy, Palette, Zap, Shield } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Sparkles, Trophy, Palette, Zap, Shield, Puzzle, BarChart3, Download, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,10 +12,13 @@ import { premiumSkins } from '@/lib/boardSkins';
 const features = [
   { icon: Palette, title: 'Exclusive Board Skins', description: '4 premium skins including Galaxy, Royal, Retro & Aurora' },
   { icon: Zap, title: 'Unlimited AI Practice', description: 'Play against all AI difficulties with no limits' },
-  { icon: Trophy, title: 'Ranked Priority', description: 'Priority matchmaking in ranked games' },
+  { icon: Puzzle, title: 'Unlimited Puzzles', description: 'Access all puzzle collections without daily limits' },
+  { icon: BarChart3, title: 'Game Analysis', description: 'AI-powered post-game analysis with move evaluation' },
+  { icon: Trophy, title: 'Tournament Priority', description: 'Priority access to tournaments and ranked matches' },
+  { icon: Download, title: 'Replay Export', description: 'Export your game replays in PGN-like format' },
   { icon: Shield, title: 'No Ads', description: 'Clean, ad-free gaming experience' },
-  { icon: Crown, title: 'Premium Badge', description: 'Show off your premium status' },
-  { icon: Sparkles, title: 'Early Access', description: 'First access to new features' },
+  { icon: Crown, title: 'Premium Badge', description: 'Show off your premium status everywhere' },
+  { icon: Sparkles, title: 'Early Access', description: 'First access to new features and beta content' },
 ];
 
 export default function Premium() {
