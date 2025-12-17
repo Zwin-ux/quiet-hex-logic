@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Target, Zap, Crown, Check, Lock, Flame, Calendar, Star } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Zap, Crown, Check, Lock, Flame, Calendar, Star, Timer, Book } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePremium } from '@/hooks/usePremium';
 import { usePuzzles, Puzzle } from '@/hooks/usePuzzles';
 import PuzzleSolver from '@/components/PuzzleSolver';
+import PuzzleRush from '@/components/PuzzleRush';
+import OpeningBook from '@/components/OpeningBook';
 
 const difficultyConfig = {
   beginner: { label: 'Beginner', color: 'bg-green-500', icon: Target },
@@ -24,6 +26,8 @@ export default function Puzzles() {
   const { puzzles, dailyPuzzle, attempts, streakInfo, loading, recordAttempt, completeDailyPuzzle } = usePuzzles(user?.id);
   const [selectedPuzzle, setSelectedPuzzle] = useState<Puzzle | null>(null);
   const [activeTab, setActiveTab] = useState('daily');
+  const [showRush, setShowRush] = useState(false);
+  const [showOpenings, setShowOpenings] = useState(false);
 
   const filteredPuzzles = activeTab === 'all' 
     ? puzzles 
@@ -38,6 +42,17 @@ export default function Puzzles() {
       await completeDailyPuzzle();
     }
   };
+
+  if (showRush) {
+    return (
+      <PuzzleRush 
+        puzzles={puzzles}
+        userId={user?.id}
+        isPremium={isPremium}
+        onBack={() => setShowRush(false)}
+      />
+    );
+  }
 
   if (selectedPuzzle) {
     return (
@@ -79,7 +94,35 @@ export default function Puzzles() {
               </Badge>
             )}
           </div>
+          
+          {/* Quick Actions */}
+          <div className="flex gap-2 justify-center mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRush(true)}
+              className="gap-2"
+            >
+              <Timer className="h-4 w-4" />
+              Puzzle Rush
+              {!isPremium && <Lock className="h-3 w-3 ml-1" />}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowOpenings(prev => !prev)}
+              className="gap-2"
+            >
+              <Book className="h-4 w-4" />
+              Opening Book
+            </Button>
+          </div>
         </div>
+
+        {/* Opening Book Panel */}
+        {showOpenings && (
+          <div className="mb-6">
+            <OpeningBook boardSize={11} ply={0} />
+          </div>
+        )}
 
         {/* Streak Card */}
         <Card className="mb-6 border-2 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
