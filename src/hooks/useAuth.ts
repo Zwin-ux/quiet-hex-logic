@@ -72,6 +72,26 @@ export function useAuth() {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/lobby`,
+      },
+    });
+    return { error };
+  };
+
+  const signInWithDiscord = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: `${window.location.origin}/lobby`,
+      },
+    });
+    return { error };
+  };
+
   return {
     user,
     session,
@@ -81,5 +101,7 @@ export function useAuth() {
     signInWithMagicLink,
     signOut,
     signInAnonymously,
+    signInWithGoogle,
+    signInWithDiscord,
   };
 }
