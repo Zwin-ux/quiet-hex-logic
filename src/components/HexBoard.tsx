@@ -20,6 +20,18 @@ interface AnimatedCell {
   type: 'place' | 'ripple';
 }
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+  color: string;
+  type: 'sparkle' | 'burst' | 'trail';
+}
+
 // Easing function for bouncy effect
 const easeOutBack = (t: number): number => {
   const c1 = 1.70158;
@@ -52,6 +64,7 @@ const HexBoardComponent = ({
   // Track winning path animation
   const [winPathAnimStart, setWinPathAnimStart] = useState<number | null>(null);
   const prevWinningPathRef = useRef<number[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
 
   // Track new placements for animation
   useEffect(() => {
@@ -342,7 +355,7 @@ const HexBoardComponent = ({
       }
     }
     
-    // Draw smooth curved winning path line
+    // Draw smooth curved winning path line with enhanced effects
     if (winningPath.length >= 2 && winPathAnimStart) {
       const elapsed = Date.now() - winPathAnimStart;
       const delayPerCell = 80;
@@ -363,54 +376,191 @@ const HexBoardComponent = ({
         const firstCell = winningPath[0];
         const winnerColor = board[firstCell];
         const lineColor = winnerColor === 1 ? skin.colors.player1Glow : skin.colors.player2Glow;
-        
-        ctx.save();
-        ctx.strokeStyle = lineColor;
-        ctx.lineWidth = hexRadius * 0.15;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowColor = lineColor;
-        ctx.shadowBlur = 15;
-        ctx.globalAlpha = 0.9;
-        
-        // Draw smooth curved path using quadratic bezier curves
-        ctx.beginPath();
-        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+        const solidColor = winnerColor === 1 ? skin.colors.player1 : skin.colors.player2;
         
         // Calculate how many points to draw based on animation progress
         const pointsToDraw = Math.floor(pathPoints.length * lineProgress);
         const partialProgress = (pathPoints.length * lineProgress) - pointsToDraw;
         
-        for (let i = 0; i < pointsToDraw && i < pathPoints.length - 1; i++) {
-          const current = pathPoints[i];
-          const next = pathPoints[i + 1];
+        // Helper function to draw path
+        const drawPath = (ctx: CanvasRenderingContext2D, endIndex: number, partial: number) => {
+          ctx.beginPath();
+          ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
           
-          // Use midpoint for smooth curves
-          const midX = (current.x + next.x) / 2;
-          const midY = (current.y + next.y) / 2;
-          
-          if (i === 0) {
-            ctx.quadraticCurveTo(current.x, current.y, midX, midY);
-          } else {
+          for (let i = 0; i < endIndex && i < pathPoints.length - 1; i++) {
+            const current = pathPoints[i];
+            const next = pathPoints[i + 1];
+            const midX = (current.x + next.x) / 2;
+            const midY = (current.y + next.y) / 2;
             ctx.quadraticCurveTo(current.x, current.y, midX, midY);
           }
-        }
+          
+          if (endIndex < pathPoints.length - 1 && endIndex >= 0) {
+            const current = pathPoints[endIndex];
+            const next = pathPoints[endIndex + 1];
+            const partialX = current.x + (next.x - current.x) * partial;
+            const partialY = current.y + (next.y - current.y) * partial;
+            ctx.lineTo(partialX, partialY);
+          } else if (endIndex === pathPoints.length - 1) {
+            ctx.lineTo(pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y);
+          }
+        };
         
-        // Draw partial segment for smooth animation
-        if (pointsToDraw < pathPoints.length - 1 && pointsToDraw >= 0) {
-          const current = pathPoints[pointsToDraw];
-          const next = pathPoints[pointsToDraw + 1];
-          const partialX = current.x + (next.x - current.x) * partialProgress;
-          const partialY = current.y + (next.y - current.y) * partialProgress;
-          ctx.lineTo(partialX, partialY);
-        } else if (pointsToDraw === pathPoints.length - 1) {
-          // Draw to the last point
-          ctx.lineTo(pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y);
-        }
-        
+        // Draw outer glow layer (widest, most diffuse)
+        ctx.save();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = hexRadius * 0.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = lineColor;
+        ctx.shadowBlur = 40;
+        ctx.globalAlpha = 0.3;
+        drawPath(ctx, pointsToDraw, partialProgress);
         ctx.stroke();
         ctx.restore();
+        
+        // Draw middle glow layer
+        ctx.save();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = hexRadius * 0.35;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = lineColor;
+        ctx.shadowBlur = 25;
+        ctx.globalAlpha = 0.5;
+        drawPath(ctx, pointsToDraw, partialProgress);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Draw core line (bright and thick)
+        ctx.save();
+        ctx.strokeStyle = solidColor;
+        ctx.lineWidth = hexRadius * 0.22;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = lineColor;
+        ctx.shadowBlur = 15;
+        ctx.globalAlpha = 1;
+        drawPath(ctx, pointsToDraw, partialProgress);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Draw inner bright highlight
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = hexRadius * 0.08;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.7;
+        drawPath(ctx, pointsToDraw, partialProgress);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Generate and update particles
+        if (lineProgress > 0) {
+          const particles = particlesRef.current;
+          
+          // Spawn new particles along the path
+          if (elapsed % 50 < 16) { // Spawn every ~50ms
+            const spawnCount = Math.min(5, Math.floor(lineProgress * 5) + 1);
+            for (let i = 0; i < spawnCount; i++) {
+              const pathIndex = Math.floor(Math.random() * Math.min(pointsToDraw + 1, pathPoints.length));
+              const point = pathPoints[pathIndex];
+              if (point) {
+                // Sparkle particles
+                particles.push({
+                  x: point.x + (Math.random() - 0.5) * hexRadius * 0.5,
+                  y: point.y + (Math.random() - 0.5) * hexRadius * 0.5,
+                  vx: (Math.random() - 0.5) * 3,
+                  vy: (Math.random() - 0.5) * 3 - 1,
+                  life: 1,
+                  maxLife: 1,
+                  size: Math.random() * 4 + 2,
+                  color: Math.random() > 0.5 ? lineColor : 'rgba(255, 255, 255, 0.9)',
+                  type: 'sparkle'
+                });
+              }
+            }
+          }
+          
+          // Burst particles when animation completes
+          if (lineProgress >= 1 && elapsed < totalAnimTime + 100) {
+            const lastPoint = pathPoints[pathPoints.length - 1];
+            const firstPoint = pathPoints[0];
+            for (let i = 0; i < 15; i++) {
+              const angle = (Math.PI * 2 * i) / 15;
+              const speed = Math.random() * 4 + 2;
+              // Burst from both ends
+              [firstPoint, lastPoint].forEach(point => {
+                particles.push({
+                  x: point.x,
+                  y: point.y,
+                  vx: Math.cos(angle) * speed,
+                  vy: Math.sin(angle) * speed,
+                  life: 1,
+                  maxLife: 1,
+                  size: Math.random() * 6 + 3,
+                  color: Math.random() > 0.3 ? lineColor : solidColor,
+                  type: 'burst'
+                });
+              });
+            }
+          }
+          
+          // Update and draw particles
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.05; // Gravity
+            p.vx *= 0.98; // Drag
+            p.life -= 0.02;
+            
+            if (p.life <= 0) {
+              particles.splice(i, 1);
+              continue;
+            }
+            
+            ctx.save();
+            ctx.globalAlpha = p.life * 0.8;
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = p.type === 'sparkle' ? 8 : 12;
+            
+            if (p.type === 'sparkle') {
+              // Draw star sparkle
+              ctx.beginPath();
+              const spikes = 4;
+              const outerRadius = p.size * p.life;
+              const innerRadius = outerRadius * 0.4;
+              for (let j = 0; j < spikes * 2; j++) {
+                const radius = j % 2 === 0 ? outerRadius : innerRadius;
+                const angle = (j * Math.PI) / spikes + elapsed * 0.01;
+                const sx = p.x + Math.cos(angle) * radius;
+                const sy = p.y + Math.sin(angle) * radius;
+                if (j === 0) ctx.moveTo(sx, sy);
+                else ctx.lineTo(sx, sy);
+              }
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              // Draw circular burst particle
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+          
+          // Keep particles array manageable
+          if (particles.length > 200) {
+            particles.splice(0, particles.length - 200);
+          }
+        }
       }
+    } else if (winningPath.length === 0) {
+      // Clear particles when no winning path
+      particlesRef.current = [];
     }
     
     // Re-render animation for winning path glow and placement animations
