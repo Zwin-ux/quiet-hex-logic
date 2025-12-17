@@ -5,9 +5,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useSpectators } from '@/hooks/useSpectators';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useAmbientMusic } from '@/hooks/useAmbientMusic';
 import { HexBoard } from '@/components/HexBoard';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
+import { MusicControls } from '@/components/MusicControls';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
@@ -66,6 +68,24 @@ export default function Match() {
 
   // Game sounds
   const { playPlaceSound, playWinSound, playLoseSound, playErrorSound } = useGameSounds();
+
+  // Ambient music
+  const { 
+    isPlaying: isMusicPlaying, 
+    volume: musicVolume, 
+    isMuted: isMusicMuted,
+    toggleMusic, 
+    toggleMute: toggleMusicMute, 
+    updateVolume: updateMusicVolume,
+    stopMusic 
+  } = useAmbientMusic();
+
+  // Stop music when leaving the match
+  useEffect(() => {
+    return () => {
+      stopMusic();
+    };
+  }, [stopMusic]);
 
   useEffect(() => {
     if (!matchId) return;
@@ -662,6 +682,14 @@ export default function Match() {
               <BookOpen className="h-4 w-4 mr-2" />
               How to Play
             </Button>
+            <MusicControls
+              isPlaying={isMusicPlaying}
+              volume={musicVolume}
+              isMuted={isMusicMuted}
+              onToggleMusic={toggleMusic}
+              onToggleMute={toggleMusicMute}
+              onVolumeChange={updateMusicVolume}
+            />
             {isAIMatch && match.ai_difficulty === 'expert' && aiReasoning && (
               <Button
                 variant={showAIReasoning ? "default" : "outline"}
