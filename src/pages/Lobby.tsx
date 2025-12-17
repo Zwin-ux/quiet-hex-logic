@@ -523,6 +523,7 @@ export default function Lobby() {
                       { icon: UserPlus, path: '/friends', label: 'Friends' },
                       { icon: HistoryIcon, path: '/history', label: 'History' },
                       { icon: Trophy, path: '/leaderboard', label: 'Leaderboard' },
+                      { icon: Target, path: '/puzzles', label: 'Puzzles' },
                     ].map(({ icon: Icon, path, label }) => (
                       <Tooltip key={path}>
                         <TooltipTrigger asChild>
