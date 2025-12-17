@@ -49,17 +49,22 @@ All colors MUST be HSL.
     --indigo: 223 45% 29%;
     --ochre: 40 76% 43%;
     --graphite: 39 13% 71%;
-    
+
     /* Gradients */
     --gradient-warm: linear-gradient(135deg, hsl(40 33% 96%), hsl(40 30% 92%));
-    --gradient-indigo: linear-gradient(135deg, hsl(223 45% 29%), hsl(223 45% 35%));
+    --gradient-indigo: linear-gradient(
+      135deg,
+      hsl(223 45% 29%),
+      hsl(223 45% 35%)
+    );
     --gradient-ochre: linear-gradient(135deg, hsl(40 76% 43%), hsl(40 76% 50%));
-    
+
     /* Shadows - soft, organic */
     --shadow-soft: 0 2px 8px hsl(0 0% 10% / 0.08);
     --shadow-medium: 0 4px 16px hsl(0 0% 10% / 0.12);
-    --shadow-paper: 0 1px 3px hsl(0 0% 10% / 0.1), 0 8px 24px hsl(0 0% 10% / 0.08);
-    
+    --shadow-paper: 0 1px 3px hsl(0 0% 10% / 0.1),
+      0 8px 24px hsl(0 0% 10% / 0.08);
+
     /* Transitions */
     --transition-gentle: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -101,7 +106,7 @@ All colors MUST be HSL.
     --border: 223 20% 20%;
     --input: 223 20% 20%;
     --ring: 40 76% 43%;
-    
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -122,10 +127,10 @@ All colors MUST be HSL.
     @apply bg-background text-foreground font-body antialiased;
     font-feature-settings: "kern" 1, "liga" 1;
   }
-  
+
   /* Paper texture effect */
   body::before {
-    content: '';
+    content: "";
     position: fixed;
     top: 0;
     left: 0;
@@ -136,35 +141,71 @@ All colors MUST be HSL.
     background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' /%3E%3C/svg%3E");
     z-index: 1;
   }
-  
+
   /* Dust mote animation */
   @keyframes float {
-    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
-    50% { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
+    0%,
+    100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translateY(-20px) translateX(10px);
+      opacity: 0.6;
+    }
   }
-  
+
   @keyframes gentle-pulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 0.8; }
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
-  
+
   @keyframes scroll {
-    0% { transform: translateY(0); opacity: 0; }
-    30% { opacity: 1; }
-    60% { opacity: 1; }
-    100% { transform: translateY(12px); opacity: 0; }
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    60% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(12px);
+      opacity: 0;
+    }
   }
-  
+
   .animate-gentle-pulse {
     animation: gentle-pulse 3s ease-in-out infinite;
   }
-  
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
-  
+
   .animate-scroll {
     animation: scroll 2s ease-in-out infinite;
+  }
+  @keyframes gradient-x {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 3s ease infinite;
   }
 }
 
@@ -172,16 +213,28 @@ All colors MUST be HSL.
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .dust-mote {
     animation: float 8s ease-in-out infinite;
   }
-  
-  .dust-mote:nth-child(2) { animation-delay: 2s; animation-duration: 10s; }
-  .dust-mote:nth-child(3) { animation-delay: 4s; animation-duration: 12s; }
-  .dust-mote:nth-child(4) { animation-delay: 1s; animation-duration: 9s; }
-  .dust-mote:nth-child(5) { animation-delay: 3s; animation-duration: 11s; }
-  
+
+  .dust-mote:nth-child(2) {
+    animation-delay: 2s;
+    animation-duration: 10s;
+  }
+  .dust-mote:nth-child(3) {
+    animation-delay: 4s;
+    animation-duration: 12s;
+  }
+  .dust-mote:nth-child(4) {
+    animation-delay: 1s;
+    animation-duration: 9s;
+  }
+  .dust-mote:nth-child(5) {
+    animation-delay: 3s;
+    animation-duration: 11s;
+  }
+
   /* Mobile touch optimizations */
   @media (hover: none) and (pointer: coarse) {
     * {

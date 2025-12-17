@@ -23,6 +23,7 @@ export type BoardSkin = {
     edgePlayer1: string;
     edgePlayer2: string;
   };
+  animationType?: 'galaxy' | 'aurora' | 'none';
 };
 
 export const boardSkins: BoardSkin[] = [
@@ -153,6 +154,7 @@ export const boardSkins: BoardSkin[] = [
     description: 'Cosmic space theme',
     preview: '🌌',
     isPremium: true,
+    animationType: 'galaxy',
     colors: {
       background: 'hsl(270 50% 8%)',
       empty: 'hsl(270 40% 12%)',
@@ -174,6 +176,7 @@ export const boardSkins: BoardSkin[] = [
     description: 'Gold and purple luxury',
     preview: '👑',
     isPremium: true,
+    animationType: 'galaxy',
     colors: {
       background: 'hsl(280 50% 12%)',
       empty: 'hsl(280 40% 18%)',
@@ -195,6 +198,7 @@ export const boardSkins: BoardSkin[] = [
     description: 'Pixel art nostalgia',
     preview: '🕹️',
     isPremium: true,
+    animationType: 'galaxy',
     colors: {
       background: 'hsl(220 15% 15%)',
       empty: 'hsl(220 15% 22%)',
@@ -216,6 +220,7 @@ export const boardSkins: BoardSkin[] = [
     description: 'Northern lights magic',
     preview: '✨',
     isPremium: true,
+    animationType: 'galaxy',
     colors: {
       background: 'hsl(210 35% 10%)',
       empty: 'hsl(210 30% 15%)',

@@ -18,6 +18,7 @@ interface AnalyzedMove {
   color: number;
   rating: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
   comment: string;
+  best_alternative?: number;
 }
 
 serve(async (req) => {
@@ -98,7 +99,8 @@ Hex rules: Players take turns placing stones. Indigo connects top-bottom, Ochre 
             role: 'system',
             content: `You are a Hex game expert analyst. Analyze each move and rate it. Be concise but insightful.
             
-Rate each move as one of: excellent, good, inaccuracy, mistake, blunder
+Rate each move as one of: excellent, good, inaccuracy, mistake, blunder.
+For 'mistake' or 'blunder' ratings, you MUST provide a 'best_alternative' cell index (0 to size*size-1) representing the optimal move that should have been played instead.
 Consider: center control, connectivity, blocking threats, building paths.`
           },
           { role: 'user', content: gameContext }
@@ -128,7 +130,8 @@ Consider: center control, connectivity, blocking threats, building paths.`
                       properties: {
                         ply: { type: 'number' },
                         rating: { type: 'string', enum: ['excellent', 'good', 'inaccuracy', 'mistake', 'blunder'] },
-                        comment: { type: 'string', description: 'Brief comment about the move (max 20 words)' }
+                        comment: { type: 'string', description: 'Brief comment about the move (max 20 words)' },
+                        best_alternative: { type: 'number', description: 'The cell index of the move that should have been played (required if rating is mistake or blunder)' }
                       },
                       required: ['ply', 'rating', 'comment']
                     }
@@ -179,6 +182,7 @@ Consider: center control, connectivity, blocking threats, building paths.`
         ...m,
         rating: moveAnalysis?.rating || 'good',
         comment: moveAnalysis?.comment || '',
+        best_alternative: moveAnalysis?.best_alternative,
       };
     }) || [];
 

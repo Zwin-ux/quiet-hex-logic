@@ -12,12 +12,20 @@ interface HexBoardProps {
   onSwapColors?: () => void;
   canSwap?: boolean;
   skin?: BoardSkin;
+  hintCell?: number | null;
 }
 
 interface AnimatedCell {
   cell: number;
   timestamp: number;
   type: 'place' | 'ripple';
+}
+
+interface ImpactEvent {
+  x: number;
+  y: number;
+  timestamp: number;
+  color: string;
 }
 
 interface Particle {
@@ -53,11 +61,14 @@ const HexBoardComponent = ({
   disabled = false,
   onSwapColors,
   canSwap = false,
-  skin = getDefaultSkin()
+  skin = getDefaultSkin(),
+  hintCell = null
 }: HexBoardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
   const [animatedCells, setAnimatedCells] = useState<AnimatedCell[]>([]);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [impactEvents, setImpactEvents] = useState<ImpactEvent[]>([]);
   const animationRef = useRef<number>();
   const lastRenderTime = useRef<number>(0);
   
@@ -104,7 +115,7 @@ const HexBoardComponent = ({
     if (!ctx) return;
 
     const now = Date.now();
-    const shouldAnimate = winningPath.length > 0 || animatedCells.length > 0;
+    const shouldAnimate = winningPath.length > 0 || animatedCells.length > 0 || !!skin.animationType;
     
     // Throttle to 60fps for smooth animations
     if (shouldAnimate && now - lastRenderTime.current < 16) {
@@ -140,7 +151,12 @@ const HexBoardComponent = ({
     const hexWidth = hexRadius * 2;
     const hexHeight = Math.sqrt(3) * hexRadius;
 
-    // Center the board
+    // Calculate board intensity (percentage full)
+    const stonesCount = board.filter(cell => cell !== 0).length;
+    const isGameOver = winningPath.length > 0;
+    const intensity = (1 + (stonesCount / board.length)) * (isGameOver ? 2.5 : 1); // 1.0 to 5.0
+    
+    // Board layout calculations
     const boardWidth = (size - 1) * hexRadius * 1.5 + hexWidth;
     const boardHeight = size * hexHeight;
     const offsetX = (rect.width - boardWidth) / 2;
@@ -149,6 +165,71 @@ const HexBoardComponent = ({
     // Draw board background
     ctx.fillStyle = skin.colors.background;
     ctx.fillRect(0, 0, rect.width, rect.height);
+
+    // Filter out old impact events
+    const validImpacts = impactEvents.filter(impact => now - impact.timestamp < 1000);
+    if (validImpacts.length !== impactEvents.length) {
+      setImpactEvents(validImpacts);
+    }
+
+    // Render background animations if applicable
+    if (skin.animationType === 'galaxy') {
+      const time = now / 2000;
+      ctx.save();
+      for (let i = 0; i < 60; i++) {
+        const baseX = ((Math.sin(i * 123.4 + time * 0.2) + 1) / 2) * rect.width;
+        const baseY = ((Math.cos(i * 567.8 + time * 0.1) + 1) / 2) * rect.height;
+        
+        // Mouse reactivity
+        const distToMouse = Math.sqrt((mousePos.x - baseX) ** 2 + (mousePos.y - baseY) ** 2);
+        const mouseFactor = Math.max(0, 1 - distToMouse / 150);
+        const x = baseX + (baseX - mousePos.x) * mouseFactor * 0.3;
+        const y = baseY + (baseY - mousePos.y) * mouseFactor * 0.3;
+
+        const size = (Math.sin(time * intensity + i) + 1.2) * (1.5 + mouseFactor);
+        const opacity = (Math.sin(time * 2 * intensity + i) + 1) / 2 * 0.6;
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (skin.animationType === 'aurora') {
+      const time = now / (3000 / intensity);
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = 0; i < 4; i++) {
+        const xOffset = Math.sin(time + i) * 100 + (mousePos.x / rect.width) * 50;
+        const gradient = ctx.createLinearGradient(0, 0, rect.width, 0);
+        const color = i === 0 ? 'rgba(0, 255, 150, 0.08)' : i === 1 ? 'rgba(0, 150, 255, 0.08)' : i === 2 ? 'rgba(150, 0, 255, 0.08)' : 'rgba(255, 100, 200, 0.08)';
+        
+        gradient.addColorStop(0, 'transparent');
+        gradient.addColorStop((0.2 + i * 0.2 + xOffset / 1000) % 1, color);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, rect.width, rect.height);
+      }
+      ctx.restore();
+    }
+
+    // Render Impact Shockwaves
+    validImpacts.forEach(impact => {
+      const elapsed = now - impact.timestamp;
+      const progress = elapsed / 1000;
+      const radius = progress * rect.width * 0.8;
+      const opacity = 1 - progress;
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(impact.x, impact.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = impact.color;
+      ctx.lineWidth = 4 * (1 - progress);
+      ctx.globalAlpha = opacity * 0.3;
+      ctx.stroke();
+      ctx.restore();
+    });
 
     // Draw coordinate labels
     ctx.font = `bold ${Math.max(10, hexRadius * 0.35)}px "IBM Plex Mono", monospace`;
@@ -332,6 +413,30 @@ const HexBoardComponent = ({
             ctx.stroke();
           }
           
+          // Draw AI hint (best alternative)
+          if (hintCell === cell && board[cell] === 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = '#fbbf24'; // Amber-400
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = (Math.PI / 3) * i + Math.PI / 6;
+              const px = x + hexRadius * 0.8 * Math.cos(angle);
+              const py = y + hexRadius * 0.8 * Math.sin(angle);
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Subtle glow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#fbbf24';
+            ctx.stroke();
+            ctx.restore();
+          }
           ctx.restore();
         } else {
           // Empty cell with hover effect
@@ -575,7 +680,7 @@ const HexBoardComponent = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [size, board, lastMove, winningPath, winPathAnimStart, hoveredCell, disabled, animatedCells, skin]);
+  }, [size, board, lastMove, winningPath, winPathAnimStart, hoveredCell, disabled, animatedCells, skin, hintCell, mousePos, impactEvents]);
 
   // Point-in-hexagon test for accurate click detection
   const pointInHex = (px: number, py: number, cx: number, cy: number, size: number): boolean => {
@@ -590,83 +695,73 @@ const HexBoardComponent = ({
   };
 
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (disabled || !onCellClick) return;
+    if (disabled) return;
+    
+    // Add impact event for animation
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setImpactEvents(prev => [
+        ...prev.slice(-4), // Limit to last 5 impacts for performance
+        { x, y, timestamp: Date.now(), color: skin.colors.player1 } 
+      ]);
+    }
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Calculate hex geometry
-    const padding = 40;
-    const availableWidth = rect.width - 2 * padding;
-    const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
-    const hexHeight = Math.sqrt(3) * hexRadius;
-
-    const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
-    const offsetX = (rect.width - boardWidth) / 2;
-    const offsetY = (rect.height - size * hexHeight) / 2;
-
-    // Find hex at click position using proper point-in-polygon test
-    for (let row = 0; row < size; row++) {
-      for (let col = 0; col < size; col++) {
-        const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
-        const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-        
-        if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
-          const clickedCell = row * size + col;
-          if (board[clickedCell] === 0) {
-            onCellClick(clickedCell);
-            return;
-          }
-        }
-      }
+    if (onCellClick && hoveredCell !== null) {
+      onCellClick(hoveredCell);
     }
   };
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
-
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || disabled) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    setMousePos({ x, y });
 
+    // Calculate layout for collision detection
     const padding = 40;
     const availableWidth = rect.width - 2 * padding;
-    const hexRadius = availableWidth / ((size - 1) * 1.5 + 2);
+    const availableHeight = rect.height - 2 * padding;
+    
+    const hexRadius = Math.min(
+      availableWidth / ((size - 1) * 1.5 + 2),
+      availableHeight / (size * Math.sqrt(3) + 1)
+    );
     const hexHeight = Math.sqrt(3) * hexRadius;
-
     const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
+    const boardHeight = size * hexHeight;
     const offsetX = (rect.width - boardWidth) / 2;
-    const offsetY = (rect.height - size * hexHeight) / 2;
+    const offsetY = (rect.height - boardHeight) / 2;
 
-    let hovering: number | null = null;
+    let closestCell = null;
+    let minDist = Infinity;
 
     for (let row = 0; row < size; row++) {
       for (let col = 0; col < size; col++) {
         const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
         const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-        
-        if (pointInHex(x, y, cx, cy, hexRadius * 0.9)) {
-          const cell = row * size + col;
-          if (!board[cell]) {
-            hovering = cell;
+
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        if (dist < hexRadius && dist < minDist) {
+          if (pointInHex(x, y, cx, cy, hexRadius)) {
+            minDist = dist;
+            closestCell = row * size + col;
           }
-          break;
         }
       }
-      if (hovering !== null) break;
     }
 
-    if (hovering !== hoveredCell) {
-      setHoveredCell(hovering);
+    if (closestCell !== null && board[closestCell] !== 0) {
+      setHoveredCell(null);
+    } else {
+      setHoveredCell(closestCell);
     }
-  }, [disabled, size, board, hoveredCell]);
+  };
 
   const handleMouseLeave = useCallback(() => {
     setHoveredCell(null);

@@ -8,7 +8,15 @@ import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Download, FileJson, FileText, Brain, Crown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward,  Download, 
+  FileText, 
+  FileJson, 
+  Brain, 
+  Loader2, 
+  Crown,
+  Sparkles
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { HexBoard } from '@/components/HexBoard';
 import { Hex } from '@/lib/hex/engine';
 import { generateHexReplay, generateJsonReplay, downloadReplay } from '@/lib/replayExport';
@@ -28,6 +36,7 @@ type Move = {
 type AnalyzedMove = Move & {
   rating?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
   comment?: string;
+  best_alternative?: number;
 };
 
 type MatchData = {
@@ -66,6 +75,7 @@ export default function Replay() {
   const [game, setGame] = useState<Hex | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showHints, setShowHints] = useState(true);
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium(user?.id);
   const navigate = useNavigate();
@@ -238,7 +248,8 @@ export default function Replay() {
             </DropdownMenu>
             
             {isPremium ? (
-              <Button 
+              <>
+                <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleAnalyze}
@@ -250,8 +261,23 @@ export default function Replay() {
                 ) : (
                   <Brain className="h-4 w-4" />
                 )}
-                {analysis ? 'Analyzed' : 'Analyze'}
-              </Button>
+                  {analysis ? 'Analyzed' : 'Analyze'}
+                </Button>
+                {analysis && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowHints(!showHints)}
+                    className={cn(
+                      "gap-2 transition-colors",
+                      showHints ? "text-amber-500 bg-amber-500/10" : "text-muted-foreground"
+                    )}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {showHints ? 'Hints On' : 'Hints Off'}
+                  </Button>
+                )}
+              </>
             ) : (
               <Button 
                 variant="outline" 
@@ -273,7 +299,8 @@ export default function Replay() {
               <HexBoard
                 size={match.size}
                 board={game.board}
-                onCellClick={() => {}}
+                lastMove={currentPly > 0 ? moves[currentPly - 1].cell : undefined}
+                hintCell={showHints ? (analysis?.moves.find(m => m.ply === currentPly + 1)?.best_alternative) : null}
                 disabled={true}
                 winningPath={match.winner ? game.getWinningPath() : undefined}
               />

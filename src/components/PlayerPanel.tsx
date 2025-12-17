@@ -72,7 +72,10 @@ const PlayerPanelComponent = ({
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-body font-semibold text-lg text-foreground">
+            <h3 className={cn(
+              "font-body font-semibold text-lg",
+              isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 animate-gradient-x" : "text-foreground"
+            )}>
               {username}
             </h3>
             {isPremium && <PremiumBadge size="sm" />}

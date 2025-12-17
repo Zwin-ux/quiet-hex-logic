@@ -16,7 +16,7 @@ export function PremiumBadge({ className, size = 'sm' }: PremiumBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 font-semibold',
+        'inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 font-semibold shadow-sm animate-gentle-pulse',
         sizeClasses[size],
         className
       )}
