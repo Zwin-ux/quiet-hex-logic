@@ -82,13 +82,10 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
       try {
         console.log('[Discord] Initializing Discord SDK...');
         
-        const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
+        // Client ID is public/publishable - safe to hardcode as fallback
+        const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1443319127170089172';
         
-        if (!clientId) {
-          console.warn('[Discord] No DISCORD_CLIENT_ID found');
-          setError('Discord Client ID not configured');
-          return;
-        }
+        console.log('[Discord] Using Client ID:', clientId);
 
         // Dynamic import to avoid bundler issues
         const { DiscordSDK } = await import('@discord/embedded-app-sdk');
