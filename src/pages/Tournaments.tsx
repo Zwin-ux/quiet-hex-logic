@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +32,16 @@ interface Tournament {
   is_featured?: boolean;
 }
 
+interface Participant {
+  player_id: string;
+  points: number;
+  wins: number;
+}
+
+interface TournamentWithParticipants extends Tournament {
+  tournament_participants: Participant[];
+}
+
 export default function Tournaments() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,42 +57,22 @@ export default function Tournaments() {
     wins: 0
   });
 
-  useEffect(() => {
-    loadTournaments();
-
-    const channel = supabase
-      .channel('tournaments')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tournaments'
-        },
-        () => loadTournaments()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const loadTournaments = async () => {
+  const loadTournaments = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('tournaments')
         .select(`
           *,
-          tournament_participants(count, player_id, points, wins)
+          tournament_participants(player_id, points, wins)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const tournamentsWithCount = data?.map(t => ({
+      const rawData = data as unknown as TournamentWithParticipants[];
+      const tournamentsWithCount: Tournament[] = rawData?.map(t => ({
         ...t,
-        participant_count: t.tournament_participants?.[0]?.count || 0
+        participant_count: t.tournament_participants?.length || 0
       })) || [];
 
       setTournaments(tournamentsWithCount);
@@ -93,8 +83,8 @@ export default function Tournaments() {
         let userWins = 0;
         let activeCount = 0;
 
-        tournamentsWithCount.forEach(t => {
-          const participant = (t as any).tournament_participants?.find((p: any) => p.player_id === user.id);
+        rawData?.forEach(t => {
+          const participant = t.tournament_participants?.find((p: Participant) => p.player_id === user.id);
           if (participant) {
             userPoints += participant.points || 0;
             userWins += participant.wins || 0;
@@ -115,7 +105,28 @@ export default function Tournaments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadTournaments();
+
+    const channel = supabase
+      .channel('tournaments')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournaments'
+        },
+        () => loadTournaments()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadTournaments]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
