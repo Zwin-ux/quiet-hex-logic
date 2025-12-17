@@ -503,8 +503,11 @@ export type Database = {
           id: string
           is_guest: boolean | null
           is_premium: boolean | null
+          last_daily_puzzle_date: string | null
           last_online: string | null
           premium_expires_at: string | null
+          puzzle_streak: number | null
+          puzzle_streak_best: number | null
           rating_deviation: number | null
           username: string
         }
@@ -521,8 +524,11 @@ export type Database = {
           id: string
           is_guest?: boolean | null
           is_premium?: boolean | null
+          last_daily_puzzle_date?: string | null
           last_online?: string | null
           premium_expires_at?: string | null
+          puzzle_streak?: number | null
+          puzzle_streak_best?: number | null
           rating_deviation?: number | null
           username: string
         }
@@ -539,8 +545,11 @@ export type Database = {
           id?: string
           is_guest?: boolean | null
           is_premium?: boolean | null
+          last_daily_puzzle_date?: string | null
           last_online?: string | null
           premium_expires_at?: string | null
+          puzzle_streak?: number | null
+          puzzle_streak_best?: number | null
           rating_deviation?: number | null
           username?: string
         }

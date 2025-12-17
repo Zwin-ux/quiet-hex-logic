@@ -1,15 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Download, FileJson, FileText, Brain, Crown, Loader2 } from 'lucide-react';
 import { HexBoard } from '@/components/HexBoard';
 import { Hex } from '@/lib/hex/engine';
+import { generateHexReplay, generateJsonReplay, downloadReplay } from '@/lib/replayExport';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type Move = {
   ply: number;
@@ -17,14 +25,36 @@ type Move = {
   color: number;
 };
 
+type AnalyzedMove = Move & {
+  rating?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
+  comment?: string;
+};
+
 type MatchData = {
+  id: string;
   size: number;
   winner: number | null;
+  pie_rule: boolean;
+  created_at: string;
   players: Array<{
     color: number;
     profile: { username: string };
     is_bot: boolean;
   }>;
+};
+
+type Analysis = {
+  summary: string;
+  keyMoments: string[];
+  moves: AnalyzedMove[];
+};
+
+const ratingColors: Record<string, string> = {
+  excellent: 'bg-green-500 text-white',
+  good: 'bg-blue-500 text-white',
+  inaccuracy: 'bg-yellow-500 text-black',
+  mistake: 'bg-orange-500 text-white',
+  blunder: 'bg-red-500 text-white',
 };
 
 export default function Replay() {
@@ -34,7 +64,10 @@ export default function Replay() {
   const [currentPly, setCurrentPly] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [game, setGame] = useState<Hex | null>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const { isPremium } = usePremium(user?.id);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,8 +114,11 @@ export default function Replay() {
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .select(`
+          id,
           size,
           winner,
+          pie_rule,
+          created_at,
           players:match_players(
             color,
             is_bot,
@@ -102,7 +138,7 @@ export default function Replay() {
 
       if (movesError) throw movesError;
 
-      setMatch(matchData);
+      setMatch(matchData as unknown as MatchData);
       setMoves(movesData || []);
     } catch (error: any) {
       toast.error('Failed to load replay', { description: error.message });
@@ -122,19 +158,113 @@ export default function Replay() {
     setPlaying(false);
   };
 
+  const handleExportHex = () => {
+    if (!match) return;
+    const content = generateHexReplay(match, moves);
+    const dateStr = new Date(match.created_at).toISOString().split('T')[0];
+    downloadReplay(content, `hexology-${dateStr}.hex`, 'text/plain');
+    toast.success('Replay exported as HEX');
+  };
+
+  const handleExportJson = () => {
+    if (!match) return;
+    const content = generateJsonReplay(match, moves);
+    const dateStr = new Date(match.created_at).toISOString().split('T')[0];
+    downloadReplay(content, `hexology-${dateStr}.json`, 'application/json');
+    toast.success('Replay exported as JSON');
+  };
+
+  const handleAnalyze = async () => {
+    if (!matchId || !isPremium) {
+      if (!isPremium) {
+        toast.error('Premium required', { description: 'Game analysis is a premium feature.' });
+      }
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-game', {
+        body: { matchId },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setAnalysis(data);
+      toast.success('Analysis complete!');
+    } catch (err: any) {
+      console.error('Analysis error:', err);
+      toast.error('Analysis failed', { description: err.message });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   if (authLoading || !match || !game) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   const player1 = match.players.find(p => p.color === 1);
   const player2 = match.players.find(p => p.color === 2);
+  const currentMove = analysis?.moves?.find(m => m.ply === currentPly);
 
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <Button variant="ghost" onClick={() => navigate('/history')} className="mb-4 gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back to History
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" onClick={() => navigate('/history')} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Back to History
+          </Button>
+          
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportHex}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  HEX Format
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportJson}>
+                  <FileJson className="h-4 w-4 mr-2" />
+                  JSON Format
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {isPremium ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAnalyze}
+                disabled={analyzing || !!analysis}
+                className="gap-2"
+              >
+                {analyzing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Brain className="h-4 w-4" />
+                )}
+                {analysis ? 'Analyzed' : 'Analyze'}
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/premium')}
+                className="gap-2 text-amber-600 border-amber-400"
+              >
+                <Crown className="h-4 w-4" />
+                Analyze (Pro)
+              </Button>
+            )}
+          </div>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Board */}
@@ -148,6 +278,20 @@ export default function Replay() {
                 winningPath={match.winner ? game.getWinningPath() : undefined}
               />
             </Card>
+            
+            {/* Current Move Analysis */}
+            {analysis && currentMove && currentMove.rating && (
+              <Card className="mt-4 p-4">
+                <div className="flex items-center gap-3">
+                  <Badge className={ratingColors[currentMove.rating]}>
+                    {currentMove.rating.charAt(0).toUpperCase() + currentMove.rating.slice(1)}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {currentMove.comment}
+                  </span>
+                </div>
+              </Card>
+            )}
           </div>
 
           {/* Controls */}
@@ -223,25 +367,60 @@ export default function Replay() {
               </div>
             </Card>
 
+            {/* Analysis Summary */}
+            {analysis && (
+              <Card className="p-6 shadow-paper border-2 border-indigo/30 bg-indigo/5">
+                <h3 className="font-body text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-indigo" />
+                  AI Analysis
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">{analysis.summary}</p>
+                {analysis.keyMoments?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Key Moments:</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {analysis.keyMoments.map((moment, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-indigo">•</span>
+                          {moment}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </Card>
+            )}
+
             {/* Move List */}
             <Card className="p-6 shadow-paper border-2 max-h-96 overflow-y-auto">
               <h3 className="font-body text-lg font-semibold mb-4">Move History</h3>
               <div className="space-y-2">
-                {moves.map((move, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-between p-2 rounded ${
-                      idx < currentPly ? 'bg-accent' : 'opacity-40'
-                    } ${idx === currentPly - 1 ? 'ring-2 ring-indigo' : ''}`}
-                  >
-                    <span className="font-mono text-sm">
-                      {idx + 1}. {move.cell === null ? 'Swap' : `Cell ${move.cell}`}
-                    </span>
-                    <Badge variant="outline" className={move.color === 1 ? 'border-indigo' : 'border-ochre'}>
-                      {move.color === 1 ? 'Indigo' : 'Ochre'}
-                    </Badge>
-                  </div>
-                ))}
+                {moves.map((move, idx) => {
+                  const analyzedMove = analysis?.moves?.find(m => m.ply === move.ply);
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => setCurrentPly(idx + 1)}
+                      className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                        idx < currentPly ? 'bg-accent' : 'opacity-40 hover:opacity-60'
+                      } ${idx === currentPly - 1 ? 'ring-2 ring-indigo' : ''}`}
+                    >
+                      <span className="font-mono text-sm">
+                        {idx + 1}. {move.cell === null ? 'Swap' : `Cell ${move.cell}`}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {analyzedMove?.rating && (
+                          <Badge className={`text-xs ${ratingColors[analyzedMove.rating]}`}>
+                            {analyzedMove.rating.slice(0, 3)}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className={move.color === 1 ? 'border-indigo' : 'border-ochre'}>
+                          {move.color === 1 ? 'Indigo' : 'Ochre'}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Card>
           </div>

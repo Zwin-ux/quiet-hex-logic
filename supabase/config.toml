@@ -81,3 +81,12 @@ verify_jwt = false
 [functions.update-ratings]
 verify_jwt = false
 
+[functions.create-friend-challenge]
+verify_jwt = true
+
+[functions.analyze-game]
+verify_jwt = true
+
+[functions.discord-token-exchange]
+verify_jwt = false
+
