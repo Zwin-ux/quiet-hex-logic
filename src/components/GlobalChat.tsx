@@ -1,260 +1,284 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useGuestMode } from '@/hooks/useGuestMode';
-import { usePremium } from '@/hooks/usePremium';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { MessageCircle, Send, X, Minus, Terminal, Hash, User, Sparkles, Activity } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { MessageCircle, Send, ChevronUp, ChevronDown, Users } from 'lucide-react';
+import { UserAvatar } from '@/components/UserAvatar';
+import { formatDistanceToNow } from 'date-fns';
 
-interface Message {
+type ChatMessage = {
   id: string;
-  username: string;
-  content: string;
-  is_premium: boolean;
-  is_guest: boolean;
+  user_id: string;
+  message: string;
   created_at: string;
-  user_id: string | null;
-}
+  profiles: {
+    username: string;
+    avatar_color: string;
+  };
+};
 
-export const GlobalChat: React.FC = () => {
-  const { user } = useAuth();
-  const { isGuest, guestUsername } = useGuestMode();
-  const { isPremium } = usePremium(user?.id);
-  const [messages, setMessages] = useState<Message[]>([]);
+export function GlobalChat() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastReadIdRef = useRef<string | null>(null);
 
+  // Fetch initial messages - always fetch, not just when expanded
   useEffect(() => {
-    loadMessages();
+    if (!user) return;
 
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('global_chat_messages')
+        .select('*, profiles(username, avatar_color)')
+        .order('created_at', { ascending: true })
+        .limit(100);
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+
+      setMessages(data as any);
+      if (data && data.length > 0) {
+        lastReadIdRef.current = data[data.length - 1].id;
+      }
+      setTimeout(() => scrollToBottom(), 100);
+    };
+
+    fetchMessages();
+  }, [user]);
+
+  // Subscribe to new messages - always subscribe
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('[GlobalChat] Subscribing to global_chat channel');
     const channel = supabase
-      .channel('global_messages')
+      .channel('global_chat') // Use consistent channel name
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'global_messages' },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message].slice(-50));
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'global_chat_messages',
+        },
+        async (payload) => {
+          console.log('[GlobalChat] New message received:', payload.new.id);
+          // Fetch the full message with profile data
+          const { data } = await supabase
+            .from('global_chat_messages')
+            .select('*, profiles(username, avatar_color)')
+            .eq('id', payload.new.id)
+            .single();
+
+          if (data) {
+            setMessages((prev) => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === data.id)) {
+                return prev;
+              }
+              return [...prev, data as any];
+            });
+
+            // Increment unread count if chat is collapsed and message is not from current user
+            if (!isExpanded && data.user_id !== user.id) {
+              setUnreadCount((prev) => prev + 1);
+            }
+
+            setTimeout(() => scrollToBottom(), 100);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[GlobalChat] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[GlobalChat] Unsubscribing from global_chat channel');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user, isExpanded]);
 
+  // Reset unread count when expanded
   useEffect(() => {
+    if (isExpanded && messages.length > 0) {
+      setUnreadCount(0);
+      lastReadIdRef.current = messages[messages.length - 1].id;
+    }
+  }, [isExpanded, messages]);
+
+  const scrollToBottom = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isOpen]);
-
-  const loadMessages = async () => {
-    const { data } = await supabase
-      .from('global_messages')
-      .select('*')
-      .order('created_at', { ascending: true })
-      .limit(50);
-    
-    if (data) setMessages(data);
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !user || loading) return;
 
-    const currentUsername = user?.email?.split('@')[0] || guestUsername || 'Anonymouse';
-    
-    const { error } = await supabase.from('global_messages').insert({
-      content: newMessage.trim(),
-      username: currentUsername,
-      user_id: user?.id || null,
-      is_guest: isGuest,
-      is_premium: isPremium,
-    });
+    setLoading(true);
+    const { error } = await supabase
+      .from('global_chat_messages')
+      .insert({ user_id: user.id, message: newMessage.trim() });
 
-    if (!error) setNewMessage('');
+    if (error) {
+      console.error('Error sending message:', error);
+    } else {
+      setNewMessage('');
+    }
+    setLoading(false);
   };
+
+  if (!user) return null;
+
+  const latestMessage = messages[messages.length - 1];
 
   return (
-    <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3 font-mono">
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className={cn(
-              "w-80 md:w-96 bg-[#0c0c0c] border-[3px] border-[#333] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden relative",
-              isMinimized ? "h-12" : "h-[500px]"
-            )}
-          >
-            {/* Retro Scanline Overlay */}
-            <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03] overflow-hidden">
-              <div className="w-full h-2 bg-white animate-scanline" />
-            </div>
-
-            {/* Retro Title Bar */}
-            <div className="h-10 bg-[#222] border-b-[3px] border-[#333] flex items-center justify-between px-3 cursor-move shrink-0 z-20">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f57] shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.5)] border border-black/20" />
-                <div className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.5)] border border-black/20" />
-                <div className="w-3 h-3 rounded-full bg-[#28c940] shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.5)] border border-black/20" />
-                <span className="text-[10px] font-bold text-white ml-2 tracking-widest uppercase flex items-center gap-2">
-                  <Activity className="h-3 w-3 text-emerald-500 animate-pulse" />
-                  arena_chat.v1.0.4
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setIsMinimized(!isMinimized)} className="hover:bg-white/10 p-1 border border-transparent active:border-white/20 transition-all">
-                  <Minus className="h-4 w-4 text-white" />
-                </button>
-                <button onClick={() => setIsOpen(false)} className="hover:bg-red-500 p-1 border border-transparent active:border-white/20 transition-all">
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              </div>
-            </div>
-
-            {!isMinimized && (
-              <>
-                {/* System Marquee */}
-                <div className="bg-emerald-500/10 border-b border-emerald-500/20 py-1 overflow-hidden whitespace-nowrap z-20">
-                  <div className="animate-marquee inline-block text-[9px] text-emerald-500 font-bold uppercase tracking-widest">
-                    --- [SYSTEM] REALTIME COMM CHANNEL ACTIVE --- NO SPAMMING --- BE KIND OR BE KICKED --- ARENA INTEGRITY: 100% ---
-                  </div>
-                </div>
-
-                {/* Message List */}
-                <div 
-                  ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0a0a0a] scrollbar-retro z-20"
-                >
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="group animate-in fade-in slide-in-from-left-2 duration-300">
-                      <div className="flex items-center gap-2 mb-1">
-                        {msg.is_premium ? (
-                          <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
-                        ) : (
-                          <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0 shadow-[0_0_5px_rgba(59,130,246,0.5)]" />
-                        )}
-                        <span className={cn(
-                          "text-[10px] px-1 font-bold tracking-tighter transition-colors uppercase border shrink-0",
-                          msg.is_premium ? "text-amber-500 border-amber-500/20 bg-amber-500/5" : "text-blue-500 border-blue-500/20 bg-blue-500/5",
-                          msg.is_guest && "text-white/40 border-white/10"
-                        )}>
-                          {msg.is_guest ? 'GUEST' : (msg.is_premium ? 'PREMIUM' : 'ELITE')}
-                        </span>
-                        <span className={cn(
-                          "font-bold text-xs group-hover:underline cursor-pointer tracking-tight truncate",
-                          msg.is_premium ? "text-amber-400" : "text-emerald-500",
-                          msg.is_guest && "text-white/60"
-                        )}>
-                          {msg.username}
-                        </span>
-                        <div className="h-[1px] flex-1 bg-white/5 mx-2" />
-                        <span className="text-[9px] text-white/20 shrink-0 tabular-nums">
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
-                      </div>
-                      <p className={cn(
-                        "text-sm mt-1 pl-4 leading-relaxed break-words border-l-[2px] transition-all group-hover:border-emerald-500/30",
-                        msg.is_premium ? "text-amber-50/80 border-amber-500/10" : "text-white/80 border-white/5"
-                      )}>
-                        {msg.content}
+    <>
+      {/* Persistent Bottom Chat Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+        <div className="pointer-events-auto">
+          {/* Expanded Chat View */}
+          {isExpanded && (
+            <Card className="mx-auto max-w-4xl mb-0 rounded-b-none shadow-2xl border-x border-t border-b-0 animate-in slide-in-from-bottom-4 duration-300">
+              <div className="h-[400px] flex flex-col">
+                {/* Header */}
+                <div className="px-4 py-3 border-b flex items-center justify-between bg-gradient-to-r from-primary/5 to-primary/10">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    <div>
+                      <h3 className="font-semibold text-base">Global Chat</h3>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        Chat with other players
                       </p>
                     </div>
-                  ))}
+                  </div>
+                  <Button
+                    onClick={() => setIsExpanded(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    Minimize
+                  </Button>
                 </div>
 
-                {/* Input Area */}
-                <form onSubmit={handleSendMessage} className="p-3 bg-[#111] border-t-[3px] border-[#333] z-20">
-                  <div className="relative flex items-center gap-2">
-                    <Terminal className="absolute left-3 h-4 w-4 text-emerald-500/50" />
-                    <input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Enter command or message..."
-                      maxLength={500}
-                      className="w-full bg-black border border-[#444] text-emerald-500 text-sm pl-9 pr-12 py-2.5 focus:outline-none focus:border-emerald-500/50 placeholder:text-[#333] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"
-                    />
-                    <button 
-                      type="submit"
-                      disabled={!newMessage.trim()}
-                      className="absolute right-2 p-1.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-black disabled:bg-transparent disabled:text-[#333] transition-all active:scale-95"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
+                {/* Messages */}
+                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                  <div className="space-y-4">
+                    {messages.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">No messages yet. Start the conversation!</p>
+                      </div>
+                    ) : (
+                      messages.map((msg) => (
+                        <div key={msg.id} className="flex gap-3 animate-in fade-in duration-300">
+                          <UserAvatar
+                            username={msg.profiles.username}
+                            color={msg.profiles.avatar_color}
+                            size="sm"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-medium text-sm">{msg.profiles.username}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <p className="text-sm break-words">{msg.message}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <div className="flex justify-between items-center mt-2 px-1">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1 w-1 rounded-full bg-emerald-500 animate-ping" />
-                      <span className="text-[9px] text-emerald-500/50 uppercase tracking-tighter">
-                        uplink active / {isGuest ? 'guest-relay' : 'secure-node'}
-                      </span>
-                    </div>
-                    <span className={cn(
-                      "text-[9px] tabular-nums",
-                      newMessage.length > 450 ? "text-red-500" : "text-white/30"
-                    )}>
-                      {newMessage.length}/500
-                    </span>
-                  </div>
+                </ScrollArea>
+
+                {/* Input */}
+                <form onSubmit={handleSend} className="p-3 border-t flex gap-2 bg-background">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    maxLength={500}
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button type="submit" size="icon" disabled={loading || !newMessage.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </form>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </div>
+            </Card>
+          )}
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "h-14 w-14 rounded-none bg-[#0c0c0c] flex items-center justify-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-[3px] border-[#333] relative group overflow-hidden transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-          isOpen ? "bg-amber-500 border-amber-600" : "hover:border-emerald-500"
-        )}
-      >
-        <div className="absolute inset-0 bg-emerald-500/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 pointer-events-none" />
-        {isOpen ? (
-          <X className="h-7 w-7 text-black relative z-10" />
-        ) : (
-          <div className="relative">
-            <MessageCircle className="h-7 w-7 text-emerald-500 group-hover:text-white transition-colors relative z-10" />
-            <Activity className="absolute -top-1 -right-1 h-3 w-3 text-red-500 animate-pulse pointer-events-none" />
-          </div>
-        )}
-        {!isOpen && messages.length > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 pointer-events-none">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 text-[8px] items-center justify-center text-black font-bold border border-black/20">
-              !
-            </span>
-          </span>
-        )}
-      </motion.button>
+          {/* Collapsed Chat Bar */}
+          {!isExpanded && (
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="w-full bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-t border-border hover:from-primary/20 hover:via-primary/10 hover:to-primary/20 transition-all duration-200 shadow-lg"
+            >
+              <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+                {/* Left: Chat Icon + Latest Message */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="relative">
+                    <MessageCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-ochre animate-pulse">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Badge>
+                    )}
+                  </div>
 
-      <style jsx>{`
-        .scrollbar-retro::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollbar-retro::-webkit-scrollbar-track {
-          background: #050505;
-          border-left: 1px solid #222;
-        }
-        .scrollbar-retro::-webkit-scrollbar-thumb {
-          background: #222;
-          border: 1px solid #333;
-        }
-        .scrollbar-retro::-webkit-scrollbar-thumb:hover {
-          background: #333;
-        }
-      `}</style>
-    </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">Global Chat</span>
+                      {unreadCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {unreadCount} new
+                        </Badge>
+                      )}
+                    </div>
+                    {latestMessage ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                        <span className="font-medium text-foreground">
+                          {latestMessage.profiles.username}:
+                        </span>
+                        <span className="truncate">{latestMessage.message}</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No messages yet</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Expand Button */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    Click to expand
+                  </span>
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Spacer to prevent content from being hidden behind chat bar */}
+      <div className={isExpanded ? 'h-[400px]' : 'h-[60px]'} />
+    </>
   );
-};
+}

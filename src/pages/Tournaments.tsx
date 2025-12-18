@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,12 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreateTournamentDialog } from '@/components/CreateTournamentDialog';
-import { Trophy, Users, Clock, Calendar, Plus, Search, Filter, Sparkles } from 'lucide-react';
+import { Trophy, Users, Clock, Calendar, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { TournamentStats } from '@/components/TournamentStats';
-import { FeaturedTournament } from '@/components/FeaturedTournament';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 interface Tournament {
   id: string;
@@ -27,19 +23,7 @@ interface Tournament {
   created_at: string;
   start_time: string | null;
   created_by: string;
-  participant_count: number;
-  prize_pool?: string;
-  is_featured?: boolean;
-}
-
-interface Participant {
-  player_id: string;
-  points: number;
-  wins: number;
-}
-
-interface TournamentWithParticipants extends Tournament {
-  tournament_participants: Participant[];
+  participant_count?: number;
 }
 
 export default function Tournaments() {
@@ -49,67 +33,11 @@ export default function Tournaments() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [stats, setStats] = useState({
-    activeTournaments: 0,
-    totalPoints: 0,
-    globalRank: '#12', // Placeholder
-    wins: 0
-  });
-
-  const loadTournaments = React.useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select(`
-          *,
-          tournament_participants(player_id, points, wins)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const rawData = data as unknown as TournamentWithParticipants[];
-      const tournamentsWithCount: Tournament[] = rawData?.map(t => ({
-        ...t,
-        participant_count: t.tournament_participants?.length || 0
-      })) || [];
-
-      setTournaments(tournamentsWithCount);
-
-      // Calculate simple stats
-      if (user) {
-        let userPoints = 0;
-        let userWins = 0;
-        let activeCount = 0;
-
-        rawData?.forEach(t => {
-          const participant = t.tournament_participants?.find((p: Participant) => p.player_id === user.id);
-          if (participant) {
-            userPoints += participant.points || 0;
-            userWins += participant.wins || 0;
-            if (t.status === 'active') activeCount++;
-          }
-        });
-
-        setStats(prev => ({
-          ...prev,
-          totalPoints: userPoints,
-          wins: userWins,
-          activeTournaments: activeCount
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to load tournaments:', error);
-      toast.error('Failed to load tournaments');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
 
   useEffect(() => {
     loadTournaments();
 
+    // Subscribe to tournament changes
     const channel = supabase
       .channel('tournaments')
       .on(
@@ -126,7 +54,33 @@ export default function Tournaments() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadTournaments]);
+  }, []);
+
+  const loadTournaments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select(`
+          *,
+          tournament_participants(count)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const tournamentsWithCount = data?.map(t => ({
+        ...t,
+        participant_count: t.tournament_participants?.[0]?.count || 0
+      })) || [];
+
+      setTournaments(tournamentsWithCount);
+    } catch (error) {
+      console.error('Failed to load tournaments:', error);
+      toast.error('Failed to load tournaments');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -145,150 +99,132 @@ export default function Tournaments() {
     }
   };
 
-  const filteredTournaments = tournaments.filter(t => 
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (t.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-  );
-
-  const featuredTournament = filteredTournaments.find(t => t.is_featured && t.status === 'registration');
+  const filterTournaments = (status: string[]) => {
+    return tournaments.filter(t => status.includes(t.status));
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden">
-        {/* Ambient background glow */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
-        
-        <div className="relative z-10 text-center">
-          <Trophy className="h-16 w-16 mx-auto mb-6 text-amber-500 animate-bounce" />
-          <h2 className="text-2xl font-body font-bold text-white mb-2">Syncing Data...</h2>
-          <p className="font-mono text-muted-foreground">Accessing the Arena network</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Trophy className="h-12 w-12 mx-auto mb-4 text-primary animate-gentle-pulse" />
+          <p className="font-mono text-muted-foreground">Loading tournaments...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-foreground p-4 md:p-8 space-y-12 relative overflow-hidden">
-      {/* Background elements to fix "pitch black" feel */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[150px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[150px]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto space-y-12 relative z-10">
-        
-        {/* Header Section */}
-        <section className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-5xl font-body font-bold tracking-tight mb-3">Arena</h1>
-            <p className="text-muted-foreground text-lg">Compete in high-stakes brackets and claim your glory.</p>
-          </div>
-          {user && !isGuest && (
-            <Button onClick={() => setShowCreateDialog(true)} size="lg" className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 backdrop-blur-sm">
-              <Plus className="h-5 w-5 mr-2" />
-              HOST EVENT
-            </Button>
-          )}
-        </section>
-
-        {/* User Stats Dashboard */}
-        {!isGuest && user && (
-          <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <TournamentStats stats={stats} />
-          </section>
-        )}
-
-        {/* Featured Tournament */}
-        {featuredTournament && (
-          <section className="animate-in zoom-in-95 duration-700 delay-200">
-            <FeaturedTournament 
-              tournament={featuredTournament} 
-              onView={() => navigate(`/tournament/${featuredTournament.id}`)} 
-            />
-          </section>
-        )}
-
-        {/* Browser Section */}
-        <section className="space-y-6">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tournaments by name or description..." 
-                className="pl-12 bg-white/5 border-white/10 h-12 text-lg focus:ring-primary/50"
-              />
+    <div className="min-h-screen p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Guest Mode Banner */}
+        {isGuest && (
+          <Card className="mb-8 p-6 bg-gradient-to-r from-violet/10 to-indigo/10 border-2 border-violet/30">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-violet/20 flex items-center justify-center">
+                <Trophy className="h-8 w-8 text-violet" />
+              </div>
+              <div>
+                <h3 className="font-body text-xl font-bold text-foreground mb-2">
+                  Tournaments Locked
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Playing as {guestUsername}. Create a free account to join tournaments and compete for glory!
+                </p>
+              </div>
+              <Button 
+                onClick={() => navigate('/auth')}
+                size="lg"
+                className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
+              >
+                Create Free Account
+              </Button>
             </div>
-            <Button variant="outline" className="h-12 border-white/10 bg-white/5 gap-2 px-6">
-              <Filter className="h-5 w-5" />
-              FILTER
-            </Button>
+          </Card>
+        )}
+        
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="font-body text-4xl font-bold mb-2">Tournaments</h1>
+              <p className="text-muted-foreground">Compete against players in organized brackets</p>
+            </div>
+            {user && !isGuest && (
+              <Button onClick={() => setShowCreateDialog(true)} size="lg">
+                <Plus className="h-5 w-5 mr-2" />
+                Create Tournament
+              </Button>
+            )}
           </div>
+        </div>
 
-          <Tabs defaultValue="open" className="space-y-8">
-            <TabsList className="bg-white/5 border border-white/10 p-1 rounded-xl">
-              <TabsTrigger value="open" className="px-8 py-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                OPEN ({filteredTournaments.filter(t => t.status === 'registration').length})
-              </TabsTrigger>
-              <TabsTrigger value="active" className="px-8 py-2 rounded-lg data-[state=active]:bg-primary transition-all">
-                IN PROGRESS ({filteredTournaments.filter(t => ['active', 'seeding'].includes(t.status)).length})
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="px-8 py-2 rounded-lg data-[state=active]:bg-primary transition-all">
-                COMPLETED ({filteredTournaments.filter(t => t.status === 'completed').length})
-              </TabsTrigger>
-            </TabsList>
+        {/* Tabs */}
+        <Tabs defaultValue="open" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 max-w-md">
+            <TabsTrigger value="open">Open</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="open" className="animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTournaments.filter(t => t.status === 'registration').map(tournament => (
-                  <TournamentCard
-                    key={tournament.id}
-                    tournament={tournament}
-                    onView={() => navigate(`/tournament/${tournament.id}`)}
-                    getStatusColor={getStatusColor}
-                    getFormatLabel={getFormatLabel}
-                  />
-                ))}
-                {filteredTournaments.filter(t => t.status === 'registration').length === 0 && (
-                  <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                    <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-                    <p className="text-xl text-muted-foreground">No open tournaments found</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+          <TabsContent value="open" className="space-y-4">
+            {filterTournaments(['registration']).length === 0 ? (
+              <Card className="p-12 text-center">
+                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">No open tournaments</p>
+                <p className="text-sm text-muted-foreground mt-2">Create one to get started!</p>
+              </Card>
+            ) : (
+              filterTournaments(['registration']).map(tournament => (
+                <TournamentCard
+                  key={tournament.id}
+                  tournament={tournament}
+                  onView={() => navigate(`/tournament/${tournament.id}`)}
+                  getStatusColor={getStatusColor}
+                  getFormatLabel={getFormatLabel}
+                />
+              ))
+            )}
+          </TabsContent>
 
-            <TabsContent value="active" className="animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTournaments.filter(t => ['active', 'seeding'].includes(t.status)).map(tournament => (
-                  <TournamentCard
-                    key={tournament.id}
-                    tournament={tournament}
-                    onView={() => navigate(`/tournament/${tournament.id}`)}
-                    getStatusColor={getStatusColor}
-                    getFormatLabel={getFormatLabel}
-                  />
-                ))}
-              </div>
-            </TabsContent>
+          <TabsContent value="active" className="space-y-4">
+            {filterTournaments(['active', 'seeding']).length === 0 ? (
+              <Card className="p-12 text-center">
+                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">No active tournaments</p>
+              </Card>
+            ) : (
+              filterTournaments(['active', 'seeding']).map(tournament => (
+                <TournamentCard
+                  key={tournament.id}
+                  tournament={tournament}
+                  onView={() => navigate(`/tournament/${tournament.id}`)}
+                  getStatusColor={getStatusColor}
+                  getFormatLabel={getFormatLabel}
+                />
+              ))
+            )}
+          </TabsContent>
 
-            <TabsContent value="completed" className="animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTournaments.filter(t => t.status === 'completed').map(tournament => (
-                  <TournamentCard
-                    key={tournament.id}
-                    tournament={tournament}
-                    onView={() => navigate(`/tournament/${tournament.id}`)}
-                    getStatusColor={getStatusColor}
-                    getFormatLabel={getFormatLabel}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
+          <TabsContent value="completed" className="space-y-4">
+            {filterTournaments(['completed']).length === 0 ? (
+              <Card className="p-12 text-center">
+                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">No completed tournaments</p>
+              </Card>
+            ) : (
+              filterTournaments(['completed']).map(tournament => (
+                <TournamentCard
+                  key={tournament.id}
+                  tournament={tournament}
+                  onView={() => navigate(`/tournament/${tournament.id}`)}
+                  getStatusColor={getStatusColor}
+                  getFormatLabel={getFormatLabel}
+                />
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {showCreateDialog && (
@@ -314,58 +250,41 @@ interface TournamentCardProps {
 
 function TournamentCard({ tournament, onView, getStatusColor, getFormatLabel }: TournamentCardProps) {
   return (
-    <Card 
-      className="group relative bg-white/5 backdrop-blur-xl border-white/10 p-6 hover:bg-white/10 hover:border-amber-500/30 transition-all duration-300 cursor-pointer overflow-hidden" 
-      onClick={onView}
-    >
-      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
-        <Trophy className="h-20 w-20 text-amber-500 -mr-6 -mt-6" />
-      </div>
-
-      <div className="relative flex flex-col h-full space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold font-body group-hover:text-amber-500 transition-colors">{tournament.name}</h3>
-            {tournament.prize_pool && (
-              <p className="text-amber-500 font-mono text-sm inline-flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                {tournament.prize_pool} PRIZE
-              </p>
-            )}
-          </div>
-            <Badge className={cn("px-2 py-0.5", getStatusColor(tournament.status))}>
-              {tournament.status === 'registration' ? 'OPEN' : tournament.status.toUpperCase()}
+    <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={onView}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="font-body text-xl font-semibold">{tournament.name}</h3>
+            <Badge className={getStatusColor(tournament.status)}>
+              {tournament.status === 'registration' ? 'Open' : tournament.status}
             </Badge>
-        </div>
-
-        {tournament.description && (
-          <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
-            {tournament.description}
-          </p>
-        )}
-
-        <div className="pt-4 grid grid-cols-2 gap-4 border-t border-white/5">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>{tournament.participant_count} / {tournament.max_players}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{tournament.board_size}x{tournament.board_size}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Trophy className="h-4 w-4" />
-            <span>{getFormatLabel(tournament.format)}</span>
-          </div>
-          {tournament.start_time && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>{new Date(tournament.start_time).toLocaleDateString()}</span>
-            </div>
+          {tournament.description && (
+            <p className="text-muted-foreground text-sm mb-3">{tournament.description}</p>
           )}
         </div>
+        <Trophy className="h-6 w-6 text-primary ml-4" />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span>{tournament.participant_count}/{tournament.max_players}</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{tournament.board_size}×{tournament.board_size}</span>
+        </div>
+        <div className="text-muted-foreground">
+          {getFormatLabel(tournament.format)}
+        </div>
+        {tournament.start_time && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>{new Date(tournament.start_time).toLocaleDateString()}</span>
+          </div>
+        )}
       </div>
     </Card>
   );
 }
-
