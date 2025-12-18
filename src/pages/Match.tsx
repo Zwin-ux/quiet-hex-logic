@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,7 +44,8 @@ export default function Match() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
-  const { isDiscordEnvironment, isAuthenticated: isDiscordAuth, discordUser } = useDiscord();
+  const { isDiscordEnvironment, discordUser } = useDiscord();
+  
   const [match, setMatch] = useState<MatchData | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [engine, setEngine] = useState<Hex | null>(null);
@@ -54,18 +55,19 @@ export default function Match() {
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [showAIReasoning, setShowAIReasoning] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
-  const aiMoveInProgress = useRef(false);
-  const moveInProgress = useRef(false);
-  const lastAITurnProcessed = useRef<number | null>(null);
-  const loadInFlight = useRef(false);
-  const [rematchLoading, setRematchLoading] = useState(false);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [matchStartTime, setMatchStartTime] = useState<number>(Date.now());
   const [matchStats, setMatchStats] = useState<{ moves: number; duration: string } | null>(null);
 
-  // Check if this is a Discord local match
+  const loadMatchRef = useRef<() => Promise<void>>();
+
+  const aiMoveInProgress = useRef(false);
+  const moveInProgress = useRef(false);
+  const lastAITurnProcessed = useRef<number | null>(null);
+  const loadInFlight = useRef(false);
+
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
   const discordLocalState = location.state as { 
     isDiscordLocal?: boolean; 
@@ -74,16 +76,9 @@ export default function Match() {
     discordUser?: { id: string; username: string; } 
   } | null;
 
-  // Track presence in this match (skip for Discord local matches)
   usePresence(isDiscordLocalMatch ? undefined : user?.id, isDiscordLocalMatch ? undefined : matchId);
-
-  // Track spectators (skip for Discord local matches)
   const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(isDiscordLocalMatch ? undefined : matchId);
-
-  // Game sounds
   const { playPlaceSound, playWinSound, playLoseSound, playErrorSound } = useGameSounds();
-
-  // Ambient music
   const { 
     isPlaying: isMusicPlaying, 
     volume: musicVolume, 
@@ -94,106 +89,18 @@ export default function Match() {
     stopMusic 
   } = useAmbientMusic();
 
-  // Stop music when leaving the match
   useEffect(() => {
     return () => {
       stopMusic();
     };
   }, [stopMusic]);
 
-  // Initialize Discord local match
-  useEffect(() => {
-    if (!isDiscordLocalMatch || !discordLocalState?.isDiscordLocal) return;
-    
-    console.log('[Discord Match] Initializing local match:', matchId);
-    
-    const boardSize = discordLocalState.boardSize || 11;
-    const difficulty = discordLocalState.aiDifficulty || 'easy';
-    const discordUsername = discordLocalState.discordUser?.username || discordUser?.username || 'Player';
-    
-    // Create local match data
-    setMatch({
-      id: matchId!,
-      size: boardSize,
-      pie_rule: true,
-      status: 'active',
-      turn: 1,
-      winner: null,
-      ai_difficulty: difficulty,
-      turn_timer_seconds: null,
-      turn_started_at: null
-    });
-    
-    // Create players
-    const difficultyLabel = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-    setPlayers([
-      {
-        profile_id: 'discord-player',
-        color: 1,
-        is_bot: false,
-        username: discordUsername,
-        avatar_color: 'indigo'
-      },
-      {
-        profile_id: 'ai-player',
-        color: 2,
-        is_bot: true,
-        username: `Computer (${difficultyLabel})`,
-        avatar_color: 'slate'
-      }
-    ]);
-    
-    // Initialize engine
-    setEngine(new Hex(boardSize));
-    setMatchStartTime(Date.now());
-    setMatchStats(null);
-  }, [isDiscordLocalMatch, discordLocalState, matchId, discordUser]);
-
-  useEffect(() => {
-    if (!matchId || isDiscordLocalMatch) return;
-    
-    // Check authentication for AI games (skip for Discord)
-    if (!isDiscordEnvironment && !loading && !user) {
-      toast.error('Please sign in to play');
-      navigate('/auth');
-      return;
-    }
-    
-    if (!isDiscordEnvironment && !user) return;
-
-    // Load board skin preference
-    loadBoardSkin();
-    loadMatch();
-
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel(`match:${matchId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches',
-          filter: `id=eq.${matchId}`
-        },
-        () => loadMatch()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'moves',
-          filter: `match_id=eq.${matchId}`
-        },
-        () => loadMatch()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [matchId, user, loading, navigate, isDiscordEnvironment, isDiscordLocalMatch, loadBoardSkin, loadMatch]);
+  const formatDuration = useCallback((ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, []);
 
   const loadBoardSkin = useCallback(async () => {
     if (!user) return;
@@ -211,12 +118,73 @@ export default function Match() {
     }
   }, [user]);
 
+  const triggerAIMove = useCallback(async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
+    if (aiMoveInProgress.current) return;
+    aiMoveInProgress.current = true;
+    setAiThinking(true);
+
+    try {
+      const difficulty = matchData.ai_difficulty || 'medium';
+      let cell: number;
+      let reasoning: string;
+
+      if (difficulty === 'expert' || difficulty === 'hard') {
+        const { data: aiResult, error: aiError } = await supabase.functions.invoke('ai-move-v2', {
+          body: { matchId: matchData.id, difficulty }
+        });
+
+        if (aiError || !aiResult?.cell) {
+          const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
+          const result = ai.getMove();
+          cell = result.cell;
+          reasoning = result.reasoning + ' (fallback)';
+        } else {
+          cell = aiResult.cell;
+          reasoning = aiResult.reasoning;
+        }
+      } else {
+        const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
+        const result = ai.getMove();
+        cell = result.cell;
+        reasoning = result.reasoning;
+      }
+      
+      setAiReasoning(reasoning);
+      const actionId = crypto.randomUUID();
+
+      const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
+        body: { matchId: matchData.id, cell, actionId }
+      });
+
+      if (error || !result?.success) {
+        const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
+        if ((errorMsg.includes('Rate limit') || error?.status === 429) && retryCount < 3) {
+          setTimeout(() => {
+            aiMoveInProgress.current = false;
+            setAiThinking(false);
+            triggerAIMove(hexEngine, matchData, retryCount + 1);
+          }, Math.pow(2, retryCount) * 1000);
+          return;
+        }
+        return;
+      }
+
+      playPlaceSound();
+      if (result.winner) playLoseSound();
+      if (loadMatchRef.current) await loadMatchRef.current();
+    } catch (error) {
+      console.error('AI move error:', error);
+    } finally {
+      aiMoveInProgress.current = false;
+      setAiThinking(false);
+    }
+  }, [playPlaceSound, playLoseSound]);
+
   const loadMatch = useCallback(async () => {
-    if (!matchId || loadInFlight.current) return;
+    if (!matchId || loadInFlight.current || isDiscordLocalMatch) return;
     loadInFlight.current = true;
 
     try {
-      // Load match data
       const { data: matchData } = await supabase
         .from('matches')
         .select('*')
@@ -231,7 +199,6 @@ export default function Match() {
 
       setMatch(matchData);
 
-      // Load players
       const { data: playersData } = await supabase
         .from('match_players')
         .select(`
@@ -243,15 +210,17 @@ export default function Match() {
         .eq('match_id', matchId);
 
       if (playersData) {
-        const enrichedPlayers: Player[] = playersData.map(p => ({
-          profile_id: p.profile_id,
-          color: p.color,
-          is_bot: p.is_bot,
-          username: (p.profiles as any).username as string,
-          avatar_color: ((p.profiles as any).avatar_color as string) || 'indigo'
-        }));
+        const enrichedPlayers: Player[] = playersData.map(p => {
+          const profile = p.profiles as { username: string; avatar_color: string | null };
+          return {
+            profile_id: p.profile_id,
+            color: p.color,
+            is_bot: p.is_bot,
+            username: profile.username,
+            avatar_color: profile.avatar_color || 'indigo'
+          };
+        });
         
-        // For AI matches, add synthetic AI player as color 2
         if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
           const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
           enrichedPlayers.push({
@@ -266,7 +235,6 @@ export default function Match() {
         setPlayers(enrichedPlayers);
       }
 
-      // Load moves and reconstruct game state
       const { data: moves } = await supabase
         .from('moves')
         .select('*')
@@ -274,7 +242,6 @@ export default function Match() {
         .order('ply', { ascending: true });
 
       const hexEngine = new Hex(matchData.size);
-      
       if (moves) {
         moves.forEach(move => {
           try {
@@ -285,25 +252,20 @@ export default function Match() {
           }
         });
       }
-
       setEngine(hexEngine);
 
-      // Check for winning path
       const winner = hexEngine.winner();
       if (winner) {
-        const path = hexEngine.getWinningPath();
-        setWinningPath(path || []);
+        setWinningPath(hexEngine.getWinningPath() || []);
       }
 
-      // Check if AI should play (immediate, no delay) and only once per turn
       if (matchData.status === 'active') {
         const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
-        const isAIMatch = matchData.ai_difficulty != null;
-        const isAITurn = isAIMatch && currentColor === 2;
+        const isAITurn = !!matchData.ai_difficulty && currentColor === 2;
         
         if (isAITurn && !hexEngine.winner() && lastAITurnProcessed.current !== matchData.turn) {
           lastAITurnProcessed.current = matchData.turn;
-          makeAIMove(hexEngine, matchData);
+          triggerAIMove(hexEngine, matchData);
         }
       }
     } catch (e) {
@@ -311,187 +273,33 @@ export default function Match() {
     } finally {
       loadInFlight.current = false;
     }
-  }, [matchId, navigate, makeAIMove]);
+  }, [matchId, navigate, isDiscordLocalMatch, triggerAIMove]);
 
-  // Timer countdown effect
-  useEffect(() => {
-    if (!match || match.status !== 'active' || !match.turn_timer_seconds || !match.turn_started_at) {
-      setTimeRemaining(null);
-      return;
-    }
-
-    const updateTimer = () => {
-      const turnStartTime = new Date(match.turn_started_at!).getTime();
-      const now = Date.now();
-      const elapsed = Math.floor((now - turnStartTime) / 1000);
-      const remaining = Math.max(0, match.turn_timer_seconds! - elapsed);
-      
-      setTimeRemaining(remaining);
-
-      // If time runs out, reload to see the forfeit
-      if (remaining === 0) {
-        setTimeout(() => loadMatch(), 2000);
-      }
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(interval);
-  }, [match, loadMatch, isDiscordLocalMatch]);
-
-  const makeAIMove = async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
-    // Prevent concurrent AI moves
-    if (aiMoveInProgress.current) {
-      return;
-    }
-
-    aiMoveInProgress.current = true;
-    setAiThinking(true);
-
-    try {
-      const difficulty = matchData.ai_difficulty || 'medium';
-      let cell: number;
-      let reasoning: string;
-
-      if (difficulty === 'expert' || difficulty === 'hard') {
-        // Use server-side MCTS AI for hard/expert
-        const { data: aiResult, error: aiError } = await supabase.functions.invoke('ai-move-v2', {
-          body: { 
-            matchId: matchData.id,
-            difficulty
-          }
-        });
-
-        if (aiError || !aiResult?.cell) {
-          // Fallback to client AI if server fails
-          const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
-          const result = ai.getMove();
-          cell = result.cell;
-          reasoning = result.reasoning + ' (fallback)';
-        } else {
-          cell = aiResult.cell;
-          reasoning = aiResult.reasoning;
-        }
-      } else {
-        // Use client-side AI for easy/medium (instant)
-        const ai = new SimpleHexAI(hexEngine, difficulty as AIDifficulty);
-        const result = ai.getMove();
-        cell = result.cell;
-        reasoning = result.reasoning;
-      }
-      
-      setAiReasoning(reasoning);
-
-      // Generate action_id for idempotency
-      const actionId = crypto.randomUUID();
-
-      // Apply move through server for validation and persistence
-      const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
-        body: { 
-          matchId: matchData.id, 
-          cell,
-          actionId
-        }
-      });
-
-      if (error || !result?.success) {
-        const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
-        
-        console.error('AI move failed:', {
-          error: errorMsg,
-          statusCode: error?.status,
-          cell,
-          matchId: matchData.id,
-          turn: matchData.turn,
-          retryCount
-        });
-        
-        // Handle rate limits with exponential backoff retry
-        if ((errorMsg.includes('Rate limit') || error?.status === 429) && retryCount < 3) {
-          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-          console.log(`Rate limited, retrying in ${delay}ms...`);
-          setTimeout(() => {
-            aiMoveInProgress.current = false;
-            setAiThinking(false);
-            makeAIMove(hexEngine, matchData, retryCount + 1);
-          }, delay);
-          return;
-        }
-        
-        // Don't throw on "Not your turn" - this can happen if another move was already made
-        if (!errorMsg.includes('Not your turn') && !errorMsg.includes('Not AI turn')) {
-          toast.error('Computer move failed', {
-            description: retryCount > 0 ? 'Failed after retries' : 'The game will continue when ready'
-          });
-        }
-        return;
-      }
-
-      // Play AI move sound
-      playPlaceSound();
-
-      // Check if move resulted in a win
-      if (result.winner) {
-        console.log('AI move resulted in win:', result.winner);
-        // AI won, play lose sound for player
-        playLoseSound();
-      }
-
-      // Reload match to get updated state
-      await loadMatch();
-    } catch (error) {
-      console.error('AI move error:', error);
-      toast.error('Unexpected error', {
-        description: 'AI move encountered an error'
-      });
-    } finally {
-      aiMoveInProgress.current = false;
-      setAiThinking(false);
-    }
-  };
-
-  // Discord local AI move handler
   const makeDiscordLocalAIMove = useCallback(async (hexEngine: Hex, difficulty: AIDifficulty) => {
     if (aiMoveInProgress.current) return;
     aiMoveInProgress.current = true;
     setAiThinking(true);
 
     try {
-      // Small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 500));
-
       const ai = new SimpleHexAI(hexEngine, difficulty);
       const result = ai.getMove();
       setAiReasoning(result.reasoning);
 
-      // Apply move locally
       hexEngine.play(result.cell);
       setEngine(hexEngine.clone());
       setLastMove(result.cell);
       playPlaceSound();
-
-      // Update match turn locally
       setMatch(prev => prev ? { ...prev, turn: prev.turn + 1 } : null);
 
-      // Check for win
       const winner = hexEngine.winner();
       if (winner) {
         setWinningPath(hexEngine.getWinningPath() || []);
         setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
-        
-        // Calculate stats
         const duration = formatDuration(Date.now() - matchStartTime);
-        setMatchStats({
-          moves: hexEngine.ply,
-          duration: duration
-        });
-
-        playLoseSound(); // AI won
-        toast.success('Game Over', {
-          description: `Computer wins in ${hexEngine.ply} moves (${duration})`,
-          duration: 5000
-        });
+        setMatchStats({ moves: hexEngine.ply, duration });
+        playLoseSound();
+        toast.success('Game Over', { description: `Computer wins in ${hexEngine.ply} moves (${duration})` });
       }
     } finally {
       aiMoveInProgress.current = false;
@@ -502,226 +310,101 @@ export default function Match() {
   const handleCellClick = useCallback(async (cell: number) => {
     if (!engine || !match) return;
 
-    // Discord local match handling
     if (isDiscordLocalMatch) {
       if (moveInProgress.current || aiMoveInProgress.current) return;
-
       const currentColor = match.turn % 2 === 1 ? 1 : 2;
       if (currentColor !== 1) {
         playErrorSound();
-        toast.error('Wait for the computer to move');
         return;
       }
-
       if (!engine.legal(cell)) {
         playErrorSound();
-        toast.error('Invalid move');
         return;
       }
 
       moveInProgress.current = true;
       playPlaceSound();
-
-      // Apply move locally
       const newEngine = engine.clone();
       newEngine.play(cell);
       setEngine(newEngine);
       setLastMove(cell);
       setMatch(prev => prev ? { ...prev, turn: prev.turn + 1 } : null);
 
-      // Check for win
       const winner = newEngine.winner();
       if (winner) {
         setWinningPath(newEngine.getWinningPath() || []);
         setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
-        
-        // Calculate stats
         const duration = formatDuration(Date.now() - matchStartTime);
-        setMatchStats({
-          moves: newEngine.ply,
-          duration: duration
-        });
-
+        setMatchStats({ moves: newEngine.ply, duration });
         playWinSound();
-        toast.success('Victory!', {
-          description: `You won in ${newEngine.ply} moves (${duration})!`,
-          duration: 5000
-        });
+        toast.success('Victory!', { description: `You won in ${newEngine.ply} moves (${duration})!` });
         moveInProgress.current = false;
         return;
       }
 
       moveInProgress.current = false;
-
-      // Trigger AI move
       if (match.ai_difficulty && !newEngine.winner()) {
-        setTimeout(() => {
-          makeDiscordLocalAIMove(newEngine, match.ai_difficulty!);
-        }, 100);
+        setTimeout(() => makeDiscordLocalAIMove(newEngine, match.ai_difficulty!), 100);
       }
       return;
     }
 
-    // Standard Supabase flow (requires user)
-    if (!user) return;
+    if (!user || moveInProgress.current || isSpectating) return;
 
-    // Prevent duplicate submissions
-    if (moveInProgress.current) {
-      return;
-    }
-
-    // Spectators can't make moves
-    if (isSpectating) {
-      playErrorSound();
-      toast.error('Spectators cannot make moves');
-      return;
-    }
-
-    // Check if it's user's turn
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
-    const currentPlayer = players.find(p => p.color === currentColor);
-    const isAITurn = !!match.ai_difficulty && currentColor === 2;
-    if (isAITurn) {
+    const isPlayerTurn = players.find(p => p.color === currentColor)?.profile_id === user.id;
+    if (!isPlayerTurn || !engine.legal(cell)) {
       playErrorSound();
-      toast.error('Wait for the computer to move');
-      return;
-    }
-    if (!currentPlayer || currentPlayer.profile_id !== user.id) {
-      playErrorSound();
-      toast.error('Not your turn');
       return;
     }
 
-    // Client-side validation
-    if (!engine.legal(cell)) {
-      playErrorSound();
-      toast.error('Invalid move');
-      return;
-    }
-
-    // Lock to prevent duplicate submissions
     moveInProgress.current = true;
-
-    // Play place sound immediately for responsive feedback
     playPlaceSound();
-
-    // Optimistic UI update
-    const optimisticEngine = engine.clone();
-    optimisticEngine.play(cell);
-    setEngine(optimisticEngine);
-    setLastMove(cell);
-
-    // Generate action_id for idempotency
     const actionId = crypto.randomUUID();
 
     try {
-      // Server-side move application with validation
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
-        body: { 
-          matchId: match.id, 
-          cell,
-          actionId
-        }
+        body: { matchId: match.id, cell, actionId }
       });
 
       if (error || !result?.success) {
-        // Revert optimistic update on error
         await loadMatch();
-        
-        // Check for specific error types
-        if (error?.message?.includes('Rate limit') || result?.error?.includes('Rate limit')) {
-          toast.error('Too many moves too quickly');
-          return;
-        }
-        if (result?.error?.includes('Match state changed')) {
-          return;
-        }
-        toast.error(result?.error || error?.message || 'Invalid move');
+        toast.error(result?.error || 'Failed to make move');
         return;
       }
 
-      // Check if this was a cached/duplicate result
-      if (result.cached) {
-        return;
-      }
-
-      // Reload match for server state sync
       await loadMatch();
-
-      const winner = result.winner;
-      if (winner) {
-        const isVictory = winner === currentPlayer.color;
-        // Play win/lose sound
-        if (isVictory) {
-          playWinSound();
-        } else {
-          playLoseSound();
-        }
-        toast.success(isVictory ? 'Victory!' : 'Game Over', {
-          description: isVictory 
-            ? `You won as ${winner === 1 ? 'Indigo' : 'Ochre'}!` 
-            : `${winner === 1 ? 'Indigo' : 'Ochre'} wins!`,
-          duration: 5000
-        });
+      if (result.winner) {
+        if (result.winner === currentColor) playWinSound();
+        else playLoseSound();
       }
     } catch (error) {
-      // Revert optimistic update
       await loadMatch();
-      console.error('Move error:', error);
-      toast.error('Failed to make move');
     } finally {
-      // Release lock
       moveInProgress.current = false;
     }
   }, [engine, match, user, players, isSpectating, isDiscordLocalMatch, loadMatch, makeDiscordLocalAIMove, playPlaceSound, playWinSound, playLoseSound, playErrorSound, formatDuration, matchStartTime]);
 
   const handleSwapColors = useCallback(async () => {
     if (!engine || !match || !user) return;
-
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
-    const currentPlayer = players.find(p => p.color === currentColor);
-    if (!currentPlayer || currentPlayer.profile_id !== user.id) {
-      toast.error('Not your turn');
-      return;
-    }
+    if (players.find(p => p.color === currentColor)?.profile_id !== user.id) return;
 
-    // Generate action_id for idempotency
     const actionId = crypto.randomUUID();
-
     try {
-      // Server-side pie rule swap with validation
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
-        body: { 
-          matchId: match.id, 
-          cell: null,
-          actionId
-        }
+        body: { matchId: match.id, cell: null, actionId }
       });
-
-      if (error || !result?.success) {
-        toast.error(result?.error || error?.message || 'Cannot swap colors');
-        return;
-      }
-
-      if (result.cached) {
-        console.log('Swap already processed');
-        return;
-      }
-
+      if (error || !result?.success) return;
       await loadMatch();
-
-      toast.success('Colors swapped!', {
-        description: 'You are now playing as Indigo'
-      });
+      toast.success('Colors swapped!');
     } catch (error) {
-      console.error('Swap error:', error);
-      toast.error('Failed to swap colors');
+      console.error(error);
     }
   }, [engine, match, user, players, loadMatch]);
 
   const handleToggleSpectate = async () => {
     if (!user) return;
-
     try {
       if (isSpectating) {
         await leaveAsSpectator(user.id);
@@ -736,28 +419,18 @@ export default function Match() {
   };
 
   const handleRematch = async () => {
-    if (!matchId || !isPlayer) return;
-    
+    if (!matchId || !user) return;
     setRequestingRematch(true);
     try {
       const { data, error } = await supabase.functions.invoke('rematch-lobby', {
         body: { matchId }
       });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      toast.success('Rematch lobby created! 🎮', {
-        description: `Navigating to new lobby...`,
-        duration: 3000
-      });
-
+      if (error || data?.error) throw new Error(error || data?.error);
+      toast.success('Rematch lobby created!');
       navigate(`/lobby/${data.lobby.id}`);
-    } catch (error: any) {
-      console.error('Rematch error:', error);
-      toast.error('Failed to create rematch', {
-        description: error.message
-      });
+    } catch (error) {
+      const err = error as Error;
+      toast.error('Failed to create rematch', { description: err.message });
     } finally {
       setRequestingRematch(false);
     }
@@ -766,50 +439,59 @@ export default function Match() {
   const handlePlayAgainAI = () => {
     if (!match) return;
     navigate('/lobby', { 
-      state: { 
-        createAI: true, 
-        difficulty: match.ai_difficulty,
-        boardSize: match.size 
-      } 
+      state: { createAI: true, difficulty: match.ai_difficulty, boardSize: match.size } 
     });
   };
 
-  const formatDuration = useCallback((ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }, []);
-
   const handleDiscordRematch = useCallback(() => {
-    if (!match || !engine) return;
-    
-    console.log('[Discord Match] Resetting for rematch');
+    if (!match) return;
     const boardSize = match.size;
-    const difficulty = match.ai_difficulty || 'easy';
-    
-    // Reset engine
-    const newEngine = new Hex(boardSize);
-    setEngine(newEngine);
+    setEngine(new Hex(boardSize));
     setLastMove(undefined);
     setWinningPath([]);
-    
-    // Reset match state
-    setMatch({
-      ...match,
-      status: 'active',
-      turn: 1,
-      winner: null,
-      turn_started_at: null
-    });
-    
-    // Reset stats
+    setMatch({ ...match, status: 'active', turn: 1, winner: null, turn_started_at: null });
     setMatchStartTime(Date.now());
     setMatchStats(null);
     setAiReasoning('');
-    
     toast.success('New game started!');
-  }, [match, engine]);
+  }, [match]);
+
+  useEffect(() => {
+    if (!matchId || isDiscordLocalMatch) return;
+    if (!loading && !user && !isDiscordEnvironment) {
+      navigate('/auth');
+      return;
+    }
+    loadBoardSkin();
+    loadMatch();
+    
+    const channel = supabase
+      .channel(`match:${matchId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, () => loadMatch())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `match_id=eq.${matchId}` }, () => loadMatch())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [matchId, user, loading, navigate, isDiscordEnvironment, isDiscordLocalMatch, loadBoardSkin, loadMatch]);
+
+  useEffect(() => {
+    if (!match || match.status !== 'active' || !match.turn_timer_seconds || !match.turn_started_at) {
+      setTimeRemaining(null);
+      return;
+    }
+    const updateTimer = () => {
+      const turnStartTime = new Date(match.turn_started_at!).getTime();
+      const elapsed = Math.floor((Date.now() - turnStartTime) / 1000);
+      const remaining = Math.max(0, match.turn_timer_seconds! - elapsed);
+      setTimeRemaining(remaining);
+      if (remaining === 0) setTimeout(() => loadMatch(), 2000);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [match, loadMatch]);
 
   if (!match || !engine) {
     return (
@@ -831,13 +513,11 @@ export default function Match() {
   const isAIMatch = match.ai_difficulty != null;
   const isAITurn = isAIMatch && currentColor === 2;
 
-  // Build Discord avatar URL if available
   const getDiscordAvatarUrl = (userId?: string, avatarHash?: string | null) => {
     if (!userId || !avatarHash) return undefined;
     return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png?size=128`;
   };
 
-  // Get Discord avatar URL for the human player in Discord local matches
   const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar 
     ? getDiscordAvatarUrl(discordUser.id, discordUser.avatar) 
     : undefined;
@@ -845,78 +525,35 @@ export default function Match() {
   return (
     <div className="min-h-screen p-4 md:p-8">
       {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
-
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="font-body text-3xl font-semibold mb-2">
-              {isAIMatch ? 'Practice Mode' : 'Match in Progress'}
-            </h1>
+            <h1 className="font-body text-3xl font-semibold mb-2">{isAIMatch ? 'Practice Mode' : 'Match in Progress'}</h1>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="font-mono">
-                {match.size}×{match.size}
-              </Badge>
+              <Badge variant="outline" className="font-mono">{match.size}×{match.size}</Badge>
               {match.status === 'finished' && match.winner && (
-                <Badge className="bg-indigo text-primary-foreground">
-                  {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}
-                </Badge>
+                <Badge className="bg-indigo text-primary-foreground">{match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}</Badge>
               )}
             </div>
           </div>
-
           <div className="flex gap-2">
             {match.status === 'finished' && !isAIMatch && isPlayer && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleRematch}
-                disabled={requestingRematch}
-              >
+              <Button variant="default" size="sm" onClick={handleRematch} disabled={requestingRematch}>
                 <RotateCcw className="h-4 w-4 mr-2" />
                 {requestingRematch ? 'Creating...' : 'Rematch'}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/lobby')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Exit
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/lobby')}><ArrowLeft className="h-4 w-4 mr-2" />Exit</Button>
             {!isAIMatch && !isPlayer && (
-              <Button
-                variant={isSpectating ? "default" : "outline"}
-                size="sm"
-                onClick={handleToggleSpectate}
-              >
+              <Button variant={isSpectating ? "default" : "outline"} size="sm" onClick={handleToggleSpectate}>
                 {isSpectating ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                 {isSpectating ? 'Leave' : 'Watch'}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTutorial(true)}
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              How to Play
-            </Button>
-            <MusicControls
-              isPlaying={isMusicPlaying}
-              volume={musicVolume}
-              isMuted={isMusicMuted}
-              onToggleMusic={toggleMusic}
-              onToggleMute={toggleMusicMute}
-              onVolumeChange={updateMusicVolume}
-            />
+            <Button variant="outline" size="sm" onClick={() => setShowTutorial(true)}><BookOpen className="h-4 w-4 mr-2" />How to Play</Button>
+            <MusicControls isPlaying={isMusicPlaying} volume={musicVolume} isMuted={isMusicMuted} onToggleMusic={toggleMusic} onToggleMute={toggleMusicMute} onVolumeChange={updateMusicVolume} />
             {isAIMatch && match.ai_difficulty === 'expert' && aiReasoning && (
-              <Button
-                variant={showAIReasoning ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowAIReasoning(!showAIReasoning)}
-              >
+              <Button variant={showAIReasoning ? "default" : "outline"} size="sm" onClick={() => setShowAIReasoning(!showAIReasoning)}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 {showAIReasoning ? 'Hide' : 'Explain Move'}
               </Button>
@@ -925,22 +562,9 @@ export default function Match() {
         </div>
 
         <div className="grid lg:grid-cols-[300px_1fr_300px] gap-8 items-start">
-          {/* Player 1 Panel */}
           <div className="order-2 lg:order-1">
-            {player1 && (
-              <PlayerPanel
-                username={player1.username}
-                color={1}
-                isCurrentTurn={currentColor === 1 && match.status === 'active'}
-                timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
-                isAI={player1.is_bot}
-                avatarColor={player1.avatar_color}
-                discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
-              />
-            )}
+            {player1 && <PlayerPanel username={player1.username} color={1} isCurrentTurn={currentColor === 1 && match.status === 'active'} timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined} isAI={player1.is_bot} avatarColor={player1.avatar_color} discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined} />}
           </div>
-
-          {/* Game Board */}
           <div className="order-1 lg:order-2 flex flex-col items-center gap-6">
             {showAIReasoning && aiReasoning && (
               <div className="p-4 border rounded-lg bg-card max-w-md">
@@ -953,65 +577,19 @@ export default function Match() {
                 </div>
               </div>
             )}
-
-            <HexBoard
-              size={match.size}
-              board={engine.board}
-              lastMove={lastMove}
-              winningPath={winningPath}
-              onCellClick={handleCellClick}
-              skin={boardSkin}
-              disabled={
-                match.status !== 'active' || 
-                !(currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
-                isAITurn ||
-                isSpectating ||
-                !isPlayer
-              }
-              canSwap={
-                match.pie_rule &&
-                engine.ply === 1 &&
-                !engine.swapped &&
-                (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) &&
-                match.status === 'active'
-              }
-              onSwapColors={handleSwapColors}
-            />
-
-            {match.status === 'active' && (
-              <p className="font-mono text-sm text-muted-foreground">
-                {isSpectating
-                  ? `Watching ${currentPlayer?.username}'s turn`
-                  : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
-                  ? "Your turn"
-                  : `Waiting for ${currentPlayer?.username}...`}
-              </p>
-            )}
-
+            <HexBoard size={match.size} board={engine.board} lastMove={lastMove} winningPath={winningPath} onCellClick={handleCellClick} skin={boardSkin} disabled={match.status !== 'active' || !(currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) || isAITurn || isSpectating || !isPlayer} canSwap={match.pie_rule && engine.ply === 1 && !engine.swapped && (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) && match.status === 'active'} onSwapColors={handleSwapColors} />
+            {match.status === 'active' && <p className="font-mono text-sm text-muted-foreground">{isSpectating ? `Watching ${currentPlayer?.username}'s turn` : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ? "Your turn" : `Waiting for ${currentPlayer?.username}...`}</p>}
             {match.status === 'finished' && match.winner && (
               <div className="mt-6 p-8 border-2 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center space-y-4">
-                  <div className="text-6xl mb-2">
-                    {match.winner === userPlayer?.color ? '🎉' : match.winner === 2 && isAIMatch ? '🤖' : '💫'}
-                  </div>
-                  <h2 className="font-body text-4xl font-bold text-primary">
-                    {match.winner === userPlayer?.color ? '🏆 Victory!' : isAIMatch && match.winner === 2 ? '🤖 Computer Wins!' : '🎮 Game Over'}
-                  </h2>
+                  <div className="text-6xl mb-2">{match.winner === userPlayer?.color ? '🎉' : match.winner === 2 && isAIMatch ? '🤖' : '💫'}</div>
+                  <h2 className="font-body text-4xl font-bold text-primary">{match.winner === userPlayer?.color ? '🏆 Victory!' : isAIMatch && match.winner === 2 ? '🤖 Computer Wins!' : '🎮 Game Over'}</h2>
                   <div className="space-y-3 p-4 bg-card rounded-lg border">
-                    <p className="text-2xl font-bold" style={{ color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)' }}>
-                      {match.winner === 1 ? player1?.username : player2?.username} wins!
-                    </p>
+                    <p className="text-2xl font-bold" style={{ color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)' }}>{match.winner === 1 ? player1?.username : player2?.username} wins!</p>
                     <div className="flex items-center justify-center gap-3 text-lg font-semibold">
-                      <span className="px-3 py-1 rounded-full" style={{ 
-                        backgroundColor: match.winner === 1 ? 'hsl(223 45% 29% / 0.2)' : 'hsl(40 76% 43% / 0.2)',
-                        color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)'
-                      }}>
-                        {match.winner === 1 ? '🔵 Indigo' : '🟡 Ochre'}
-                      </span>
+                      <span className="px-3 py-1 rounded-full" style={{ backgroundColor: match.winner === 1 ? 'hsl(223 45% 29% / 0.2)' : 'hsl(40 76% 43% / 0.2)', color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)' }}>{match.winner === 1 ? '🔵 Indigo' : '🟡 Ochre'}</span>
                       <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">
-                        {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
-                      </span>
+                      <span className="text-muted-foreground">{match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}</span>
                     </div>
                     {matchStats && (
                       <div className="pt-2 flex justify-center gap-6 text-sm font-mono border-t border-white/5 mt-2">
@@ -1026,111 +604,24 @@ export default function Match() {
                       </div>
                     )}
                   </div>
-                  {isAIMatch && match.winner === userPlayer?.color && (
-                    <p className="text-lg text-primary font-semibold">
-                      🎯 You defeated the {match.ai_difficulty?.toUpperCase()} AI!
-                    </p>
-                  )}
-                  {isAIMatch && match.winner !== userPlayer?.color && (
-                    <div className="text-base text-muted-foreground space-y-1">
-                      <p className="font-semibold">The AI found a winning path!</p>
-                      <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
-                    </div>
-                  )}
-                  
-                  {/* Rematch Buttons */}
+                  {isAIMatch && match.winner === userPlayer?.color && <p className="text-lg text-primary font-semibold">🎯 You defeated the {match.ai_difficulty?.toUpperCase()} AI!</p>}
+                  {isAIMatch && match.winner !== userPlayer?.color && <div className="text-base text-muted-foreground space-y-1"><p className="font-semibold">The AI found a winning path!</p><p className="text-sm italic">Analyze the board and try a different strategy next time.</p></div>}
                   <div className="flex gap-3 justify-center pt-4">
-                    {isDiscordEnvironment ? (
-                      <Button
-                        size="lg"
-                        onClick={handleDiscordRematch}
-                        className="gap-2 font-semibold bg-primary hover:bg-primary/90"
-                      >
-                        <RefreshCw className="h-5 w-5" />
-                        Quick Rematch
-                      </Button>
-                    ) : isAIMatch ? (
-                      <Button
-                        size="lg"
-                        onClick={handlePlayAgainAI}
-                        className="gap-2 font-semibold"
-                      >
-                        <RefreshCw className="h-5 w-5" />
-                        Play Again
-                      </Button>
-                    ) : isPlayer && (
-                      <Button
-                        size="lg"
-                        onClick={handleRematch}
-                        disabled={requestingRematch}
-                        className="gap-2 font-semibold"
-                      >
-                        <RefreshCw className={`h-5 w-5 ${requestingRematch ? 'animate-spin' : ''}`} />
-                        {requestingRematch ? 'Creating Rematch...' : 'Instant Rematch'}
-                      </Button>
-                    )}
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      onClick={() => navigate('/lobby')}
-                      className="gap-2"
-                    >
-                      <ArrowLeft className="h-5 w-5" />
-                      {isAIMatch ? 'New Game' : 'Back to Lobby'}
-                    </Button>
+                    {isDiscordEnvironment ? <Button size="lg" onClick={handleDiscordRematch} className="gap-2 font-semibold bg-primary hover:bg-primary/90"><RefreshCw className="h-5 w-5" />Quick Rematch</Button> : isAIMatch ? <Button size="lg" onClick={handlePlayAgainAI} className="gap-2 font-semibold"><RefreshCw className="h-5 w-5" />Play Again</Button> : isPlayer && <Button size="lg" onClick={handleRematch} disabled={requestingRematch} className="gap-2 font-semibold"><RefreshCw className={`h-5 w-5 ${requestingRematch ? 'animate-spin' : ''}`} />{requestingRematch ? 'Creating Rematch...' : 'Instant Rematch'}</Button>}
+                    <Button size="lg" variant="outline" onClick={() => navigate('/lobby')} className="gap-2"><ArrowLeft className="h-5 w-5" />{isAIMatch ? 'New Game' : 'Back to Lobby'}</Button>
                   </div>
                 </div>
               </div>
             )}
           </div>
-
-          {/* Player 2 Panel */}
           <div className="order-3">
             {player2 && (
               <div className="relative">
-                <PlayerPanel
-                  username={player2.username}
-                  color={2}
-                  isCurrentTurn={currentColor === 2 && match.status === 'active'}
-                  timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
-                  isAI={player2.is_bot}
-                  avatarColor={player2.avatar_color}
-                  discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
-                />
-                {aiThinking && isAIMatch && currentColor === 2 && (
-                  <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-2 text-sm text-ochre">
-                      <div className="animate-spin h-4 w-4 border-2 border-ochre border-t-transparent rounded-full" />
-                      <span className="font-medium">Computing move...</span>
-                    </div>
-                  </div>
-                )}
+                <PlayerPanel username={player2.username} color={2} isCurrentTurn={currentColor === 2 && match.status === 'active'} timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined} isAI={player2.is_bot} avatarColor={player2.avatar_color} discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined} />
+                {aiThinking && isAIMatch && currentColor === 2 && <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2"><div className="flex items-center gap-2 text-sm text-ochre"><div className="animate-spin h-4 w-4 border-2 border-ochre border-t-transparent rounded-full" /><span className="font-medium">Computing move...</span></div></div>}
               </div>
             )}
-
-            {/* Spectators - only for non-AI matches */}
-            {!isAIMatch && spectators.length > 0 && (
-              <div className="mt-6 p-4 border rounded-lg bg-card">
-                <div className="flex items-center gap-2 mb-3">
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-mono text-sm text-muted-foreground">
-                    {spectators.length} watching
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {spectators.slice(0, 5).map((spectator) => (
-                    <div key={spectator.profile_id} className="text-sm text-muted-foreground font-mono">
-                      {spectator.profiles?.username || 'Anonymous'}
-                    </div>
-                  ))}
-                  {spectators.length > 5 && (
-                    <div className="text-xs text-muted-foreground">
-                      +{spectators.length - 5} more
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {!isAIMatch && spectators.length > 0 && <div className="mt-6 p-4 border rounded-lg bg-card"><div className="flex items-center gap-2 mb-3"><Eye className="h-4 w-4 text-muted-foreground" /><span className="font-mono text-sm text-muted-foreground">{spectators.length} watching</span></div><div className="space-y-2">{spectators.slice(0, 5).map((spectator) => <div key={spectator.profile_id} className="text-sm text-muted-foreground font-mono">{spectator.profiles?.username || 'Anonymous'}</div>)}{spectators.length > 5 && <div className="text-xs text-muted-foreground">+{spectators.length - 5} more</div>}</div></div>}
           </div>
         </div>
       </div>
