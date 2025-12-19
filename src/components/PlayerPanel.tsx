@@ -4,6 +4,7 @@ import { PremiumBadge } from '@/components/PremiumBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Clock } from 'lucide-react';
 import { memo } from 'react';
+import { cn } from '@/lib/utils';
 
 interface PlayerPanelProps {
   username: string;
