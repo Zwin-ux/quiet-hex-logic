@@ -532,8 +532,8 @@ serve(async (req) => {
     
     try {
       if (difficulty === 'expert') {
-        // Use MCTS for expert (200ms budget, ~2000 iterations)
-        result = ai.getMCTSMove(200);
+        // Use MCTS for expert (150ms budget, ~1500 iterations)
+        result = ai.getMCTSMove(150);
       } else if (difficulty === 'hard') {
         result = ai.getHardMove();
       } else if (difficulty === 'medium') {

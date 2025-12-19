@@ -379,11 +379,17 @@ export default function Match() {
       }
       
       const isAggressive = reasoning.includes('🛑') || reasoning.includes('🧠') || reasoning.includes('🛡️');
-      setIsAggressiveMove(isAggressive);
       setAiReasoning(reasoning);
 
-      // Generate action_id for idempotency
-      const actionId = crypto.randomUUID();
+    // Optimistically apply move locally
+    hexEngine.play(cell);
+    setIsAggressiveMove(isAggressive);
+    playPlaceSound();
+    setAiThinking(false);
+    aiMoveInProgress.current = false;
+
+    // Generate action_id for idempotency
+    const actionId = crypto.randomUUID();
 
       // Apply move through server for validation and persistence
       const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
@@ -411,6 +417,7 @@ export default function Match() {
           const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
           console.log(`Rate limited, retrying in ${delay}ms...`);
           setTimeout(() => {
+            // Re-enable AI move for retry
             aiMoveInProgress.current = false;
             setAiThinking(false);
             makeAIMove(hexEngine, matchData, retryCount + 1);
@@ -427,17 +434,13 @@ export default function Match() {
         return;
       }
 
-      // Play AI move sound
-      playPlaceSound();
-
-      // Check if move resulted in a win
       if (result.winner) {
         console.log('AI move resulted in win:', result.winner);
         // AI won, play lose sound for player
         playLoseSound();
       }
 
-      // Reload match to get updated state
+      // Still load match to ensure server sync, but the UI is already updated
       await loadMatch();
     } catch (error) {
       console.error('AI move error:', error);
@@ -464,10 +467,15 @@ export default function Match() {
       const result = ai.getMove();
       
       const isAggressive = result.reasoning.includes('🛑') || result.reasoning.includes('🧠') || result.reasoning.includes('🛡️');
-      setIsAggressiveMove(isAggressive);
       setAiReasoning(result.reasoning);
 
-      // Apply move locally
+      // Optimistically apply move locally
+      hexEngine.play(result.cell);
+      setIsAggressiveMove(isAggressive);
+      playPlaceSound();
+      setAiThinking(false);
+
+      // Apply move locally in the engine (it's already done above, but let's keep it consistent)
       hexEngine.play(result.cell);
       setEngine(hexEngine.clone());
       setLastMove(result.cell);

@@ -13,7 +13,7 @@ type CreateLobbyProps = {
 };
 
 export function CreateLobby({ userId }: CreateLobbyProps) {
-  const [boardSize, setBoardSize] = useState(11);
+  const [boardSize, setBoardSize] = useState(7);
   const [pieRule, setPieRule] = useState(true);
   const [creating, setCreating] = useState(false);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -96,8 +96,6 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
             <SelectContent>
               <SelectItem value="7">7×7 - Quick</SelectItem>
               <SelectItem value="9">9×9 - Standard</SelectItem>
-              <SelectItem value="11">11×11 - Classic</SelectItem>
-              <SelectItem value="13">13×13 - Epic</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -79,7 +79,7 @@ export default function Lobby() {
     if (state?.createAI && state?.difficulty && !handledAutoCreate) {
       setHandledAutoCreate(true);
       const difficulty = state.difficulty as 'easy' | 'medium' | 'hard' | 'expert';
-      const boardSize = state.boardSize || 11;
+      const boardSize = state.boardSize || 7;
       navigate(location.pathname, { replace: true, state: {} });
       createAIMatch(difficulty, boardSize);
     }
@@ -222,6 +222,19 @@ export default function Lobby() {
     );
   }
 
+  // Prevent flash when auto-creating AI match
+  const isAutoCreating = (location.state as any)?.createAI && !handledAutoCreate;
+  if (isAutoCreating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 animate-in fade-in duration-500">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-lg font-medium text-foreground">Preparing your match...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -288,22 +301,22 @@ export default function Lobby() {
             ))}
           </div>
 
-          {/* Board sizes */}
-          <div className="grid grid-cols-4 gap-3">
-            {[7, 9, 11, 13].map((size) => (
-              <button
-                key={size}
-                onClick={() => createAIMatch(aiDifficulty, size)}
-                disabled={creatingMatch}
-                className="p-4 rounded-xl border-2 border-border hover:border-primary/50 bg-card transition-all hover:scale-[1.02] disabled:opacity-50"
-              >
-                {creatingMatch ? (
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                ) : (
-                  <span className="text-2xl font-bold font-mono">{size}×{size}</span>
-                )}
-              </button>
-            ))}
+          {/* Quick Play Button */}
+          <div className="max-w-md mx-auto">
+            <Button
+              onClick={() => createAIMatch(aiDifficulty, 7)}
+              disabled={creatingMatch}
+              className="w-full h-24 rounded-2xl bg-gradient-to-br from-indigo to-indigo/80 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-indigo/20 flex flex-col gap-1 items-center justify-center"
+            >
+              {creatingMatch ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+              ) : (
+                <>
+                  <span className="text-2xl font-bold font-display tracking-tight text-primary-foreground">Play Now</span>
+                  <span className="text-xs font-mono opacity-80 text-primary-foreground font-medium uppercase tracking-widest">7×7 Quick Match</span>
+                </>
+              )}
+            </Button>
           </div>
 
           <Button variant="ghost" size="sm" onClick={() => navigate('/tutorial')} className="mt-3 gap-2 text-muted-foreground">

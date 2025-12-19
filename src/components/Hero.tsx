@@ -11,7 +11,7 @@ const Hero = () => {
   const handleQuickPlay = () => {
     setIsLoading(true);
     // Navigate to lobby with state to auto-create AI match
-    navigate('/lobby', { state: { createAI: true, difficulty: 'easy', boardSize: 11 } });
+    navigate('/lobby', { state: { createAI: true, difficulty: 'easy', boardSize: 7 } });
   };
 
   return (
