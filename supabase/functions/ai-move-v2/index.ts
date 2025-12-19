@@ -165,9 +165,13 @@ class HexAI {
     );
 
     const winRate = ((bestChild.wins / bestChild.visits) * 100).toFixed(1);
+    const reasoning = iterations > 500 
+      ? `🧠 MCTS analysis: ${iterations} iterations, ${winRate}% win rate`
+      : `✨ Tactical move found after ${iterations} iterations`;
+      
     return { 
       move: bestChild.move!, 
-      reasoning: `MCTS analysis: ${iterations} iterations, ${winRate}% win rate` 
+      reasoning
     };
   }
 
@@ -203,8 +207,8 @@ class HexAI {
     let bestMove = empty[0];
     let bestScore = -Infinity;
 
-    for (const move of empty.slice(0, Math.min(empty.length, 10))) {
-      let score = Math.random() * 2; // Small randomness
+    for (const move of empty.slice(0, Math.min(empty.length, 12))) {
+      let score = Math.random() * 3; // Small randomness
 
       const [c, r] = state.coords(move);
       if (color === 1) {
@@ -212,6 +216,12 @@ class HexAI {
       } else {
         score += 10 - Math.min(r, state.size - 1 - r);
       }
+
+      // Blocking heuristic in simulation
+      const neighbors = state.getNeighbors(move);
+      const opponentColor = color === 1 ? 2 : 1;
+      const blockingPotential = neighbors.filter(n => state.board[n] === opponentColor).length;
+      score += blockingPotential * 4;
 
       if (score > bestScore) {
         bestScore = score;
@@ -522,8 +532,8 @@ serve(async (req) => {
     
     try {
       if (difficulty === 'expert') {
-        // Use MCTS for expert (120ms budget, ~1000 iterations)
-        result = ai.getMCTSMove(120);
+        // Use MCTS for expert (200ms budget, ~2000 iterations)
+        result = ai.getMCTSMove(200);
       } else if (difficulty === 'hard') {
         result = ai.getHardMove();
       } else if (difficulty === 'medium') {

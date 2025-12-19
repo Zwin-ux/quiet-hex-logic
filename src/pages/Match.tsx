@@ -54,6 +54,7 @@ export default function Match() {
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [showAIReasoning, setShowAIReasoning] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
+  const [isAggressiveMove, setIsAggressiveMove] = useState(false);
   const aiMoveInProgress = useRef(false);
   const moveInProgress = useRef(false);
   const lastAITurnProcessed = useRef<number | null>(null);
@@ -377,6 +378,8 @@ export default function Match() {
         reasoning = result.reasoning;
       }
       
+      const isAggressive = reasoning.includes('🛑') || reasoning.includes('🧠') || reasoning.includes('🛡️');
+      setIsAggressiveMove(isAggressive);
       setAiReasoning(reasoning);
 
       // Generate action_id for idempotency
@@ -459,6 +462,9 @@ export default function Match() {
 
       const ai = new SimpleHexAI(hexEngine, difficulty);
       const result = ai.getMove();
+      
+      const isAggressive = result.reasoning.includes('🛑') || result.reasoning.includes('🧠') || result.reasoning.includes('🛡️');
+      setIsAggressiveMove(isAggressive);
       setAiReasoning(result.reasoning);
 
       // Apply move locally
@@ -508,6 +514,7 @@ export default function Match() {
       }
 
       moveInProgress.current = true;
+      setIsAggressiveMove(false);
       playPlaceSound();
 
       // Apply move locally
@@ -583,6 +590,7 @@ export default function Match() {
     moveInProgress.current = true;
 
     // Play place sound immediately for responsive feedback
+    setIsAggressiveMove(false);
     playPlaceSound();
 
     // Optimistic UI update
@@ -904,6 +912,7 @@ export default function Match() {
               winningPath={winningPath}
               onCellClick={handleCellClick}
               skin={boardSkin}
+              isAggressive={isAggressiveMove}
               disabled={
                 match.status !== 'active' || 
                 !(currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||

@@ -13,12 +13,13 @@ interface HexBoardProps {
   canSwap?: boolean;
   skin?: BoardSkin;
   hintCell?: number | null;
+  isAggressive?: boolean;
 }
 
 interface AnimatedCell {
   cell: number;
   timestamp: number;
-  type: 'place' | 'ripple';
+  type: 'place' | 'ripple' | 'aggressive';
 }
 
 interface ImpactEvent {
@@ -62,7 +63,8 @@ const HexBoardComponent = ({
   onSwapColors,
   canSwap = false,
   skin = getDefaultSkin(),
-  hintCell = null
+  hintCell = null,
+  isAggressive = false
 }: HexBoardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
@@ -83,10 +85,42 @@ const HexBoardComponent = ({
       // Add main placement animation
       setAnimatedCells(prev => [
         ...prev, 
-        { cell: lastMove, timestamp: Date.now(), type: 'place' }
+        { 
+          cell: lastMove, 
+          timestamp: Date.now(), 
+          type: isAggressive ? 'aggressive' : 'place' 
+        }
       ]);
+
+      // If aggressive, trigger a massive impact shockwave
+      if (isAggressive && canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const [col, row] = [lastMove % size, Math.floor(lastMove / size)];
+        
+        // Calculate coords (simplified estimate for center)
+        const padding = 40;
+        const availableWidth = rect.width - 2 * padding;
+        const availableHeight = rect.height - 2 * padding;
+        const hexRadius = Math.min(
+          availableWidth / ((size - 1) * 1.5 + 2),
+          availableHeight / (size * Math.sqrt(3) + 1)
+        );
+        const hexHeight = Math.sqrt(3) * hexRadius;
+        const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
+        const boardHeight = size * hexHeight;
+        const offsetX = (rect.width - boardWidth) / 2;
+        const offsetY = (rect.height - boardHeight) / 2;
+        
+        const x = offsetX + col * hexRadius * 1.5 + hexRadius;
+        const y = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
+
+        setImpactEvents(prev => [
+          ...prev,
+          { x, y, timestamp: Date.now(), color: board[lastMove] === 1 ? skin.colors.player1 : skin.colors.player2 }
+        ]);
+      }
     }
-  }, [lastMove]);
+  }, [lastMove, isAggressive, size, board, skin]);
 
   // Start winning path trace animation when path appears
   useEffect(() => {
@@ -339,8 +373,16 @@ const HexBoardComponent = ({
           
           // Glow effect during animation
           if (animatedCell && animationProgress < 1) {
+            const isAggressiveType = animatedCell.type === 'aggressive';
             ctx.shadowColor = skin.colors.player1Glow;
-            ctx.shadowBlur = 20 * (1 - animationProgress);
+            ctx.shadowBlur = (isAggressiveType ? 40 : 20) * (1 - animationProgress);
+            
+            if (isAggressiveType) {
+              // Add extra intensity
+              ctx.strokeStyle = skin.colors.player1Winning;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
           }
           
           ctx.fillStyle = isWinningRevealed ? skin.colors.player1Winning : skin.colors.player1;
@@ -381,8 +423,16 @@ const HexBoardComponent = ({
           
           // Glow effect during animation
           if (animatedCell && animationProgress < 1) {
+            const isAggressiveType = animatedCell.type === 'aggressive';
             ctx.shadowColor = skin.colors.player2Glow;
-            ctx.shadowBlur = 20 * (1 - animationProgress);
+            ctx.shadowBlur = (isAggressiveType ? 40 : 20) * (1 - animationProgress);
+            
+            if (isAggressiveType) {
+              // Add extra intensity
+              ctx.strokeStyle = skin.colors.player2Winning;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
           }
           
           ctx.fillStyle = isWinningRevealed ? skin.colors.player2Winning : skin.colors.player2;

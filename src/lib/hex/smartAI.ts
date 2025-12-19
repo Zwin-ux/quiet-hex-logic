@@ -73,7 +73,7 @@ function scoreMoveAdvanced(
     if (isBridge) score -= 2;
   } else {
     // Hard/Expert: aggressive blocking and connection building
-    score = aiConnectionAfter * 1.5 - blockingValue * 3.0 - centerBonus;
+    score = aiConnectionAfter * 1.5 - blockingValue * 4.5 - centerBonus;
     if (isBridge) score -= 3;
     
     // Extra penalty for moves that don't contribute to connection
@@ -85,6 +85,38 @@ function scoreMoveAdvanced(
   }
   
   return score;
+}
+
+/**
+ * Get flavorful AI reasoning
+ */
+function getFlavorfulReasoning(type: string): string {
+  const flavorMap: Record<string, string[]> = {
+    win: [
+      "I've found the winning path! 🏆",
+      "Checkmate! (Wait, wrong game), but I win! ⬡",
+      "Victory is mine! Nice try. 💫"
+    ],
+    block: [
+      "I can't let you connect those! 🛑",
+      "Cutting off your progress right here. 🧠",
+      "Blocking your path, stay sharp! 🛡️",
+      "I see what you're trying to do... not today! 🙅"
+    ],
+    connect: [
+      "Building a strong bridge to victory. 🌉",
+      "Improving my connection across the board. 📈",
+      "Securing my position. ⬡",
+      "Connecting the dots... 🔵"
+    ],
+    default: [
+      "Developing my position. 🧠",
+      "Thinking several steps ahead... ⬡",
+      "A strategic placement. ✨"
+    ]
+  };
+  const options = flavorMap[type] || flavorMap.default;
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 /**
@@ -212,46 +244,31 @@ export function getSmartAIReasoning(game: Hex, move: Cell, difficulty: AIDifficu
   const clone = game.clone();
   clone.play(move);
   if (clone.winner() === aiColor) {
-    return "This move wins the game!";
+    return getFlavorfulReasoning('win');
   }
   
   // Check if it blocks opponent win
   if (checkOpponentWinThreat(game, move, opponentColor)) {
-    reasons.push("Blocking opponent's winning threat");
+    return getFlavorfulReasoning('block');
   }
   
   // Check connection improvement
   const connectionBefore = estimateConnectionDistance(game, aiColor);
   const connectionAfter = evaluateMoveConnection(game, move, aiColor);
-  if (connectionAfter < connectionBefore) {
-    reasons.push(`Improving connection (distance: ${connectionBefore} → ${connectionAfter})`);
-  }
   
-  // Check if blocking opponent
+  // Check if blocking opponent significantly
   const oppConnectionBefore = estimateConnectionDistance(game, opponentColor);
   const cloneWithMove = game.clone();
   cloneWithMove.board[move] = aiColor;
   const oppConnectionAfter = estimateConnectionDistance(cloneWithMove, opponentColor);
-  if (oppConnectionAfter > oppConnectionBefore) {
-    reasons.push("Disrupting opponent's connection");
+  
+  if (oppConnectionAfter > oppConnectionBefore + 1) {
+    return getFlavorfulReasoning('block');
+  }
+
+  if (connectionAfter < connectionBefore) {
+    return getFlavorfulReasoning('connect');
   }
   
-  // Check for bridge
-  const bridges = findBridgeCells(game, aiColor);
-  if (bridges.includes(move)) {
-    reasons.push("Creating a bridge pattern");
-  }
-  
-  // Check neighbors
-  const neighbors = game.neighbors(move);
-  const friendlyNeighbors = neighbors.filter(n => game.board[n] === aiColor).length;
-  if (friendlyNeighbors >= 2) {
-    reasons.push("Connecting existing stones");
-  }
-  
-  if (reasons.length === 0) {
-    reasons.push("Developing position");
-  }
-  
-  return reasons.join(", ") + ".";
+  return getFlavorfulReasoning('default');
 }
