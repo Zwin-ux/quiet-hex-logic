@@ -4,9 +4,21 @@ import AutoPlayDemo from "@/components/AutoPlayDemo";
 
 const Index = () => {
   return (
-    <div className="relative">
-      <Hero />
-      <AutoPlayDemo />
+    <div className="relative min-h-screen flex flex-col">
+      {/* Launch Banner */}
+      <div className="bg-indigo text-paper py-2.5 px-4 text-center text-xs sm:text-sm font-mono tracking-widest relative overflow-hidden border-b border-paper/10 shrink-0">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent)] bg-[length:200%_100%] animate-gradient-x pointer-events-none" />
+        <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 flex-wrap">
+          <span className="font-bold text-paper">OFFICIAL LAUNCH DEC 25TH</span>
+          <span className="opacity-30 hidden sm:inline text-paper">|</span>
+          <span className="font-bold text-accent">TOURNAMENT JAN 1ST $500</span>
+        </div>
+      </div>
+
+      <div className="flex-grow">
+        <Hero />
+        <AutoPlayDemo />
+      </div>
       
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-graphite/30">
