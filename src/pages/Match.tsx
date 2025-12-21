@@ -66,31 +66,60 @@ export default function Match() {
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
-  const discordLocalState = location.state as { 
-    isDiscordLocal?: boolean; 
-    aiDifficulty?: AIDifficulty; 
+  const discordLocalState = location.state as {
+    isDiscordLocal?: boolean;
+    aiDifficulty?: AIDifficulty;
     boardSize?: number;
-    discordUser?: { id: string; username: string; } 
+    discordUser?: { id: string; username: string };
   } | null;
+
+  const discordLocalInit = useMemo(() => {
+    if (!isDiscordLocalMatch || !matchId) return null;
+
+    // Preferred: router state
+    if (discordLocalState?.isDiscordLocal) return discordLocalState;
+
+    // Fallback: sessionStorage (handles refresh/deeplink)
+    try {
+      const raw = sessionStorage.getItem(`discord_local_match:${matchId}`);
+      if (raw) return JSON.parse(raw) as typeof discordLocalState;
+    } catch {
+      // ignore
+    }
+
+    // Last resort: defaults if we're in Discord env
+    if (isDiscordEnvironment && discordUser) {
+      return {
+        isDiscordLocal: true,
+        aiDifficulty: 'medium' as AIDifficulty,
+        boardSize: 11,
+        discordUser: { id: discordUser.id, username: discordUser.username },
+      };
+    }
+
+    return null;
+  }, [isDiscordLocalMatch, matchId, discordLocalState, isDiscordEnvironment, discordUser]);
 
   // Track presence in this match (skip for Discord local matches)
   usePresence(isDiscordLocalMatch ? undefined : user?.id, isDiscordLocalMatch ? undefined : matchId);
 
   // Track spectators (skip for Discord local matches)
-  const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(isDiscordLocalMatch ? undefined : matchId);
+  const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(
+    isDiscordLocalMatch ? undefined : matchId
+  );
 
   // Game sounds
   const { playPlaceSound, playWinSound, playLoseSound, playErrorSound } = useGameSounds();
 
   // Ambient music
-  const { 
-    isPlaying: isMusicPlaying, 
-    volume: musicVolume, 
+  const {
+    isPlaying: isMusicPlaying,
+    volume: musicVolume,
     isMuted: isMusicMuted,
-    toggleMusic, 
-    toggleMute: toggleMusicMute, 
+    toggleMusic,
+    toggleMute: toggleMusicMute,
     updateVolume: updateMusicVolume,
-    stopMusic 
+    stopMusic,
   } = useAmbientMusic();
 
   // Stop music when leaving the match
@@ -102,14 +131,15 @@ export default function Match() {
 
   // Initialize Discord local match
   useEffect(() => {
-    if (!isDiscordLocalMatch || !discordLocalState?.isDiscordLocal) return;
-    
+    if (!isDiscordLocalMatch || !discordLocalInit?.isDiscordLocal) return;
+
     console.log('[Discord Match] Initializing local match:', matchId);
-    
-    const boardSize = discordLocalState.boardSize || 11;
-    const difficulty = discordLocalState.aiDifficulty || 'easy';
-    const discordUsername = discordLocalState.discordUser?.username || discordUser?.username || 'Player';
-    
+
+    const boardSize = discordLocalInit.boardSize || 11;
+    const difficulty = (discordLocalInit.aiDifficulty || 'easy') as AIDifficulty;
+    const discordUsername =
+      discordLocalInit.discordUser?.username || discordUser?.username || 'Player';
+
     // Create local match data
     setMatch({
       id: matchId!,
@@ -120,9 +150,9 @@ export default function Match() {
       winner: null,
       ai_difficulty: difficulty,
       turn_timer_seconds: null,
-      turn_started_at: null
+      turn_started_at: null,
     });
-    
+
     // Create players
     const difficultyLabel = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
     setPlayers([
@@ -131,20 +161,20 @@ export default function Match() {
         color: 1,
         is_bot: false,
         username: discordUsername,
-        avatar_color: 'indigo'
+        avatar_color: 'indigo',
       },
       {
         profile_id: 'ai-player',
         color: 2,
         is_bot: true,
         username: `Computer (${difficultyLabel})`,
-        avatar_color: 'slate'
-      }
+        avatar_color: 'slate',
+      },
     ]);
-    
+
     // Initialize engine
     setEngine(new Hex(boardSize));
-  }, [isDiscordLocalMatch, discordLocalState, matchId, discordUser]);
+  }, [isDiscordLocalMatch, discordLocalInit, matchId, discordUser]);
 
   useEffect(() => {
     if (!matchId || isDiscordLocalMatch) return;
@@ -454,52 +484,57 @@ export default function Match() {
   };
 
   // Discord local AI move handler
-  const makeDiscordLocalAIMove = useCallback(async (hexEngine: Hex, difficulty: AIDifficulty) => {
-    if (aiMoveInProgress.current) return;
-    aiMoveInProgress.current = true;
-    setAiThinking(true);
+  const makeDiscordLocalAIMove = useCallback(
+    async (baseEngine: Hex, difficulty: AIDifficulty) => {
+      if (aiMoveInProgress.current) return;
+      aiMoveInProgress.current = true;
+      setAiThinking(true);
 
-    try {
-      // Small delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        // Small delay for better UX
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const ai = new SimpleHexAI(hexEngine, difficulty);
-      const result = ai.getMove();
-      
-      const isAggressive = result.reasoning.includes('🛑') || result.reasoning.includes('🧠') || result.reasoning.includes('🛡️');
-      setAiReasoning(result.reasoning);
+        const ai = new SimpleHexAI(baseEngine, difficulty);
+        const result = ai.getMove();
 
-      // Optimistically apply move locally
-      hexEngine.play(result.cell);
-      setIsAggressiveMove(isAggressive);
-      playPlaceSound();
-      setAiThinking(false);
+        const isAggressive =
+          result.reasoning.includes('🛑') ||
+          result.reasoning.includes('🧠') ||
+          result.reasoning.includes('🛡️');
+        setAiReasoning(result.reasoning);
+        setIsAggressiveMove(isAggressive);
 
-      // Apply move locally in the engine (it's already done above, but let's keep it consistent)
-      hexEngine.play(result.cell);
-      setEngine(hexEngine.clone());
-      setLastMove(result.cell);
-      playPlaceSound();
+        const nextEngine = baseEngine.clone();
+        nextEngine.play(result.cell);
 
-      // Update match turn locally
-      setMatch(prev => prev ? { ...prev, turn: prev.turn + 1 } : null);
+        setEngine(nextEngine);
+        setLastMove(result.cell);
+        playPlaceSound();
 
-      // Check for win
-      const winner = hexEngine.winner();
-      if (winner) {
-        setWinningPath(hexEngine.getWinningPath() || []);
-        setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
-        playLoseSound(); // AI won
-        toast.success('Game Over', {
-          description: 'Computer wins!',
-          duration: 5000
-        });
+        // Advance turn locally
+        setMatch((prev) => (prev ? { ...prev, turn: prev.turn + 1 } : null));
+
+        // Check for win
+        const winner = nextEngine.winner();
+        if (winner) {
+          setWinningPath(nextEngine.getWinningPath() || []);
+          setMatch((prev) => (prev ? { ...prev, status: 'finished', winner } : null));
+          playLoseSound(); // AI won
+          toast.success('Game Over', {
+            description: 'Computer wins!',
+            duration: 5000,
+          });
+        }
+      } catch (e) {
+        console.error('[Discord Match] AI move failed:', e);
+        toast.error('Computer move failed');
+      } finally {
+        aiMoveInProgress.current = false;
+        setAiThinking(false);
       }
-    } finally {
-      aiMoveInProgress.current = false;
-      setAiThinking(false);
-    }
-  }, [playPlaceSound, playLoseSound]);
+    },
+    [playPlaceSound, playLoseSound]
+  );
 
   const handleCellClick = useCallback(async (cell: number) => {
     if (!engine || !match) return;

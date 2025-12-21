@@ -93,15 +93,24 @@ export default function Lobby() {
         console.log('[Discord] Creating local AI match for Discord user:', discordUser.username);
         // Generate a local match ID for Discord (no database needed for single-player AI)
         const localMatchId = `discord-${discordUser.id}-${Date.now()}`;
+
+        // Persist init payload so refresh/deeplink still works
+        const initPayload = {
+          isDiscordLocal: true,
+          aiDifficulty: difficulty,
+          boardSize: size,
+          discordUser: { id: discordUser.id, username: discordUser.username },
+        };
+        try {
+          sessionStorage.setItem(`discord_local_match:${localMatchId}`, JSON.stringify(initPayload));
+        } catch {
+          // ignore storage failures
+        }
+
         toast.success(`Starting ${difficulty} AI match!`);
         // Navigate to match page with Discord-specific state
-        navigate(`/match/${localMatchId}`, { 
-          state: { 
-            isDiscordLocal: true, 
-            aiDifficulty: difficulty, 
-            boardSize: size,
-            discordUser: discordUser 
-          } 
+        navigate(`/match/${localMatchId}`, {
+          state: initPayload,
         });
         setCreatingMatch(false);
         return;
