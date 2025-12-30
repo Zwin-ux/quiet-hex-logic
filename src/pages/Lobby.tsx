@@ -18,6 +18,7 @@ import { LobbyCard } from '@/components/LobbyCard';
 import { GuestModeBanner } from '@/components/GuestModeBanner';
 import { ConvertAccountModal } from '@/components/ConvertAccountModal';
 import { usePresence } from '@/hooks/usePresence';
+import { UserAvatar } from '@/components/UserAvatar';
 
 type Match = {
   id: string;
@@ -42,12 +43,23 @@ type LobbyWithDetails = {
 };
 
 export default function Lobby() {
+  const { user, loading, signOut, signInAnonymously } = useAuth();
   const [activeMatches, setActiveMatches] = useState<Match[]>([]);
   const [lobbies, setLobbies] = useState<LobbyWithDetails[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
+  const [profile, setProfile] = useState<{ username: string; elo_rating: number } | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from('profiles').select('username, elo_rating').eq('id', user.id).single()
+        .then(({ data }) => {
+          if (data) setProfile(data);
+        });
+    }
+  }, [user]);
+
   const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('medium');
   const [loadingLobbies, setLoadingLobbies] = useState(true);
-  const { user, loading, signOut, signInAnonymously } = useAuth();
   const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
   const { showConversionModal, setShowConversionModal, matchesCompleted } = useGuestConversion();
   const { isDiscordEnvironment, isAuthenticated: isDiscordAuth, discordUser } = useDiscord();
@@ -383,148 +395,167 @@ export default function Lobby() {
 
       <div className="pt-20 pb-12 px-4 max-w-4xl mx-auto space-y-8">
         {isGuest && !guestLoading && <GuestModeBanner guestUsername={guestUsername} />}
-        {user && <JoinGameCTA userId={user.id} />}
 
-        {user && <JoinGameCTA userId={user.id} />}
-
-        {/* Competitive Mode */}
+        {/* Playing As Card */}
         {user && !isGuest && (
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <Trophy className="h-5 w-5 text-ochre" />
-              <h2 className="text-xl font-bold">Competitive</h2>
+          <Card className="p-4 bg-card border-border shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <UserAvatar
+                username={user.email?.split('@')[0] || 'User'}
+                color="indigo"
+                size="lg"
+              />
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Playing as</p>
+                <p className="text-lg font-bold flex items-center gap-2">
+                  {user.email?.split('@')[0] || 'User'}
+                </p>
+              </div>
             </div>
-            <Button
-              onClick={findOrCreateCompetitiveMatch}
-              disabled={creatingMatch}
-              className="w-full h-24 rounded-2xl bg-gradient-to-br from-ochre to-ochre/80 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-ochre/20 flex flex-col gap-1 items-center justify-center text-background mb-8"
-            >
-              {creatingMatch ? (
-                <Loader2 className="h-8 w-8 animate-spin" />
-              ) : (
-                <>
-                  <span className="text-2xl font-bold font-display tracking-tight">Find Ranked Match</span>
-                  <span className="text-xs font-mono opacity-90 font-bold uppercase tracking-widest">13×13 • ELO Rated</span>
-                </>
-              )}
-            </Button>
-          </section>
-        )}
-
-        {/* Quick Play */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="h-5 w-5 text-ochre" />
-            <h2 className="text-xl font-bold">Quick Play vs AI</h2>
-          </div>
-
-          {/* Difficulty */}
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {[
-              { diff: 'easy' as const, icon: Zap, label: 'Easy' },
-              { diff: 'medium' as const, icon: Flame, label: 'Medium' },
-              { diff: 'hard' as const, icon: Brain, label: 'Hard' },
-              { diff: 'expert' as const, icon: Skull, label: 'Expert' },
-            ].map(({ diff, icon: Icon, label }) => (
-              <button
-                key={diff}
-                onClick={() => setAiDifficulty(diff)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${aiDifficulty === diff
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Quick Play Button */}
-          <div className="max-w-md mx-auto">
-            <Button
-              onClick={() => createAIMatch(aiDifficulty, 7)}
-              disabled={creatingMatch}
-              className="w-full h-24 rounded-2xl bg-gradient-to-br from-indigo to-indigo/80 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-indigo/20 flex flex-col gap-1 items-center justify-center"
-            >
-              {creatingMatch ? (
-                <Loader2 className="h-8 w-8 animate-spin" />
-              ) : (
-                <>
-                  <span className="text-2xl font-bold font-display tracking-tight text-primary-foreground">Play Now</span>
-                  <span className="text-xs font-mono opacity-80 text-primary-foreground font-medium uppercase tracking-widest">7×7 Quick Match</span>
-                </>
-              )}
-            </Button>
-          </div>
-
-          <Button variant="ghost" size="sm" onClick={() => navigate('/tutorial')} className="mt-3 gap-2 text-muted-foreground">
-            <BookOpen className="h-4 w-4" />
-            Learn the basics
-          </Button>
-        </section>
-
-        {/* Multiplayer */}
-        {user && !isGuest && (
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold">Multiplayer</h2>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground font-medium">ELO Rating</p>
+              <p className="text-2xl font-bold font-mono text-ochre">
+                {profile?.elo_rating ?? 1200}
+              </p>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <CreateLobby userId={user.id} />
-              <JoinLobby userId={user.id} />
-            </div>
-          </section>
-        )}
-
-        {isGuest && !guestLoading && (
-          <Card className="p-4 border-dashed flex items-center gap-4">
-            <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium">Multiplayer locked</p>
-              <p className="text-sm text-muted-foreground">Sign up to play with friends</p>
-            </div>
-            <Button onClick={() => navigate('/auth')} variant="outline" size="sm">Sign Up</Button>
           </Card>
         )}
 
+        {user && <JoinGameCTA userId={user.id} />}
+
+        {/* Play Options Grid */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 rounded-lg bg-ochre/10">
+              <Zap className="h-5 w-5 text-ochre" />
+            </div>
+            <h2 className="text-xl font-bold">Play</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Competitive Mode */}
+            {user && !isGuest && (
+              <Button
+                onClick={findOrCreateCompetitiveMatch}
+                disabled={creatingMatch}
+                className="w-full h-32 rounded-2xl bg-gradient-to-br from-ochre via-ochre to-amber-600 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-ochre/20 flex flex-col gap-1 items-center justify-center text-background p-0 relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                  <Trophy className="w-16 h-16" />
+                </div>
+                <div className="relative z-10 flex flex-col items-center">
+                  <span className="text-2xl font-bold font-display tracking-tight">Competitive</span>
+                  <span className="text-xs font-mono opacity-90 font-bold uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full mt-1">13×13 • ELO Rated</span>
+                </div>
+              </Button>
+            )}
+
+            {/* Quick Play Logic - moved inside grid */}
+            <div className="space-y-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-muted-foreground flex items-center gap-2">
+                  <User className="w-4 h-4" /> vs AI
+                </span>
+                {/* Difficulty */}
+                <div className="flex gap-1">
+                  {[
+                    { diff: 'easy' as const, label: 'Easy' },
+                    { diff: 'medium' as const, label: 'Med' },
+                    { diff: 'hard' as const, label: 'Hard' },
+                  ].map(({ diff, label }) => (
+                    <button
+                      key={diff}
+                      onClick={() => setAiDifficulty(diff)}
+                      className={`px-2 py-1 rounded text-xs transition-all font-mono ${aiDifficulty === diff
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background hover:bg-muted-foreground/10'
+                        }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button
+                onClick={() => createAIMatch(aiDifficulty, 7)}
+                disabled={creatingMatch}
+                className="w-full h-16 rounded-xl bg-gradient-to-br from-indigo to-indigo/80 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md border border-indigo/20"
+              >
+                <span className="text-lg font-bold">Quick Play vs AI</span>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Multiplayer */}
+        {
+          user && !isGuest && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">Multiplayer</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <CreateLobby userId={user.id} />
+                <JoinLobby userId={user.id} />
+              </div>
+            </section>
+          )
+        }
+
+        {
+          isGuest && !guestLoading && (
+            <Card className="p-4 border-dashed flex items-center gap-4">
+              <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium">Multiplayer locked</p>
+                <p className="text-sm text-muted-foreground">Sign up to play with friends</p>
+              </div>
+              <Button onClick={() => navigate('/auth')} variant="outline" size="sm">Sign Up</Button>
+            </Card>
+          )
+        }
+
         {/* Open Lobbies */}
-        {user && !isGuest && lobbies.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Open Lobbies</h2>
-              <Badge variant="outline">{lobbies.length}</Badge>
-            </div>
-            <div className="space-y-2">
-              {lobbies.map((lobby) => (
-                <LobbyCard key={lobby.id} lobby={lobby} playerCount={lobby.player_count || 0} currentUserId={user.id} />
-              ))}
-            </div>
-          </section>
-        )}
+        {
+          user && !isGuest && lobbies.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Open Lobbies</h2>
+                <Badge variant="outline">{lobbies.length}</Badge>
+              </div>
+              <div className="space-y-2">
+                {lobbies.map((lobby) => (
+                  <LobbyCard key={lobby.id} lobby={lobby} playerCount={lobby.player_count || 0} currentUserId={user.id} />
+                ))}
+              </div>
+            </section>
+          )
+        }
 
         {/* Live Matches */}
-        {activeMatches.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Live Matches</h2>
-              <Badge variant="outline">{activeMatches.length}</Badge>
-            </div>
-            <div className="space-y-2">
-              {activeMatches.map((match) => (
-                <Card key={match.id} className="p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Play className="h-4 w-4 text-primary" />
-                    <span className="font-mono">{match.size}×{match.size}</span>
-                  </div>
-                  <SpectateButton matchId={match.id} />
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+        {
+          activeMatches.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Live Matches</h2>
+                <Badge variant="outline">{activeMatches.length}</Badge>
+              </div>
+              <div className="space-y-2">
+                {activeMatches.map((match) => (
+                  <Card key={match.id} className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Play className="h-4 w-4 text-primary" />
+                      <span className="font-mono">{match.size}×{match.size}</span>
+                    </div>
+                    <SpectateButton matchId={match.id} />
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )
+        }
+      </div >
 
       {user && isGuest && (
         <ConvertAccountModal
@@ -534,7 +565,8 @@ export default function Lobby() {
           matchesCompleted={matchesCompleted}
           onConversionComplete={() => toast.success('Welcome to Hexology!')}
         />
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }

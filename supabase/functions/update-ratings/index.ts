@@ -16,15 +16,15 @@ function calculateNewRating(
   // K-factor decreases as games played increases (more stable rating)
   const winnerK = Math.max(16, 40 - Math.min(winnerGames, 30) * 0.8);
   const loserK = Math.max(16, 40 - Math.min(loserGames, 30) * 0.8);
-  
+
   // Expected score based on rating difference
   const expectedWinner = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
   const expectedLoser = 1 - expectedWinner;
-  
+
   // Calculate change
   const winnerChange = Math.round(winnerK * (1 - expectedWinner));
   const loserChange = Math.round(loserK * (0 - expectedLoser));
-  
+
   return {
     winnerNew: winnerRating + winnerChange,
     loserNew: Math.max(100, loserRating + loserChange), // Floor at 100
@@ -39,7 +39,7 @@ serve(async (req) => {
 
   try {
     const { matchId, winnerId, loserId } = await req.json();
-    
+
     if (!matchId || !winnerId || !loserId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
@@ -123,6 +123,17 @@ serve(async (req) => {
         rating_change: loserNew - loserOld,
       },
     ]);
+
+    // Update match_players with the rating change
+    await supabase.from('match_players')
+      .update({ rating_change: change })
+      .eq('match_id', matchId)
+      .eq('profile_id', winnerId);
+
+    await supabase.from('match_players')
+      .update({ rating_change: loserNew - loserOld })
+      .eq('match_id', matchId)
+      .eq('profile_id', loserId);
 
     console.log(`Ratings updated - Winner: ${winnerOld} -> ${winnerNew} (+${change}), Loser: ${loserOld} -> ${loserNew}`);
 

@@ -37,6 +37,8 @@ interface Player {
   is_bot: boolean;
   username: string;
   avatar_color?: string;
+  elo?: number;
+  rating_change?: number;
 }
 
 export default function Match() {
@@ -275,7 +277,8 @@ export default function Match() {
           profile_id,
           color,
           is_bot,
-          profiles!inner(username, avatar_color)
+          rating_change,
+          profiles!inner(username, avatar_color, elo_rating)
         `)
         .eq('match_id', matchId);
 
@@ -285,7 +288,9 @@ export default function Match() {
           color: p.color,
           is_bot: p.is_bot,
           username: (p.profiles as any).username,
-          avatar_color: (p.profiles as any).avatar_color || 'indigo'
+          avatar_color: (p.profiles as any).avatar_color || 'indigo',
+          elo: (p.profiles as any).elo_rating,
+          rating_change: p.rating_change
         }));
 
         // For AI matches, add synthetic AI player as color 2
@@ -296,7 +301,9 @@ export default function Match() {
             color: 2,
             is_bot: true,
             username: `Computer (${difficultyLabel})`,
-            avatar_color: 'slate'
+            avatar_color: 'slate',
+            elo: undefined,
+            rating_change: undefined
           });
         }
 
@@ -959,6 +966,7 @@ export default function Match() {
                 isAI={player1.is_bot}
                 avatarColor={player1.avatar_color}
                 discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+                elo={player1.elo}
               />
             )}
           </div>
@@ -1037,6 +1045,11 @@ export default function Match() {
                         {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
                       </span>
                     </div>
+                    {userPlayer?.rating_change !== undefined && userPlayer.rating_change !== null && (
+                      <div className={`text-lg font-bold ${userPlayer.rating_change >= 0 ? 'text-green-600' : 'text-red-500'} animate-in zoom-in duration-500 delay-300`}>
+                        {userPlayer.rating_change > 0 ? '+' : ''}{userPlayer.rating_change} ELO
+                      </div>
+                    )}
                   </div>
                   {isAIMatch && match.winner === userPlayer?.color && (
                     <p className="text-lg text-primary font-semibold">
@@ -1099,6 +1112,7 @@ export default function Match() {
                   isAI={player2.is_bot}
                   avatarColor={player2.avatar_color}
                   discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+                  elo={player2.elo}
                 />
                 {aiThinking && isAIMatch && currentColor === 2 && (
                   <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2">
