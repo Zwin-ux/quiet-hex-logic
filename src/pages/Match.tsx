@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
-import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw } from 'lucide-react';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -178,14 +178,14 @@ export default function Match() {
 
   useEffect(() => {
     if (!matchId || isDiscordLocalMatch) return;
-    
+
     // Check authentication for AI games (skip for Discord)
     if (!isDiscordEnvironment && !loading && !user) {
       toast.error('Please sign in to play');
       navigate('/auth');
       return;
     }
-    
+
     if (!isDiscordEnvironment && !user) return;
 
     // Load board skin preference
@@ -211,6 +211,16 @@ export default function Match() {
           event: 'INSERT',
           schema: 'public',
           table: 'moves',
+          filter: `match_id=eq.${matchId}`
+        },
+        () => loadMatch()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_players',
           filter: `match_id=eq.${matchId}`
         },
         () => loadMatch()
@@ -277,7 +287,7 @@ export default function Match() {
           username: (p.profiles as any).username,
           avatar_color: (p.profiles as any).avatar_color || 'indigo'
         }));
-        
+
         // For AI matches, add synthetic AI player as color 2
         if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
           const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
@@ -289,7 +299,7 @@ export default function Match() {
             avatar_color: 'slate'
           });
         }
-        
+
         setPlayers(enrichedPlayers);
       }
 
@@ -301,7 +311,7 @@ export default function Match() {
         .order('ply', { ascending: true });
 
       const hexEngine = new Hex(matchData.size);
-      
+
       if (moves) {
         moves.forEach(move => {
           try {
@@ -327,7 +337,7 @@ export default function Match() {
         const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
         const isAIMatch = matchData.ai_difficulty != null;
         const isAITurn = isAIMatch && currentColor === 2;
-        
+
         if (isAITurn && !hexEngine.winner() && lastAITurnProcessed.current !== matchData.turn) {
           lastAITurnProcessed.current = matchData.turn;
           makeAIMove(hexEngine, matchData);
@@ -352,7 +362,7 @@ export default function Match() {
       const now = Date.now();
       const elapsed = Math.floor((now - turnStartTime) / 1000);
       const remaining = Math.max(0, match.turn_timer_seconds! - elapsed);
-      
+
       setTimeRemaining(remaining);
 
       // If time runs out, reload to see the forfeit
@@ -384,7 +394,7 @@ export default function Match() {
       if (difficulty === 'expert' || difficulty === 'hard') {
         // Use server-side MCTS AI for hard/expert
         const { data: aiResult, error: aiError } = await supabase.functions.invoke('ai-move-v2', {
-          body: { 
+          body: {
             matchId: matchData.id,
             difficulty
           }
@@ -407,24 +417,24 @@ export default function Match() {
         cell = result.cell;
         reasoning = result.reasoning;
       }
-      
+
       const isAggressive = reasoning.includes('🛑') || reasoning.includes('🧠') || reasoning.includes('🛡️');
       setAiReasoning(reasoning);
 
-    // Optimistically apply move locally
-    hexEngine.play(cell);
-    setIsAggressiveMove(isAggressive);
-    playPlaceSound();
-    setAiThinking(false);
-    aiMoveInProgress.current = false;
+      // Optimistically apply move locally
+      hexEngine.play(cell);
+      setIsAggressiveMove(isAggressive);
+      playPlaceSound();
+      setAiThinking(false);
+      aiMoveInProgress.current = false;
 
-    // Generate action_id for idempotency
-    const actionId = crypto.randomUUID();
+      // Generate action_id for idempotency
+      const actionId = crypto.randomUUID();
 
       // Apply move through server for validation and persistence
       const { data: result, error } = await supabase.functions.invoke('apply-ai-move', {
-        body: { 
-          matchId: matchData.id, 
+        body: {
+          matchId: matchData.id,
           cell,
           actionId
         }
@@ -432,7 +442,7 @@ export default function Match() {
 
       if (error || !result?.success) {
         const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
-        
+
         console.error('AI move failed:', {
           error: errorMsg,
           statusCode: error?.status,
@@ -441,7 +451,7 @@ export default function Match() {
           turn: matchData.turn,
           retryCount
         });
-        
+
         // Handle rate limits with exponential backoff retry
         if ((errorMsg.includes('Rate limit') || error?.status === 429) && retryCount < 3) {
           const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
@@ -454,7 +464,7 @@ export default function Match() {
           }, delay);
           return;
         }
-        
+
         // Don't throw on "Not your turn" - this can happen if another move was already made
         if (!errorMsg.includes('Not your turn') && !errorMsg.includes('Not AI turn')) {
           toast.error('Computer move failed', {
@@ -648,8 +658,8 @@ export default function Match() {
     try {
       // Server-side move application with validation
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
-        body: { 
-          matchId: match.id, 
+        body: {
+          matchId: match.id,
           cell,
           actionId
         }
@@ -658,7 +668,7 @@ export default function Match() {
       if (error || !result?.success) {
         // Revert optimistic update on error
         await loadMatch();
-        
+
         // Check for specific error types
         if (error?.message?.includes('Rate limit') || result?.error?.includes('Rate limit')) {
           toast.error('Too many moves too quickly');
@@ -689,8 +699,8 @@ export default function Match() {
           playLoseSound();
         }
         toast.success(isVictory ? 'Victory!' : 'Game Over', {
-          description: isVictory 
-            ? `You won as ${winner === 1 ? 'Indigo' : 'Ochre'}!` 
+          description: isVictory
+            ? `You won as ${winner === 1 ? 'Indigo' : 'Ochre'}!`
             : `${winner === 1 ? 'Indigo' : 'Ochre'} wins!`,
           duration: 5000
         });
@@ -722,8 +732,8 @@ export default function Match() {
     try {
       // Server-side pie rule swap with validation
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
-        body: { 
-          matchId: match.id, 
+        body: {
+          matchId: match.id,
           cell: null,
           actionId
         }
@@ -768,7 +778,7 @@ export default function Match() {
 
   const handleRematch = async () => {
     if (!matchId || !isPlayer) return;
-    
+
     setRequestingRematch(true);
     try {
       const { data, error } = await supabase.functions.invoke('rematch-lobby', {
@@ -796,22 +806,41 @@ export default function Match() {
 
   const handlePlayAgainAI = () => {
     if (!match) return;
-    navigate('/lobby', { 
-      state: { 
-        createAI: true, 
+    navigate('/lobby', {
+      state: {
+        createAI: true,
         difficulty: match.ai_difficulty,
-        boardSize: match.size 
-      } 
+        boardSize: match.size
+      }
     });
   };
 
   if (!match || !engine) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-gentle-pulse text-4xl mb-4">⬡</div>
-          <p className="font-mono text-muted-foreground">Loading match...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (match?.status === 'waiting') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background space-y-6">
+        <div className="relative">
+          <div className="absolute inset-0 bg-ochre/20 blur-xl rounded-full animate-pulse" />
+          <Loader2 className="h-16 w-16 animate-spin text-ochre relative z-10" />
         </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold font-display">Searching for opponent...</h2>
+          <p className="text-muted-foreground font-mono">13×13 • Competitive • ELO Rated</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lobby')}
+          className="mt-8"
+        >
+          Cancel
+        </Button>
       </div>
     );
   }
@@ -832,8 +861,8 @@ export default function Match() {
   };
 
   // Get Discord avatar URL for the human player in Discord local matches
-  const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar 
-    ? getDiscordAvatarUrl(discordUser.id, discordUser.avatar) 
+  const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar
+    ? getDiscordAvatarUrl(discordUser.id, discordUser.avatar)
     : undefined;
 
   return (
@@ -957,7 +986,7 @@ export default function Match() {
               skin={boardSkin}
               isAggressive={isAggressiveMove}
               disabled={
-                match.status !== 'active' || 
+                match.status !== 'active' ||
                 !(currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
                 isAITurn ||
                 isSpectating ||
@@ -978,8 +1007,8 @@ export default function Match() {
                 {isSpectating
                   ? `Watching ${currentPlayer?.username}'s turn`
                   : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
-                  ? "Your turn"
-                  : `Waiting for ${currentPlayer?.username}...`}
+                    ? "Your turn"
+                    : `Waiting for ${currentPlayer?.username}...`}
               </p>
             )}
 
@@ -997,7 +1026,7 @@ export default function Match() {
                       {match.winner === 1 ? player1?.username : player2?.username} wins!
                     </p>
                     <div className="flex items-center justify-center gap-3 text-lg font-semibold">
-                      <span className="px-3 py-1 rounded-full" style={{ 
+                      <span className="px-3 py-1 rounded-full" style={{
                         backgroundColor: match.winner === 1 ? 'hsl(223 45% 29% / 0.2)' : 'hsl(40 76% 43% / 0.2)',
                         color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)'
                       }}>
@@ -1020,7 +1049,7 @@ export default function Match() {
                       <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
                     </div>
                   )}
-                  
+
                   {/* Rematch Buttons */}
                   <div className="flex gap-3 justify-center pt-4">
                     {isAIMatch ? (

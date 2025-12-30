@@ -82,6 +82,10 @@ export default function Lobby() {
       const boardSize = state.boardSize || 7;
       navigate(location.pathname, { replace: true, state: {} });
       createAIMatch(difficulty, boardSize);
+    } else if ((state as any)?.competitive && !handledAutoCreate) {
+      setHandledAutoCreate(true);
+      navigate(location.pathname, { replace: true, state: {} });
+      findOrCreateCompetitiveMatch();
     }
   }, [isLoading, isReadyToPlay, location.state, handledAutoCreate]);
 
@@ -155,6 +159,95 @@ export default function Lobby() {
     } catch (error: any) {
       console.error('Error creating AI match:', error);
       toast.error(error.message || 'Failed to create AI match');
+    } finally {
+      setCreatingMatch(false);
+    }
+  };
+
+  const findOrCreateCompetitiveMatch = async () => {
+    if (!user) {
+      toast.error('You must be signed in to play Competitive');
+      return;
+    }
+
+    setCreatingMatch(true);
+    try {
+      // 1. Try to find an existing waiting match
+      const { data: waitingMatches, error: searchError } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('status', 'waiting')
+        .eq('is_ranked', true)
+        .eq('size', 13) // Standard size for competitive
+        .neq('owner', user.id) // Don't match with self
+        .limit(1);
+
+      if (searchError) throw searchError;
+
+      if (waitingMatches && waitingMatches.length > 0) {
+        const matchId = waitingMatches[0].id;
+
+        // Join this match
+        const { error: joinError } = await supabase
+          .from('match_players')
+          .insert({
+            match_id: matchId,
+            profile_id: user.id,
+            color: 2, // Joiner is always white (2) if owner is black (1) - simplfied logic for now
+            is_bot: false
+          });
+
+        if (joinError) throw joinError;
+
+        // Update match status to active
+        await supabase
+          .from('matches')
+          .update({
+            status: 'active',
+            turn_started_at: new Date().toISOString()
+          })
+          .eq('id', matchId);
+
+        toast.success('Opponent found! Starting match...');
+        navigate(`/match/${matchId}`);
+        return;
+      }
+
+      // 2. No match found, create a new one
+      const { data: newMatch, error: createError } = await supabase
+        .from('matches')
+        .insert({
+          size: 13,
+          pie_rule: true,
+          status: 'waiting',
+          turn: 1,
+          owner: user.id,
+          is_ranked: true,
+          allow_spectators: true
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // Add self as player 1
+      const { error: playerError } = await supabase
+        .from('match_players')
+        .insert({
+          match_id: newMatch.id,
+          profile_id: user.id,
+          color: 1,
+          is_bot: false
+        });
+
+      if (playerError) throw new Error('Failed to join created match');
+
+      toast.success('Searching for opponent...');
+      navigate(`/match/${newMatch.id}`);
+
+    } catch (error: any) {
+      console.error('Competitive matchmaking error:', error);
+      toast.error(error.message || 'Failed to find match');
     } finally {
       setCreatingMatch(false);
     }
@@ -244,6 +337,18 @@ export default function Lobby() {
     );
   }
 
+  const isCompetitive = (location.state as any)?.competitive && !handledAutoCreate;
+  if (isCompetitive) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 animate-in fade-in duration-500">
+          <Loader2 className="h-8 w-8 animate-spin text-ochre mx-auto" />
+          <p className="text-lg font-medium text-foreground">Finding opponent...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -280,6 +385,32 @@ export default function Lobby() {
         {isGuest && !guestLoading && <GuestModeBanner guestUsername={guestUsername} />}
         {user && <JoinGameCTA userId={user.id} />}
 
+        {user && <JoinGameCTA userId={user.id} />}
+
+        {/* Competitive Mode */}
+        {user && !isGuest && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="h-5 w-5 text-ochre" />
+              <h2 className="text-xl font-bold">Competitive</h2>
+            </div>
+            <Button
+              onClick={findOrCreateCompetitiveMatch}
+              disabled={creatingMatch}
+              className="w-full h-24 rounded-2xl bg-gradient-to-br from-ochre to-ochre/80 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-ochre/20 flex flex-col gap-1 items-center justify-center text-background mb-8"
+            >
+              {creatingMatch ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+              ) : (
+                <>
+                  <span className="text-2xl font-bold font-display tracking-tight">Find Ranked Match</span>
+                  <span className="text-xs font-mono opacity-90 font-bold uppercase tracking-widest">13×13 • ELO Rated</span>
+                </>
+              )}
+            </Button>
+          </section>
+        )}
+
         {/* Quick Play */}
         <section>
           <div className="flex items-center gap-2 mb-4">
@@ -298,11 +429,10 @@ export default function Lobby() {
               <button
                 key={diff}
                 onClick={() => setAiDifficulty(diff)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                  aiDifficulty === diff 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${aiDifficulty === diff
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {label}
@@ -397,7 +527,7 @@ export default function Lobby() {
       </div>
 
       {user && isGuest && (
-        <ConvertAccountModal 
+        <ConvertAccountModal
           open={showConversionModal}
           onOpenChange={setShowConversionModal}
           guestId={user.id}
