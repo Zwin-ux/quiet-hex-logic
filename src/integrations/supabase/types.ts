@@ -263,6 +263,7 @@ export type Database = {
           is_bot: boolean
           match_id: string
           profile_id: string
+          rating_change: number | null
         }
         Insert: {
           color: number
@@ -270,6 +271,7 @@ export type Database = {
           is_bot?: boolean
           match_id: string
           profile_id: string
+          rating_change?: number | null
         }
         Update: {
           color?: number
@@ -277,6 +279,7 @@ export type Database = {
           is_bot?: boolean
           match_id?: string
           profile_id?: string
+          rating_change?: number | null
         }
         Relationships: [
           {
