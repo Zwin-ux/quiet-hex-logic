@@ -1258,6 +1258,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_anonymous_user: { Args: { _user_id: string }; Returns: boolean }
       is_blocked: {
         Args: { _blocked: string; _blocker: string }
         Returns: boolean
