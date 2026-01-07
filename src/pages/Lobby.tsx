@@ -94,12 +94,12 @@ export default function Lobby() {
       const boardSize = state.boardSize || 7;
       navigate(location.pathname, { replace: true, state: {} });
       createAIMatch(difficulty, boardSize);
-    } else if ((state as any)?.competitive && !handledAutoCreate) {
+    } else if ((state as any)?.competitive && !handledAutoCreate && !isGuest) {
       setHandledAutoCreate(true);
       navigate(location.pathname, { replace: true, state: {} });
       findOrCreateCompetitiveMatch();
     }
-  }, [isLoading, isReadyToPlay, location.state, handledAutoCreate]);
+  }, [isLoading, isReadyToPlay, location.state, handledAutoCreate, isGuest]);
 
   const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
     setCreatingMatch(true);
@@ -179,6 +179,11 @@ export default function Lobby() {
   const findOrCreateCompetitiveMatch = async () => {
     if (!user) {
       toast.error('You must be signed in to play Competitive');
+      return;
+    }
+
+    if (isGuest) {
+      toast.error('Guests cannot play Competitive mode. Please create an account to access ranked matches.');
       return;
     }
 

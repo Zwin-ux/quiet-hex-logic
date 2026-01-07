@@ -2,16 +2,30 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Users, BookOpen, Zap, Loader2, Trophy } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { toast } from "sonner";
 import heroBoard from "@/assets/hero-board.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const { isGuest } = useGuestMode();
 
   const handleQuickPlay = () => {
     setIsLoading(true);
     // Navigate to lobby with state to auto-create AI match
     navigate('/lobby', { state: { createAI: true, difficulty: 'easy', boardSize: 7 } });
+  };
+
+  const handleCompetitive = () => {
+    if (!user || isGuest) {
+      toast.error('Please create an account to play Competitive mode');
+      navigate('/auth');
+      return;
+    }
+    navigate('/lobby', { state: { competitive: true } });
   };
 
   return (
@@ -60,8 +74,9 @@ const Hero = () => {
           </Button>
           <Button
             size="lg"
-            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 shadow-medium hover:shadow-lg text-base font-semibold bg-gradient-to-br from-ochre to-ochre/80 text-background border-2 border-ochre/20"
-            onClick={() => navigate('/lobby', { state: { competitive: true } })}
+            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 shadow-medium hover:shadow-lg text-base font-semibold bg-gradient-to-br from-ochre to-ochre/80 text-background border-2 border-ochre/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            onClick={handleCompetitive}
+            disabled={!user || isGuest}
           >
             <Trophy className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
             Competitive

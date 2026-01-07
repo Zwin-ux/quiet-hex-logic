@@ -65,6 +65,7 @@ export default function Match() {
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [debugFinishing, setDebugFinishing] = useState(false);
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
@@ -822,6 +823,33 @@ export default function Match() {
     });
   };
 
+  const handleDebugFinish = async () => {
+    if (!match || !matchId) return;
+
+    setDebugFinishing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('debug-finish-match', {
+        body: { matchId }
+      });
+
+      if (error) throw error;
+
+      toast.success('🔧 Debug: Match finished!', {
+        description: 'You have been declared the winner'
+      });
+
+      // Reload match to see updated state
+      await loadMatch();
+    } catch (error: any) {
+      console.error('Debug finish error:', error);
+      toast.error('Failed to finish match', {
+        description: error.message
+      });
+    } finally {
+      setDebugFinishing(false);
+    }
+  };
+
   if (!match || !engine) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -896,6 +924,20 @@ export default function Match() {
           </div>
 
           <div className="flex gap-2">
+            {/* DEBUG BUTTON - Remove in production */}
+            {match.status === 'active' && isPlayer && !isDiscordLocalMatch && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDebugFinish}
+                disabled={debugFinishing}
+                className="opacity-50 hover:opacity-100"
+              >
+                {debugFinishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : '🔧'}
+                {debugFinishing ? 'Finishing...' : 'Debug: Win'}
+              </Button>
+            )}
+
             {match.status === 'finished' && !isAIMatch && isPlayer && (
               <Button
                 variant="default"
