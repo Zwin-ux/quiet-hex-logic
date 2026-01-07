@@ -15,21 +15,23 @@ interface PlayerPanelProps {
   avatarColor?: string;
   isPremium?: boolean;
   discordAvatarUrl?: string;
+  elo?: number;
 }
 
-const PlayerPanelComponent = ({ 
-  username, 
-  color, 
+const PlayerPanelComponent = ({
+  username,
+  color,
   isCurrentTurn,
   timeRemaining,
   isAI = false,
   avatarColor = 'indigo',
   isPremium = false,
-  discordAvatarUrl
+  discordAvatarUrl,
+  elo
 }: PlayerPanelProps) => {
   const colorName = color === 1 ? 'Indigo' : 'Ochre';
   const colorClass = color === 1 ? 'bg-indigo text-primary-foreground' : 'bg-ochre text-secondary-foreground';
-  const borderClass = isCurrentTurn 
+  const borderClass = isCurrentTurn
     ? color === 1 ? 'border-indigo' : 'border-ochre'
     : 'border-border';
 
@@ -40,7 +42,7 @@ const PlayerPanelComponent = ({
   };
 
   return (
-    <div 
+    <div
       className={`
         relative p-6 rounded-lg border-2 transition-all duration-300
         ${borderClass}
@@ -64,7 +66,7 @@ const PlayerPanelComponent = ({
             </AvatarFallback>
           </Avatar>
         ) : (
-          <UserAvatar 
+          <UserAvatar
             username={username}
             color={avatarColor}
             size="lg"
@@ -86,10 +88,20 @@ const PlayerPanelComponent = ({
               </Badge>
             )}
           </div>
-          
-          <Badge className={`${colorClass} font-mono text-xs`}>
-            {colorName} • {color === 1 ? 'W↔E' : 'N↕S'}
-          </Badge>
+
+          {elo !== undefined && (
+            <div className="mb-1">
+              <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-600 font-mono text-xs">
+                ELO {elo}
+              </Badge>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Badge className={`${colorClass} font-mono text-xs`}>
+              {colorName} • {color === 1 ? 'W↔E' : 'N↕S'}
+            </Badge>
+          </div>
         </div>
 
         {timeRemaining !== undefined && (

@@ -422,6 +422,65 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Update ratings for ranked matches when they finish
+    console.log(`Match result - Winner: ${winner}, is_ranked: ${updatedMatch.is_ranked}`);
+
+    if (winner && updatedMatch.is_ranked) {
+      try {
+        console.log('🏆 Match finished with winner - updating ratings for ranked match');
+
+        // Get the two players from match_players
+        const { data: players, error: playersError } = await supabase
+          .from('match_players')
+          .select('profile_id, color')
+          .eq('match_id', matchId)
+          .eq('is_bot', false); // Only count human players
+
+        console.log(`Players fetched: ${players?.length || 0} players`, players);
+
+        if (playersError || !players || players.length !== 2) {
+          console.error('Could not fetch players for rating update:', playersError);
+        } else {
+          const winnerPlayer = players.find(p => p.color === winner);
+          const loserPlayer = players.find(p => p.color !== winner);
+
+          console.log(`Winner player: ${winnerPlayer?.profile_id}, Loser player: ${loserPlayer?.profile_id}`);
+
+          if (winnerPlayer && loserPlayer) {
+            // Use direct HTTP fetch to update-ratings instead of supabase.functions.invoke
+            const updateRatingsUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/update-ratings`;
+            const response = await fetch(updateRatingsUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+              },
+              body: JSON.stringify({
+                matchId: matchId,
+                winnerId: winnerPlayer.profile_id,
+                loserId: loserPlayer.profile_id
+              })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              console.error('❌ Failed to update ratings:', result);
+            } else {
+              console.log('✅ Ratings updated successfully:', result);
+            }
+          } else {
+            console.error('Missing winner or loser player');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in rating update:', error);
+        // Don't fail the move if rating update fails
+      }
+    } else if (winner && !updatedMatch.is_ranked) {
+      console.log('Match finished but not ranked - skipping rating update');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
