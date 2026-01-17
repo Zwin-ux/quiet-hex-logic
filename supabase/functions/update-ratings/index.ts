@@ -126,17 +126,25 @@ serve(async (req) => {
     ]);
 
     // Update match_players with the rating change
-    await supabase
+    const { error: winnerUpdateError } = await supabase
       .from("match_players")
       .update({ rating_change: change })
       .eq("match_id", matchId)
       .eq("profile_id", winnerId);
 
-    await supabase
+    if (winnerUpdateError) {
+      console.error("Failed to update winner rating_change:", winnerUpdateError);
+    }
+
+    const { error: loserUpdateError } = await supabase
       .from("match_players")
       .update({ rating_change: loserNew - loserOld })
       .eq("match_id", matchId)
       .eq("profile_id", loserId);
+
+    if (loserUpdateError) {
+      console.error("Failed to update winner rating_change:", loserUpdateError);
+    }
 
     console.log(
       `Ratings updated - Winner: ${winnerOld} -> ${winnerNew} (+${change}), Loser: ${loserOld} -> ${loserNew}`,
