@@ -143,7 +143,7 @@ serve(async (req) => {
       .eq("profile_id", loserId);
 
     if (loserUpdateError) {
-      console.error("Failed to update winner rating_change:", loserUpdateError);
+      console.error("Failed to update loser rating_change:", loserUpdateError);
     }
 
     console.log(
