@@ -65,7 +65,7 @@ export default function Match() {
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [debugFinishing, setDebugFinishing] = useState(false);
+  const timeoutHandled = useRef(false);
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
@@ -362,8 +362,43 @@ export default function Match() {
   useEffect(() => {
     if (!match || match.status !== 'active' || !match.turn_timer_seconds || !match.turn_started_at) {
       setTimeRemaining(null);
+      timeoutHandled.current = false; // Reset when match changes
       return;
     }
+
+    const handleTimeout = async () => {
+      if (timeoutHandled.current) return;
+      timeoutHandled.current = true;
+
+      // The player whose turn it is loses (the other player wins)
+      const currentColor = match.turn % 2 === 1 ? 1 : 2;
+      const winnerColor = currentColor === 1 ? 2 : 1;
+
+      console.log(`Timer expired - player ${currentColor} forfeits, player ${winnerColor} wins`);
+
+      try {
+        const { error } = await supabase
+          .from('matches')
+          .update({
+            status: 'finished',
+            winner: winnerColor,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', match.id)
+          .eq('status', 'active'); // Only update if still active
+
+        if (error) {
+          console.error('Failed to forfeit match:', error);
+        } else {
+          toast.info('Time ran out!', {
+            description: `${currentColor === 1 ? 'Indigo' : 'Ochre'} forfeits the game.`
+          });
+          await loadMatch();
+        }
+      } catch (e) {
+        console.error('Timeout handling error:', e);
+      }
+    };
 
     const updateTimer = () => {
       const turnStartTime = new Date(match.turn_started_at!).getTime();
@@ -373,9 +408,9 @@ export default function Match() {
 
       setTimeRemaining(remaining);
 
-      // If time runs out, reload to see the forfeit
-      if (remaining === 0) {
-        setTimeout(() => loadMatch(), 2000);
+      // If time runs out, forfeit the game
+      if (remaining === 0 && !timeoutHandled.current) {
+        handleTimeout();
       }
     };
 
@@ -823,33 +858,6 @@ export default function Match() {
     });
   };
 
-  const handleDebugFinish = async () => {
-    if (!match || !matchId) return;
-
-    setDebugFinishing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('debug-finish-match', {
-        body: { matchId }
-      });
-
-      if (error) throw error;
-
-      toast.success('🔧 Debug: Match finished!', {
-        description: 'You have been declared the winner'
-      });
-
-      // Reload match to see updated state
-      await loadMatch();
-    } catch (error: any) {
-      console.error('Debug finish error:', error);
-      toast.error('Failed to finish match', {
-        description: error.message
-      });
-    } finally {
-      setDebugFinishing(false);
-    }
-  };
-
   if (!match || !engine) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -924,20 +932,6 @@ export default function Match() {
           </div>
 
           <div className="flex gap-2">
-            {/* DEBUG BUTTON - Remove in production */}
-            {match.status === 'active' && isPlayer && !isDiscordLocalMatch && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDebugFinish}
-                disabled={debugFinishing}
-                className="opacity-50 hover:opacity-100"
-              >
-                {debugFinishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : '🔧'}
-                {debugFinishing ? 'Finishing...' : 'Debug: Win'}
-              </Button>
-            )}
-
             {match.status === 'finished' && !isAIMatch && isPlayer && (
               <Button
                 variant="default"
