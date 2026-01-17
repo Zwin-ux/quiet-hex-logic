@@ -67,6 +67,10 @@ export default function Match() {
   const [requestingRematch, setRequestingRematch] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const timeoutHandled = useRef(false);
+  const [ratingResult, setRatingResult] = useState<{
+    winner: { old: number; new: number; change: number };
+    loser: { old: number; new: number; change: number };
+  } | null>(null);
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
@@ -406,7 +410,7 @@ export default function Match() {
 
           if (winnerPlayer && loserPlayer) {
             console.log(`Updating ELO ratings (${reason})...`);
-            const { data: ratingResult, error: ratingError } = await supabase.functions.invoke('update-ratings', {
+            const { data: result, error: ratingError } = await supabase.functions.invoke('update-ratings', {
               body: {
                 matchId: match.id,
                 winnerId: winnerPlayer.profile_id,
@@ -417,7 +421,10 @@ export default function Match() {
             if (ratingError) {
               console.error('Failed to update ratings:', ratingError);
             } else {
-              console.log('Ratings updated:', ratingResult);
+              console.log('Ratings updated:', result);
+              // NOTE: Normally I would use the rating_change column in the match_players table
+              // but for some reason, it never gets updated and is always null. I can't fix the bug so we're doing this
+              setRatingResult(result);
             }
           }
         }
@@ -1164,9 +1171,40 @@ export default function Match() {
                         {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
                       </span>
                     </div>
-                    {userPlayer?.rating_change !== undefined && userPlayer.rating_change !== null && (
-                      <div className={`text-lg font-bold ${userPlayer.rating_change >= 0 ? 'text-green-600' : 'text-red-500'} animate-in zoom-in duration-500 delay-300`}>
-                        {userPlayer.rating_change > 0 ? '+' : ''}{userPlayer.rating_change} ELO
+                    {/* ELO Changes for Ranked Matches */}
+                    {match.is_ranked && ratingResult && (
+                      <div className="mt-3 pt-3 border-t border-border/50 space-y-2 animate-in fade-in duration-500 delay-300">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Rating Changes</p>
+                        <div className="flex flex-col gap-2">
+                          {player1 && !player1.is_bot && (
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-indigo/10">
+                              <span className="font-medium text-sm">{player1.username}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  {match.winner === 1 ? ratingResult.winner.old : ratingResult.loser.old}
+                                </span>
+                                <span className={`text-sm font-bold ${(match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                  {(match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change) > 0 ? '+' : ''}
+                                  {match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          {player2 && !player2.is_bot && (
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-ochre/10">
+                              <span className="font-medium text-sm">{player2.username}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  {match.winner === 2 ? ratingResult.winner.old : ratingResult.loser.old}
+                                </span>
+                                <span className={`text-sm font-bold ${(match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                  {(match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change) > 0 ? '+' : ''}
+                                  {match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
