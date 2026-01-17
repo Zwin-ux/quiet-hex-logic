@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
-import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Loader2 } from 'lucide-react';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Loader2, Flag } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -29,6 +29,7 @@ interface MatchData {
   ai_difficulty?: AIDifficulty | null;
   turn_timer_seconds?: number | null;
   turn_started_at?: string | null;
+  is_ranked?: boolean | null;
 }
 
 interface Player {
@@ -65,7 +66,11 @@ export default function Match() {
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [requestingRematch, setRequestingRematch] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [debugFinishing, setDebugFinishing] = useState(false);
+  const timeoutHandled = useRef(false);
+  const [ratingResult, setRatingResult] = useState<{
+    winner: { old: number; new: number; change: number };
+    loser: { old: number; new: number; change: number };
+  } | null>(null);
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
@@ -340,6 +345,41 @@ export default function Match() {
         setWinningPath(path || []);
       }
 
+      // Load rating changes for finished ranked matches
+      if (matchData.status === 'finished' && matchData.is_ranked && matchData.winner) {
+        const { data: ratingHistory } = await supabase
+          .from('rating_history')
+          .select('profile_id, old_rating, new_rating, rating_change')
+          .eq('match_id', matchId);
+
+        if (ratingHistory && ratingHistory.length === 2) {
+          // Find winner and loser from rating history
+          const winnerHistory = ratingHistory.find(h => {
+            const playerData = playersData?.find(p => p.profile_id === h.profile_id);
+            return playerData?.color === matchData.winner;
+          });
+          const loserHistory = ratingHistory.find(h => {
+            const playerData = playersData?.find(p => p.profile_id === h.profile_id);
+            return playerData?.color !== matchData.winner;
+          });
+
+          if (winnerHistory && loserHistory) {
+            setRatingResult({
+              winner: {
+                old: winnerHistory.old_rating,
+                new: winnerHistory.new_rating,
+                change: winnerHistory.rating_change
+              },
+              loser: {
+                old: loserHistory.old_rating,
+                new: loserHistory.new_rating,
+                change: loserHistory.rating_change
+              }
+            });
+          }
+        }
+      }
+
       // Check if AI should play (immediate, no delay) and only once per turn
       if (matchData.status === 'active') {
         const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
@@ -358,12 +398,104 @@ export default function Match() {
     }
   }, [matchId, navigate]);
 
+  // Centralized function for ending a match (forfeit, timeout, etc.)
+  const endMatch = useCallback(async (
+    winnerColor: number,
+    reason: 'forfeit' | 'timeout' | 'disconnect',
+    toastMessage?: { title: string; description?: string }
+  ) => {
+    if (!match || match.status !== 'active') return false;
+
+    try {
+      // Update match status in database
+      const { error } = await supabase
+        .from('matches')
+        .update({
+          status: 'finished',
+          winner: winnerColor,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match.id)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error(`Failed to end match (${reason}):`, error);
+        return false;
+      }
+
+      // Show toast notification
+      if (toastMessage) {
+        toast.info(toastMessage.title, {
+          description: toastMessage.description
+        });
+      }
+
+      // Update ELO for ranked matches
+      if (match.is_ranked) {
+        // Fetch players from database to ensure we have accurate data
+        const { data: matchPlayers } = await supabase
+          .from('match_players')
+          .select('profile_id, color')
+          .eq('match_id', match.id)
+          .eq('is_bot', false);
+
+        if (matchPlayers && matchPlayers.length === 2) {
+          const winnerPlayer = matchPlayers.find(p => p.color === winnerColor);
+          const loserPlayer = matchPlayers.find(p => p.color !== winnerColor);
+
+          if (winnerPlayer && loserPlayer) {
+            console.log(`Updating ELO ratings (${reason})...`);
+            const { data: result, error: ratingError } = await supabase.functions.invoke('update-ratings', {
+              body: {
+                matchId: match.id,
+                winnerId: winnerPlayer.profile_id,
+                loserId: loserPlayer.profile_id
+              }
+            });
+
+            if (ratingError) {
+              console.error('Failed to update ratings:', ratingError);
+            } else {
+              console.log('Ratings updated:', result);
+              // NOTE: Normally I would use the rating_change column in the match_players table
+              // but for some reason, it never gets updated and is always null. I can't fix the bug so we're doing this
+              setRatingResult(result);
+            }
+          }
+        }
+      }
+
+      // Reload match to sync state
+      await loadMatch();
+      return true;
+    } catch (e) {
+      console.error(`Error ending match (${reason}):`, e);
+      return false;
+    }
+  }, [match, loadMatch]);
+
   // Timer countdown effect
   useEffect(() => {
     if (!match || match.status !== 'active' || !match.turn_timer_seconds || !match.turn_started_at) {
       setTimeRemaining(null);
+      timeoutHandled.current = false; // Reset when match changes
       return;
     }
+
+    const handleTimeout = async () => {
+      if (timeoutHandled.current) return;
+      timeoutHandled.current = true;
+
+      const currentColor = match.turn % 2 === 1 ? 1 : 2;
+      const winnerColor = currentColor === 1 ? 2 : 1;
+
+      console.log(`Timer expired - player ${currentColor} forfeits, player ${winnerColor} wins`);
+
+      await endMatch(winnerColor, 'timeout', {
+        title: 'Time ran out!',
+        description: `${currentColor === 1 ? 'Indigo' : 'Ochre'} forfeits the game.`
+      });
+    };
 
     const updateTimer = () => {
       const turnStartTime = new Date(match.turn_started_at!).getTime();
@@ -373,9 +505,9 @@ export default function Match() {
 
       setTimeRemaining(remaining);
 
-      // If time runs out, reload to see the forfeit
-      if (remaining === 0) {
-        setTimeout(() => loadMatch(), 2000);
+      // If time runs out, forfeit the game
+      if (remaining === 0 && !timeoutHandled.current) {
+        handleTimeout();
       }
     };
 
@@ -383,7 +515,7 @@ export default function Match() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [match, loadMatch]);
+  }, [match, endMatch]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
     // Prevent concurrent AI moves
@@ -823,30 +955,21 @@ export default function Match() {
     });
   };
 
-  const handleDebugFinish = async () => {
-    if (!match || !matchId) return;
+  const handleForfeit = async () => {
+    if (!match || !user || match.status !== 'active') return;
 
-    setDebugFinishing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('debug-finish-match', {
-        body: { matchId }
-      });
+    const userPlayer = players.find(p => p.profile_id === user.id);
+    if (!userPlayer) return;
 
-      if (error) throw error;
+    // The player who forfeits loses, so the other player wins
+    const winnerColor = userPlayer.color === 1 ? 2 : 1;
 
-      toast.success('🔧 Debug: Match finished!', {
-        description: 'You have been declared the winner'
-      });
+    const success = await endMatch(winnerColor, 'forfeit', {
+      title: 'You forfeited the match'
+    });
 
-      // Reload match to see updated state
-      await loadMatch();
-    } catch (error: any) {
-      console.error('Debug finish error:', error);
-      toast.error('Failed to finish match', {
-        description: error.message
-      });
-    } finally {
-      setDebugFinishing(false);
+    if (!success) {
+      toast.error('Failed to forfeit');
     }
   };
 
@@ -924,20 +1047,6 @@ export default function Match() {
           </div>
 
           <div className="flex gap-2">
-            {/* DEBUG BUTTON - Remove in production */}
-            {match.status === 'active' && isPlayer && !isDiscordLocalMatch && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDebugFinish}
-                disabled={debugFinishing}
-                className="opacity-50 hover:opacity-100"
-              >
-                {debugFinishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : '🔧'}
-                {debugFinishing ? 'Finishing...' : 'Debug: Win'}
-              </Button>
-            )}
-
             {match.status === 'finished' && !isAIMatch && isPlayer && (
               <Button
                 variant="default"
@@ -957,6 +1066,16 @@ export default function Match() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Exit
             </Button>
+            {match.status === 'active' && isPlayer && !isAIMatch && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleForfeit}
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                Forfeit
+              </Button>
+            )}
             {!isAIMatch && !isPlayer && (
               <Button
                 variant={isSpectating ? "default" : "outline"}
@@ -1087,9 +1206,40 @@ export default function Match() {
                         {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
                       </span>
                     </div>
-                    {userPlayer?.rating_change !== undefined && userPlayer.rating_change !== null && (
-                      <div className={`text-lg font-bold ${userPlayer.rating_change >= 0 ? 'text-green-600' : 'text-red-500'} animate-in zoom-in duration-500 delay-300`}>
-                        {userPlayer.rating_change > 0 ? '+' : ''}{userPlayer.rating_change} ELO
+                    {/* ELO Changes for Ranked Matches */}
+                    {match.is_ranked && ratingResult && (
+                      <div className="mt-3 pt-3 border-t border-border/50 space-y-2 animate-in fade-in duration-500 delay-300">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Rating Changes</p>
+                        <div className="flex flex-col gap-2">
+                          {player1 && !player1.is_bot && (
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-indigo/10">
+                              <span className="font-medium text-sm">{player1.username}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  {match.winner === 1 ? ratingResult.winner.old : ratingResult.loser.old}
+                                </span>
+                                <span className={`text-sm font-bold ${(match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                  {(match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change) > 0 ? '+' : ''}
+                                  {match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          {player2 && !player2.is_bot && (
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-ochre/10">
+                              <span className="font-medium text-sm">{player2.username}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  {match.winner === 2 ? ratingResult.winner.old : ratingResult.loser.old}
+                                </span>
+                                <span className={`text-sm font-bold ${(match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                  {(match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change) > 0 ? '+' : ''}
+                                  {match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
