@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
-import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Loader2 } from 'lucide-react';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Loader2, Flag } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MatchData {
@@ -858,6 +858,39 @@ export default function Match() {
     });
   };
 
+  const handleForfeit = async () => {
+    if (!match || !user || match.status !== 'active') return;
+
+    const userPlayer = players.find(p => p.profile_id === user.id);
+    if (!userPlayer) return;
+
+    // The player who forfeits loses, so the other player wins
+    const winnerColor = userPlayer.color === 1 ? 2 : 1;
+
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .update({
+          status: 'finished',
+          winner: winnerColor,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match.id)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error('Failed to forfeit:', error);
+        toast.error('Failed to forfeit');
+      } else {
+        toast.info('You forfeited the match');
+        await loadMatch();
+      }
+    } catch (e) {
+      console.error('Forfeit error:', e);
+      toast.error('Failed to forfeit');
+    }
+  };
+
   if (!match || !engine) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -951,6 +984,16 @@ export default function Match() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Exit
             </Button>
+            {match.status === 'active' && isPlayer && !isAIMatch && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleForfeit}
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                Forfeit
+              </Button>
+            )}
             {!isAIMatch && !isPlayer && (
               <Button
                 variant={isSpectating ? "default" : "outline"}
