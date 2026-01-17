@@ -345,6 +345,41 @@ export default function Match() {
         setWinningPath(path || []);
       }
 
+      // Load rating changes for finished ranked matches
+      if (matchData.status === 'finished' && matchData.is_ranked && matchData.winner) {
+        const { data: ratingHistory } = await supabase
+          .from('rating_history')
+          .select('profile_id, old_rating, new_rating, rating_change')
+          .eq('match_id', matchId);
+
+        if (ratingHistory && ratingHistory.length === 2) {
+          // Find winner and loser from rating history
+          const winnerHistory = ratingHistory.find(h => {
+            const playerData = playersData?.find(p => p.profile_id === h.profile_id);
+            return playerData?.color === matchData.winner;
+          });
+          const loserHistory = ratingHistory.find(h => {
+            const playerData = playersData?.find(p => p.profile_id === h.profile_id);
+            return playerData?.color !== matchData.winner;
+          });
+
+          if (winnerHistory && loserHistory) {
+            setRatingResult({
+              winner: {
+                old: winnerHistory.old_rating,
+                new: winnerHistory.new_rating,
+                change: winnerHistory.rating_change
+              },
+              loser: {
+                old: loserHistory.old_rating,
+                new: loserHistory.new_rating,
+                change: loserHistory.rating_change
+              }
+            });
+          }
+        }
+      }
+
       // Check if AI should play (immediate, no delay) and only once per turn
       if (matchData.status === 'active') {
         const currentColor = matchData.turn % 2 === 1 ? 1 : 2;
