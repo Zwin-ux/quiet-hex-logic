@@ -2,8 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 // Simple Glicko-inspired rating calculation
@@ -11,7 +11,7 @@ function calculateNewRating(
   winnerRating: number,
   loserRating: number,
   winnerGames: number,
-  loserGames: number
+  loserGames: number,
 ): { winnerNew: number; loserNew: number; change: number } {
   // K-factor decreases as games played increases (more stable rating)
   const winnerK = Math.max(16, 40 - Math.min(winnerGames, 30) * 0.8);
@@ -33,7 +33,7 @@ function calculateNewRating(
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -41,48 +41,45 @@ serve(async (req) => {
     const { matchId, winnerId, loserId } = await req.json();
 
     if (!matchId || !winnerId || !loserId) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Check if this match was already processed
     const { data: existingHistory } = await supabase
-      .from('rating_history')
-      .select('id')
-      .eq('match_id', matchId)
+      .from("rating_history")
+      .select("id")
+      .eq("match_id", matchId)
       .limit(1);
 
     if (existingHistory && existingHistory.length > 0) {
-      return new Response(JSON.stringify({ message: 'Match already processed' }), {
+      return new Response(JSON.stringify({ message: "Match already processed" }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Get current ratings
     const { data: winnerProfile } = await supabase
-      .from('profiles')
-      .select('elo_rating, games_rated')
-      .eq('id', winnerId)
+      .from("profiles")
+      .select("elo_rating, games_rated")
+      .eq("id", winnerId)
       .single();
 
     const { data: loserProfile } = await supabase
-      .from('profiles')
-      .select('elo_rating, games_rated')
-      .eq('id', loserId)
+      .from("profiles")
+      .select("elo_rating, games_rated")
+      .eq("id", loserId)
       .single();
 
     if (!winnerProfile || !loserProfile) {
-      return new Response(JSON.stringify({ error: 'Players not found' }), {
+      return new Response(JSON.stringify({ error: "Players not found" }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -91,23 +88,27 @@ serve(async (req) => {
     const winnerGames = winnerProfile.games_rated || 0;
     const loserGames = loserProfile.games_rated || 0;
 
-    const { winnerNew, loserNew, change } = calculateNewRating(
-      winnerOld, loserOld, winnerGames, loserGames
-    );
+    const { winnerNew, loserNew, change } = calculateNewRating(winnerOld, loserOld, winnerGames, loserGames);
 
     // Update ratings and record history in transaction
-    await supabase.from('profiles').update({
-      elo_rating: winnerNew,
-      games_rated: winnerGames + 1,
-    }).eq('id', winnerId);
+    await supabase
+      .from("profiles")
+      .update({
+        elo_rating: winnerNew,
+        games_rated: winnerGames + 1,
+      })
+      .eq("id", winnerId);
 
-    await supabase.from('profiles').update({
-      elo_rating: loserNew,
-      games_rated: loserGames + 1,
-    }).eq('id', loserId);
+    await supabase
+      .from("profiles")
+      .update({
+        elo_rating: loserNew,
+        games_rated: loserGames + 1,
+      })
+      .eq("id", loserId);
 
     // Record history
-    await supabase.from('rating_history').insert([
+    await supabase.from("rating_history").insert([
       {
         profile_id: winnerId,
         match_id: matchId,
@@ -125,31 +126,46 @@ serve(async (req) => {
     ]);
 
     // Update match_players with the rating change
-    await supabase.from('match_players')
+    const { error: winnerUpdateError } = await supabase
+      .from("match_players")
       .update({ rating_change: change })
-      .eq('match_id', matchId)
-      .eq('profile_id', winnerId);
+      .eq("match_id", matchId)
+      .eq("profile_id", winnerId);
 
-    await supabase.from('match_players')
+    if (winnerUpdateError) {
+      console.error("Failed to update winner rating_change:", winnerUpdateError);
+    }
+
+    const { error: loserUpdateError } = await supabase
+      .from("match_players")
       .update({ rating_change: loserNew - loserOld })
-      .eq('match_id', matchId)
-      .eq('profile_id', loserId);
+      .eq("match_id", matchId)
+      .eq("profile_id", loserId);
 
-    console.log(`Ratings updated - Winner: ${winnerOld} -> ${winnerNew} (+${change}), Loser: ${loserOld} -> ${loserNew}`);
+    if (loserUpdateError) {
+      console.error("Failed to update loser rating_change:", loserUpdateError);
+    }
 
-    return new Response(JSON.stringify({
-      winner: { old: winnerOld, new: winnerNew, change },
-      loser: { old: loserOld, new: loserNew, change: loserNew - loserOld },
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.log(
+      `Ratings updated - Winner: ${winnerOld} -> ${winnerNew} (+${change}), Loser: ${loserOld} -> ${loserNew}`,
+    );
+
+    return new Response(
+      JSON.stringify({
+        winner: { old: winnerOld, new: winnerNew, change },
+        loser: { old: loserOld, new: loserNew, change: loserNew - loserOld },
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: unknown) {
-    console.error('Rating update error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error("Rating update error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
