@@ -15,10 +15,12 @@ type MatchHistory = {
   created_at: string;
   updated_at: string;
   ai_difficulty: 'easy' | 'medium' | 'hard' | 'expert' | null;
+  is_ranked: boolean | null;
   players: Array<{
     color: number;
     profile_id: string;
     is_bot: boolean;
+    rating_change: number | null;
     profile: {
       username: string;
     };
@@ -66,6 +68,7 @@ export default function History() {
             color,
             profile_id,
             is_bot,
+            rating_change,
             profile:profiles(username)
           )
         `)
@@ -97,6 +100,10 @@ export default function History() {
     return match.winner === playerColor;
   };
 
+  const getRatingChange = (match: MatchHistory, userId: string) => {
+    return match.players.find(p => p.profile_id === userId)?.rating_change;
+  };
+
   if (authLoading || loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -123,6 +130,8 @@ export default function History() {
             {matches.map((match) => {
               const won = didWin(match, user!.id);
               const opponent = getOpponentName(match, user!.id);
+              const ratingChange = getRatingChange(match, user!.id);
+              const isRanked = match.is_ranked;
               
               return (
                 <Card
@@ -152,9 +161,24 @@ export default function History() {
                           <Badge variant="outline" className="font-body">
                             vs {opponent}
                           </Badge>
+                          <Badge variant={isRanked ? 'secondary' : 'outline'} className={`font-body ${isRanked ? 'bg-ochre' : ''}`}>
+                            {isRanked ? 'Ranked' : 'Quickplay'}
+                          </Badge>
                           <Badge variant={won ? 'default' : 'outline'} className="font-body">
                             {won ? 'Victory' : 'Defeat'}
                           </Badge>
+                          {isRanked && ratingChange !== undefined && ratingChange !== null && (
+                            <Badge 
+                              variant="outline" 
+                              className={`font-mono font-bold border-2 ${
+                                ratingChange >= 0 
+                                  ? 'border-green-500/50 text-green-600 bg-green-500/10' 
+                                  : 'border-red-500/50 text-red-600 bg-red-500/10'
+                              }`}
+                            >
+                              {ratingChange > 0 ? '+' : ''}{ratingChange} ELO
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground font-mono">
                           Played {new Date(match.created_at).toLocaleDateString()} • 
