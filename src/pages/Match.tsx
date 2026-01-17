@@ -29,6 +29,7 @@ interface MatchData {
   ai_difficulty?: AIDifficulty | null;
   turn_timer_seconds?: number | null;
   turn_started_at?: string | null;
+  is_ranked?: boolean | null;
 }
 
 interface Player {
@@ -358,6 +359,79 @@ export default function Match() {
     }
   }, [matchId, navigate]);
 
+  // Centralized function for ending a match (forfeit, timeout, etc.)
+  const endMatch = useCallback(async (
+    winnerColor: number,
+    reason: 'forfeit' | 'timeout' | 'disconnect',
+    toastMessage?: { title: string; description?: string }
+  ) => {
+    if (!match || match.status !== 'active') return false;
+
+    try {
+      // Update match status in database
+      const { error } = await supabase
+        .from('matches')
+        .update({
+          status: 'finished',
+          winner: winnerColor,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match.id)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error(`Failed to end match (${reason}):`, error);
+        return false;
+      }
+
+      // Show toast notification
+      if (toastMessage) {
+        toast.info(toastMessage.title, {
+          description: toastMessage.description
+        });
+      }
+
+      // Update ELO for ranked matches
+      if (match.is_ranked) {
+        // Fetch players from database to ensure we have accurate data
+        const { data: matchPlayers } = await supabase
+          .from('match_players')
+          .select('profile_id, color')
+          .eq('match_id', match.id)
+          .eq('is_bot', false);
+
+        if (matchPlayers && matchPlayers.length === 2) {
+          const winnerPlayer = matchPlayers.find(p => p.color === winnerColor);
+          const loserPlayer = matchPlayers.find(p => p.color !== winnerColor);
+
+          if (winnerPlayer && loserPlayer) {
+            console.log(`Updating ELO ratings (${reason})...`);
+            const { data: ratingResult, error: ratingError } = await supabase.functions.invoke('update-ratings', {
+              body: {
+                matchId: match.id,
+                winnerId: winnerPlayer.profile_id,
+                loserId: loserPlayer.profile_id
+              }
+            });
+
+            if (ratingError) {
+              console.error('Failed to update ratings:', ratingError);
+            } else {
+              console.log('Ratings updated:', ratingResult);
+            }
+          }
+        }
+      }
+
+      // Reload match to sync state
+      await loadMatch();
+      return true;
+    } catch (e) {
+      console.error(`Error ending match (${reason}):`, e);
+      return false;
+    }
+  }, [match, loadMatch]);
+
   // Timer countdown effect
   useEffect(() => {
     if (!match || match.status !== 'active' || !match.turn_timer_seconds || !match.turn_started_at) {
@@ -370,34 +444,15 @@ export default function Match() {
       if (timeoutHandled.current) return;
       timeoutHandled.current = true;
 
-      // The player whose turn it is loses (the other player wins)
       const currentColor = match.turn % 2 === 1 ? 1 : 2;
       const winnerColor = currentColor === 1 ? 2 : 1;
 
       console.log(`Timer expired - player ${currentColor} forfeits, player ${winnerColor} wins`);
 
-      try {
-        const { error } = await supabase
-          .from('matches')
-          .update({
-            status: 'finished',
-            winner: winnerColor,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', match.id)
-          .eq('status', 'active'); // Only update if still active
-
-        if (error) {
-          console.error('Failed to forfeit match:', error);
-        } else {
-          toast.info('Time ran out!', {
-            description: `${currentColor === 1 ? 'Indigo' : 'Ochre'} forfeits the game.`
-          });
-          await loadMatch();
-        }
-      } catch (e) {
-        console.error('Timeout handling error:', e);
-      }
+      await endMatch(winnerColor, 'timeout', {
+        title: 'Time ran out!',
+        description: `${currentColor === 1 ? 'Indigo' : 'Ochre'} forfeits the game.`
+      });
     };
 
     const updateTimer = () => {
@@ -418,7 +473,7 @@ export default function Match() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [match, loadMatch]);
+  }, [match, endMatch]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
     // Prevent concurrent AI moves
@@ -867,26 +922,11 @@ export default function Match() {
     // The player who forfeits loses, so the other player wins
     const winnerColor = userPlayer.color === 1 ? 2 : 1;
 
-    try {
-      const { error } = await supabase
-        .from('matches')
-        .update({
-          status: 'finished',
-          winner: winnerColor,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', match.id)
-        .eq('status', 'active');
+    const success = await endMatch(winnerColor, 'forfeit', {
+      title: 'You forfeited the match'
+    });
 
-      if (error) {
-        console.error('Failed to forfeit:', error);
-        toast.error('Failed to forfeit');
-      } else {
-        toast.info('You forfeited the match');
-        await loadMatch();
-      }
-    } catch (e) {
-      console.error('Forfeit error:', e);
+    if (!success) {
       toast.error('Failed to forfeit');
     }
   };
