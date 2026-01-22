@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { premiumSkins } from '@/lib/boardSkins';
 import { cn } from '@/lib/utils';
+import { useEffect } from 'react';
 
 const features = [
   { icon: Palette, title: 'Exclusive Board Skins', description: 'Access premium themes like Galaxy, Royal, Retro & Aurora' },
@@ -60,6 +61,40 @@ export default function Premium() {
     } catch (error) {
       console.error('Portal error:', error);
       toast.error('Failed to open billing portal');
+    }
+  };
+
+  const isNative = (window as unknown as { isNativeApp?: boolean }).isNativeApp;
+  const isIOS = (window as unknown as { nativePlatform?: string }).nativePlatform === 'ios';
+  const showStripe = !isIOS; // Only show Stripe if not on iOS native
+
+  useEffect(() => {
+    if (!isNative) return;
+
+    const handleSuccess = (_e: Event) => {
+      toast.success('Purchase successful! Welcome to Plus.');
+      // You may want to refresh the user's premium status here
+      window.location.reload(); 
+    };
+
+    const handleError = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      toast.error(`Purchase failed: ${detail?.code || 'Unknown error'}`);
+    };
+
+    window.addEventListener('iap-success', handleSuccess);
+    window.addEventListener('iap-error', handleError);
+
+    return () => {
+      window.removeEventListener('iap-success', handleSuccess);
+      window.removeEventListener('iap-error', handleError);
+    };
+  }, [isNative]);
+
+  const handleNativePurchase = () => {
+    const win = window as unknown as { triggerNativePurchase?: () => void };
+    if (win.triggerNativePurchase) {
+      win.triggerNativePurchase();
     }
   };
 
@@ -147,23 +182,44 @@ export default function Premium() {
                         </span>
                       )}
                     </div>
-                    <Button onClick={handleManageSubscription} variant="outline" className="w-full">
-                      Manage via Stripe
-                    </Button>
+                    {showStripe && (
+                      <Button onClick={handleManageSubscription} variant="outline" className="w-full">
+                        Manage via Stripe
+                      </Button>
+                    )}
                   </div>
                 ) : (
-                  <Button
-                    onClick={handleSubscribe}
-                    disabled={purchasing || loading}
-                    className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 font-bold py-8 text-xl shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
-                  >
-                    {purchasing ? 'Redirecting...' : 'Get Hexology+'}
-                  </Button>
+                  <div className="space-y-3">
+                    {isIOS && (
+                      <Button
+                        onClick={handleNativePurchase}
+                        disabled={loading}
+                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 font-bold py-8 text-xl shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
+                      >
+                        Subscribe via App Store
+                      </Button>
+                    )}
+                    {showStripe && (
+                      <Button
+                        onClick={handleSubscribe}
+                        disabled={purchasing || loading}
+                        variant={isIOS ? "outline" : "default"}
+                        className={cn(
+                          "w-full font-bold py-8 text-xl shadow-lg transition-all duration-300",
+                          !isIOS && "bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 hover:shadow-amber-500/20"
+                        )}
+                      >
+                        {purchasing ? 'Redirecting...' : isIOS ? 'Or Subscribe via Stripe' : 'Get Hexology+'}
+                      </Button>
+                    )}
+                  </div>
                 )}
                 
-                <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-semibold">
-                  Secure checkout via Stripe
-                </p>
+                {showStripe && (
+                  <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-semibold">
+                    Secure checkout via Stripe
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -233,6 +289,18 @@ export default function Premium() {
             We are committed to fair play and transparency. Subscribing helps us 
             keep Hexology independent and ad-free. No pay-to-win, ever.
           </p>
+        </div>
+
+        {/* Platform Availability */}
+        <div className="text-center max-w-2xl mx-auto pb-12">
+          <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-3">
+            Available Platforms
+          </p>
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">iOS</span>
+            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">Web</span>
+            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">Discord</span>
+          </div>
         </div>
       </div>
     </div>

@@ -39,6 +39,22 @@ export default function Privacy() {
               )}
             </section>
           ))}
+          
+          <section className="mt-8 p-4 bg-primary/10 rounded-lg">
+            <h2 className="text-2xl font-semibold mb-4">Questions?</h2>
+            <p className="text-muted-foreground mb-4">
+              If you have any questions about our privacy practices, join our Discord community to chat with the developers directly.
+            </p>
+            <a 
+              href="https://discord.gg/67EmmZu69q" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button className="bg-[#5865F2] hover:bg-[#4752C4] text-white">
+                Join Discord
+              </Button>
+            </a>
+          </section>
         </div>
       </div>
     </div>
