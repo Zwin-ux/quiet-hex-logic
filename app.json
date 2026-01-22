@@ -19,7 +19,8 @@
       "bundleIdentifier": "com.zwin.hexology",
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "newArchEnabled": false
     },
     "android": {
       "adaptiveIcon": {
@@ -35,6 +36,9 @@
       "eas": {
         "projectId": "c2f8d57f-db54-4925-b2ab-381cfb31169a"
       }
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }
