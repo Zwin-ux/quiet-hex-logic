@@ -287,11 +287,15 @@ export default function Lobby() {
   }, [user]);
 
   const fetchActiveMatches = async () => {
+    // Only show matches from the last 2 weeks to filter out stale/abandoned games
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
     const { data } = await supabase
       .from('matches')
       .select('*')
       .eq('status', 'active')
       .eq('allow_spectators', true)
+      .gte('created_at', twoWeeksAgo)
       .order('created_at', { ascending: false })
       .limit(5);
     setActiveMatches(data || []);
@@ -539,27 +543,30 @@ export default function Lobby() {
         }
 
         {/* Live Matches */}
-        {
-          activeMatches.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">Live Matches</h2>
-                <Badge variant="outline">{activeMatches.length}</Badge>
-              </div>
-              <div className="space-y-2">
-                {activeMatches.map((match) => (
-                  <Card key={match.id} className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Play className="h-4 w-4 text-primary" />
-                      <span className="font-mono">{match.size}×{match.size}</span>
-                    </div>
-                    <SpectateButton matchId={match.id} />
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )
-        }
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Live Matches</h2>
+            <Badge variant="outline">{activeMatches.length}</Badge>
+          </div>
+          {activeMatches.length > 0 ? (
+            <div className="space-y-2">
+              {activeMatches.map((match) => (
+                <Card key={match.id} className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Play className="h-4 w-4 text-primary" />
+                    <span className="font-mono">{match.size}×{match.size}</span>
+                  </div>
+                  <SpectateButton matchId={match.id} />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-6 text-center border-dashed">
+              <p className="text-muted-foreground">No live matches right now</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Start a game and others can spectate!</p>
+            </Card>
+          )}
+        </section>
       </div >
 
       {user && isGuest && (
