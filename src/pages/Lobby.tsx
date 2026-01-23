@@ -45,6 +45,7 @@ type LobbyWithDetails = {
 export default function Lobby() {
   const { user, loading, signOut, signInAnonymously } = useAuth();
   const [activeMatches, setActiveMatches] = useState<Match[]>([]);
+  const [myMatches, setMyMatches] = useState<Match[]>([]);
   const [lobbies, setLobbies] = useState<LobbyWithDetails[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [profile, setProfile] = useState<{ username: string; elo_rating: number } | null>(null);
@@ -274,23 +275,65 @@ export default function Lobby() {
     if (!user) return;
 
     fetchActiveMatches();
+    fetchMyMatches();
     fetchWaitingLobbies();
 
     const channel = supabase
       .channel('lobby')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `status=eq.active` }, fetchActiveMatches)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `status=eq.active` }, () => {
+        fetchActiveMatches();
+        fetchMyMatches();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lobbies', filter: `status=eq.waiting` }, fetchWaitingLobbies)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lobby_players' }, fetchWaitingLobbies)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players' }, fetchMyMatches)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  const fetchMyMatches = async () => {
+    if (!user) return;
+
+    // Get matches where the user is a player
+    const { data: playerMatches } = await supabase
+      .from('match_players')
+      .select('match_id')
+      .eq('profile_id', user.id);
+
+    if (!playerMatches || playerMatches.length === 0) {
+      setMyMatches([]);
+      return;
+    }
+
+    const matchIds = playerMatches.map(p => p.match_id);
+
+    const { data } = await supabase
+      .from('matches')
+      .select('*')
+      .in('id', matchIds)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    setMyMatches(data || []);
+  };
+
   const fetchActiveMatches = async () => {
+    if (!user) return;
+
     // Only show matches from the last 2 weeks to filter out stale/abandoned games
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data } = await supabase
+    // First get matches where the user is a player (to exclude them)
+    const { data: playerMatches } = await supabase
+      .from('match_players')
+      .select('match_id')
+      .eq('profile_id', user.id);
+
+    const userMatchIds = playerMatches?.map(p => p.match_id) || [];
+
+    // Fetch active matches excluding user's own matches
+    let query = supabase
       .from('matches')
       .select('*')
       .eq('status', 'active')
@@ -298,7 +341,24 @@ export default function Lobby() {
       .gte('created_at', twoWeeksAgo)
       .order('created_at', { ascending: false })
       .limit(5);
-    setActiveMatches(data || []);
+
+    // Filter out user's matches if they have any
+    if (userMatchIds.length > 0) {
+      // Use not.in to exclude user's matches
+      const { data } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('status', 'active')
+        .eq('allow_spectators', true)
+        .gte('created_at', twoWeeksAgo)
+        .not('id', 'in', `(${userMatchIds.join(',')})`)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      setActiveMatches(data || []);
+    } else {
+      const { data } = await query;
+      setActiveMatches(data || []);
+    }
   };
 
   const fetchWaitingLobbies = async () => {
@@ -541,6 +601,32 @@ export default function Lobby() {
             </section>
           )
         }
+
+        {/* My Games */}
+        {user && myMatches.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">My Games</h2>
+              <Badge variant="outline">{myMatches.length}</Badge>
+            </div>
+            <div className="space-y-2">
+              {myMatches.map((match) => (
+                <Card key={match.id} className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Play className="h-4 w-4 text-primary" />
+                    <span className="font-mono">{match.size}×{match.size}</span>
+                    {match.allow_spectators && (
+                      <Badge variant="secondary" className="text-xs">Spectators allowed</Badge>
+                    )}
+                  </div>
+                  <Button size="sm" onClick={() => navigate(`/match/${match.id}`)}>
+                    Resume
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Live Matches */}
         <section>
