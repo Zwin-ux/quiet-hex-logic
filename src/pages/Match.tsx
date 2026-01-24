@@ -30,6 +30,7 @@ interface MatchData {
   turn_timer_seconds?: number | null;
   turn_started_at?: string | null;
   is_ranked?: boolean | null;
+  timeout_limit?: number | null;
 }
 
 interface Player {
@@ -40,6 +41,7 @@ interface Player {
   avatar_color?: string;
   elo?: number;
   rating_change?: number;
+  number_of_timeouts?: number;
 }
 
 export default function Match() {
@@ -284,6 +286,7 @@ export default function Match() {
           color,
           is_bot,
           rating_change,
+          number_of_timeouts,
           profiles!inner(username, avatar_color, elo_rating)
         `)
         .eq('match_id', matchId);
@@ -296,7 +299,8 @@ export default function Match() {
           username: (p.profiles as any).username,
           avatar_color: (p.profiles as any).avatar_color || 'indigo',
           elo: (p.profiles as any).elo_rating,
-          rating_change: p.rating_change
+          rating_change: p.rating_change,
+          number_of_timeouts: (p as any).number_of_timeouts || 0
         }));
 
         // For AI matches, add synthetic AI player as color 2
@@ -309,7 +313,8 @@ export default function Match() {
             username: `Computer (${difficultyLabel})`,
             avatar_color: 'slate',
             elo: undefined,
-            rating_change: undefined
+            rating_change: undefined,
+            number_of_timeouts: 0
           });
         }
 
@@ -488,13 +493,71 @@ export default function Match() {
 
       const currentColor = match.turn % 2 === 1 ? 1 : 2;
       const winnerColor = currentColor === 1 ? 2 : 1;
+      const playerName = currentColor === 1 ? 'Indigo' : 'Ochre';
+      const timeoutLimit = match.timeout_limit ?? 3;
 
-      console.log(`Timer expired - player ${currentColor} forfeits, player ${winnerColor} wins`);
+      // Fetch current timeout count directly from database to avoid stale closure issues
+      const { data: currentPlayerData, error: fetchError } = await supabase
+        .from('match_players')
+        .select('profile_id, number_of_timeouts, is_bot')
+        .eq('match_id', match.id)
+        .eq('color', currentColor)
+        .single();
 
-      await endMatch(winnerColor, 'timeout', {
-        title: 'Time ran out!',
-        description: `${currentColor === 1 ? 'Indigo' : 'Ochre'} forfeits the game.`
+      if (!currentPlayerData) {
+        console.error('Could not find current player');
+        timeoutHandled.current = false;
+        return;
+      }
+
+      const currentTimeouts = currentPlayerData.number_of_timeouts ?? 0;
+      const newTimeoutCount = currentTimeouts + 1;
+
+      // Update timeout count in database
+      if (!currentPlayerData.is_bot) {
+        const { data: updateData, error: updateError } = await supabase
+          .from('match_players')
+          .update({ number_of_timeouts: newTimeoutCount })
+          .eq('match_id', match.id)
+          .eq('profile_id', currentPlayerData.profile_id)
+          .select();
+
+        if (updateError) {
+          console.error('Failed to update timeout count:', updateError);
+        }
+      }
+
+      // If reached timeout limit, end the game
+      if (newTimeoutCount >= timeoutLimit) {
+        await endMatch(winnerColor, 'timeout', {
+          title: 'Too many timeouts!',
+          description: `${playerName} ran out of time ${timeoutLimit} times and forfeits the game.`
+        });
+        return;
+      }
+
+      // Otherwise, just reset the timer and show a warning
+      toast.warning(`${playerName} timed out! (${newTimeoutCount}/${timeoutLimit})`, {
+        description: `${timeoutLimit - newTimeoutCount} chance${timeoutLimit - newTimeoutCount === 1 ? '' : 's'} remaining`
       });
+
+      // Reset the turn timer by updating turn_started_at
+      try {
+        await supabase
+          .from('matches')
+          .update({ turn_started_at: new Date().toISOString() })
+          .eq('id', match.id);
+
+        // Reload match to sync timeout counts for UI
+        await loadMatch();
+
+        // Reset the timeout handled flag so the timer can trigger again
+        setTimeout(() => {
+          timeoutHandled.current = false;
+        }, 1000);
+      } catch (e) {
+        console.error('Failed to reset timer:', e);
+      }
     };
 
     const updateTimer = () => {
@@ -515,7 +578,7 @@ export default function Match() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [match, endMatch]);
+  }, [match, endMatch, loadMatch]);
 
   const makeAIMove = async (hexEngine: Hex, matchData: MatchData, retryCount = 0) => {
     // Prevent concurrent AI moves
@@ -1119,16 +1182,33 @@ export default function Match() {
           {/* Player 1 Panel */}
           <div className="order-2 lg:order-1">
             {player1 && (
-              <PlayerPanel
-                username={player1.username}
-                color={1}
-                isCurrentTurn={currentColor === 1 && match.status === 'active'}
-                timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
-                isAI={player1.is_bot}
-                avatarColor={player1.avatar_color}
-                discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
-                elo={player1.elo}
-              />
+              <>
+                <PlayerPanel
+                  username={player1.username}
+                  color={1}
+                  isCurrentTurn={currentColor === 1 && match.status === 'active'}
+                  timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+                  isAI={player1.is_bot}
+                  avatarColor={player1.avatar_color}
+                  discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+                  elo={player1.elo}
+                />
+                {/* Timeout indicator - only show for timed matches */}
+                {match.turn_timer_seconds && match.status === 'active' && !player1.is_bot && (
+                  <div className="flex justify-center gap-2 mt-3">
+                    {Array.from({ length: match.timeout_limit ?? 3 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          i < (player1.number_of_timeouts ?? 0)
+                            ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+                            : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -1306,6 +1386,21 @@ export default function Match() {
                   discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                   elo={player2.elo}
                 />
+                {/* Timeout indicator - only show for timed matches */}
+                {match.turn_timer_seconds && match.status === 'active' && !player2.is_bot && (
+                  <div className="flex justify-center gap-2 mt-3">
+                    {Array.from({ length: match.timeout_limit ?? 3 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          i < (player2.number_of_timeouts ?? 0)
+                            ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+                            : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
                 {aiThinking && isAIMatch && currentColor === 2 && (
                   <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 text-sm text-ochre">
