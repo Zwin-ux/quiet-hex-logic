@@ -87,7 +87,7 @@ const Hero = () => {
             onClick={() => navigate('/lobby')}
           >
             <Users className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform text-ochre" />
-            Multiplayer
+            Lobby
           </Button>
           <Button
             size="lg"

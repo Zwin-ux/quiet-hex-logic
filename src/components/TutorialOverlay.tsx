@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { X, ArrowRight } from 'lucide-react';
@@ -44,6 +44,18 @@ interface TutorialOverlayProps {
 export const TutorialOverlay = ({ onClose }: TutorialOverlayProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const step = TUTORIAL_STEPS[currentStep];
+
+  // Handle ESC key to close tutorial
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleNext = () => {
     if (currentStep < TUTORIAL_STEPS.length - 1) {
