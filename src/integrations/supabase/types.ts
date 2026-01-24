@@ -695,6 +695,68 @@ export type Database = {
           },
         ]
       }
+      rematch_requests: {
+        Row: {
+          created_at: string
+          id: string
+          lobby_id: string | null
+          match_id: string
+          recipient_id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lobby_id?: string | null
+          match_id: string
+          recipient_id: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lobby_id?: string | null
+          match_id?: string
+          recipient_id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rematch_requests_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rematch_requests_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rematch_requests_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rematch_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spectators: {
         Row: {
           joined_at: string
