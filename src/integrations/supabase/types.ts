@@ -262,6 +262,7 @@ export type Database = {
           created_at: string | null
           is_bot: boolean
           match_id: string
+          number_of_timeouts: number | null
           profile_id: string
           rating_change: number | null
         }
@@ -270,6 +271,7 @@ export type Database = {
           created_at?: string | null
           is_bot?: boolean
           match_id: string
+          number_of_timeouts?: number | null
           profile_id: string
           rating_change?: number | null
         }
@@ -278,6 +280,7 @@ export type Database = {
           created_at?: string | null
           is_bot?: boolean
           match_id?: string
+          number_of_timeouts?: number | null
           profile_id?: string
           rating_change?: number | null
         }
@@ -310,6 +313,7 @@ export type Database = {
           pie_rule: boolean
           size: number
           status: Database["public"]["Enums"]["match_status"]
+          timeout_limit: number | null
           tournament_id: string | null
           turn: number
           turn_started_at: string | null
@@ -329,6 +333,7 @@ export type Database = {
           pie_rule?: boolean
           size: number
           status?: Database["public"]["Enums"]["match_status"]
+          timeout_limit?: number | null
           tournament_id?: string | null
           turn?: number
           turn_started_at?: string | null
@@ -348,6 +353,7 @@ export type Database = {
           pie_rule?: boolean
           size?: number
           status?: Database["public"]["Enums"]["match_status"]
+          timeout_limit?: number | null
           tournament_id?: string | null
           turn?: number
           turn_started_at?: string | null

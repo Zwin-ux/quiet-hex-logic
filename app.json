@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Hexology+",
+    "slug": "hexology",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zwin.hexology",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "newArchEnabled": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.zwin.hexology"
+    },
+    "web": {
+      "favicon": "./public/favicon.ico"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c2f8d57f-db54-4925-b2ab-381cfb31169a"
+      }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}

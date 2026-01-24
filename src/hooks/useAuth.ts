@@ -105,6 +105,16 @@ export function useAuth() {
     return { error };
   };
 
+  const signInWithApple = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: `${window.location.origin}/lobby`,
+      },
+    });
+    return { error };
+  };
+
   return {
     user,
     session,
@@ -116,6 +126,7 @@ export function useAuth() {
     signInAnonymously,
     signInWithGoogle,
     signInWithDiscord,
+    signInWithApple,
     resetPassword,
     updatePassword,
   };
