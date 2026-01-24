@@ -91,10 +91,10 @@ const Hero = () => {
           </Button>
           <Button
             size="lg"
-            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 text-base font-medium bg-paper/60 backdrop-blur-sm border-2 border-graphite/20 text-ink/80 hover:bg-paper/80 hover:text-ink hover:border-graphite/40"
+            className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-2xl group hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 shadow-soft hover:shadow-medium text-base font-semibold bg-card/80 backdrop-blur-sm border-2 border-graphite/30 text-foreground hover:bg-card hover:border-indigo/40"
             onClick={() => navigate('/tutorial')}
           >
-            <BookOpen className="h-5 w-5 mr-2 text-indigo/70 group-hover:text-indigo transition-colors" />
+            <BookOpen className="h-5 w-5 mr-2 text-indigo group-hover:text-indigo transition-colors" />
             Learn to Play
           </Button>
         </div>
