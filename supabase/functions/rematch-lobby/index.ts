@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
     const { matchId, action } = await req.json();
+    console.log(`[REMATCH] Request received - matchId: ${matchId}, action: ${action}, userId: ${user.id}`);
 
     if (!action || !["request", "accept"].includes(action)) {
       throw new Error("Invalid action. Must be 'request' or 'accept'");
@@ -101,6 +102,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (matchError) throw matchError;
+    console.log(`[REMATCH] Match loaded: ${match.id}`);
 
     // Get players from the match
     const { data: matchPlayers, error: playersError } = await supabase
@@ -123,18 +125,30 @@ Deno.serve(async (req) => {
     if (!opponentId) {
       throw new Error("Opponent not found");
     }
+    console.log(`[REMATCH] Opponent ID: ${opponentId}`);
 
     if (action === "request") {
+      console.log(`[REMATCH] Processing request action`);
+
       // Check if there's already a pending request from this user
-      const { data: existingRequest } = await supabase
+      const { data: existingRequest, error: existingError } = await supabase
         .from("rematch_requests")
         .select("*")
         .eq("match_id", matchId)
         .eq("requester_id", user.id)
         .eq("status", "pending")
-        .single();
+        .maybeSingle();
+
+      console.log(`[REMATCH] Existing request check:`, { existingRequest, existingError });
+
+      // Log any errors (including table not found)
+      if (existingError) {
+        console.error("[REMATCH] Error checking existing request:", existingError);
+        throw new Error(`Database error: ${existingError.message}`);
+      }
 
       if (existingRequest) {
+        console.log(`[REMATCH] Found existing request, returning it`);
         return new Response(
           JSON.stringify({
             success: true,
@@ -148,15 +162,24 @@ Deno.serve(async (req) => {
       }
 
       // Check if opponent already requested (mutual request = auto-accept)
-      const { data: opponentRequest } = await supabase
+      const { data: opponentRequest, error: opponentError } = await supabase
         .from("rematch_requests")
         .select("*")
         .eq("match_id", matchId)
         .eq("requester_id", opponentId)
         .eq("status", "pending")
-        .single();
+        .maybeSingle();
+
+      console.log(`[REMATCH] Opponent request check:`, { opponentRequest, opponentError });
+
+      // Log any errors
+      if (opponentError) {
+        console.error("[REMATCH] Error checking opponent request:", opponentError);
+        throw new Error(`Database error: ${opponentError.message}`);
+      }
 
       if (opponentRequest) {
+        console.log(`[REMATCH] Found opponent request - creating mutual lobby`);
         // Both players want rematch - create lobby immediately
         const lobbyData = await createRematchLobby(supabase, match, matchPlayers, user.id);
 
@@ -182,6 +205,10 @@ Deno.serve(async (req) => {
       }
 
       // Create new rematch request
+      console.log(
+        `[REMATCH] Creating new request - matchId: ${matchId}, requester: ${user.id}, recipient: ${opponentId}`,
+      );
+
       const { data: newRequest, error: requestError } = await supabase
         .from("rematch_requests")
         .insert({
@@ -193,9 +220,14 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      if (requestError) throw requestError;
+      console.log(`[REMATCH] Insert result:`, { newRequest, requestError });
 
-      console.log(`Rematch requested by ${user.id} for match ${matchId}`);
+      if (requestError) {
+        console.error(`[REMATCH] Failed to insert request:`, requestError);
+        throw requestError;
+      }
+
+      console.log(`[REMATCH] Successfully created request ${newRequest.id}`);
 
       return new Response(
         JSON.stringify({
