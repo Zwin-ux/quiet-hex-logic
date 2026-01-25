@@ -1,11 +1,14 @@
 import { useCallback, useRef } from 'react';
+import { useHaptics } from './useHaptics';
 
 /**
  * Game sound effects using Web Audio API
  * Synthesizes sounds for instant playback without external dependencies
+ * Includes haptic feedback for iOS/mobile devices
  */
 export function useGameSounds() {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const { triggerPlacement, triggerVictory, triggerDefeat, triggerError } = useHaptics();
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -14,8 +17,11 @@ export function useGameSounds() {
     return audioContextRef.current;
   }, []);
 
-  // Piece placement sound - satisfying "pop" click
+  // Piece placement sound - satisfying "pop" click + haptic
   const playPlaceSound = useCallback(() => {
+    // Trigger haptic feedback for iOS
+    triggerPlacement();
+    
     try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;
@@ -58,8 +64,11 @@ export function useGameSounds() {
     }
   }, [getAudioContext]);
 
-  // Victory sound - triumphant ascending chord
+  // Victory sound - triumphant ascending chord + celebration haptic
   const playWinSound = useCallback(() => {
+    // Trigger celebration haptic pattern
+    triggerVictory();
+    
     try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;
@@ -113,8 +122,11 @@ export function useGameSounds() {
     }
   }, [getAudioContext]);
 
-  // Defeat sound - descending tone
+  // Defeat sound - descending tone + heavy haptic
   const playLoseSound = useCallback(() => {
+    // Trigger defeat haptic
+    triggerDefeat();
+    
     try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;
@@ -146,8 +158,11 @@ export function useGameSounds() {
     }
   }, [getAudioContext]);
 
-  // Invalid move sound - error buzz
+  // Invalid move sound - error buzz + error haptic
   const playErrorSound = useCallback(() => {
+    // Trigger error haptic
+    triggerError();
+    
     try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;
