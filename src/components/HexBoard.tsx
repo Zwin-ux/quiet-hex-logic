@@ -817,19 +817,99 @@ const HexBoardComponent = ({
     setHoveredCell(null);
   }, []);
 
+  // Touch event handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (disabled) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    // Calculate layout for collision detection
+    const padding = 40;
+    const availableWidth = rect.width - 2 * padding;
+    const availableHeight = rect.height - 2 * padding;
+    
+    const hexRadius = Math.min(
+      availableWidth / ((size - 1) * 1.5 + 2),
+      availableHeight / (size * Math.sqrt(3) + 1)
+    );
+    const hexHeight = Math.sqrt(3) * hexRadius;
+    const boardWidth = (size - 1) * hexRadius * 1.5 + hexRadius * 2;
+    const boardHeight = size * hexHeight;
+    const offsetX = (rect.width - boardWidth) / 2;
+    const offsetY = (rect.height - boardHeight) / 2;
+
+    // Find closest empty cell with expanded touch radius (1.3x for mobile friendliness)
+    let closestCell = null;
+    let minDist = Infinity;
+    const touchRadius = hexRadius * 1.3; // 30% larger touch target
+
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        const cx = offsetX + col * hexRadius * 1.5 + hexRadius;
+        const cy = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
+
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        if (dist < touchRadius && dist < minDist) {
+          const cell = row * size + col;
+          if (board[cell] === 0) { // Only select empty cells
+            minDist = dist;
+            closestCell = cell;
+          }
+        }
+      }
+    }
+
+    if (closestCell !== null) {
+      setHoveredCell(closestCell);
+    }
+  }, [disabled, size, board]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (disabled || hoveredCell === null) return;
+    e.preventDefault(); // Prevent double-tap zoom
+    
+    // Add impact effect
+    const canvas = canvasRef.current;
+    if (canvas && e.changedTouches[0]) {
+      const touch = e.changedTouches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      setImpactEvents(prev => [
+        ...prev.slice(-4),
+        { x, y, timestamp: Date.now(), color: skin.colors.player1 }
+      ]);
+    }
+    
+    if (onCellClick) {
+      onCellClick(hoveredCell);
+    }
+    setHoveredCell(null);
+  }, [disabled, hoveredCell, onCellClick, skin.colors.player1]);
+
   return (
-    <div className="relative">
+    <div className="relative touch-none">
       <canvas
         ref={canvasRef}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className={`aspect-square rounded-lg shadow-2xl ring-4 ring-primary/20 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         style={{ 
           width: 'min(92vw, 1400px)',
           maxWidth: '100%',
           imageRendering: 'crisp-edges',
-          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          touchAction: 'none' // Prevent browser gestures interfering
         }}
       />
       {canSwap && onSwapColors && (

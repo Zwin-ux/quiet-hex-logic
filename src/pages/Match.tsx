@@ -11,6 +11,9 @@ import { HexBoard } from '@/components/HexBoard';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
 import { MusicControls } from '@/components/MusicControls';
+import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
+import { AnimatedRatingChange } from '@/components/AnimatedRatingChange';
+import { VictoryConfetti } from '@/components/VictoryConfetti';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
@@ -71,6 +74,7 @@ export default function Match() {
     winner: { old: number; new: number; change: number };
     loser: { old: number; new: number; change: number };
   } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Check if this is a Discord local match
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
@@ -723,6 +727,7 @@ export default function Match() {
         setWinningPath(newEngine.getWinningPath() || []);
         setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
         playWinSound();
+        setShowConfetti(true);
         toast.success('Victory!', {
           description: 'You won!',
           duration: 5000
@@ -832,9 +837,10 @@ export default function Match() {
       const winner = result.winner;
       if (winner) {
         const isVictory = winner === currentPlayer.color;
-        // Play win/lose sound
+        // Play win/lose sound and show confetti
         if (isVictory) {
           playWinSound();
+          setShowConfetti(true);
         } else {
           playLoseSound();
         }
@@ -1182,78 +1188,72 @@ export default function Match() {
             )}
 
             {match.status === 'finished' && match.winner && (
-              <div className="mt-6 p-8 border-2 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center space-y-4">
-                  <div className="text-6xl mb-2">
-                    {match.winner === userPlayer?.color ? '🎉' : match.winner === 2 && isAIMatch ? '🤖' : '💫'}
-                  </div>
-                  <h2 className="font-body text-4xl font-bold text-primary">
-                    {match.winner === userPlayer?.color ? '🏆 Victory!' : isAIMatch && match.winner === 2 ? '🤖 Computer Wins!' : '🎮 Game Over'}
-                  </h2>
-                  <div className="space-y-3 p-4 bg-card rounded-lg border">
-                    <p className="text-2xl font-bold" style={{ color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)' }}>
-                      {match.winner === 1 ? player1?.username : player2?.username} wins!
-                    </p>
-                    <div className="flex items-center justify-center gap-3 text-lg font-semibold">
-                      <span className="px-3 py-1 rounded-full" style={{
-                        backgroundColor: match.winner === 1 ? 'hsl(223 45% 29% / 0.2)' : 'hsl(40 76% 43% / 0.2)',
-                        color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)'
-                      }}>
-                        {match.winner === 1 ? '🔵 Indigo' : '🟡 Ochre'}
-                      </span>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">
-                        {match.winner === 1 ? 'West ← → East' : 'North ↑ ↓ South'}
-                      </span>
-                    </div>
-                    {/* ELO Changes for Ranked Matches */}
-                    {match.is_ranked && ratingResult && (
-                      <div className="mt-3 pt-3 border-t border-border/50 space-y-2 animate-in fade-in duration-500 delay-300">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Rating Changes</p>
-                        <div className="flex flex-col gap-2">
-                          {player1 && !player1.is_bot && (
-                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-indigo/10">
-                              <span className="font-medium text-sm">{player1.username}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                  {match.winner === 1 ? ratingResult.winner.old : ratingResult.loser.old}
-                                </span>
-                                <span className={`text-sm font-bold ${(match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                  {(match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change) > 0 ? '+' : ''}
-                                  {match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {player2 && !player2.is_bot && (
-                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-ochre/10">
-                              <span className="font-medium text-sm">{player2.username}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                  {match.winner === 2 ? ratingResult.winner.old : ratingResult.loser.old}
-                                </span>
-                                <span className={`text-sm font-bold ${(match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                  {(match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change) > 0 ? '+' : ''}
-                                  {match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change}
-                                </span>
-                              </div>
-                            </div>
-                          )}
+              <>
+                <VictoryConfetti 
+                  isActive={showConfetti && match.winner === userPlayer?.color} 
+                  winnerColor={match.winner as 1 | 2} 
+                />
+                <div className="mt-6 p-8 border-2 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="text-center space-y-4">
+                    <h2 className="font-body text-4xl font-bold text-primary">
+                      {match.winner === userPlayer?.color ? 'Victory!' : isAIMatch && match.winner === 2 ? 'Computer Wins' : 'Game Over'}
+                    </h2>
+                    <div className="space-y-3 p-4 bg-card rounded-lg border">
+                      <p className="text-2xl font-bold" style={{ color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)' }}>
+                        {match.winner === 1 ? player1?.username : player2?.username} wins!
+                      </p>
+                      <div className="flex items-center justify-center gap-3 text-lg font-semibold">
+                        <span className="px-3 py-1 rounded-full" style={{
+                          backgroundColor: match.winner === 1 ? 'hsl(223 45% 29% / 0.2)' : 'hsl(40 76% 43% / 0.2)',
+                          color: match.winner === 1 ? 'hsl(223 45% 29%)' : 'hsl(40 76% 43%)'
+                        }}>
+                          {match.winner === 1 ? 'Indigo' : 'Ochre'}
+                        </span>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground">
+                          {match.winner === 1 ? 'West to East' : 'North to South'}
+                        </span>
+                      </div>
+                      {/* ELO Changes for Ranked Matches - Animated */}
+                      {match.is_ranked && ratingResult && (
+                        <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Rating Changes</p>
+                          <div className="flex flex-col gap-3">
+                            {player1 && !player1.is_bot && (
+                              <AnimatedRatingChange
+                                oldRating={match.winner === 1 ? ratingResult.winner.old : ratingResult.loser.old}
+                                newRating={match.winner === 1 ? ratingResult.winner.new : ratingResult.loser.new}
+                                change={match.winner === 1 ? ratingResult.winner.change : ratingResult.loser.change}
+                                playerName={player1.username}
+                                isWinner={match.winner === 1}
+                                delay={500}
+                              />
+                            )}
+                            {player2 && !player2.is_bot && (
+                              <AnimatedRatingChange
+                                oldRating={match.winner === 2 ? ratingResult.winner.old : ratingResult.loser.old}
+                                newRating={match.winner === 2 ? ratingResult.winner.new : ratingResult.loser.new}
+                                change={match.winner === 2 ? ratingResult.winner.change : ratingResult.loser.change}
+                                playerName={player2.username}
+                                isWinner={match.winner === 2}
+                                delay={700}
+                              />
+                            )}
+                          </div>
                         </div>
+                      )}
+                    </div>
+                    {isAIMatch && match.winner === userPlayer?.color && (
+                      <p className="text-lg text-primary font-semibold">
+                        You defeated the {match.ai_difficulty?.toUpperCase()} AI!
+                      </p>
+                    )}
+                    {isAIMatch && match.winner !== userPlayer?.color && (
+                      <div className="text-base text-muted-foreground space-y-1">
+                        <p className="font-semibold">The AI found a winning path.</p>
+                        <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
                       </div>
                     )}
-                  </div>
-                  {isAIMatch && match.winner === userPlayer?.color && (
-                    <p className="text-lg text-primary font-semibold">
-                      🎯 You defeated the {match.ai_difficulty?.toUpperCase()} AI!
-                    </p>
-                  )}
-                  {isAIMatch && match.winner !== userPlayer?.color && (
-                    <div className="text-base text-muted-foreground space-y-1">
-                      <p className="font-semibold">The AI found a winning path!</p>
-                      <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
-                    </div>
-                  )}
 
                   {/* Rematch Buttons */}
                   <div className="flex gap-3 justify-center pt-4">
@@ -1289,6 +1289,7 @@ export default function Match() {
                   </div>
                 </div>
               </div>
+            </>
             )}
           </div>
 
@@ -1306,12 +1307,12 @@ export default function Match() {
                   discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                   elo={player2.elo}
                 />
-                {aiThinking && isAIMatch && currentColor === 2 && (
-                  <div className="mt-3 p-3 rounded-lg bg-card border border-ochre/30 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-2 text-sm text-ochre">
-                      <div className="animate-spin h-4 w-4 border-2 border-ochre border-t-transparent rounded-full" />
-                      <span className="font-medium">Computing move...</span>
-                    </div>
+                {isAIMatch && currentColor === 2 && match.status === 'active' && (
+                  <div className="mt-3">
+                    <AIThinkingIndicator
+                      isThinking={aiThinking}
+                      difficulty={match.ai_difficulty}
+                    />
                   </div>
                 )}
               </div>
