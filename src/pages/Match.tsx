@@ -1224,10 +1224,10 @@ export default function Match() {
               <div className="px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border">
                 <p className="font-mono text-sm text-center">
                   {isSpectating
-                    ? `Watching ${currentPlayer?.username}'s turn`
+                    ? `Watching ${currentPlayer?.username || 'opponent'}'s turn`
                     : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
                       ? "Your turn"
-                      : `Waiting for ${currentPlayer?.username}...`}
+                      : `Waiting for ${currentPlayer?.username || 'opponent'}...`}
                 </p>
               </div>
             )}

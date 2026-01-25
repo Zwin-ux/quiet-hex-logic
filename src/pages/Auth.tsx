@@ -484,21 +484,20 @@ export default function Auth() {
             ) : (
               <>
                 {/* Social Login - Coming Soon Banner */}
-                <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20">
+                <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 border border-border/50">
                   <div className="text-center mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-500/20 px-2 py-1 rounded-full">
-                      Social Login
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      Social Login Coming Soon
                     </span>
                   </div>
                   
                   <div className="flex flex-col gap-2">
-                    {/* Apple Sign In - MANDATORY for App Store if other social logins exist */}
+                    {/* All social login buttons disabled - OAuth providers not configured */}
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full h-10 bg-black text-white hover:bg-black/90"
-                      onClick={() => handleSocialLogin('apple')}
-                      disabled={socialLoading === 'apple'}
+                      className="w-full h-10 opacity-50 cursor-not-allowed grayscale bg-muted"
+                      disabled
                     >
                       <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.05 20.28c-.96.95-2.04 1.72-3.21 1.72-1.13 0-1.52-.72-2.84-.73-1.31 0-1.76.71-2.85.73-1.15.02-2.35-.83-3.32-1.78C2.81 18.22 1 14.88 1 11.23c0-3.66 2.39-5.59 4.67-5.59 1.19 0 2.22.45 2.95.45.71 0 1.81-.45 3.19-.45 1.58 0 2.76.57 3.51 1.25-1.54.91-1.81 3.19-.24 4.19 1.24.79 2.14 1.83 2.14 3.79-.02 1.95-1.05 4.31-2.12 5.41zM11.95 5.09c.65-.79 1.1-1.89 1.1-3.09 0-1.21-.45-2-1.1-2a1.86 1.86 0 0 0-1.1 3c.09 1.29.54 2 1.1 2.09z"/>
