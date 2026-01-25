@@ -1030,55 +1030,60 @@ export default function Match() {
     : undefined;
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen ios-safe-area">
       {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
 
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="font-body text-3xl font-semibold mb-2">
-              {isAIMatch ? 'Practice Mode' : 'Match in Progress'}
-            </h1>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="font-mono">
-                {match.size}×{match.size}
-              </Badge>
-              {match.status === 'finished' && match.winner && (
-                <Badge className="bg-indigo text-primary-foreground">
-                  {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}
+      <div className="max-w-7xl mx-auto px-3 py-4 md:p-8">
+        {/* Header - Compact on mobile */}
+        <div className="mb-4 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/lobby')}
+              className="h-10 w-10 p-0 shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="font-body text-xl md:text-3xl font-semibold">
+                {isAIMatch ? 'Practice' : 'Match'}
+              </h1>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-mono text-xs">
+                  {match.size}×{match.size}
                 </Badge>
-              )}
+                {match.status === 'finished' && match.winner && (
+                  <Badge className={match.winner === userPlayer?.color ? 'bg-green-500/90' : 'bg-red-500/90'}>
+                    {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          {/* Action buttons - Scrollable on mobile */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
             {match.status === 'finished' && !isAIMatch && isPlayer && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={handleRematch}
                 disabled={requestingRematch}
+                className="shrink-0"
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {requestingRematch ? 'Creating...' : 'Rematch'}
+                <RotateCcw className="h-4 w-4 mr-1.5" />
+                Rematch
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/lobby')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Exit
-            </Button>
             {match.status === 'active' && isPlayer && !isAIMatch && (
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleForfeit}
+                className="shrink-0"
               >
-                <Flag className="h-4 w-4 mr-2" />
+                <Flag className="h-4 w-4 mr-1.5" />
                 Forfeit
               </Button>
             )}
@@ -1087,8 +1092,9 @@ export default function Match() {
                 variant={isSpectating ? "default" : "outline"}
                 size="sm"
                 onClick={handleToggleSpectate}
+                className="shrink-0"
               >
-                {isSpectating ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {isSpectating ? <EyeOff className="h-4 w-4 mr-1.5" /> : <Eye className="h-4 w-4 mr-1.5" />}
                 {isSpectating ? 'Leave' : 'Watch'}
               </Button>
             )}
@@ -1096,9 +1102,10 @@ export default function Match() {
               variant="outline"
               size="sm"
               onClick={() => setShowTutorial(true)}
+              className="shrink-0"
             >
-              <BookOpen className="h-4 w-4 mr-2" />
-              How to Play
+              <BookOpen className="h-4 w-4 md:mr-1.5" />
+              <span className="hidden md:inline">How to Play</span>
             </Button>
             <MusicControls
               isPlaying={isMusicPlaying}
@@ -1113,17 +1120,49 @@ export default function Match() {
                 variant={showAIReasoning ? "default" : "outline"}
                 size="sm"
                 onClick={() => setShowAIReasoning(!showAIReasoning)}
+                className="shrink-0"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {showAIReasoning ? 'Hide' : 'Explain Move'}
+                <Sparkles className="h-4 w-4 md:mr-1.5" />
+                <span className="hidden md:inline">{showAIReasoning ? 'Hide' : 'Explain'}</span>
               </Button>
             )}
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[300px_1fr_300px] gap-8 items-start">
-          {/* Player 1 Panel */}
-          <div className="order-2 lg:order-1">
+        {/* Mobile: Stacked layout, Desktop: 3-column */}
+        <div className="flex flex-col lg:grid lg:grid-cols-[280px_1fr_280px] gap-4 lg:gap-6 items-start">
+          {/* Mobile: Both players in a row above board */}
+          <div className="lg:hidden flex gap-3 w-full">
+            {player1 && (
+              <PlayerPanel
+                username={player1.username}
+                color={1}
+                isCurrentTurn={currentColor === 1 && match.status === 'active'}
+                timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+                isAI={player1.is_bot}
+                avatarColor={player1.avatar_color}
+                discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+                elo={player1.elo}
+                compact
+              />
+            )}
+            {player2 && (
+              <PlayerPanel
+                username={player2.username}
+                color={2}
+                isCurrentTurn={currentColor === 2 && match.status === 'active'}
+                timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+                isAI={player2.is_bot}
+                avatarColor={player2.avatar_color}
+                discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+                elo={player2.elo}
+                compact
+              />
+            )}
+          </div>
+
+          {/* Desktop: Player 1 Panel */}
+          <div className="hidden lg:block order-1">
             {player1 && (
               <PlayerPanel
                 username={player1.username}
@@ -1139,20 +1178,22 @@ export default function Match() {
           </div>
 
           {/* Game Board */}
-          <div className="order-1 lg:order-2 flex flex-col items-center gap-6">
+          <div className="order-2 lg:order-2 flex flex-col items-center gap-3 md:gap-6 w-full">
             {showAIReasoning && aiReasoning && (
-              <div className="p-4 border rounded-lg bg-card max-w-md">
+              <div className="p-3 border rounded-lg bg-card max-w-md mx-auto">
                 <div className="flex items-start gap-2">
                   <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-mono text-sm font-medium mb-1">AI Reasoning</p>
-                    <p className="text-sm text-muted-foreground">{aiReasoning}</p>
+                    <p className="font-mono text-xs font-medium mb-1">AI Reasoning</p>
+                    <p className="text-xs text-muted-foreground">{aiReasoning}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            <HexBoard
+            {/* Board container with max-width for mobile */}
+            <div className="w-full max-w-[min(100vw-1.5rem,500px)] lg:max-w-none aspect-square lg:aspect-auto">
+              <HexBoard
               size={match.size}
               board={engine.board}
               lastMove={lastMove}
@@ -1174,17 +1215,21 @@ export default function Match() {
                 (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) &&
                 match.status === 'active'
               }
-              onSwapColors={handleSwapColors}
-            />
+                onSwapColors={handleSwapColors}
+              />
+            </div>
 
+            {/* Turn indicator - larger touch target on mobile */}
             {match.status === 'active' && (
-              <p className="font-mono text-sm text-muted-foreground">
-                {isSpectating
-                  ? `Watching ${currentPlayer?.username}'s turn`
-                  : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
-                    ? "Your turn"
-                    : `Waiting for ${currentPlayer?.username}...`}
-              </p>
+              <div className="px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border">
+                <p className="font-mono text-sm text-center">
+                  {isSpectating
+                    ? `Watching ${currentPlayer?.username}'s turn`
+                    : (currentPlayer?.profile_id === user?.id || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
+                      ? "Your turn"
+                      : `Waiting for ${currentPlayer?.username}...`}
+                </p>
+              </div>
             )}
 
             {match.status === 'finished' && match.winner && (
@@ -1193,9 +1238,9 @@ export default function Match() {
                   isActive={showConfetti && match.winner === userPlayer?.color} 
                   winnerColor={match.winner as 1 | 2} 
                 />
-                <div className="mt-6 p-8 border-2 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="text-center space-y-4">
-                    <h2 className="font-body text-4xl font-bold text-primary">
+                <div className="mt-4 md:mt-6 p-4 md:p-8 border-2 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 w-full max-w-md mx-auto">
+                  <div className="text-center space-y-3 md:space-y-4">
+                    <h2 className="font-body text-2xl md:text-4xl font-bold text-primary">
                       {match.winner === userPlayer?.color ? 'Victory!' : isAIMatch && match.winner === 2 ? 'Computer Wins' : 'Game Over'}
                     </h2>
                     <div className="space-y-3 p-4 bg-card rounded-lg border">
@@ -1255,13 +1300,13 @@ export default function Match() {
                       </div>
                     )}
 
-                  {/* Rematch Buttons */}
-                  <div className="flex gap-3 justify-center pt-4">
+                  {/* Rematch Buttons - Stack on mobile */}
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center pt-4">
                     {isAIMatch ? (
                       <Button
                         size="lg"
                         onClick={handlePlayAgainAI}
-                        className="gap-2 font-semibold"
+                        className="gap-2 font-semibold h-12 text-base"
                       >
                         <RefreshCw className="h-5 w-5" />
                         Play Again
@@ -1271,20 +1316,20 @@ export default function Match() {
                         size="lg"
                         onClick={handleRematch}
                         disabled={requestingRematch}
-                        className="gap-2 font-semibold"
+                        className="gap-2 font-semibold h-12 text-base"
                       >
                         <RefreshCw className={`h-5 w-5 ${requestingRematch ? 'animate-spin' : ''}`} />
-                        {requestingRematch ? 'Creating Rematch...' : 'Instant Rematch'}
+                        {requestingRematch ? 'Creating...' : 'Rematch'}
                       </Button>
                     )}
                     <Button
                       size="lg"
                       variant="outline"
                       onClick={() => navigate('/lobby')}
-                      className="gap-2"
+                      className="gap-2 h-12 text-base"
                     >
                       <ArrowLeft className="h-5 w-5" />
-                      {isAIMatch ? 'New Game' : 'Back to Lobby'}
+                      {isAIMatch ? 'New Game' : 'Exit'}
                     </Button>
                   </div>
                 </div>
@@ -1293,8 +1338,8 @@ export default function Match() {
             )}
           </div>
 
-          {/* Player 2 Panel */}
-          <div className="order-3">
+          {/* Desktop: Player 2 Panel */}
+          <div className="hidden lg:block order-3">
             {player2 && (
               <div className="relative">
                 <PlayerPanel
@@ -1342,6 +1387,16 @@ export default function Match() {
               </div>
             )}
           </div>
+
+          {/* Mobile: AI Thinking indicator below board */}
+          {isAIMatch && currentColor === 2 && match.status === 'active' && (
+            <div className="lg:hidden order-4 w-full">
+              <AIThinkingIndicator
+                isThinking={aiThinking}
+                difficulty={match.ai_difficulty}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
