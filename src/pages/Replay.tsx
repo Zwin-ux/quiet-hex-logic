@@ -76,6 +76,8 @@ export default function Replay() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [showHints, setShowHints] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium(user?.id);
   const navigate = useNavigate();
@@ -120,6 +122,9 @@ export default function Replay() {
   const fetchMatchData = async () => {
     if (!matchId) return;
 
+    setLoading(true);
+    setLoadError(null);
+
     try {
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
@@ -136,9 +141,16 @@ export default function Replay() {
           )
         `)
         .eq('id', matchId)
-        .single();
+        .maybeSingle();
 
-      if (matchError) throw matchError;
+      if (matchError) {
+        console.error('Match fetch error:', matchError);
+        throw new Error(matchError.message || 'Failed to load match data');
+      }
+
+      if (!matchData) {
+        throw new Error('Match not found. It may have been deleted or you may not have permission to view it.');
+      }
 
       const { data: movesData, error: movesError } = await supabase
         .from('moves')
@@ -146,13 +158,18 @@ export default function Replay() {
         .eq('match_id', matchId)
         .order('ply', { ascending: true });
 
-      if (movesError) throw movesError;
+      if (movesError) {
+        console.error('Moves fetch error:', movesError);
+        throw new Error(movesError.message || 'Failed to load move history');
+      }
 
       setMatch(matchData as unknown as MatchData);
       setMoves(movesData || []);
     } catch (error: any) {
-      toast.error('Failed to load replay', { description: error.message });
-      navigate('/history');
+      console.error('Replay load error:', error);
+      setLoadError(error.message || 'Failed to load replay');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,8 +228,48 @@ export default function Replay() {
     }
   };
 
-  if (authLoading || !match || !game) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">Loading replay...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4">
+        <Card className="p-8 max-w-md text-center space-y-4">
+          <h2 className="text-xl font-semibold text-destructive">Failed to Load Replay</h2>
+          <p className="text-muted-foreground">{loadError}</p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => fetchMatchData()}>
+              Try Again
+            </Button>
+            <Button onClick={() => navigate('/history')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to History
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!match || !game) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4">
+        <Card className="p-8 max-w-md text-center space-y-4">
+          <h2 className="text-xl font-semibold">Match Not Found</h2>
+          <p className="text-muted-foreground">This match could not be loaded.</p>
+          <Button onClick={() => navigate('/history')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to History
+          </Button>
+        </Card>
+      </div>
+    );
   }
 
   const player1 = match.players.find(p => p.color === 1);

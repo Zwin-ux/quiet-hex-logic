@@ -239,7 +239,8 @@ export class Hex {
     return 0;
   }
 
-  // Get winning path using BFS
+  // Get ALL cells that are part of the winning connection
+  // Returns all cells connected to BOTH borders (the full winning group)
   getWinningPath(): number[] | null {
     const w = this.winner();
     if (w === 0) return null;
@@ -258,47 +259,52 @@ export class Hex {
       return r === this.n - 1; // South border for ochre
     };
 
-    // Find all cells of the winning color that are on the start border
-    const startCells: number[] = [];
+    // Find all cells connected to the start border using BFS
+    const connectedToStart = new Set<number>();
+    const startQueue: number[] = [];
+
     for (let i = 0; i < this.n * this.n; i++) {
       if (this.board[i] === w && isOnStartBorder(i)) {
-        startCells.push(i);
+        startQueue.push(i);
+        connectedToStart.add(i);
       }
     }
 
-    if (startCells.length === 0) return null;
-
-    // BFS from start border to end border
-    const queue: number[] = [...startCells];
-    const parent = new Map<number, number>();
-    const visited = new Set<number>(startCells);
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      
-      // Check if this cell is on the end border (actual positional check)
-      if (isOnEndBorder(current)) {
-        // Reconstruct path
-        const path: number[] = [current];
-        let node = current;
-        while (parent.has(node)) {
-          node = parent.get(node)!;
-          path.unshift(node);
-        }
-        return path;
-      }
-
-      // Explore neighbors of the same color
+    while (startQueue.length > 0) {
+      const current = startQueue.shift()!;
       for (const nb of this.neighbors(current)) {
-        if (!visited.has(nb) && this.board[nb] === w) {
-          visited.add(nb);
-          parent.set(nb, current);
-          queue.push(nb);
+        if (!connectedToStart.has(nb) && this.board[nb] === w) {
+          connectedToStart.add(nb);
+          startQueue.push(nb);
         }
       }
     }
 
-    return null;
+    // Find all cells connected to the end border using BFS
+    const connectedToEnd = new Set<number>();
+    const endQueue: number[] = [];
+
+    for (let i = 0; i < this.n * this.n; i++) {
+      if (this.board[i] === w && isOnEndBorder(i)) {
+        endQueue.push(i);
+        connectedToEnd.add(i);
+      }
+    }
+
+    while (endQueue.length > 0) {
+      const current = endQueue.shift()!;
+      for (const nb of this.neighbors(current)) {
+        if (!connectedToEnd.has(nb) && this.board[nb] === w) {
+          connectedToEnd.add(nb);
+          endQueue.push(nb);
+        }
+      }
+    }
+
+    // Intersection: cells connected to BOTH borders form the winning path
+    const winningCells = [...connectedToStart].filter(c => connectedToEnd.has(c));
+
+    return winningCells.length > 0 ? winningCells : null;
   }
 
   // Get all empty cells

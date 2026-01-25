@@ -332,20 +332,17 @@ const HexBoardComponent = ({
         const isLast = cell === lastMove;
         const isHovered = cell === hoveredCell && !color && !disabled;
         
-        // Calculate winning path trace animation
+        // Calculate winning path animation
+        // Since winningPath is now an unordered set of all winning cells,
+        // we animate all cells together with a quick fade-in
         let isWinningRevealed = false;
         let winRevealProgress = 0;
         if (isInWinPath && winPathAnimStart) {
           const elapsed = Date.now() - winPathAnimStart;
-          const delayPerCell = 80; // ms delay between each cell reveal
-          const revealDuration = 300; // ms for each cell to fully reveal
-          const cellDelay = winPathIndex * delayPerCell;
-          const cellElapsed = elapsed - cellDelay;
-          
-          if (cellElapsed > 0) {
-            isWinningRevealed = true;
-            winRevealProgress = Math.min(1, cellElapsed / revealDuration);
-          }
+          const revealDuration = 400; // ms for all cells to fully reveal together
+
+          isWinningRevealed = true;
+          winRevealProgress = Math.min(1, elapsed / revealDuration);
         } else if (isInWinPath && !winPathAnimStart) {
           // No animation, just show it
           isWinningRevealed = true;
@@ -510,208 +507,138 @@ const HexBoardComponent = ({
       }
     }
     
-    // Draw smooth curved winning path line with enhanced effects
+    // Draw connections between adjacent winning cells with glow effect
     if (winningPath.length >= 2 && winPathAnimStart) {
       const elapsed = Date.now() - winPathAnimStart;
-      const delayPerCell = 80;
-      const totalAnimTime = winningPath.length * delayPerCell + 300;
-      const lineProgress = Math.min(1, elapsed / totalAnimTime);
-      
-      // Calculate center positions for each winning cell
-      const pathPoints: { x: number; y: number }[] = [];
-      for (const cell of winningPath) {
-        const [col, row] = [cell % size, Math.floor(cell / size)];
+      const revealDuration = 400;
+      const lineProgress = Math.min(1, elapsed / revealDuration);
+
+      // Create a set of winning cells for quick lookup
+      const winningSet = new Set(winningPath);
+
+      // Get cell center position
+      const getCellCenter = (cell: number) => {
+        const col = cell % size;
+        const row = Math.floor(cell / size);
         const x = offsetX + col * hexRadius * 1.5 + hexRadius;
         const y = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
-        pathPoints.push({ x, y });
-      }
-      
-      if (pathPoints.length >= 2) {
-        // Determine line color based on winner (check first cell)
-        const firstCell = winningPath[0];
-        const winnerColor = board[firstCell];
-        const lineColor = winnerColor === 1 ? skin.colors.player1Glow : skin.colors.player2Glow;
-        const solidColor = winnerColor === 1 ? skin.colors.player1 : skin.colors.player2;
-        
-        // Calculate how many points to draw based on animation progress
-        const pointsToDraw = Math.floor(pathPoints.length * lineProgress);
-        const partialProgress = (pathPoints.length * lineProgress) - pointsToDraw;
-        
-        // Helper function to draw path
-        const drawPath = (ctx: CanvasRenderingContext2D, endIndex: number, partial: number) => {
-          ctx.beginPath();
-          ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-          
-          for (let i = 0; i < endIndex && i < pathPoints.length - 1; i++) {
-            const current = pathPoints[i];
-            const next = pathPoints[i + 1];
-            const midX = (current.x + next.x) / 2;
-            const midY = (current.y + next.y) / 2;
-            ctx.quadraticCurveTo(current.x, current.y, midX, midY);
-          }
-          
-          if (endIndex < pathPoints.length - 1 && endIndex >= 0) {
-            const current = pathPoints[endIndex];
-            const next = pathPoints[endIndex + 1];
-            const partialX = current.x + (next.x - current.x) * partial;
-            const partialY = current.y + (next.y - current.y) * partial;
-            ctx.lineTo(partialX, partialY);
-          } else if (endIndex === pathPoints.length - 1) {
-            ctx.lineTo(pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y);
-          }
-        };
-        
-        // Draw outer glow layer (widest, most diffuse)
-        ctx.save();
-        ctx.strokeStyle = lineColor;
-        ctx.lineWidth = hexRadius * 0.5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowColor = lineColor;
-        ctx.shadowBlur = 40;
-        ctx.globalAlpha = 0.3;
-        drawPath(ctx, pointsToDraw, partialProgress);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Draw middle glow layer
-        ctx.save();
-        ctx.strokeStyle = lineColor;
-        ctx.lineWidth = hexRadius * 0.35;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowColor = lineColor;
-        ctx.shadowBlur = 25;
-        ctx.globalAlpha = 0.5;
-        drawPath(ctx, pointsToDraw, partialProgress);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Draw core line (bright and thick)
-        ctx.save();
-        ctx.strokeStyle = solidColor;
-        ctx.lineWidth = hexRadius * 0.22;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowColor = lineColor;
-        ctx.shadowBlur = 15;
-        ctx.globalAlpha = 1;
-        drawPath(ctx, pointsToDraw, partialProgress);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Draw inner bright highlight
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = hexRadius * 0.08;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.globalAlpha = 0.7;
-        drawPath(ctx, pointsToDraw, partialProgress);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Generate and update particles
-        if (lineProgress > 0) {
-          const particles = particlesRef.current;
-          
-          // Spawn new particles along the path
-          if (elapsed % 50 < 16) { // Spawn every ~50ms
-            const spawnCount = Math.min(5, Math.floor(lineProgress * 5) + 1);
-            for (let i = 0; i < spawnCount; i++) {
-              const pathIndex = Math.floor(Math.random() * Math.min(pointsToDraw + 1, pathPoints.length));
-              const point = pathPoints[pathIndex];
-              if (point) {
-                // Sparkle particles
-                particles.push({
-                  x: point.x + (Math.random() - 0.5) * hexRadius * 0.5,
-                  y: point.y + (Math.random() - 0.5) * hexRadius * 0.5,
-                  vx: (Math.random() - 0.5) * 3,
-                  vy: (Math.random() - 0.5) * 3 - 1,
-                  life: 1,
-                  maxLife: 1,
-                  size: Math.random() * 4 + 2,
-                  color: Math.random() > 0.5 ? lineColor : 'rgba(255, 255, 255, 0.9)',
-                  type: 'sparkle'
-                });
-              }
-            }
-          }
-          
-          // Burst particles when animation completes
-          if (lineProgress >= 1 && elapsed < totalAnimTime + 100) {
-            const lastPoint = pathPoints[pathPoints.length - 1];
-            const firstPoint = pathPoints[0];
-            for (let i = 0; i < 15; i++) {
-              const angle = (Math.PI * 2 * i) / 15;
-              const speed = Math.random() * 4 + 2;
-              // Burst from both ends
-              [firstPoint, lastPoint].forEach(point => {
-                particles.push({
-                  x: point.x,
-                  y: point.y,
-                  vx: Math.cos(angle) * speed,
-                  vy: Math.sin(angle) * speed,
-                  life: 1,
-                  maxLife: 1,
-                  size: Math.random() * 6 + 3,
-                  color: Math.random() > 0.3 ? lineColor : solidColor,
-                  type: 'burst'
-                });
-              });
-            }
-          }
-          
-          // Update and draw particles
-          for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.05; // Gravity
-            p.vx *= 0.98; // Drag
-            p.life -= 0.02;
-            
-            if (p.life <= 0) {
-              particles.splice(i, 1);
-              continue;
-            }
-            
-            ctx.save();
-            ctx.globalAlpha = p.life * 0.8;
-            ctx.fillStyle = p.color;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = p.type === 'sparkle' ? 8 : 12;
-            
-            if (p.type === 'sparkle') {
-              // Draw star sparkle
-              ctx.beginPath();
-              const spikes = 4;
-              const outerRadius = p.size * p.life;
-              const innerRadius = outerRadius * 0.4;
-              for (let j = 0; j < spikes * 2; j++) {
-                const radius = j % 2 === 0 ? outerRadius : innerRadius;
-                const angle = (j * Math.PI) / spikes + elapsed * 0.01;
-                const sx = p.x + Math.cos(angle) * radius;
-                const sy = p.y + Math.sin(angle) * radius;
-                if (j === 0) ctx.moveTo(sx, sy);
-                else ctx.lineTo(sx, sy);
-              }
-              ctx.closePath();
-              ctx.fill();
-            } else {
-              // Draw circular burst particle
-              ctx.beginPath();
-              ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-              ctx.fill();
-            }
-            ctx.restore();
-          }
-          
-          // Keep particles array manageable
-          if (particles.length > 200) {
-            particles.splice(0, particles.length - 200);
+        return { x, y };
+      };
+
+      // Get neighbors for a cell
+      const getNeighbors = (cell: number): number[] => {
+        const col = cell % size;
+        const row = Math.floor(cell / size);
+        const neighbors: number[] = [];
+
+        // Odd-q offset coordinate neighbors
+        const DIRS_EVEN = [[1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1], [0, -1]];
+        const DIRS_ODD = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [0, -1]];
+        const dirs = col % 2 === 0 ? DIRS_EVEN : DIRS_ODD;
+
+        for (const [dc, dr] of dirs) {
+          const nc = col + dc;
+          const nr = row + dr;
+          if (nc >= 0 && nr >= 0 && nc < size && nr < size) {
+            neighbors.push(nr * size + nc);
           }
         }
+        return neighbors;
+      };
+
+      // Determine line color based on winner
+      const firstCell = winningPath[0];
+      const winnerColor = board[firstCell];
+      const lineColor = winnerColor === 1 ? skin.colors.player1Glow : skin.colors.player2Glow;
+      const solidColor = winnerColor === 1 ? skin.colors.player1 : skin.colors.player2;
+
+      // Draw connections between adjacent winning cells
+      const drawnConnections = new Set<string>();
+
+      for (const cell of winningPath) {
+        const neighbors = getNeighbors(cell);
+        for (const neighbor of neighbors) {
+          if (winningSet.has(neighbor)) {
+            // Create a unique key for this connection (smaller cell first)
+            const key = cell < neighbor ? `${cell}-${neighbor}` : `${neighbor}-${cell}`;
+            if (!drawnConnections.has(key)) {
+              drawnConnections.add(key);
+
+              const p1 = getCellCenter(cell);
+              const p2 = getCellCenter(neighbor);
+
+              // Draw glow line
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+
+              ctx.strokeStyle = lineColor;
+              ctx.lineWidth = hexRadius * 0.35 * lineProgress;
+              ctx.lineCap = 'round';
+              ctx.shadowColor = lineColor;
+              ctx.shadowBlur = 20 * lineProgress;
+              ctx.globalAlpha = 0.6 * lineProgress;
+              ctx.stroke();
+
+              // Draw core line
+              ctx.strokeStyle = solidColor;
+              ctx.lineWidth = hexRadius * 0.18 * lineProgress;
+              ctx.shadowBlur = 10;
+              ctx.globalAlpha = lineProgress;
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        }
+      }
+
+      // Spawn particles on winning cells
+      const particles = particlesRef.current;
+      if (elapsed % 80 < 16 && lineProgress > 0.5) {
+        const randomCell = winningPath[Math.floor(Math.random() * winningPath.length)];
+        const point = getCellCenter(randomCell);
+        particles.push({
+          x: point.x + (Math.random() - 0.5) * hexRadius * 0.5,
+          y: point.y + (Math.random() - 0.5) * hexRadius * 0.5,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2 - 0.5,
+          life: 1,
+          maxLife: 1,
+          size: Math.random() * 3 + 2,
+          color: Math.random() > 0.5 ? lineColor : 'rgba(255, 255, 255, 0.9)',
+          type: 'sparkle'
+        });
+      }
+
+      // Update and draw particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.03;
+        p.vx *= 0.98;
+        p.life -= 0.015;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.life * 0.8;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if (particles.length > 100) {
+        particles.splice(0, particles.length - 100);
       }
     } else if (winningPath.length === 0) {
       // Clear particles when no winning path

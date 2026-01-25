@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useLobby } from '@/hooks/useLobby';
-import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare } from 'lucide-react';
+import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -274,6 +274,26 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
     }
   };
 
+  const closeLobby = async () => {
+    if (!confirm('Are you sure you want to close this lobby? All players will be removed.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('close-lobby', {
+        body: { lobbyId }
+      });
+
+      if (error) throw error;
+      toast.success('Lobby closed');
+      navigate('/lobby');
+    } catch (err: any) {
+      toast.error('Failed to close lobby', {
+        description: err.message
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Card className="p-12 text-center">
@@ -520,14 +540,25 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button
-          variant="outline"
-          onClick={leaveLobby}
-          className="gap-2 h-11 touch-manipulation order-3 sm:order-1"
-        >
-          <LogOut className="h-4 w-4" />
-          Leave Lobby
-        </Button>
+        {isHost ? (
+          <Button
+            variant="destructive"
+            onClick={closeLobby}
+            className="gap-2 h-11 touch-manipulation order-3 sm:order-1"
+          >
+            <X className="h-4 w-4" />
+            Close Lobby
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={leaveLobby}
+            className="gap-2 h-11 touch-manipulation order-3 sm:order-1"
+          >
+            <LogOut className="h-4 w-4" />
+            Leave Lobby
+          </Button>
+        )}
 
         <Button
           onClick={toggleReady}

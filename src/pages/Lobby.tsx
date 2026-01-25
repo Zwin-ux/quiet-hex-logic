@@ -206,79 +206,23 @@ export default function Lobby() {
 
     setCreatingMatch(true);
     try {
-      // 1. Try to find an existing waiting match
-      const { data: waitingMatches, error: searchError } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('status', 'waiting')
-        .eq('is_ranked', true)
-        .eq('size', 13) // Standard size for competitive
-        .neq('owner', user.id) // Don't match with self
-        .limit(1);
+      // Use edge function for atomic matchmaking
+      const { data, error } = await supabase.functions.invoke('find-competitive-match', {
+        body: {}
+      });
 
-      if (searchError) throw searchError;
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
-      if (waitingMatches && waitingMatches.length > 0) {
-        const matchId = waitingMatches[0].id;
+      const { matchId, joined, waiting } = data;
 
-        // Join this match
-        const { error: joinError } = await supabase
-          .from('match_players')
-          .insert({
-            match_id: matchId,
-            profile_id: user.id,
-            color: 2, // Joiner is always white (2) if owner is black (1) - simplfied logic for now
-            is_bot: false
-          });
-
-        if (joinError) throw joinError;
-
-        // Update match status to active
-        await supabase
-          .from('matches')
-          .update({
-            status: 'active',
-            turn_started_at: new Date().toISOString()
-          })
-          .eq('id', matchId);
-
+      if (joined) {
         toast.success('Opponent found! Starting match...');
-        navigate(`/match/${matchId}`);
-        return;
+      } else if (waiting) {
+        toast.success('Searching for opponent...');
       }
 
-      // 2. No match found, create a new one
-      const { data: newMatch, error: createError } = await supabase
-        .from('matches')
-        .insert({
-          size: 13,
-          pie_rule: true,
-          status: 'waiting',
-          turn: 1,
-          owner: user.id,
-          is_ranked: true,
-          allow_spectators: true
-        })
-        .select()
-        .single();
-
-      if (createError) throw createError;
-
-      // Add self as player 1
-      const { error: playerError } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: newMatch.id,
-          profile_id: user.id,
-          color: 1,
-          is_bot: false
-        });
-
-      if (playerError) throw new Error('Failed to join created match');
-
-      toast.success('Searching for opponent...');
-      navigate(`/match/${newMatch.id}`);
-
+      navigate(`/match/${matchId}`);
     } catch (error: any) {
       console.error('Competitive matchmaking error:', error);
       toast.error(error.message || 'Failed to find match');

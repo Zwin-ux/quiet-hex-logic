@@ -51,6 +51,14 @@ class MCTSNode {
   }
 }
 
+// Opening book for strong first moves (center and near-center)
+const OPENING_BOOK: Record<number, number[]> = {
+  7: [24, 23, 25, 17, 18, 31, 32], // 7x7 center cluster
+  9: [40, 39, 41, 31, 32, 49, 50], // 9x9 center cluster
+  11: [60, 59, 61, 49, 50, 71, 72, 48, 51, 70, 73], // 11x11 center cluster
+  13: [84, 83, 85, 71, 72, 97, 98, 70, 73, 96, 99], // 13x13 center cluster
+};
+
 // Enhanced Hex engine with MCTS
 class HexAI {
   board: number[];
@@ -91,45 +99,67 @@ class HexAI {
     this.turn++;
   }
 
-  // MCTS Expert Move
-  getMCTSMove(timeBudgetMs = 120): { move: number | null, reasoning: string } {
+  // MCTS Expert Move - Significantly strengthened
+  getMCTSMove(timeBudgetMs = 500): { move: number | null, reasoning: string } {
     const empty = this.getEmptyCells();
     if (empty.length === 0) return { move: null, reasoning: 'No moves available' };
     if (empty.length === 1) return { move: empty[0], reasoning: 'Only move available' };
 
     const currentColor = this.turn % 2 === 1 ? 1 : 2;
-    
+    const opponentColor = currentColor === 1 ? 2 : 1;
+    const stonesPlayed = this.board.filter(c => c !== 0).length;
+
+    // Use opening book for first 2 moves
+    if (stonesPlayed <= 2) {
+      const openingMoves = OPENING_BOOK[this.size] || [];
+      const availableOpenings = openingMoves.filter(m => this.board[m] === 0);
+      if (availableOpenings.length > 0) {
+        // Pick the best available opening move (first in list = strongest)
+        const move = availableOpenings[0];
+        return { move, reasoning: '📖 Opening book move - center control' };
+      }
+    }
+
     // Check immediate win
     for (const move of empty) {
       const test = this.clone();
       test.makeMove(move);
       if (test.checkWinner(currentColor)) {
-        return { move, reasoning: 'Winning move found by MCTS' };
+        return { move, reasoning: '🏆 Winning move!' };
       }
     }
 
     // Check immediate block
-    const opponentColor = currentColor === 1 ? 2 : 1;
     for (const move of empty) {
       const test = this.clone();
       test.board[move] = opponentColor;
       if (test.checkWinner(opponentColor)) {
-        return { move, reasoning: 'Blocking critical threat (MCTS)' };
+        return { move, reasoning: '🛡️ Blocking critical threat!' };
       }
     }
 
-    // Run MCTS
+    // Check for virtual connections (bridges) - two moves that guarantee connection
+    const virtualConnectionMove = this.findVirtualConnectionMove(empty, currentColor);
+    if (virtualConnectionMove !== null) {
+      return { move: virtualConnectionMove, reasoning: '🌉 Creating virtual connection' };
+    }
+
+    // Prioritize moves that create or extend bridges
+    const bridgeMoves = this.findAllBridgeMoves(empty, currentColor);
+
+    // Run MCTS with extended time and iterations
     const rootNode = new MCTSNode(null, null, empty);
     const startTime = Date.now();
     let iterations = 0;
+    const maxIterations = 5000; // Increased from 1000
 
-    while (Date.now() - startTime < timeBudgetMs && iterations < 1000) {
+    while (Date.now() - startTime < timeBudgetMs && iterations < maxIterations) {
       iterations++;
-      
-      // Selection
+
+      // Selection with improved UCT
       let node = rootNode;
       const state = this.clone();
-      
+
       while (node.untriedMoves.length === 0 && node.children.length > 0) {
         node = node.selectChild();
         if (node.move !== null) {
@@ -137,15 +167,22 @@ class HexAI {
         }
       }
 
-      // Expansion
+      // Expansion - prioritize bridge moves when expanding
       if (node.untriedMoves.length > 0) {
-        const move = node.untriedMoves[Math.floor(Math.random() * node.untriedMoves.length)];
+        let move: number;
+        const bridgeInUntried = node.untriedMoves.filter(m => bridgeMoves.includes(m));
+        if (bridgeInUntried.length > 0 && Math.random() < 0.7) {
+          // 70% chance to prioritize bridge moves
+          move = bridgeInUntried[Math.floor(Math.random() * bridgeInUntried.length)];
+        } else {
+          move = node.untriedMoves[Math.floor(Math.random() * node.untriedMoves.length)];
+        }
         state.makeMove(move);
         node = node.addChild(move, state.getEmptyCells());
       }
 
-      // Simulation (lightweight playout with heuristic)
-      const result = this.simulate(state, currentColor);
+      // Simulation with improved heuristics
+      const result = this.simulateExpert(state, currentColor);
 
       // Backpropagation
       let currentNode: MCTSNode | null = node;
@@ -157,22 +194,89 @@ class HexAI {
 
     // Select best move
     if (rootNode.children.length === 0) {
+      // Fallback to bridge moves or center moves
+      if (bridgeMoves.length > 0) {
+        return { move: bridgeMoves[0], reasoning: 'Bridge move fallback' };
+      }
       return { move: empty[0], reasoning: 'Fallback move' };
     }
 
-    const bestChild = rootNode.children.reduce((best, child) => 
+    const bestChild = rootNode.children.reduce((best, child) =>
       child.visits > best.visits ? child : best
     );
 
     const winRate = ((bestChild.wins / bestChild.visits) * 100).toFixed(1);
-    const reasoning = iterations > 500 
-      ? `🧠 MCTS analysis: ${iterations} iterations, ${winRate}% win rate`
-      : `✨ Tactical move found after ${iterations} iterations`;
-      
-    return { 
-      move: bestChild.move!, 
+    const confidenceEmoji = parseFloat(winRate) > 70 ? '💪' : parseFloat(winRate) > 50 ? '🎯' : '🤔';
+    const reasoning = `${confidenceEmoji} MCTS: ${iterations} iterations, ${winRate}% confidence`;
+
+    return {
+      move: bestChild.move!,
       reasoning
     };
+  }
+
+  // Find a move that creates a virtual connection (guaranteed connection via bridge)
+  findVirtualConnectionMove(empty: number[], color: number): number | null {
+    const myStones: number[] = [];
+    for (let i = 0; i < this.board.length; i++) {
+      if (this.board[i] === color) myStones.push(i);
+    }
+
+    // Check if any move creates a bridge that extends toward the goal
+    for (const move of empty) {
+      const neighbors = this.getNeighbors(move);
+      const friendlyNeighbors = neighbors.filter(n => this.board[n] === color);
+
+      if (friendlyNeighbors.length >= 2) {
+        // This move connects multiple friendly groups - high value
+        const [c, r] = this.coords(move);
+        const isOnPath = color === 1 ?
+          (c > 0 && c < this.size - 1) : // For player 1: not on edges
+          (r > 0 && r < this.size - 1);  // For player 2: not on edges
+
+        if (isOnPath) {
+          return move;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Find all moves that create or complete bridges
+  findAllBridgeMoves(empty: number[], color: number): number[] {
+    const bridgeMoves: number[] = [];
+    const myStones: number[] = [];
+
+    for (let i = 0; i < this.board.length; i++) {
+      if (this.board[i] === color) myStones.push(i);
+    }
+
+    for (const move of empty) {
+      const neighbors = this.getNeighbors(move);
+
+      // Check if this move is adjacent to any of our stones
+      const hasAdjacentFriend = neighbors.some(n => this.board[n] === color);
+
+      if (hasAdjacentFriend) {
+        // Check if placing here completes or creates a bridge pattern
+        for (const stone of myStones) {
+          const stoneNeighbors = this.getNeighbors(stone);
+          const commonEmpty = neighbors.filter(n =>
+            stoneNeighbors.includes(n) &&
+            this.board[n] === 0 &&
+            n !== move
+          );
+
+          if (commonEmpty.length >= 1) {
+            // This forms part of a bridge pattern
+            bridgeMoves.push(move);
+            break;
+          }
+        }
+      }
+    }
+
+    return bridgeMoves;
   }
 
   // Heuristic-guided simulation (not random)
@@ -198,9 +302,202 @@ class HexAI {
     // Evaluate final position
     if (simulationState.checkWinner(playerColor)) return 1;
     if (simulationState.checkWinner(playerColor === 1 ? 2 : 1)) return 0;
-    
+
     // Heuristic evaluation if no winner
     return this.evaluatePosition(simulationState, playerColor);
+  }
+
+  // Enhanced expert simulation with deeper analysis
+  simulateExpert(state: HexAI, playerColor: number): number {
+    const simulationState = state.clone();
+    const maxPlies = 60; // Increased from 30 for deeper analysis
+    let ply = 0;
+
+    while (ply < maxPlies) {
+      const empty = simulationState.getEmptyCells();
+      if (empty.length === 0) break;
+
+      const currentColor = simulationState.turn % 2 === 1 ? 1 : 2;
+
+      // Check for winner
+      if (simulationState.checkWinner(1)) {
+        return playerColor === 1 ? 1 : 0;
+      }
+      if (simulationState.checkWinner(2)) {
+        return playerColor === 2 ? 1 : 0;
+      }
+
+      // Smart move selection with forced moves
+      const opponentColor = currentColor === 1 ? 2 : 1;
+
+      // Check for winning move
+      for (const move of empty.slice(0, Math.min(empty.length, 20))) {
+        const test = simulationState.clone();
+        test.makeMove(move);
+        if (test.checkWinner(currentColor)) {
+          simulationState.makeMove(move);
+          ply++;
+          continue;
+        }
+      }
+
+      // Check for blocking move
+      for (const move of empty.slice(0, Math.min(empty.length, 20))) {
+        const test = simulationState.clone();
+        test.board[move] = opponentColor;
+        if (test.checkWinner(opponentColor)) {
+          simulationState.makeMove(move);
+          ply++;
+          continue;
+        }
+      }
+
+      // Use smarter heuristic move selection
+      const move = this.selectSmartMove(simulationState, empty, currentColor);
+      simulationState.makeMove(move);
+      ply++;
+    }
+
+    // Evaluate final position with shortest path heuristic
+    if (simulationState.checkWinner(playerColor)) return 1;
+    if (simulationState.checkWinner(playerColor === 1 ? 2 : 1)) return 0;
+
+    return this.evaluatePositionExpert(simulationState, playerColor);
+  }
+
+  // Smarter move selection for simulations
+  selectSmartMove(state: HexAI, empty: number[], color: number): number {
+    let bestMove = empty[0];
+    let bestScore = -Infinity;
+
+    // Sample up to 15 moves for efficiency
+    const sampled = empty.length <= 15 ? empty : empty.slice(0, 15);
+
+    for (const move of sampled) {
+      let score = Math.random() * 2; // Small randomness
+
+      const [c, r] = state.coords(move);
+      const center = Math.floor(state.size / 2);
+
+      // Positional score based on goal direction
+      if (color === 1) {
+        // Player 1 wants to connect West-East
+        score += 12 - Math.min(c, state.size - 1 - c);
+        score += 6 - Math.abs(r - center); // Prefer center rows
+      } else {
+        // Player 2 wants to connect North-South
+        score += 12 - Math.min(r, state.size - 1 - r);
+        score += 6 - Math.abs(c - center); // Prefer center columns
+      }
+
+      // Connectivity bonus
+      const neighbors = state.getNeighbors(move);
+      let friendCount = 0;
+      let enemyCount = 0;
+      const opponentColor = color === 1 ? 2 : 1;
+
+      for (const n of neighbors) {
+        if (state.board[n] === color) friendCount++;
+        if (state.board[n] === opponentColor) enemyCount++;
+      }
+
+      score += friendCount * 5; // Bonus for connecting to friendly stones
+      score += enemyCount * 3;  // Bonus for blocking enemy
+
+      // Penalty for redundant connections (already well-connected)
+      if (friendCount >= 3) score -= 3;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+    }
+
+    return bestMove;
+  }
+
+  // Expert position evaluation using connectivity analysis
+  evaluatePositionExpert(state: HexAI, playerColor: number): number {
+    // Use shortest path to goal as primary heuristic
+    const myPath = state.shortestPathToGoal(playerColor);
+    const oppPath = state.shortestPathToGoal(playerColor === 1 ? 2 : 1);
+
+    if (myPath === 0) return 1.0; // We've won
+    if (oppPath === 0) return 0.0; // Opponent won
+
+    // Score based on who has the shorter path
+    const pathDiff = oppPath - myPath;
+    const baseScore = 0.5 + (pathDiff * 0.05);
+
+    // Add stone count bonus
+    let myStones = 0;
+    let oppStones = 0;
+    for (const cell of state.board) {
+      if (cell === playerColor) myStones++;
+      if (cell === (playerColor === 1 ? 2 : 1)) oppStones++;
+    }
+
+    const stoneBonus = (myStones - oppStones) * 0.01;
+
+    return Math.max(0, Math.min(1, baseScore + stoneBonus));
+  }
+
+  // Calculate shortest path to goal (simple BFS-based)
+  shortestPathToGoal(color: number): number {
+    const size = this.size;
+
+    // Start cells (where we need to connect from)
+    const startCells: number[] = [];
+    for (let i = 0; i < size * size; i++) {
+      if (this.board[i] === color) {
+        const [c, r] = this.coords(i);
+        if (color === 1 && c === 0) startCells.push(i);
+        if (color === 2 && r === 0) startCells.push(i);
+      }
+    }
+
+    // If no stones on start edge, count from start edge
+    if (startCells.length === 0) {
+      for (let i = 0; i < size; i++) {
+        if (color === 1) startCells.push(i * size); // West column
+        else startCells.push(i); // North row
+      }
+    }
+
+    // BFS to find shortest path
+    const dist = new Map<number, number>();
+    const queue: number[] = [];
+
+    for (const cell of startCells) {
+      dist.set(cell, this.board[cell] === color ? 0 : 1);
+      queue.push(cell);
+    }
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const currentDist = dist.get(current)!;
+
+      const [c, r] = this.coords(current);
+
+      // Check if reached goal
+      if (color === 1 && c === size - 1) return currentDist;
+      if (color === 2 && r === size - 1) return currentDist;
+
+      for (const neighbor of this.getNeighbors(current)) {
+        if (!dist.has(neighbor) || dist.get(neighbor)! > currentDist + 1) {
+          const cellVal = this.board[neighbor];
+          const cost = cellVal === color ? 0 : (cellVal === 0 ? 1 : 100); // Enemy = very high cost
+          const newDist = currentDist + cost;
+
+          if (!dist.has(neighbor) || dist.get(neighbor)! > newDist) {
+            dist.set(neighbor, newDist);
+            queue.push(neighbor);
+          }
+        }
+      }
+    }
+
+    return 100; // No path found
   }
 
   selectHeuristicMove(state: HexAI, empty: number[], color: number): number {
@@ -532,8 +829,8 @@ serve(async (req) => {
     
     try {
       if (difficulty === 'expert') {
-        // Use MCTS for expert (150ms budget, ~1500 iterations)
-        result = ai.getMCTSMove(150);
+        // Use MCTS for expert (500ms budget, ~3000-5000 iterations)
+        result = ai.getMCTSMove(500);
       } else if (difficulty === 'hard') {
         result = ai.getHardMove();
       } else if (difficulty === 'medium') {
