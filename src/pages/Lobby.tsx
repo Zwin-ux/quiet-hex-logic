@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, LogOut, User, Lock, Play, Loader2, Zap, BookOpen, Brain, Skull, Flame, Trophy, Target, History as HistoryIcon, Crown } from 'lucide-react';
+import { Users, LogOut, User, Lock, Play, Loader2, Zap, Trophy, Target, History as HistoryIcon, Crown, BookOpen } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
@@ -17,6 +17,7 @@ import { JoinGameCTA } from '@/components/JoinGameCTA';
 import { LobbyCard } from '@/components/LobbyCard';
 import { GuestModeBanner } from '@/components/GuestModeBanner';
 import { ConvertAccountModal } from '@/components/ConvertAccountModal';
+import { WelcomeOnboarding } from '@/components/WelcomeOnboarding';
 import { usePresence } from '@/hooks/usePresence';
 import { UserAvatar } from '@/components/UserAvatar';
 
@@ -68,13 +69,28 @@ export default function Lobby() {
 
   // For Discord users, we'll use local state for AI matches
   const [discordMatchId, setDiscordMatchId] = useState<string | null>(null);
+  
+  // Track if user has visited before (for onboarding)
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Auto sign-in guest users (skip for Discord environment)
+  // Show onboarding for first-time visitors (not Discord, not already signed in)
   useEffect(() => {
     if (!isDiscordEnvironment && !loading && !user) {
-      signInAnonymously();
+      // Check if they've seen onboarding before
+      const hasSeenOnboarding = localStorage.getItem('hexology_onboarded');
+      if (!hasSeenOnboarding) {
+        setShowOnboarding(true);
+      } else {
+        // Returning visitor, auto sign-in as guest
+        signInAnonymously();
+      }
     }
   }, [loading, user, signInAnonymously, isDiscordEnvironment]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hexology_onboarded', 'true');
+    setShowOnboarding(false);
+  };
 
   usePresence(user?.id);
 
@@ -320,6 +336,22 @@ export default function Lobby() {
     setLoadingLobbies(false);
   };
 
+  // Show welcome onboarding for first-time visitors
+  if (showOnboarding) {
+    return (
+      <WelcomeOnboarding 
+        onComplete={handleOnboardingComplete}
+        onCreateMatch={(difficulty, size) => {
+          handleOnboardingComplete();
+          signInAnonymously().then(() => {
+            setTimeout(() => createAIMatch(difficulty, size), 500);
+          });
+        }}
+        isCreating={creatingMatch}
+      />
+    );
+  }
+
   // Show loading for non-Discord users while auth loads
   if (!isDiscordEnvironment && loading) {
     return (
@@ -455,25 +487,25 @@ export default function Lobby() {
               </Button>
             )}
 
-            {/* Quick Play Logic - moved inside grid */}
+            {/* Quick Play vs AI */}
             <div className="space-y-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-muted-foreground flex items-center gap-2">
-                  <User className="w-4 h-4" /> vs AI
+                <span className="font-semibold text-foreground flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" /> vs AI
                 </span>
                 {/* Difficulty */}
-                <div className="flex gap-1">
+                <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
                   {[
-                    { diff: 'easy' as const, label: 'Easy' },
-                    { diff: 'medium' as const, label: 'Med' },
-                    { diff: 'hard' as const, label: 'Hard' },
-                  ].map(({ diff, label }) => (
+                    { diff: 'easy' as const, label: 'Easy', color: 'text-green-600' },
+                    { diff: 'medium' as const, label: 'Med', color: 'text-amber-600' },
+                    { diff: 'hard' as const, label: 'Hard', color: 'text-red-600' },
+                  ].map(({ diff, label, color }) => (
                     <button
                       key={diff}
                       onClick={() => setAiDifficulty(diff)}
-                      className={`px-2 py-1 rounded text-xs transition-all font-mono ${aiDifficulty === diff
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background hover:bg-muted-foreground/10'
+                      className={`px-2.5 py-1 rounded-md text-xs transition-all font-medium ${aiDifficulty === diff
+                        ? 'bg-background shadow-sm ' + color
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                     >
                       {label}
@@ -484,10 +516,26 @@ export default function Lobby() {
               <Button
                 onClick={() => createAIMatch(aiDifficulty, 7)}
                 disabled={creatingMatch}
-                className="w-full h-16 rounded-xl bg-gradient-to-br from-indigo to-indigo/80 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md border border-indigo/20"
+                className="w-full h-14 rounded-xl bg-indigo hover:bg-indigo/90 transition-all shadow-sm"
               >
-                <span className="text-lg font-bold">Quick Play vs AI</span>
+                {creatingMatch ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <span className="text-base font-semibold">Start AI Match</span>
+                )}
               </Button>
+              
+              {/* Tutorial link for guests */}
+              {isGuest && (
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/tutorial')}
+                  className="w-full gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Learn the Rules
+                </Button>
+              )}
             </div>
           </div>
         </section>
