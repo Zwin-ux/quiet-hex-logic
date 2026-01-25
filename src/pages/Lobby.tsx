@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuestMode } from '@/hooks/useGuestMode';
@@ -18,6 +18,7 @@ import { LobbyCard } from '@/components/LobbyCard';
 import { GuestModeBanner } from '@/components/GuestModeBanner';
 import { ConvertAccountModal } from '@/components/ConvertAccountModal';
 import { WelcomeOnboarding } from '@/components/WelcomeOnboarding';
+import { PullToRefresh } from '@/components/PullToRefresh';
 import { usePresence } from '@/hooks/usePresence';
 import { UserAvatar } from '@/components/UserAvatar';
 
@@ -302,7 +303,7 @@ export default function Lobby() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const fetchActiveMatches = async () => {
+  const fetchActiveMatches = useCallback(async () => {
     const { data } = await supabase
       .from('matches')
       .select('*')
@@ -311,9 +312,9 @@ export default function Lobby() {
       .order('created_at', { ascending: false })
       .limit(5);
     setActiveMatches(data || []);
-  };
+  }, []);
 
-  const fetchWaitingLobbies = async () => {
+  const fetchWaitingLobbies = useCallback(async () => {
     setLoadingLobbies(true);
     const { data: lobbyData } = await supabase
       .from('lobbies')
@@ -334,7 +335,16 @@ export default function Lobby() {
 
     setLobbies(lobbiesWithCounts);
     setLoadingLobbies(false);
-  };
+  }, []);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      fetchActiveMatches(),
+      fetchWaitingLobbies()
+    ]);
+    toast.success('Refreshed');
+  }, [fetchActiveMatches, fetchWaitingLobbies]);
 
   // Show welcome onboarding for first-time visitors
   if (showOnboarding) {
@@ -430,7 +440,8 @@ export default function Lobby() {
         </div>
       </div>
 
-      <div className="pt-20 pb-12 px-4 max-w-4xl mx-auto space-y-8">
+      <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
+        <div className="pt-20 pb-12 px-4 max-w-4xl mx-auto space-y-8">
         {isGuest && !guestLoading && <GuestModeBanner guestUsername={guestUsername} />}
 
         {/* Playing As Card */}
@@ -608,7 +619,8 @@ export default function Lobby() {
             </section>
           )
         }
-      </div >
+        </div>
+      </PullToRefresh>
 
       {user && isGuest && (
         <ConvertAccountModal
@@ -618,8 +630,7 @@ export default function Lobby() {
           matchesCompleted={matchesCompleted}
           onConversionComplete={() => toast.success('Welcome to Hexology!')}
         />
-      )
-      }
-    </div >
+      )}
+    </div>
   );
 }
