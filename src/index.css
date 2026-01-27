@@ -1,4 +1,4 @@
-@import '@coinbase/onchainkit/styles.css';
+/* OnchainKit styles imported in main.tsx to avoid Tailwind layer conflicts */
 
 @tailwind base;
 @tailwind components;
