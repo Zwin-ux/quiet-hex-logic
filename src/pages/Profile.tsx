@@ -17,12 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp, Settings, Check } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp, Settings, Check, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { boardSkins } from '@/lib/boardSkins';
 import { toast } from 'sonner';
 import { RatingHistoryChart } from '@/components/RatingHistoryChart';
-
+import { WorldIDWidget } from '@/components/WorldID';
 interface ProfileData {
   username: string;
   avatar_color: string;
@@ -316,6 +316,19 @@ const Profile = () => {
             </div>
           </div>
         </Card>
+
+        {/* Identity Verification */}
+        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[550ms]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-indigo/10">
+              <Shield className="h-7 w-7 text-indigo" />
+            </div>
+            <h2 className="font-body text-3xl font-bold bg-gradient-to-br from-indigo to-ochre bg-clip-text text-transparent">
+              Identity Verification
+            </h2>
+          </div>
+          <WorldIDWidget />
+        </div>
 
         {/* Achievements */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[600ms]">
