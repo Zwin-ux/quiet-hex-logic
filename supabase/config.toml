@@ -93,3 +93,12 @@ verify_jwt = false
 [functions.verify-world-id]
 verify_jwt = false
 
+[functions.create-base-attestation]
+verify_jwt = false
+
+[functions.close-lobby]
+verify_jwt = true
+
+[functions.find-competitive-match]
+verify_jwt = true
+

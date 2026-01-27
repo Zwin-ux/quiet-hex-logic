@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AchievementToast } from "@/components/AchievementToast";
 import { DiscordProvider } from "@/lib/discord/DiscordContext";
 import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
+import { BaseProvider } from "@/lib/base/BaseProvider";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -33,13 +34,14 @@ const queryClient = new QueryClient();
 const App = () => (
   <DiscordProvider>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AchievementToast />
-        
-        <BrowserRouter>
-          <DiscordActivityWrapper>
+      <BaseProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AchievementToast />
+          
+          <BrowserRouter>
+            <DiscordActivityWrapper>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -64,9 +66,10 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </DiscordActivityWrapper>
-        </BrowserRouter>
-      </TooltipProvider>
+            </DiscordActivityWrapper>
+          </BrowserRouter>
+        </TooltipProvider>
+      </BaseProvider>
     </QueryClientProvider>
   </DiscordProvider>
 );

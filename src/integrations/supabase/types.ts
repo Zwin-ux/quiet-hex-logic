@@ -501,6 +501,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_color: string | null
+          base_attestation_uid: string | null
+          base_name: string | null
           bio: string | null
           board_skin: string | null
           converted_from_anonymous_id: string | null
@@ -520,11 +522,15 @@ export type Database = {
           puzzle_streak_best: number | null
           rating_deviation: number | null
           username: string
+          wallet_address: string | null
+          wallet_connected_at: string | null
           world_id_nullifier: string | null
           world_id_verified_at: string | null
         }
         Insert: {
           avatar_color?: string | null
+          base_attestation_uid?: string | null
+          base_name?: string | null
           bio?: string | null
           board_skin?: string | null
           converted_from_anonymous_id?: string | null
@@ -544,11 +550,15 @@ export type Database = {
           puzzle_streak_best?: number | null
           rating_deviation?: number | null
           username: string
+          wallet_address?: string | null
+          wallet_connected_at?: string | null
           world_id_nullifier?: string | null
           world_id_verified_at?: string | null
         }
         Update: {
           avatar_color?: string | null
+          base_attestation_uid?: string | null
+          base_name?: string | null
           bio?: string | null
           board_skin?: string | null
           converted_from_anonymous_id?: string | null
@@ -568,6 +578,8 @@ export type Database = {
           puzzle_streak_best?: number | null
           rating_deviation?: number | null
           username?: string
+          wallet_address?: string | null
+          wallet_connected_at?: string | null
           world_id_nullifier?: string | null
           world_id_verified_at?: string | null
         }
