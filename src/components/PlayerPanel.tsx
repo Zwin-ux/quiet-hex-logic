@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/UserAvatar';
 import { PremiumBadge } from '@/components/PremiumBadge';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Clock } from 'lucide-react';
 import { memo } from 'react';
@@ -14,6 +15,7 @@ interface PlayerPanelProps {
   isAI?: boolean;
   avatarColor?: string;
   isPremium?: boolean;
+  isVerifiedHuman?: boolean;
   discordAvatarUrl?: string;
   elo?: number;
   compact?: boolean;
@@ -27,6 +29,7 @@ const PlayerPanelComponent = ({
   isAI = false,
   avatarColor = 'indigo',
   isPremium = false,
+  isVerifiedHuman = false,
   discordAvatarUrl,
   elo,
   compact = false
@@ -89,6 +92,7 @@ const PlayerPanelComponent = ({
               )}>
                 {username}
               </span>
+              {isVerifiedHuman && <VerifiedBadge size="xs" />}
               {isAI && (
                 <Badge variant="outline" className="font-mono text-[10px] px-1 py-0 h-4">
                   AI
@@ -160,21 +164,22 @@ const PlayerPanelComponent = ({
           />
         )}
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className={cn(
-              "font-body font-semibold text-lg truncate",
-              isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-secondary via-secondary/80 to-secondary" : "text-foreground"
-            )}>
-              {username}
-            </h3>
-            {isPremium && <PremiumBadge size="sm" />}
-            {isAI && (
-              <Badge variant="outline" className="font-mono text-xs shrink-0">
-                AI
-              </Badge>
-            )}
-          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className={cn(
+                "font-body font-semibold text-lg truncate",
+                isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-secondary via-secondary/80 to-secondary" : "text-foreground"
+              )}>
+                {username}
+              </h3>
+              {isVerifiedHuman && <VerifiedBadge size="sm" />}
+              {isPremium && <PremiumBadge size="sm" />}
+              {isAI && (
+                <Badge variant="outline" className="font-mono text-xs shrink-0">
+                  AI
+                </Badge>
+              )}
+            </div>
 
           {elo !== undefined && (
             <div className="mb-1">

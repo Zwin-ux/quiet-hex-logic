@@ -43,6 +43,7 @@ interface Player {
   avatar_color?: string;
   elo?: number;
   rating_change?: number;
+  is_verified_human?: boolean;
 }
 
 export default function Match() {
@@ -288,7 +289,7 @@ export default function Match() {
           color,
           is_bot,
           rating_change,
-          profiles!inner(username, avatar_color, elo_rating)
+          profiles!inner(username, avatar_color, elo_rating, is_verified_human)
         `)
         .eq('match_id', matchId);
 
@@ -300,7 +301,8 @@ export default function Match() {
           username: (p.profiles as any).username,
           avatar_color: (p.profiles as any).avatar_color || 'indigo',
           elo: (p.profiles as any).elo_rating,
-          rating_change: p.rating_change
+          rating_change: p.rating_change,
+          is_verified_human: (p.profiles as any).is_verified_human || false
         }));
 
         // For AI matches, add synthetic AI player as color 2
@@ -313,7 +315,8 @@ export default function Match() {
             username: `Computer (${difficultyLabel})`,
             avatar_color: 'slate',
             elo: undefined,
-            rating_change: undefined
+            rating_change: undefined,
+            is_verified_human: false
           });
         }
 
@@ -1141,6 +1144,7 @@ export default function Match() {
                 timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                 isAI={player1.is_bot}
                 avatarColor={player1.avatar_color}
+                isVerifiedHuman={player1.is_verified_human}
                 discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                 elo={player1.elo}
                 compact
@@ -1154,6 +1158,7 @@ export default function Match() {
                 timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                 isAI={player2.is_bot}
                 avatarColor={player2.avatar_color}
+                isVerifiedHuman={player2.is_verified_human}
                 discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                 elo={player2.elo}
                 compact
@@ -1171,6 +1176,7 @@ export default function Match() {
                 timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                 isAI={player1.is_bot}
                 avatarColor={player1.avatar_color}
+                isVerifiedHuman={player1.is_verified_human}
                 discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                 elo={player1.elo}
               />
@@ -1349,6 +1355,7 @@ export default function Match() {
                   timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
                   isAI={player2.is_bot}
                   avatarColor={player2.avatar_color}
+                  isVerifiedHuman={player2.is_verified_human}
                   discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
                   elo={player2.elo}
                 />

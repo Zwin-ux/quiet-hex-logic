@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useLobby } from '@/hooks/useLobby';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -343,6 +344,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               const username = player.profiles?.username || 'Unknown';
               const avatarLetter = username[0]?.toUpperCase() || '?';
               const avatarColor = player.profiles?.avatar_color || 'indigo';
+              const isVerifiedHuman = player.profiles?.is_verified_human || false;
               
               // Connection status based on last_seen
               const lastSeen = new Date(player.last_seen);
@@ -376,8 +378,9 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{username}</span>
+                        {isVerifiedHuman && <VerifiedBadge size="sm" />}
                         {player.role === 'host' && (
-                          <Crown className="h-4 w-4 text-yellow-500" />
+                          <Crown className="h-4 w-4 text-amber-500" />
                         )}
                       </div>
                       {player.player_id === userId && (

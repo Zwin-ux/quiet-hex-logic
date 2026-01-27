@@ -8,6 +8,7 @@ export interface LeaderboardEntry {
   elo_rating: number;
   games_rated: number;
   is_premium: boolean;
+  is_verified_human: boolean;
   rank: number;
 }
 
@@ -20,7 +21,7 @@ export function useLeaderboard(limit = 100) {
     const fetchLeaderboard = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, avatar_color, elo_rating, games_rated, is_premium')
+        .select('id, username, avatar_color, elo_rating, games_rated, is_premium, is_verified_human')
         .gt('games_rated', 0)
         .order('elo_rating', { ascending: false })
         .limit(limit);
@@ -31,6 +32,7 @@ export function useLeaderboard(limit = 100) {
           elo_rating: entry.elo_rating || 1200,
           games_rated: entry.games_rated || 0,
           is_premium: entry.is_premium || false,
+          is_verified_human: entry.is_verified_human || false,
           rank: index + 1,
         }));
         setEntries(ranked);
