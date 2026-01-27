@@ -512,6 +512,7 @@ export type Database = {
           id: string
           is_guest: boolean | null
           is_premium: boolean | null
+          is_verified_human: boolean | null
           last_daily_puzzle_date: string | null
           last_online: string | null
           premium_expires_at: string | null
@@ -519,6 +520,8 @@ export type Database = {
           puzzle_streak_best: number | null
           rating_deviation: number | null
           username: string
+          world_id_nullifier: string | null
+          world_id_verified_at: string | null
         }
         Insert: {
           avatar_color?: string | null
@@ -533,6 +536,7 @@ export type Database = {
           id: string
           is_guest?: boolean | null
           is_premium?: boolean | null
+          is_verified_human?: boolean | null
           last_daily_puzzle_date?: string | null
           last_online?: string | null
           premium_expires_at?: string | null
@@ -540,6 +544,8 @@ export type Database = {
           puzzle_streak_best?: number | null
           rating_deviation?: number | null
           username: string
+          world_id_nullifier?: string | null
+          world_id_verified_at?: string | null
         }
         Update: {
           avatar_color?: string | null
@@ -554,6 +560,7 @@ export type Database = {
           id?: string
           is_guest?: boolean | null
           is_premium?: boolean | null
+          is_verified_human?: boolean | null
           last_daily_puzzle_date?: string | null
           last_online?: string | null
           premium_expires_at?: string | null
@@ -561,6 +568,8 @@ export type Database = {
           puzzle_streak_best?: number | null
           rating_deviation?: number | null
           username?: string
+          world_id_nullifier?: string | null
+          world_id_verified_at?: string | null
         }
         Relationships: []
       }
