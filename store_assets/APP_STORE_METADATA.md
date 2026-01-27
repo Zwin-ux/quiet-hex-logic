@@ -30,7 +30,7 @@
 Hexology is easy to learn but impossible to master. Each game presents unique tactical challenges as you balance offense and defense, control key hexes, and outmaneuver your opponent.
 
 💎 **HEXOLOGY+ SUBSCRIPTION**
-Unlock the full experience with:
+Unlock the full experience with our auto-renewable monthly subscription at $5.00/month:
 
 - Exclusive premium board skins (Galaxy, Royal, Retro & Aurora)
 - Unlimited AI practice games
@@ -38,7 +38,12 @@ Unlock the full experience with:
 - Priority matchmaking
 - Export your replays
 
+Subscription auto-renews monthly unless canceled. Manage or cancel anytime from your App Store account settings.
+
 Join thousands of players in the ultimate test of strategic thinking. Will you master the hex?
+
+**Terms of Use**: https://hexology.me/terms
+**Privacy Policy**: https://hexology.me/privacy
 
 ---
 

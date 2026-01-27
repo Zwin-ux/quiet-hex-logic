@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Check, Crown, Sparkles, Trophy, Palette, Zap, Shield, Puzzle, BarChart3, Download, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -214,6 +214,23 @@ export default function Premium() {
                     )}
                   </div>
                 )}
+                
+                {/* Subscription Terms - Required by Apple */}
+                <div className="pt-4 space-y-3 border-t border-white/10">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Subscription auto-renews monthly at $5.00/month. Cancel anytime from your account settings or the App Store. 
+                    No commitment required.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+                    <Link to="/privacy" className="text-amber-500 hover:text-amber-400 underline underline-offset-2">
+                      Privacy Policy
+                    </Link>
+                    <span className="text-muted-foreground">•</span>
+                    <Link to="/terms" className="text-amber-500 hover:text-amber-400 underline underline-offset-2">
+                      Terms of Use
+                    </Link>
+                  </div>
+                </div>
                 
                 {showStripe && (
                   <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-semibold">

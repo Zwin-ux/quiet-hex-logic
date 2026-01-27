@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserStats } from '@/hooks/useUserStats';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useRatingHistory } from '@/hooks/useRatingHistory';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { ArrowLeft, Trophy, Target, Clock, Grid3x3, Palette, TrendingUp, Setting
 import { useNavigate } from 'react-router-dom';
 import { boardSkins } from '@/lib/boardSkins';
 import { toast } from 'sonner';
+import { RatingHistoryChart } from '@/components/RatingHistoryChart';
 
 interface ProfileData {
   username: string;
@@ -35,6 +37,7 @@ const Profile = () => {
   const { user } = useAuth();
   const { stats, loading: statsLoading } = useUserStats(user?.id);
   const { achievements, loading: achievementsLoading } = useAchievements(user?.id);
+  const { history: ratingHistory, loading: ratingHistoryLoading } = useRatingHistory(user?.id, 30);
   const { discordUser, isDiscordEnvironment } = useDiscord();
   const navigate = useNavigate();
   const [selectedSkin, setSelectedSkin] = useState('classic');
@@ -61,7 +64,7 @@ const Profile = () => {
     }
   };
 
-  if (statsLoading || achievementsLoading) {
+  if (statsLoading || achievementsLoading || ratingHistoryLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -248,6 +251,14 @@ const Profile = () => {
               </p>
             </div>
           </Card>
+        </div>
+
+        {/* Rating History Chart */}
+        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[450ms]">
+          <RatingHistoryChart
+            history={ratingHistory}
+            currentRating={profile?.elo_rating ?? 1200}
+          />
         </div>
 
         {/* Board Theme Selector */}
