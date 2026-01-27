@@ -26,6 +26,7 @@ type LobbyPlayerWithProfile = LobbyPlayer & {
   profiles: {
     username: string;
     avatar_color?: string;
+    is_verified_human?: boolean;
   };
 };
 
@@ -58,7 +59,7 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
         // Fetch players with defensive null-safety for profiles
         const { data: playersData, error: playersError } = await supabase
           .from('lobby_players')
-          .select('*, profiles(username, avatar_color)')
+          .select('*, profiles(username, avatar_color, is_verified_human)')
           .eq('lobby_id', lobbyId);
 
         if (playersError) throw playersError;
@@ -70,7 +71,8 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
             ...p,
             profiles: {
               username: p.profiles?.username || 'Unknown',
-              avatar_color: p.profiles?.avatar_color || 'indigo'
+              avatar_color: p.profiles?.avatar_color || 'indigo',
+              is_verified_human: p.profiles?.is_verified_human || false
             }
           }));
 
@@ -122,7 +124,7 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
             // Refetch players on any player change with null-safety
             const { data } = await supabase
               .from('lobby_players')
-              .select('*, profiles(username, avatar_color)')
+              .select('*, profiles(username, avatar_color, is_verified_human)')
               .eq('lobby_id', lobbyId);
 
             if (data) {
@@ -132,7 +134,8 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
                   ...p,
                   profiles: {
                     username: p.profiles?.username || 'Unknown',
-                    avatar_color: p.profiles?.avatar_color || 'indigo'
+                    avatar_color: p.profiles?.avatar_color || 'indigo',
+                    is_verified_human: p.profiles?.is_verified_human || false
                   }
                 }));
               setPlayers(validPlayers as any);

@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { PremiumBadge } from '@/components/PremiumBadge';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { UserAvatar } from '@/components/UserAvatar';
 
 function getRankIcon(rank: number) {
@@ -99,6 +100,7 @@ export default function Leaderboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{entry.username}</span>
+                        {entry.is_verified_human && <VerifiedBadge size="sm" />}
                         {entry.is_premium && <PremiumBadge size="sm" />}
                       </div>
                       <span className="text-xs text-muted-foreground">
