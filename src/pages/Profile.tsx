@@ -23,6 +23,7 @@ import { boardSkins } from '@/lib/boardSkins';
 import { toast } from 'sonner';
 import { RatingHistoryChart } from '@/components/RatingHistoryChart';
 import { WorldIDWidget } from '@/components/WorldID';
+import { BaseWalletSection } from '@/components/Base';
 interface ProfileData {
   username: string;
   avatar_color: string;
@@ -327,9 +328,11 @@ const Profile = () => {
               Identity Verification
             </h2>
           </div>
-          <WorldIDWidget />
+          <div className="space-y-4">
+            <WorldIDWidget />
+            <BaseWalletSection />
+          </div>
         </div>
-
         {/* Achievements */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[600ms]">
           <div className="flex items-center justify-between mb-10">
