@@ -24,11 +24,11 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
   const [step, setStep] = useState<'welcome' | 'choice'>('welcome');
   const [isSigningIn, setIsSigningIn] = useState(false);
 
-  // Auto-advance from welcome after a brief moment
+  // Auto-advance from welcome after a brief moment (reduced from 1500ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       setStep('choice');
-    }, 1500);
+    }, 600);
     return () => clearTimeout(timer);
   }, []);
 
@@ -36,10 +36,8 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
     setIsSigningIn(true);
     try {
       await signInAnonymously();
-      // Small delay for auth to propagate
-      setTimeout(() => {
-        onCreateMatch('easy', 7);
-      }, 500);
+      // Call immediately - no delay needed
+      onCreateMatch('easy', 7);
     } catch (error) {
       console.error('Failed to create guest session:', error);
       setIsSigningIn(false);

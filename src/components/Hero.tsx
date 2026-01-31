@@ -5,6 +5,7 @@ import { Users, BookOpen, Zap, Loader2, Trophy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import heroBoard from "@/assets/hero-board.jpg";
 
 const Hero = () => {
@@ -13,10 +14,56 @@ const Hero = () => {
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
 
-  const handleQuickPlay = () => {
+  const handleQuickPlay = async () => {
     setIsLoading(true);
-    // Navigate to lobby with state to auto-create AI match
-    navigate('/lobby', { state: { createAI: true, difficulty: 'easy', boardSize: 7 } });
+    try {
+      // Get or create user session
+      let currentUser = user;
+      if (!currentUser) {
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+        currentUser = data.user;
+      }
+      
+      if (!currentUser) throw new Error('Failed to create session');
+
+      // Create match row directly (minimal fields for speed)
+      const { data: newMatch, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          size: 7,
+          pie_rule: true,
+          status: 'active',
+          turn: 1,
+          owner: currentUser.id,
+          ai_difficulty: 'easy',
+          allow_spectators: false
+        })
+        .select('id')
+        .single();
+
+      if (matchError) throw matchError;
+
+      // Navigate immediately with optimistic flag
+      navigate(`/match/${newMatch.id}`, { 
+        state: { optimistic: true, userId: currentUser.id } 
+      });
+
+      // Insert player record in background (non-blocking)
+      supabase.from('match_players').insert({
+        match_id: newMatch.id,
+        profile_id: currentUser.id,
+        color: 1,
+        is_bot: false
+      }).then(({ error }) => {
+        if (error) console.error('Background player insert failed:', error);
+      });
+
+    } catch (error) {
+      console.error('Quick play error:', error);
+      toast.error('Failed to start game. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handleCompetitive = () => {
