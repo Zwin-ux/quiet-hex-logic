@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // OnchainKit deep-imports `wagmi/connectors` but `baseAccount` lives in `@wagmi/connectors`.
+      // This alias keeps OnchainKit compatible with our wagmi version.
+      "wagmi/connectors": "@wagmi/connectors",
     },
   },
 }));
