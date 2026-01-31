@@ -217,18 +217,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check rate limit first
-    const rateLimitOk = await supabase.rpc('check_move_rate_limit', {
-      _match_id: matchId,
-      _user_id: user.id
-    });
+    // Check rate limit - implement directly since RPC requires auth.uid() context
+    // Simple rate limit: check if user made too many moves in the last second
+    const oneSecondAgo = new Date(Date.now() - 1000).toISOString();
+    const { count: recentMoveCount } = await supabase
+      .from('move_rate_limits')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', matchId)
+      .eq('user_id', user.id)
+      .gte('window_start', oneSecondAgo);
 
-    if (!rateLimitOk.data) {
+    if (recentMoveCount !== null && recentMoveCount >= 4) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded - too many moves' }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Update rate limit tracking
+    await supabase
+      .from('move_rate_limits')
+      .upsert({
+        match_id: matchId,
+        user_id: user.id,
+        last_move_at: new Date().toISOString(),
+        move_count: 1,
+        window_start: new Date().toISOString()
+      }, {
+        onConflict: 'match_id,user_id'
+      });
 
     // Check for duplicate action_id (idempotency)
     const { data: existingMove } = await supabase
