@@ -78,6 +78,10 @@ const HexBoardComponent = ({
   const [winPathAnimStart, setWinPathAnimStart] = useState<number | null>(null);
   const prevWinningPathRef = useRef<number[]>([]);
   const particlesRef = useRef<Particle[]>([]);
+  
+  // Board entrance animation - ripple reveal from center
+  const [boardMountTime] = useState<number>(() => Date.now());
+  const entranceAnimDuration = 600; // Total duration for board to fully appear
 
   // Track new placements for animation
   useEffect(() => {
@@ -149,7 +153,8 @@ const HexBoardComponent = ({
     if (!ctx) return;
 
     const now = Date.now();
-    const shouldAnimate = winningPath.length > 0 || animatedCells.length > 0 || !!skin.animationType;
+    const isEntranceAnimating = now - boardMountTime < entranceAnimDuration + 400; // Include stagger time
+    const shouldAnimate = isEntranceAnimating || winningPath.length > 0 || animatedCells.length > 0 || !!skin.animationType;
     
     // Throttle to 60fps for smooth animations
     if (shouldAnimate && now - lastRenderTime.current < 16) {
@@ -307,23 +312,42 @@ const HexBoardComponent = ({
     ctx.fillText('N', offsetX + boardWidth / 2, offsetY - hexRadius * 1.2);
     ctx.fillText('S', offsetX + boardWidth / 2, offsetY + boardHeight + hexRadius * 1.2);
 
-    // Draw hexagons
+    // Draw hexagons with entrance animation
+    const entranceElapsed = now - boardMountTime;
+    const boardCenterX = size / 2;
+    const boardCenterY = size / 2;
+    
     for (let row = 0; row < size; row++) {
       for (let col = 0; col < size; col++) {
         const cell = row * size + col;
         const x = offsetX + col * hexRadius * 1.5 + hexRadius;
         const y = offsetY + row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + hexRadius * Math.sqrt(3) / 2;
 
-        // Draw hex cell
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 3) * i;
-          const hx = x + hexRadius * 0.9 * Math.cos(angle);
-          const hy = y + hexRadius * 0.9 * Math.sin(angle);
-          if (i === 0) ctx.moveTo(hx, hy);
-          else ctx.lineTo(hx, hy);
-        }
-        ctx.closePath();
+        // Calculate entrance animation based on distance from center (ripple effect)
+        const distFromCenter = Math.sqrt(
+          Math.pow(col - boardCenterX, 2) + Math.pow(row - boardCenterY, 2)
+        );
+        const maxDist = Math.sqrt(2) * size / 2;
+        const cellDelay = (distFromCenter / maxDist) * 300; // Stagger up to 300ms
+        const cellEntranceProgress = Math.min(1, Math.max(0, (entranceElapsed - cellDelay) / entranceAnimDuration));
+        const entranceScale = easeOutCubic(cellEntranceProgress);
+        const entranceOpacity = cellEntranceProgress;
+
+        // Skip drawing if not yet visible
+        if (cellEntranceProgress <= 0) continue;
+
+        // Helper function to draw hex path
+        const drawHexPath = (radiusMultiplier: number = 0.9) => {
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i;
+            const hx = x + hexRadius * radiusMultiplier * Math.cos(angle);
+            const hy = y + hexRadius * radiusMultiplier * Math.sin(angle);
+            if (i === 0) ctx.moveTo(hx, hy);
+            else ctx.lineTo(hx, hy);
+          }
+          ctx.closePath();
+        };
 
         // Fill based on state
         const color = board[cell];
@@ -362,10 +386,11 @@ const HexBoardComponent = ({
         const displayScale = animatedCell ? scale * 1.0 : 1;
 
         if (color === 1) {
-          // Player 1 stone with bouncy animation
+          // Player 1 stone with bouncy animation + entrance animation
           ctx.save();
+          ctx.globalAlpha = entranceOpacity;
           ctx.translate(x, y);
-          ctx.scale(displayScale, displayScale);
+          ctx.scale(displayScale * entranceScale, displayScale * entranceScale);
           ctx.translate(-x, -y);
           
           // Glow effect during animation
@@ -375,7 +400,7 @@ const HexBoardComponent = ({
             ctx.shadowBlur = (isAggressiveType ? 40 : 20) * (1 - animationProgress);
             
             if (isAggressiveType) {
-              // Add extra intensity
+              drawHexPath();
               ctx.strokeStyle = skin.colors.player1Winning;
               ctx.lineWidth = 2;
               ctx.stroke();
@@ -400,11 +425,13 @@ const HexBoardComponent = ({
             }
           }
           
+          drawHexPath();
           ctx.fill();
           ctx.shadowBlur = 0;
           
           // Ring indicator for last move
           if (isLast && !animatedCell) {
+            drawHexPath();
             ctx.strokeStyle = skin.colors.player2;
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -412,10 +439,11 @@ const HexBoardComponent = ({
           
           ctx.restore();
         } else if (color === 2) {
-          // Player 2 stone with bouncy animation
+          // Player 2 stone with bouncy animation + entrance animation
           ctx.save();
+          ctx.globalAlpha = entranceOpacity;
           ctx.translate(x, y);
-          ctx.scale(displayScale, displayScale);
+          ctx.scale(displayScale * entranceScale, displayScale * entranceScale);
           ctx.translate(-x, -y);
           
           // Glow effect during animation
@@ -425,7 +453,7 @@ const HexBoardComponent = ({
             ctx.shadowBlur = (isAggressiveType ? 40 : 20) * (1 - animationProgress);
             
             if (isAggressiveType) {
-              // Add extra intensity
+              drawHexPath();
               ctx.strokeStyle = skin.colors.player2Winning;
               ctx.lineWidth = 2;
               ctx.stroke();
@@ -450,20 +478,24 @@ const HexBoardComponent = ({
             }
           }
           
+          drawHexPath();
           ctx.fill();
           ctx.shadowBlur = 0;
           
           // Ring indicator for last move
           if (isLast && !animatedCell) {
+            drawHexPath();
             ctx.strokeStyle = skin.colors.player1;
             ctx.lineWidth = 3;
             ctx.stroke();
           }
           
+          ctx.restore();
+          
           // Draw AI hint (best alternative)
           if (hintCell === cell && board[cell] === 0) {
             ctx.save();
-            ctx.globalAlpha = 0.4;
+            ctx.globalAlpha = 0.4 * entranceOpacity;
             ctx.strokeStyle = '#fbbf24'; // Amber-400
             ctx.lineWidth = 3;
             ctx.setLineDash([5, 5]);
@@ -484,25 +516,32 @@ const HexBoardComponent = ({
             ctx.stroke();
             ctx.restore();
           }
-          ctx.restore();
         } else {
-          // Empty cell with hover effect
+          // Empty cell with hover effect + entrance animation
+          ctx.save();
+          ctx.globalAlpha = entranceOpacity;
+          ctx.translate(x, y);
+          ctx.scale(entranceScale, entranceScale);
+          ctx.translate(-x, -y);
+          
           if (isHovered) {
             // Slightly larger and glowing when hovered
-            ctx.save();
             ctx.shadowColor = 'rgba(0,0,0,0.15)';
             ctx.shadowBlur = 8;
             ctx.fillStyle = skin.colors.emptyHover;
+            drawHexPath();
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.restore();
           } else {
             ctx.fillStyle = skin.colors.empty;
+            drawHexPath();
             ctx.fill();
           }
+          drawHexPath();
           ctx.strokeStyle = skin.colors.emptyBorder;
           ctx.lineWidth = 1.5;
           ctx.stroke();
+          ctx.restore();
         }
       }
     }

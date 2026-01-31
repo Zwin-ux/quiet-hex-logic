@@ -3,7 +3,7 @@ import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Input validation schema
@@ -88,14 +88,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Not AI turn' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Rate limit per user/match
-    const rateLimitOk = await supabase.rpc('check_move_rate_limit', {
-      _match_id: matchId,
-      _user_id: user.id
-    });
-    if (!rateLimitOk.data) {
-      return new Response(JSON.stringify({ error: 'Rate limit exceeded - too many moves' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Direct rate limit check (bypasses auth.uid() issue with service role)
+    const oneSecondAgo = new Date(Date.now() - 1000).toISOString();
+    const { count: recentMoveCount } = await supabase
+      .from('move_rate_limits')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', matchId)
+      .eq('user_id', user.id)
+      .gte('window_start', oneSecondAgo);
+
+    if (recentMoveCount !== null && recentMoveCount >= 4) {
+      console.log('Rate limit exceeded for user:', user.id);
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded - too many moves' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Update rate limit tracking
+    await supabase
+      .from('move_rate_limits')
+      .upsert({
+        match_id: matchId,
+        user_id: user.id,
+        last_move_at: new Date().toISOString(),
+        move_count: 1,
+        window_start: new Date().toISOString()
+      }, { onConflict: 'match_id,user_id' });
 
     // Idempotency: if this action_id already processed, return cached state
     const { data: existingMove } = await supabase
