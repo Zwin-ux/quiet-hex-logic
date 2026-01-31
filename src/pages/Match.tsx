@@ -15,6 +15,7 @@ import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { AnimatedRatingChange } from '@/components/AnimatedRatingChange';
 import { VictoryConfetti } from '@/components/VictoryConfetti';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Hex } from '@/lib/hex/engine';
 import { SimpleHexAI, AIDifficulty } from '@/lib/hex/simpleAI';
@@ -274,8 +275,14 @@ export default function Match() {
         .single();
 
       if (!matchData) {
-        toast.error('Match not found');
-        navigate('/lobby');
+        toast.error('Match not found', {
+          description: 'Would you like to try again?',
+          action: {
+            label: 'Retry',
+            onClick: () => navigate('/lobby', { state: { createAI: true } })
+          }
+        });
+        setTimeout(() => navigate('/lobby'), 3000);
         return;
       }
 
@@ -984,8 +991,45 @@ export default function Match() {
 
   if (!match || !engine) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen ios-safe-area bg-background">
+        <div className="max-w-7xl mx-auto px-3 py-4 md:p-8">
+          {/* Header skeleton */}
+          <div className="mb-4 md:mb-8 flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          </div>
+          
+          {/* Board area skeleton */}
+          <div className="flex flex-col lg:grid lg:grid-cols-[280px_1fr_280px] gap-4 lg:gap-6">
+            {/* Player panel skeleton - desktop */}
+            <div className="hidden lg:block space-y-3">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+            
+            {/* Board skeleton - centered hex placeholder */}
+            <div className="flex justify-center">
+              <div className="aspect-square w-full max-w-[500px] bg-muted/30 rounded-2xl flex items-center justify-center border border-border/50">
+                <Loader2 className="h-12 w-12 animate-spin text-primary/40" />
+              </div>
+            </div>
+            
+            {/* Player panel skeleton - desktop */}
+            <div className="hidden lg:block space-y-3">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          </div>
+          
+          {/* Mobile player panels skeleton */}
+          <div className="lg:hidden mt-4 space-y-3">
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }

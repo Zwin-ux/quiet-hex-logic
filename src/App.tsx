@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { AchievementToast } from "@/components/AchievementToast";
 import { DiscordProvider } from "@/lib/discord/DiscordContext";
 import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
 import { BaseProvider } from "@/lib/base/BaseProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -31,8 +33,17 @@ import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
+// Prefetch auth session on app load for faster Quick Play
+function AuthPrefetcher() {
+  useEffect(() => {
+    supabase.auth.getSession();
+  }, []);
+  return null;
+}
+
 const App = () => (
   <DiscordProvider>
+    <AuthPrefetcher />
     <QueryClientProvider client={queryClient}>
       <BaseProvider>
         <TooltipProvider>
