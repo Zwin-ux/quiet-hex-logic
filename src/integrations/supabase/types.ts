@@ -1336,6 +1336,10 @@ export type Database = {
         Args: { _profile_id: string; _viewer_id: string }
         Returns: boolean
       }
+      can_view_user_stats: {
+        Args: { _profile_id: string; _viewer_id: string }
+        Returns: boolean
+      }
       check_move_rate_limit: {
         Args: { _match_id: string; _user_id: string }
         Returns: boolean
