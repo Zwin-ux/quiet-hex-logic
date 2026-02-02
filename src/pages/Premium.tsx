@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Check, Crown, Sparkles, Trophy, Palette, Zap, Shield, Puzzle, BarChart3, Download, Star } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Sparkles, Trophy, Palette, Zap, Shield, Puzzle, BarChart3, Download, Star, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +25,7 @@ export default function Premium() {
   const { user } = useAuth();
   const { isPremium, subscription, loading } = usePremium(user?.id);
   const [purchasing, setPurchasing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const handleSubscribe = async () => {
     if (!user) {
@@ -82,12 +83,35 @@ export default function Premium() {
       toast.error(`Purchase failed: ${detail?.code || 'Unknown error'}`);
     };
 
+    const handleRestore = (e: Event) => {
+      setRestoring(false);
+      const detail = (e as CustomEvent).detail;
+      
+      if (detail && Array.isArray(detail) && detail.length > 0) {
+        const hasSubscription = detail.some(
+          (purchase: { productId?: string }) => 
+            purchase.productId === 'hexology_plus_monthly'
+        );
+        
+        if (hasSubscription) {
+          toast.success('Subscription restored successfully!');
+          window.location.reload();
+        } else {
+          toast.info('No active Hexology+ subscription found');
+        }
+      } else {
+        toast.info('No previous purchases found');
+      }
+    };
+
     window.addEventListener('iap-success', handleSuccess);
     window.addEventListener('iap-error', handleError);
+    window.addEventListener('iap-restore', handleRestore);
 
     return () => {
       window.removeEventListener('iap-success', handleSuccess);
       window.removeEventListener('iap-error', handleError);
+      window.removeEventListener('iap-restore', handleRestore);
     };
   }, [isNative]);
 
@@ -95,6 +119,17 @@ export default function Premium() {
     const win = window as unknown as { triggerNativePurchase?: () => void };
     if (win.triggerNativePurchase) {
       win.triggerNativePurchase();
+    }
+  };
+
+  const handleNativeRestore = () => {
+    setRestoring(true);
+    const win = window as unknown as { triggerNativeRestore?: () => void };
+    if (win.triggerNativeRestore) {
+      win.triggerNativeRestore();
+    } else {
+      toast.error('Restore not available');
+      setRestoring(false);
     }
   };
 
@@ -210,6 +245,17 @@ export default function Premium() {
                         )}
                       >
                         {purchasing ? 'Redirecting...' : isIOS ? 'Or Subscribe via Stripe' : 'Get Hexology+'}
+                      </Button>
+                    )}
+                    {isIOS && (
+                      <Button
+                        onClick={handleNativeRestore}
+                        disabled={restoring}
+                        variant="ghost"
+                        className="w-full text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className={cn("h-4 w-4 mr-2", restoring && "animate-spin")} />
+                        {restoring ? 'Restoring...' : 'Restore Purchases'}
                       </Button>
                     )}
                   </div>
