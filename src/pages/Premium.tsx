@@ -247,18 +247,20 @@ export default function Premium() {
                         {purchasing ? 'Redirecting...' : isIOS ? 'Or Subscribe via Stripe' : 'Get Hexology+'}
                       </Button>
                     )}
-                    {isIOS && (
-                      <Button
-                        onClick={handleNativeRestore}
-                        disabled={restoring}
-                        variant="ghost"
-                        className="w-full text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        <RotateCcw className={cn("h-4 w-4 mr-2", restoring && "animate-spin")} />
-                        {restoring ? 'Restoring...' : 'Restore Purchases'}
-                      </Button>
-                    )}
                   </div>
+                )}
+
+                {/* Restore Purchases - always visible on iOS per App Store Guidelines 3.1.1 */}
+                {isIOS && (
+                  <Button
+                    onClick={handleNativeRestore}
+                    disabled={restoring}
+                    variant="outline"
+                    className="w-full text-sm"
+                  >
+                    <RotateCcw className={cn("h-4 w-4 mr-2", restoring && "animate-spin")} />
+                    {restoring ? 'Restoring...' : 'Restore Purchases'}
+                  </Button>
                 )}
                 
                 {/* Subscription Terms - Required by Apple */}
