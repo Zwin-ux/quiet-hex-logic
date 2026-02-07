@@ -1,18 +1,13 @@
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { NavBar } from '@/components/NavBar';
 
 export default function Support() {
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-background">
+      <NavBar />
+      <div className="p-8 pt-14">
       <div className="max-w-3xl mx-auto">
-        <Link to="/">
-          <Button variant="ghost" className="mb-8">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Button>
-        </Link>
-
         <h1 className="text-4xl font-bold mb-6">Support</h1>
 
         <div className="space-y-6 text-muted-foreground">
@@ -42,7 +37,7 @@ export default function Support() {
                 <p>Connect your side of the board to the opposite side before your opponent does. Click on empty hexes to place your pieces.</p>
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">What is The Open Board+?</h3>
+                <h3 className="font-semibold text-foreground">What is Hexology+?</h3>
                 <p>Our premium subscription ($5/month) that unlocks exclusive board skins, unlimited AI practice, and advanced features.</p>
               </div>
               <div>
@@ -62,6 +57,7 @@ export default function Support() {
             </p>
           </section>
         </div>
+      </div>
       </div>
     </div>
   );

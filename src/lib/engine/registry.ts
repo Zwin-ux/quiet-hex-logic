@@ -100,7 +100,7 @@ registerGame({
 registerGame({
   key: 'ttt',
   displayName: 'Tic Tac Toe',
-  createEngine: () => TttAdapter.create(),
+  createEngine: (opts) => TttAdapter.create(opts),
   boardComponent: null as any,
   defaultBoardSize: 3,
   configurableBoardSize: false,

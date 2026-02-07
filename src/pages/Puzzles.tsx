@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Target, Zap, Crown, Check, Lock, Flame, Calendar, Star, Timer, Book } from 'lucide-react';
+import { Trophy, Target, Zap, Crown, Check, Lock, Flame, Calendar, Star, Timer, Book } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -66,16 +67,8 @@ export default function Puzzles() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-
+      <NavBar />
+      <div className="container mx-auto px-4 py-8 max-w-4xl pt-14">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">Puzzle Training</h1>
@@ -265,7 +258,7 @@ export default function Puzzles() {
                   Unlimited Puzzles
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Get unlimited puzzle access with The Open Board+
+                  Get unlimited puzzle access with Hexology+
                 </p>
               </div>
               <Button 

@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Spectral', 'serif'],
+        body: ['Inter', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
       },
       colors: {
@@ -61,11 +62,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        paper: "hsl(var(--paper))",
-        ink: "hsl(var(--ink))",
         indigo: "hsl(var(--indigo))",
         ochre: "hsl(var(--ochre))",
-        graphite: "hsl(var(--graphite))",
+        "game-hex": "hsl(var(--game-hex))",
+        "game-chess": "hsl(var(--game-chess))",
+        "game-checkers": "hsl(var(--game-checkers))",
+        "game-ttt": "hsl(var(--game-ttt))",
+        "game-connect4": "hsl(var(--game-connect4))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -97,6 +100,14 @@ export default {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.003)" },
         },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "glow-pulse": {
+          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "0.8", transform: "scale(1.05)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -107,11 +118,12 @@ export default {
         "skeleton-pulse": "skeleton-pulse 1.5s ease-in-out infinite",
         "win-flash": "win-flash 600ms ease-out forwards",
         "breathe": "breathe 4s ease-in-out infinite",
+        "shimmer": "shimmer 2s linear infinite",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite",
       },
       boxShadow: {
         'soft': 'var(--shadow-soft)',
         'medium': 'var(--shadow-medium)',
-        'paper': 'var(--shadow-paper)',
       },
       transitionTimingFunction: {
         'gentle': 'cubic-bezier(0.4, 0, 0.2, 1)',

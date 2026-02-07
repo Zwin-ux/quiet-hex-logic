@@ -73,28 +73,7 @@ export default function Match() {
     }
   }, [match, engine, isDiscordLocalMatch]);
 
-  // Loading / Waiting states
-  if (!match || !engine) return <MatchLoading />;
-  if (match.status === 'waiting') return <MatchWaiting onCancel={() => navigate('/lobby')} />;
-
-  const player1 = players.find(p => p.color === 1);
-  const player2 = players.find(p => p.color === 2);
-  const currentColor = match.turn % 2 === 1 ? 1 : 2;
-  const currentPlayer = players.find(p => p.color === currentColor);
-  const userPlayer = players.find(p => p.profile_id === user?.id || p.profile_id === 'discord-player');
-  const isPlayer = !!userPlayer || isDiscordLocalMatch || isLocalMatch;
-  const isAIMatch = match.ai_difficulty != null;
-  const isAITurn = isAIMatch && currentColor === 2;
-  const gameKey = (match.game_key ?? 'hex') as 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
-
-  const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar
-    ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=128`
-    : undefined;
-
-  // Local matches aren't associated with an authenticated profile; allow the current side-to-move to act.
-  const userIdForMoves = isLocalMatch ? currentPlayer?.profile_id : user?.id;
-
-  // Discord local match cell click handler
+  // Move callbacks above returns to satisfy React Hook rules
   const handleCellClick = useCallback((cell: number) => {
     if (!engine || !match) return;
     const gameKey = (match.game_key ?? 'hex') as any;
@@ -175,6 +154,27 @@ export default function Match() {
     if (gameKey !== 'connect4') return;
     actions.handleConnect4Move(col);
   }, [match, actions]);
+
+  // Loading / Waiting states
+  if (!match || !engine) return <MatchLoading />;
+  if (match.status === 'waiting') return <MatchWaiting onCancel={() => navigate('/lobby')} />;
+
+  const player1 = players.find(p => p.color === 1);
+  const player2 = players.find(p => p.color === 2);
+  const currentColor = match.turn % 2 === 1 ? 1 : 2;
+  const currentPlayer = players.find(p => p.color === currentColor);
+  const userPlayer = players.find(p => p.profile_id === user?.id || p.profile_id === 'discord-player');
+  const isPlayer = !!userPlayer || isDiscordLocalMatch || isLocalMatch;
+  const isAIMatch = match.ai_difficulty != null;
+  const isAITurn = isAIMatch && currentColor === 2;
+  const gameKey = (match.game_key ?? 'hex') as 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
+
+  const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar
+    ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=128`
+    : undefined;
+
+  // Local matches aren't associated with an authenticated profile; allow the current side-to-move to act.
+  const userIdForMoves = isLocalMatch ? currentPlayer?.profile_id : user?.id;
 
   const handleToggleSpectate = async () => {
     if (!user) return;

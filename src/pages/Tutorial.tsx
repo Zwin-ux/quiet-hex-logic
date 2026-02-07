@@ -29,8 +29,8 @@ interface TutorialStep {
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 1,
-    title: 'Welcome to The Open Board',
-    description: 'The Open Board is a connection game played on a hexagonal grid. Two players compete to connect opposite sides of the board.',
+    title: 'Welcome to Hexology — Learn Hex',
+    description: 'Hex is a connection game played on a hexagonal grid. Two players compete to connect opposite sides of the board.',
     instruction: 'Click Next to learn the basics',
     showBoard: false,
     winCondition: 'none',
@@ -146,7 +146,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 9,
     title: 'Ready to Play!',
-    description: 'You\'ve mastered the basics of The Open Board. Now it\'s time to put your skills to the test against real opponents or AI.',
+    description: 'You\'ve mastered the basics of Hex. Now it\'s time to put your skills to the test against real opponents or AI.',
     instruction: 'Play as a guest or sign in to track your progress and challenge friends',
     showBoard: false,
     winCondition: 'none',
@@ -354,12 +354,12 @@ export default function Tutorial() {
   };
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="font-body text-2xl font-semibold text-foreground">
+            <h1 className="font-display text-2xl font-semibold text-foreground">
               Tutorial
             </h1>
           </div>
@@ -394,16 +394,16 @@ export default function Tutorial() {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Content Panel */}
-          <Card className="p-8 shadow-paper border-2 border-border h-fit">
+          <Card className="p-8 shadow-lg border-2 border-border h-fit">
             <Badge className="mb-4 font-mono">
               Lesson {step.id}
             </Badge>
             
-            <h2 className="font-body text-3xl font-semibold text-foreground mb-4">
+            <h2 className="font-display text-3xl font-semibold text-foreground mb-4">
               {step.title}
             </h2>
             
-            <p className="font-body text-lg text-muted-foreground leading-relaxed mb-6">
+            <p className="font-display text-lg text-muted-foreground leading-relaxed mb-6">
               {step.description}
             </p>
 
@@ -414,7 +414,7 @@ export default function Tutorial() {
                 ? 'bg-indigo/20 border-indigo' 
                 : 'bg-accent/20 border-indigo'
             }`}>
-              <p className="font-body text-foreground">
+              <p className="font-display text-foreground">
                 {hasFailed && '❌ '}
                 {hasWon && '✅ '}
                 {!hasFailed && !hasWon && '💡 '}
@@ -476,7 +476,7 @@ export default function Tutorial() {
 
             {step.showPieRuleDemo && (
               <div className="mt-4 p-4 bg-indigo/10 border border-indigo/30 rounded-lg">
-                <p className="text-sm font-body text-foreground mb-2">
+                <p className="text-sm font-display text-foreground mb-2">
                   <strong>Pie Rule Visualization:</strong>
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -491,7 +491,7 @@ export default function Tutorial() {
             {/* Special actions for final step */}
             {currentStep === TUTORIAL_STEPS.length - 1 && (
               <div className="mt-6 pt-6 border-t border-border">
-                <p className="text-sm text-muted-foreground mb-4 font-body">
+                <p className="text-sm text-muted-foreground mb-4 font-display">
                   Quick start options:
                 </p>
                 <div className="grid gap-3">
@@ -517,7 +517,7 @@ export default function Tutorial() {
 
           {/* Board Panel */}
           {step.showBoard && (
-            <Card className="p-8 shadow-paper border-2 border-border">
+            <Card className="p-8 shadow-lg border-2 border-border">
               <div className="flex items-center justify-center">
                 <HexBoard
                   size={step.boardSize || 7}
@@ -548,7 +548,7 @@ export default function Tutorial() {
 
           {/* Placeholder when no board */}
           {!step.showBoard && (
-            <Card className="p-8 shadow-paper border-2 border-border flex items-center justify-center bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5">
+            <Card className="p-8 shadow-lg border-2 border-border flex items-center justify-center bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5">
               <div className="text-center">
                 <div className="text-8xl mb-6 opacity-10">⬡</div>
               </div>

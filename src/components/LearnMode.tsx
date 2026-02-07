@@ -47,7 +47,7 @@ const LearnMode = () => {
           ))}
         </div>
 
-        <Card className="p-12 md:p-16 bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5 border-2 border-indigo/20 shadow-paper relative overflow-hidden">
+        <Card className="p-12 md:p-16 bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5 border-2 border-indigo/20 shadow-lg relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9Ii4wMiIvPjwvZz48L3N2Zz4=')] opacity-30" />
           
           <div className="relative">

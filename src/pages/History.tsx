@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Trophy, TrendingDown, Play, Sparkles } from 'lucide-react';
+import { Trophy, TrendingDown, Play, Sparkles } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 
 type MatchHistory = {
   id: string;
@@ -109,12 +110,11 @@ export default function History() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen">
+      <NavBar />
+      <div className="p-4 md:p-8 pt-14">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate('/lobby')} className="mb-4 gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to Lobby
-          </Button>
           <h1 className="font-body text-4xl font-semibold text-foreground mb-2">Match History</h1>
           <p className="text-muted-foreground font-body">Review your past games and victories</p>
         </div>
@@ -137,7 +137,7 @@ export default function History() {
                 <Card
                   key={match.id}
                   className={`p-6 shadow-soft border-2 transition-all duration-300 ${
-                    won ? 'border-indigo/30 hover:border-indigo/50' : 'border-border hover:border-graphite/50'
+                    won ? 'border-indigo/30 hover:border-indigo/50' : 'border-border hover:border-border'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -145,11 +145,11 @@ export default function History() {
                       {won ? (
                         <Trophy className="h-10 w-10 text-ochre" />
                       ) : (
-                        <TrendingDown className="h-10 w-10 text-graphite" />
+                        <TrendingDown className="h-10 w-10 text-muted-foreground" />
                       )}
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <Badge className={`font-mono ${won ? 'bg-indigo' : 'bg-graphite'}`}>
+                          <Badge className={`font-mono ${won ? 'bg-indigo' : 'bg-muted'}`}>
                             {match.size}×{match.size}
                           </Badge>
                           {match.ai_difficulty && (
@@ -199,6 +199,7 @@ export default function History() {
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

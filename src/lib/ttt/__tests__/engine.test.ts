@@ -100,6 +100,13 @@ describe('TicTacToe Engine', () => {
       game.play(0);
       expect(game.winner()).toBe(0);
     });
+
+    it('supports misere variant (making 3-in-a-row loses)', () => {
+      const game = new TicTacToe({ misere: true });
+      // P1 completes top row, so P2 should be declared winner.
+      game.play(0); game.play(3); game.play(1); game.play(4); game.play(2);
+      expect(game.winner()).toBe(2);
+    });
   });
 
   describe('isDraw', () => {

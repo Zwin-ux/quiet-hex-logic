@@ -112,7 +112,7 @@ export default function App() {
           break;
         case 'SHARE': {
           const { Share } = require('react-native');
-          await Share.share({ message: data.message || 'Check out The Open Board!', url: data.url });
+          await Share.share({ message: data.message || 'Check out Hexology!', url: data.url });
           break;
         }
       }

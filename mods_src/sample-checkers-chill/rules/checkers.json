@@ -1,0 +1,8 @@
+{
+  "mandatoryCapture": false,
+  "draw": {
+    "threefoldRepetition": true,
+    "noCaptureHalfMoves": 20
+  }
+}
+

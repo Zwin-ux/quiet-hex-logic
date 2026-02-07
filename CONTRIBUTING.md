@@ -1,4 +1,4 @@
-# Contributing to The Open Board+
+# Contributing to Hexology
 
 Thanks for your interest in contributing! This guide will help you get started.
 
@@ -48,7 +48,7 @@ pnpm lint
 
 ## How to Add a New Game
 
-The Open Board+ uses a game registry pattern. To add a new game:
+Hexology uses a game registry pattern. To add a new game:
 
 1. **Create the engine** — `src/lib/<game>/engine.ts` implementing core game logic
 2. **Create an adapter** — `src/lib/engine/adapters/<game>Adapter.ts` wrapping your engine behind the `GameEngine` interface

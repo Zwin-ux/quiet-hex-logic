@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { 
-  Play, 
-  BookOpen, 
-  Zap, 
+import {
   ChevronRight,
   Loader2,
-  Sparkles
+  Sparkles,
+  Zap,
+  Hexagon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { listGames } from '@/lib/engine/registry';
+import { getGameMeta } from '@/lib/gameMetadata';
 
 interface WelcomeOnboardingProps {
   onComplete: () => void;
-  onCreateMatch: (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number) => void;
+  onCreateMatch: (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number, gameKey?: string) => void;
   isCreating: boolean;
 }
 
@@ -23,8 +23,10 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
   const { signInAnonymously } = useAuth();
   const [step, setStep] = useState<'welcome' | 'choice'>('welcome');
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const games = listGames();
 
-  // Auto-advance from welcome after a brief moment (reduced from 1500ms)
+  // Auto-advance from welcome after a brief moment
   useEffect(() => {
     const timer = setTimeout(() => {
       setStep('choice');
@@ -32,20 +34,19 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
     return () => clearTimeout(timer);
   }, []);
 
-  const handleQuickPlay = async () => {
+  const handleGamePick = async (gameKey: string) => {
+    setSelectedGame(gameKey);
     setIsSigningIn(true);
     try {
       await signInAnonymously();
-      // Call immediately - no delay needed
-      onCreateMatch('easy', 7);
+      const gameDef = games.find((g) => g.key === gameKey);
+      const size = gameDef?.defaultBoardSize ?? 7;
+      onCreateMatch('easy', size, gameKey);
     } catch (error) {
       console.error('Failed to create guest session:', error);
       setIsSigningIn(false);
+      setSelectedGame(null);
     }
-  };
-
-  const handleTutorial = () => {
-    navigate('/tutorial');
   };
 
   const handleSignIn = () => {
@@ -57,16 +58,16 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center space-y-6 animate-in fade-in duration-700">
           <div className="relative">
-            <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-indigo to-violet flex items-center justify-center shadow-xl">
-              <Sparkles className="w-12 h-12 text-white" />
+            <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-game-hex to-game-hex/60 flex items-center justify-center shadow-xl">
+              <Hexagon className="w-12 h-12 text-white" />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-ochre flex items-center justify-center shadow-lg animate-bounce">
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-game-connect4 flex items-center justify-center shadow-lg animate-bounce">
               <Zap className="w-4 h-4 text-background" />
             </div>
           </div>
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2">The Open Board</h1>
-            <p className="text-muted-foreground">Strategic Connection Game</p>
+            <h1 className="font-display text-4xl font-bold text-foreground mb-2">Hexology</h1>
+            <p className="text-muted-foreground">Five strategy games. One platform.</p>
           </div>
           <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
         </div>
@@ -79,80 +80,54 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
       <div className="w-full max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to The Open Board</h1>
-          <p className="text-muted-foreground">Choose how you'd like to start</p>
+          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to Hexology</h1>
+          <p className="text-muted-foreground">Pick a game to start playing instantly</p>
         </div>
 
-        {/* Options */}
-        <div className="space-y-3">
-          {/* Quick Play - Primary CTA */}
-          <Card 
-            className="p-0 overflow-hidden cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all border-2 border-indigo/30 hover:border-indigo/60 shadow-lg group"
-            onClick={handleQuickPlay}
-          >
-            <div className="p-5 bg-gradient-to-r from-indigo/10 via-indigo/5 to-transparent">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-indigo to-violet flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                  <Play className="h-7 w-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                    Quick Play
-                    {(isSigningIn || isCreating) && <Loader2 className="h-4 w-4 animate-spin" />}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Jump right in with an Easy AI opponent
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </Card>
+        {/* Game picker grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {games.map((game) => {
+            const meta = getGameMeta(game.key);
+            const Icon = meta.icon;
+            const isLoading = selectedGame === game.key && (isSigningIn || isCreating);
 
-          {/* Tutorial */}
-          <Card 
-            className="p-0 overflow-hidden cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all border border-border hover:border-ochre/50 group"
-            onClick={handleTutorial}
-          >
-            <div className="p-5">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-ochre/10 flex items-center justify-center group-hover:bg-ochre/20 transition-colors">
-                  <BookOpen className="h-7 w-7 text-ochre" />
+            return (
+              <button
+                key={game.key}
+                onClick={() => handleGamePick(game.key)}
+                disabled={!!selectedGame}
+                className={`group flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${meta.bgClass} ${meta.borderClass} hover:border-opacity-60 disabled:opacity-50`}
+              >
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${meta.bgClass} group-hover:scale-110 transition-transform`}>
+                  {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Icon className={`h-6 w-6 ${meta.accentClass}`} />
+                  )}
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-foreground">Learn the Rules</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Interactive tutorial with hands-on practice
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </Card>
-
-          {/* Sign In */}
-          <Card 
-            className="p-0 overflow-hidden cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all border border-border/50 hover:border-border group"
-            onClick={handleSignIn}
-          >
-            <div className="p-5">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center group-hover:bg-muted/80 transition-colors">
-                  <Zap className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-foreground">I Have an Account</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Sign in to access ranked matches and more
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </Card>
+                <span className="font-semibold text-sm text-foreground">{game.displayName}</span>
+                <span className="text-xs text-muted-foreground">{meta.tagline}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Footer hint */}
+        {/* Sign In option */}
+        <div className="text-center space-y-3 pt-2">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
+          <Button variant="ghost" onClick={handleSignIn} className="text-muted-foreground">
+            I have an account
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+
         <p className="text-center text-xs text-muted-foreground">
           No account needed to start playing
         </p>

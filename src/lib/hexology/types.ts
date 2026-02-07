@@ -1,4 +1,4 @@
-// The Open Board game types adapted for Lovable architecture
+// Hexology game types adapted for Lovable architecture
 
 export type HexCoord = { q: number; r: number };
 

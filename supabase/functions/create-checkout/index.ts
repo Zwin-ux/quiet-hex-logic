@@ -71,7 +71,7 @@ serve(async (req) => {
       });
     }
 
-    // The Open Board+ Monthly Price ID ($5/month)
+    // Hexology+ Monthly Price ID ($5/month)
     const OPENBOARD_PLUS_PRICE_ID = 'price_1Sf366KHzChTixtj9IVQyey9';
 
     // Create checkout session

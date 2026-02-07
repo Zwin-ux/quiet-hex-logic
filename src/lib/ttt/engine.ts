@@ -4,13 +4,15 @@ export class TicTacToe {
   board: Uint8Array; // 0 empty, 1 p1, 2 p2
   turn: TttPlayer = 1;
   ply = 0;
+  readonly misere: boolean;
 
-  constructor() {
+  constructor(opts?: { misere?: boolean } | null) {
     this.board = new Uint8Array(9);
+    this.misere = opts?.misere === true;
   }
 
   clone(): TicTacToe {
-    const t = new TicTacToe();
+    const t = new TicTacToe({ misere: this.misere });
     t.board = new Uint8Array(this.board);
     t.turn = this.turn;
     t.ply = this.ply;
@@ -37,7 +39,11 @@ export class TicTacToe {
     ] as const;
     for (const [a, c, d] of lines) {
       const v = b[a];
-      if (v !== 0 && v === b[c] && v === b[d]) return v as 1 | 2;
+      if (v !== 0 && v === b[c] && v === b[d]) {
+        const winner = v as 1 | 2;
+        if (!this.misere) return winner;
+        return winner === 1 ? 2 : 1;
+      }
     }
     return 0;
   }

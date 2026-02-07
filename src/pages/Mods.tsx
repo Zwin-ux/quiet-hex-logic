@@ -10,6 +10,44 @@ import { listMods, removeMod, upsertMod } from '@/lib/mods/storage';
 import type { InstalledMod } from '@/lib/mods/schema';
 import { createLocalMatch, type LocalGameKey } from '@/lib/localMatches/storage';
 
+const SAMPLE_MODS: Array<{
+  id: string;
+  name: string;
+  description: string;
+  file: string;
+}> = [
+  {
+    id: 'sample-ttt-misere',
+    name: 'Misere Tic Tac Toe',
+    description: 'Make three in a row and you lose.',
+    file: '/mods/sample-ttt-misere.openboardmod',
+  },
+  {
+    id: 'sample-connect4-blitz',
+    name: 'Connect 3 Blitz',
+    description: 'First to connect 3 wins.',
+    file: '/mods/sample-connect4-blitz.openboardmod',
+  },
+  {
+    id: 'sample-checkers-chill',
+    name: 'Chill Checkers',
+    description: 'No forced captures, shorter no-capture draws.',
+    file: '/mods/sample-checkers-chill.openboardmod',
+  },
+  {
+    id: 'sample-chess-endgame-arena',
+    name: 'Endgame Arena',
+    description: 'Start from a king and pawn endgame.',
+    file: '/mods/sample-chess-endgame-arena.openboardmod',
+  },
+  {
+    id: 'sample-hex-no-pie',
+    name: 'No Pie Rule',
+    description: 'Disables the pie swap.',
+    file: '/mods/sample-hex-no-pie.openboardmod',
+  },
+];
+
 export default function Mods() {
   const navigate = useNavigate();
   const [mods, setMods] = useState<InstalledMod[]>(() => listMods());
@@ -43,8 +81,28 @@ export default function Mods() {
   const onStartLocal = () => {
     const mod = selectedModId === '__none__' ? null : mods.find((m) => m.manifest.id === selectedModId) ?? null;
     const rules = mod ? (mod.manifest.games as any)?.[localGameKey]?.rules ?? null : null;
-    const match = createLocalMatch({ gameKey: localGameKey, rules });
+    const pieRule = localGameKey === 'hex' && typeof (rules as any)?.pieRule === 'boolean' ? (rules as any).pieRule : undefined;
+    const match = createLocalMatch({ gameKey: localGameKey, rules, pieRule });
     navigate(`/match/${match.id}`);
+  };
+
+  const onInstallSample = async (sample: (typeof SAMPLE_MODS)[number]) => {
+    setImporting(true);
+    try {
+      const res = await fetch(sample.file);
+      if (!res.ok) throw new Error(`Failed to fetch ${sample.file}`);
+      const blob = await res.blob();
+      const file = new File([blob], `${sample.id}.openboardmod`, { type: 'application/octet-stream' });
+      const manifest = await importModFromFile(file);
+      upsertMod(manifest);
+      refresh();
+      toast.success('Mod installed', { description: `${manifest.name} (${manifest.id})` });
+    } catch (e: any) {
+      console.error('[Mods] sample install error:', e);
+      toast.error('Failed to install sample mod', { description: e?.message ?? 'Unknown error' });
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -80,6 +138,34 @@ export default function Mods() {
 
         <Card className="mb-6">
           <CardHeader>
+            <CardTitle className="text-lg">Sample Mods</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Install a couple examples to see what v1 rules mods can do.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SAMPLE_MODS.map((m) => (
+                <div key={m.id} className="p-3 rounded-lg border bg-card/50">
+                  <p className="text-sm font-medium">{m.name}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{m.description}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={importing}
+                    onClick={() => onInstallSample(m)}
+                  >
+                    Install
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
             <CardTitle className="text-lg">Start Local Game</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -91,9 +177,11 @@ export default function Mods() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="checkers">Checkers</SelectItem>
+                    <SelectItem value="hex">Hex</SelectItem>
                     <SelectItem value="chess">Chess</SelectItem>
+                    <SelectItem value="checkers">Checkers</SelectItem>
                     <SelectItem value="ttt">Tic Tac Toe</SelectItem>
+                    <SelectItem value="connect4">Connect 4</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -139,6 +227,20 @@ export default function Mods() {
                       <p className="text-sm font-medium truncate">{m.manifest.name}</p>
                       <p className="text-xs text-muted-foreground font-mono truncate">
                         {m.manifest.id}@{m.manifest.version}
+                      </p>
+                      {m.manifest.author ? (
+                        <p className="text-xs text-muted-foreground truncate">by {m.manifest.author}</p>
+                      ) : null}
+                      {m.manifest.description ? (
+                        <p className="text-xs text-muted-foreground truncate">{m.manifest.description}</p>
+                      ) : null}
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Rules:{' '}
+                        {Object.entries((m.manifest.games as any) ?? {})
+                          .filter(([, v]) => (v as any)?.rules != null)
+                          .map(([k]) => k)
+                          .sort()
+                          .join(', ') || 'none'}
                       </p>
                     </div>
                     <Button

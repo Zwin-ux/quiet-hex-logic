@@ -1,0 +1,9 @@
+{
+  "id": "sample-checkers-chill",
+  "name": "Chill Checkers",
+  "version": "1.0.0",
+  "description": "No forced captures, and shorter no-capture draws.",
+  "author": "Hexology",
+  "games": {}
+}
+

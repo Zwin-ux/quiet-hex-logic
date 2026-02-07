@@ -8,6 +8,7 @@ export type C4Player = 1 | 2;
 export class Connect4 {
   readonly cols: number;
   readonly rows: number;
+  readonly connect: number;
   /** Board stored column-major: board[col][row], row 0 = bottom. 0=empty, 1=P1, 2=P2. */
   board: Uint8Array;
   /** Next available row per column (index of lowest empty cell). -1 if column full. */
@@ -16,9 +17,10 @@ export class Connect4 {
   ply = 0;
   private _winner: 0 | 1 | 2 = 0;
 
-  constructor(cols = 7, rows = 6) {
+  constructor(cols = 7, rows = 6, connect = 4) {
     this.cols = cols;
     this.rows = rows;
+    this.connect = Math.max(3, Math.min(6, Math.floor(connect)));
     this.board = new Uint8Array(cols * rows);
     this.heights = Array(cols).fill(0);
   }
@@ -63,7 +65,7 @@ export class Connect4 {
   }
 
   clone(): Connect4 {
-    const copy = new Connect4(this.cols, this.rows);
+    const copy = new Connect4(this.cols, this.rows, this.connect);
     copy.board = new Uint8Array(this.board);
     copy.heights = [...this.heights];
     copy.turn = this.turn;
@@ -92,7 +94,7 @@ export class Connect4 {
     for (const [dc, dr] of directions) {
       let count = 1;
       // Count in positive direction
-      for (let i = 1; i < 4; i++) {
+      for (let i = 1; i < this.connect; i++) {
         const c = col + dc * i;
         const r = row + dr * i;
         if (c < 0 || c >= this.cols || r < 0 || r >= this.rows) break;
@@ -100,14 +102,14 @@ export class Connect4 {
         count++;
       }
       // Count in negative direction
-      for (let i = 1; i < 4; i++) {
+      for (let i = 1; i < this.connect; i++) {
         const c = col - dc * i;
         const r = row - dr * i;
         if (c < 0 || c >= this.cols || r < 0 || r >= this.rows) break;
         if (this.get(c, r) !== player) break;
         count++;
       }
-      if (count >= 4) return true;
+      if (count >= this.connect) return true;
     }
     return false;
   }

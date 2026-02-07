@@ -60,8 +60,8 @@ export const TutorialOverlay = ({ onClose }: TutorialOverlayProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="max-w-lg w-full p-8 shadow-paper relative animate-scale-in">
+    <div className="fixed inset-0 bg-background/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <Card className="max-w-lg w-full p-8 shadow-lg relative animate-scale-in">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 hover:bg-muted rounded-full transition-colors"

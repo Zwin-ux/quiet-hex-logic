@@ -1,6 +1,6 @@
-# The Open Board+
+# Hexology
 
-An open-source, moddable board game platform. Play classic and custom board games online, locally, or as a Discord Activity.
+A moddable board game platform. Play classic and custom board games online, locally, or as a Discord Activity.
 
 [![CI](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -54,7 +54,7 @@ supabase/
 
 ### Adding a New Game
 
-The Open Board+ uses a **game registry pattern**. To add a new game, you need:
+Hexology uses a **game registry pattern**. To add a new game, you need:
 
 1. **Engine** — `src/lib/<game>/engine.ts` with core game logic
 2. **Adapter** — `src/lib/engine/adapters/<game>Adapter.ts` implementing `GameEngine<TMove>`

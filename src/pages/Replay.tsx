@@ -352,7 +352,7 @@ export default function Replay() {
         <div className="grid md:grid-cols-2 gap-8">
           {/* Board */}
           <div>
-            <Card className="p-6 shadow-paper border-2">
+            <Card className="p-6 shadow-lg border-2">
               <HexBoard
                 size={match.size}
                 board={game.board}
@@ -380,7 +380,7 @@ export default function Replay() {
 
           {/* Controls */}
           <div className="space-y-6">
-            <Card className="p-6 shadow-paper border-2">
+            <Card className="p-6 shadow-lg border-2">
               <div className="mb-6">
                 <h2 className="font-body text-2xl font-semibold mb-4">Match Replay</h2>
                 <div className="space-y-2">
@@ -453,7 +453,7 @@ export default function Replay() {
 
             {/* Analysis Summary */}
             {analysis && (
-              <Card className="p-6 shadow-paper border-2 border-indigo/30 bg-indigo/5">
+              <Card className="p-6 shadow-lg border-2 border-indigo/30 bg-indigo/5">
                 <h3 className="font-body text-lg font-semibold mb-3 flex items-center gap-2">
                   <Brain className="h-5 w-5 text-indigo" />
                   AI Analysis
@@ -476,7 +476,7 @@ export default function Replay() {
             )}
 
             {/* Move List */}
-            <Card className="p-6 shadow-paper border-2 max-h-96 overflow-y-auto">
+            <Card className="p-6 shadow-lg border-2 max-h-96 overflow-y-auto">
               <h3 className="font-body text-lg font-semibold mb-4">Move History</h3>
               <div className="space-y-2">
                 {moves.map((move, idx) => {

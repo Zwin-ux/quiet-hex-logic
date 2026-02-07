@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/UserAvatar';
-import { ArrowLeft, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 import { toast } from 'sonner';
 
 const avatarColors = [
@@ -78,27 +79,21 @@ export default function EditProfile() {
   };
 
   return (
-    <div className="min-h-screen p-4">
+    <div className="min-h-screen">
+      <NavBar />
+      <div className="p-4 pt-14">
       {/* Hero Header */}
       <div className="relative bg-gradient-to-br from-indigo/10 via-background to-ochre/10 border-b border-border/50 mb-8 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-10 left-[15%] text-5xl opacity-5 animate-float">✏️</div>
           <div className="absolute top-20 right-[10%] text-6xl opacity-5 animate-float" style={{ animationDelay: '1s' }}>🎨</div>
         </div>
-        
+
         <div className="relative max-w-2xl mx-auto py-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/profile')}
-            className="mb-6 gap-2 hover:gap-3 transition-all hover:bg-background/60 backdrop-blur-sm"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Profile
-          </Button>
           <h1 className="font-body text-5xl font-bold mb-3 bg-gradient-to-br from-indigo via-indigo/80 to-ochre bg-clip-text text-transparent">
             Edit Profile
           </h1>
-          <p className="text-muted-foreground font-mono text-lg">Customize your The Open Board identity</p>
+          <p className="text-muted-foreground font-mono text-lg">Customize your Hexology identity</p>
         </div>
       </div>
 
@@ -242,6 +237,7 @@ export default function EditProfile() {
             </Button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   );

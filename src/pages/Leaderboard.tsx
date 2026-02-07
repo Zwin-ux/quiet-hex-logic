@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Medal, Award } from 'lucide-react';
+import { Trophy, Medal, Award } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,16 +38,8 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-
+      <NavBar />
+      <div className="container mx-auto px-4 py-8 max-w-2xl pt-14">
         <div className="text-center mb-8">
           <Trophy className="h-12 w-12 text-amber-500 mx-auto mb-4" />
           <h1 className="text-3xl font-display font-bold">Leaderboard</h1>

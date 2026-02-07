@@ -12,7 +12,8 @@ export class Connect4Adapter implements GameEngine<Connect4Move> {
 
   static create(opts?: GameEngineOptions): Connect4Adapter {
     const cols = opts?.boardSize ?? 7;
-    return new Connect4Adapter(new Connect4(cols, 6));
+    const connect = (opts?.rules as any)?.connect;
+    return new Connect4Adapter(new Connect4(cols, 6, typeof connect === 'number' ? connect : 4));
   }
 
   currentPlayer(): 1 | 2 {

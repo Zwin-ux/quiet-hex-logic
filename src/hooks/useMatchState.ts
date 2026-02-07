@@ -75,6 +75,7 @@ export function useMatchState(matchId: string | undefined) {
     isDiscordLocal?: boolean;
     aiDifficulty?: AIDifficulty;
     boardSize?: number;
+    gameKey?: string;
     discordUser?: { id: string; username: string };
   } | null;
 
@@ -241,7 +242,7 @@ export function useMatchState(matchId: string | undefined) {
         setMatch({
           id: local.id,
           size: local.size,
-          pie_rule: false,
+          pie_rule: local.pie_rule,
           status: local.status,
           turn: local.turn,
           winner: local.winner,
@@ -260,6 +261,7 @@ export function useMatchState(matchId: string | undefined) {
 
         const { adapter, lastMoveData } = replayMoves(gameKey, local.moves, {
           boardSize: local.size,
+          pieRule: local.pie_rule,
           fen: local.rules?.startFen,
           rules: local.rules,
         });
@@ -398,18 +400,20 @@ export function useMatchState(matchId: string | undefined) {
   // Initialize Discord local match
   useEffect(() => {
     if (!isDiscordLocalMatch || !discordLocalInit?.isDiscordLocal) return;
-    const boardSize = discordLocalInit.boardSize || 11;
+    const gameKey = (discordLocalInit as any).gameKey || 'hex';
+    const gameDef = getGame(gameKey);
+    const boardSize = discordLocalInit.boardSize || gameDef.defaultBoardSize;
     const difficulty = (discordLocalInit.aiDifficulty || 'easy') as AIDifficulty;
     const discordUsername = discordLocalInit.discordUser?.username || discordUser?.username || 'Player';
 
     setMatch({
       id: matchId!,
       size: boardSize,
-      pie_rule: true,
+      pie_rule: gameDef.supportsPieRule,
       status: 'active',
       turn: 1,
       winner: null,
-      game_key: 'hex',
+      game_key: gameKey,
       ai_difficulty: difficulty,
       turn_timer_seconds: null,
       turn_started_at: null,
@@ -421,7 +425,8 @@ export function useMatchState(matchId: string | undefined) {
       { profile_id: 'ai-player', color: 2, is_bot: true, username: `Computer (${difficultyLabel})`, avatar_color: 'slate' },
     ]);
 
-    setEngine(new Hex(boardSize));
+    const adapter = gameDef.createEngine({ boardSize });
+    setEngineFromAdapter(gameKey, adapter, null);
   }, [isDiscordLocalMatch, discordLocalInit, matchId, discordUser]);
 
   // Load match and subscribe to realtime for non-Discord matches

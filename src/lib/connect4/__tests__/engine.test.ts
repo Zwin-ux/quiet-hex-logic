@@ -7,6 +7,7 @@ describe('Connect4 Engine', () => {
       const game = new Connect4();
       expect(game.cols).toBe(7);
       expect(game.rows).toBe(6);
+      expect(game.connect).toBe(4);
       expect(game.turn).toBe(1);
       expect(game.ply).toBe(0);
     });
@@ -108,6 +109,15 @@ describe('Connect4 Engine', () => {
       const game = new Connect4();
       game.play(0);
       expect(game.winner()).toBe(0);
+    });
+
+    it('supports connect-3 variant', () => {
+      const game = new Connect4(7, 6, 3);
+      // P1 connects 3 horizontally on bottom row: 0,1,2
+      game.play(0); game.play(0);
+      game.play(1); game.play(1);
+      game.play(2);
+      expect(game.winner()).toBe(1);
     });
   });
 

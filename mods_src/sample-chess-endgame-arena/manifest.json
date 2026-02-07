@@ -1,0 +1,9 @@
+{
+  "id": "sample-chess-endgame-arena",
+  "name": "Endgame Arena",
+  "version": "1.0.0",
+  "description": "Start from a simple king and pawn endgame.",
+  "author": "Hexology",
+  "games": {}
+}
+

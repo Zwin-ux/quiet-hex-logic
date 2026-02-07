@@ -1,0 +1,9 @@
+{
+  "id": "sample-hex-no-pie",
+  "name": "No Pie Rule",
+  "version": "1.0.0",
+  "description": "Disables the pie swap. Pure first-move advantage.",
+  "author": "Hexology",
+  "games": {}
+}
+

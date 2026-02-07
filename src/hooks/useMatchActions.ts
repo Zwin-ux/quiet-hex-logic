@@ -73,37 +73,38 @@ export function useMatchActions({
         winner = null;
         result = 'draw';
       }
-    } else if (nextEngine instanceof CheckersEngine) {
-      const w = nextEngine.winner();
-      if (w) {
-        status = 'finished';
-        winner = w as 1 | 2;
-        result = w === 1 ? 'p1' : 'p2';
-      } else {
-        // Draw rules (v1): threefold repetition OR 50 half-moves without capture.
-        const moves = [...local.moves, localMove];
-        const rep = new Map<string, number>();
-        let noCapture = 0;
-        const v = new CheckersEngine(local.rules ?? undefined);
-        rep.set(v.hash(), 1);
-        for (const m of moves) {
-          if (m.kind !== 'checkers') continue;
-          const move = { path: m.path.map((x) => Number(x)) };
-          const captured = v.isCaptureMove(move);
-          v.play(move);
-          noCapture = captured ? 0 : noCapture + 1;
-          const h = v.hash();
-          rep.set(h, (rep.get(h) ?? 0) + 1);
-        }
-        const drawByRep = (rep.get(v.hash()) ?? 0) >= 3;
-        const drawByNoCapture = noCapture >= 50;
-        if (drawByRep || drawByNoCapture) {
+      } else if (nextEngine instanceof CheckersEngine) {
+        const w = nextEngine.winner();
+        if (w) {
           status = 'finished';
-          winner = null;
-          result = 'draw';
+          winner = w as 1 | 2;
+          result = w === 1 ? 'p1' : 'p2';
+        } else {
+          // Draw rules (v1): threefold repetition OR 50 half-moves without capture.
+          const moves = [...local.moves, localMove];
+          const rep = new Map<string, number>();
+          let noCapture = 0;
+          const v = new CheckersEngine(local.rules ?? undefined);
+          rep.set(v.hash(), 1);
+          for (const m of moves) {
+            if (m.kind !== 'checkers') continue;
+            const move = { path: m.path.map((x) => Number(x)) };
+            const captured = v.isCaptureMove(move);
+            v.play(move);
+            noCapture = captured ? 0 : noCapture + 1;
+            const h = v.hash();
+            rep.set(h, (rep.get(h) ?? 0) + 1);
+          }
+          const threefoldEnabled = v.rules.draw.threefoldRepetition === true;
+          const drawByRep = threefoldEnabled && (rep.get(v.hash()) ?? 0) >= 3;
+          const drawByNoCapture = noCapture >= v.rules.draw.noCaptureHalfMoves;
+          if (drawByRep || drawByNoCapture) {
+            status = 'finished';
+            winner = null;
+            result = 'draw';
+          }
         }
-      }
-    } else if (nextEngine instanceof Connect4) {
+      } else if (nextEngine instanceof Connect4) {
       const w = nextEngine.winner();
       if (w) {
         status = 'finished';

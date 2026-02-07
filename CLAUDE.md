@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Open Board+ is a cross-platform board game platform (not just Hex) built with React/Vite for web and Expo for mobile. It supports 5 games (Hex, Chess, Checkers, Tic Tac Toe, Connect 4) via a unified game engine registry. Features include multiplayer lobbies, Elo-rated matchmaking, AI opponents, tournaments, puzzles, Discord Activity integration, and a mod system.
+Hexology is a cross-platform board game platform built with React/Vite for web and Expo for mobile. It supports 5 games (Hex, Chess, Checkers, Tic Tac Toe, Connect 4) via a unified game engine registry. Features include multiplayer lobbies, Elo-rated matchmaking, AI opponents, tournaments, puzzles, Discord Activity integration, and a mod system.
 
 This is a Lovable (lovable.dev) project. The `lovable-tagger` dev dependency adds component tagging in development mode only.
 

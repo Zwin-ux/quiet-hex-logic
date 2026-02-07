@@ -31,7 +31,11 @@
       "Bash(pnpm lint)",
       "Bash(pnpm build:*)",
       "Bash(ls:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(xargs cat:*)",
+      "Bash(test:*)",
+      "Bash(git -C /c/Users/mzwin/quiet-hex-logic-2 log --oneline --max-count=10)",
+      "Bash(git -C /c/Users/mzwin/quiet-hex-logic-2 diff --name-only)"
     ],
     "deny": [],
     "ask": []

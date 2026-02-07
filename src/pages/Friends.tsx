@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords, AlertCircle, Eye } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Check, X, Swords, AlertCircle, Eye } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 import { usePresence } from '@/hooks/usePresence';
 
 type FriendRow = {
@@ -210,13 +211,12 @@ export default function Friends() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-gentle-pulse text-4xl">⬡</div></div>;
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen">
+      <NavBar />
+      <div className="p-4 md:p-8 pt-14">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-12">
-          <Button variant="ghost" onClick={() => navigate('/lobby')} className="mb-6 gap-2 hover:gap-3 transition-all">
-            <ArrowLeft className="h-4 w-4" /> Back to Lobby
-          </Button>
           <h1 className="font-body text-5xl font-bold mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700">Friends</h1>
           <p className="text-muted-foreground font-body text-lg">Connect, challenge, compete</p>
         </div>
@@ -318,7 +318,7 @@ export default function Friends() {
                         <div
                           className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background transition-all ${
                             friend.presenceStatus === 'online' ? 'bg-emerald-500 animate-pulse' :
-                            friend.presenceStatus === 'in_match' ? 'bg-ochre animate-pulse' : 'bg-graphite'
+                            friend.presenceStatus === 'in_match' ? 'bg-ochre animate-pulse' : 'bg-muted'
                           }`}
                         />
                       </div>
@@ -399,6 +399,7 @@ export default function Friends() {
             </div>
           </Card>
         )}
+      </div>
       </div>
     </div>
   );

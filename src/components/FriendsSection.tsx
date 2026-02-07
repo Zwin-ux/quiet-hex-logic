@@ -56,7 +56,7 @@ const FriendsSection = () => {
                     <div className="p-3 bg-accent rounded-lg group-hover:bg-indigo/10 transition-colors duration-300">
                       <Icon className="h-6 w-6 text-indigo" />
                     </div>
-                    <Badge variant="outline" className="font-mono text-xs border-graphite">
+                    <Badge variant="outline" className="font-mono text-xs border-border">
                       {feature.badge}
                     </Badge>
                   </div>

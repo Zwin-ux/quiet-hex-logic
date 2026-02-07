@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "mods:build": "node scripts/build-mods.mjs",
     "preview": "vite preview",
     "ios": "expo start --ios",
     "android": "expo start --android",

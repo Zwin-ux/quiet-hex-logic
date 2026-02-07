@@ -19,8 +19,10 @@ import { GuestModeBanner } from '@/components/GuestModeBanner';
 import { ConvertAccountModal } from '@/components/ConvertAccountModal';
 import { WelcomeOnboarding } from '@/components/WelcomeOnboarding';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import { NavBar } from '@/components/NavBar';
 import { usePresence } from '@/hooks/usePresence';
 import { UserAvatar } from '@/components/UserAvatar';
+import { listGames, getGame } from '@/lib/engine/registry';
 
 type Match = {
   id: string;
@@ -62,6 +64,7 @@ export default function Lobby() {
   }, [user]);
 
   const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('medium');
+  const [selectedAIGame, setSelectedAIGame] = useState<string>('hex');
   const [loadingLobbies, setLoadingLobbies] = useState(true);
   const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
   const { showConversionModal, setShowConversionModal, matchesCompleted } = useGuestConversion();
@@ -119,7 +122,7 @@ export default function Lobby() {
     }
   }, [isLoading, isReadyToPlay, location.state, location.pathname, handledAutoCreate, isGuest, navigate, createAIMatch, findOrCreateCompetitiveMatch]);
 
-  const createAIMatch = useCallback(async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
+  const createAIMatch = useCallback(async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11, gameKey: string = 'hex') => {
     setCreatingMatch(true);
     try {
       // Discord users: navigate directly to a local AI match
@@ -132,6 +135,7 @@ export default function Lobby() {
           isDiscordLocal: true,
           aiDifficulty: difficulty,
           boardSize: size,
+          gameKey,
           discordUser: { id: discordUser.id, username: discordUser.username },
         };
         try {
@@ -158,12 +162,21 @@ export default function Lobby() {
       }
       const currentUserId = session.user.id;
 
+      // Look up game definition for correct defaults
+      let pieRule = gameKey === 'hex';
+      try {
+        const gameDef = listGames().find(g => g.key === gameKey);
+        if (gameDef) pieRule = gameDef.supportsPieRule;
+      } catch {
+        // fallback
+      }
+
       const { data: newMatch, error } = await supabase
         .from('matches')
         .insert({
-          game_key: 'hex',
+          game_key: gameKey,
           size,
-          pie_rule: true,
+          pie_rule: pieRule,
           status: 'active',
           turn: 1,
           owner: currentUserId,
@@ -194,7 +207,7 @@ export default function Lobby() {
     }
   }, [isDiscordEnvironment, discordUser, navigate]);
 
-  const findOrCreateCompetitiveMatch = useCallback(async (gameKey: 'hex' | 'chess' | 'checkers' = 'hex') => {
+  const findOrCreateCompetitiveMatch = useCallback(async (gameKey: string = 'hex') => {
     if (!user) {
       toast.error('You must be signed in to play Competitive');
       return;
@@ -294,12 +307,12 @@ export default function Lobby() {
   // Show welcome onboarding for first-time visitors
   if (showOnboarding) {
     return (
-      <WelcomeOnboarding 
+      <WelcomeOnboarding
         onComplete={handleOnboardingComplete}
-        onCreateMatch={(difficulty, size) => {
+        onCreateMatch={(difficulty, size, gameKey) => {
           handleOnboardingComplete();
           signInAnonymously().then(() => {
-            setTimeout(() => createAIMatch(difficulty, size), 500);
+            setTimeout(() => createAIMatch(difficulty, size, gameKey || 'hex'), 500);
           });
         }}
         isCreating={creatingMatch}
@@ -355,36 +368,7 @@ export default function Lobby() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Nav */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="font-display text-xl font-bold hover:text-primary transition-colors">
-            The Open Board
-          </button>
-          <div className="flex items-center gap-1">
-            {user && (
-              <>
-                {[
-                  { icon: User, path: '/profile' },
-                  { icon: Trophy, path: '/leaderboard' },
-                  { icon: Package, path: '/mods' },
-                  { icon: Target, path: '/puzzles' },
-                  { icon: HistoryIcon, path: '/history' },
-                  { icon: Crown, path: '/premium', className: 'text-amber-500' },
-                ].map(({ icon: Icon, path, className }) => (
-                  <Button key={path} variant="ghost" size="icon" onClick={() => navigate(path)} className={`h-9 w-9 ${className || ''}`}>
-                    <Icon className="h-4 w-4" />
-                  </Button>
-                ))}
-                <Button variant="ghost" size="icon" onClick={() => { signOut(); navigate('/auth'); }} className="h-9 w-9 text-muted-foreground">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-            {!user && <Button onClick={() => navigate('/auth')} size="sm">Sign In</Button>}
-          </div>
-        </div>
-      </div>
+      <NavBar />
 
       <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
         <div className="pt-20 pb-12 px-4 max-w-4xl mx-auto space-y-8">
@@ -430,39 +414,35 @@ export default function Lobby() {
             {/* Competitive Mode */}
             {user && !isGuest && (
               <div className="space-y-3">
-                <Button
-                  onClick={() => findOrCreateCompetitiveMatch('hex')}
-                  disabled={creatingMatch}
-                  className="w-full h-32 rounded-2xl bg-gradient-to-br from-ochre via-ochre to-amber-600 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-ochre/20 flex flex-col gap-1 items-center justify-center text-background p-0 relative overflow-hidden group"
-                >
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <Trophy className="w-16 h-16" />
-                  </div>
-                  <div className="relative z-10 flex flex-col items-center">
-                    <span className="text-2xl font-bold font-display tracking-tight">Competitive Hex</span>
-                    <span className="text-xs font-mono opacity-90 font-bold uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full mt-1">13×13 • ELO Rated</span>
-                  </div>
-                </Button>
-
-                <Button
-                  onClick={() => findOrCreateCompetitiveMatch('chess')}
-                  disabled={creatingMatch}
-                  variant="outline"
-                  className="w-full h-20 rounded-2xl border-2 border-border/60 hover:border-foreground/20 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex flex-col gap-1 items-center justify-center"
-                >
-                  <span className="text-lg font-bold font-display tracking-tight">Competitive Chess</span>
-                  <span className="text-xs font-mono text-muted-foreground font-bold uppercase tracking-widest">8x8 • ELO Rated</span>
-                </Button>
-
-                <Button
-                  onClick={() => findOrCreateCompetitiveMatch('checkers')}
-                  disabled={creatingMatch}
-                  variant="outline"
-                  className="w-full h-20 rounded-2xl border-2 border-border/60 hover:border-foreground/20 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex flex-col gap-1 items-center justify-center"
-                >
-                  <span className="text-lg font-bold font-display tracking-tight">Competitive Checkers</span>
-                  <span className="text-xs font-mono text-muted-foreground font-bold uppercase tracking-widest">8x8 • ELO Rated</span>
-                </Button>
+                {listGames().filter(g => g.supportsRanked).map((g, i) => (
+                  <Button
+                    key={g.key}
+                    onClick={() => findOrCreateCompetitiveMatch(g.key)}
+                    disabled={creatingMatch}
+                    variant={i === 0 ? 'default' : 'outline'}
+                    className={`w-full rounded-2xl border-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex flex-col gap-1 items-center justify-center ${
+                      i === 0
+                        ? 'h-32 bg-gradient-to-br from-ochre via-ochre to-amber-600 border-ochre/20 text-background shadow-lg relative overflow-hidden group'
+                        : 'h-20 border-border/60 hover:border-foreground/20'
+                    }`}
+                  >
+                    {i === 0 && (
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <Trophy className="w-16 h-16" />
+                      </div>
+                    )}
+                    <div className={i === 0 ? 'relative z-10 flex flex-col items-center' : ''}>
+                      <span className={`font-bold font-display tracking-tight ${i === 0 ? 'text-2xl' : 'text-lg'}`}>
+                        Competitive {g.displayName}
+                      </span>
+                      <span className={`text-xs font-mono font-bold uppercase tracking-widest ${
+                        i === 0 ? 'opacity-90 bg-black/20 px-2 py-0.5 rounded-full mt-1' : 'text-muted-foreground'
+                      }`}>
+                        {g.defaultBoardSize}x{g.defaultBoardSize} • ELO Rated
+                      </span>
+                    </div>
+                  </Button>
+                ))}
               </div>
             )}
 
@@ -492,8 +472,24 @@ export default function Lobby() {
                   ))}
                 </div>
               </div>
+              {/* Game Picker */}
+              <div className="flex gap-1.5 flex-wrap">
+                {listGames().map(g => (
+                  <button
+                    key={g.key}
+                    onClick={() => setSelectedAIGame(g.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedAIGame === g.key
+                        ? 'bg-indigo text-white shadow-sm'
+                        : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {g.displayName}
+                  </button>
+                ))}
+              </div>
               <Button
-                onClick={() => createAIMatch(aiDifficulty, 7)}
+                onClick={() => createAIMatch(aiDifficulty, getGame(selectedAIGame).defaultBoardSize, selectedAIGame)}
                 disabled={creatingMatch}
                 className="w-full h-14 rounded-xl bg-indigo hover:bg-indigo/90 transition-all shadow-sm"
               >
@@ -596,7 +592,7 @@ export default function Lobby() {
           onOpenChange={setShowConversionModal}
           guestId={user.id}
           matchesCompleted={matchesCompleted}
-          onConversionComplete={() => toast.success('Welcome to The Open Board!')}
+          onConversionComplete={() => toast.success('Welcome to Hexology!')}
         />
       )}
     </div>

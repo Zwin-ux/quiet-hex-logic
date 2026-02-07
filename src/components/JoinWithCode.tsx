@@ -54,9 +54,9 @@ export const JoinWithCode = ({ userId }: { userId: string }) => {
   };
 
   return (
-    <Card className="p-8 shadow-paper border-2 border-border">
+    <Card className="p-8 shadow-lg border-2 border-border">
       <div className="flex items-center gap-3 mb-4">
-        <Hash className="h-6 w-6 text-graphite" />
+        <Hash className="h-6 w-6 text-muted-foreground" />
         <h2 className="font-body text-2xl font-semibold text-foreground">
           Join with Code
         </h2>

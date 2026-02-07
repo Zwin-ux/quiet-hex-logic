@@ -43,8 +43,8 @@ export function generateHexReplay(match: MatchData, moves: Move[]): string {
   const lines: string[] = [];
   
   // Header
-  lines.push(`[Event "The Open Board Game"]`);
-  lines.push(`[Site "The Open Board"]`);
+  lines.push(`[Event "Hexology Game"]`);
+  lines.push(`[Site "Hexology"]`);
   lines.push(`[Date "${new Date(match.created_at).toISOString().split('T')[0]}"]`);
   lines.push(`[Board "${match.size}x${match.size}"]`);
   lines.push(`[PieRule "${match.pie_rule ? 'Yes' : 'No'}"]`);

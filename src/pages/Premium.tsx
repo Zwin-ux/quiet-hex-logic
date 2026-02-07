@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Check, Crown, Sparkles, Trophy, Palette, Zap, Shield, Puzzle, BarChart3, Download, Star, RotateCcw } from 'lucide-react';
+import { Check, Crown, Sparkles, Trophy, Palette, Zap, Shield, Puzzle, BarChart3, Download, Star, RotateCcw } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -136,33 +137,25 @@ export default function Premium() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
+      <NavBar />
       {/* Dynamic Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] animate-float" />
         <div className="absolute bottom-[10%] right-[-5%] w-[35%] h-[35%] bg-indigo/10 rounded-full blur-[100px] animate-float" style={{ animationDelay: '-2s' }} />
       </div>
 
-      <div className="container relative mx-auto px-4 py-8 max-w-5xl z-10">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-8 hover:bg-white/10"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-
+      <div className="container relative mx-auto px-4 py-8 max-w-5xl z-10 pt-14">
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 px-5 py-2 rounded-full font-bold mb-6 shadow-xl animate-gentle-pulse">
             <Crown className="h-5 w-5" />
-            The Open Board+
+            Hexology+
           </div>
           <h1 className="text-5xl md:text-6xl font-display font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
             Elevate Your Experience
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Unlock the full potential of The Open Board. Support independent development 
+            Unlock the full potential of Hexology. Support independent development
             and get exclusive features designed for true masters.
           </p>
         </div>
@@ -241,7 +234,7 @@ export default function Premium() {
                         disabled={purchasing || loading}
                         className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 font-bold py-8 text-xl shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
                       >
-                        {purchasing ? 'Redirecting...' : 'Get The Open Board+'}
+                        {purchasing ? 'Redirecting...' : 'Get Hexology+'}
                       </Button>
                     )}
                     {isIOS && (
@@ -346,8 +339,8 @@ export default function Premium() {
           <Shield className="h-10 w-10 text-amber-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">Our Promise</h3>
           <p className="text-sm text-muted-foreground">
-            We are committed to fair play and transparency. Subscribing helps us 
-            keep The Open Board independent and ad-free. No pay-to-win, ever.
+            We are committed to fair play and transparency. Subscribing helps us
+            keep Hexology independent and ad-free. No pay-to-win, ever.
           </p>
         </div>
 

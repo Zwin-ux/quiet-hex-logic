@@ -74,7 +74,7 @@ export function ConvertAccountModal({
       if (data.error) throw new Error(data.error);
 
       toast.success('Account created successfully!', {
-        description: 'Welcome to The Open Board! All your progress has been saved.'
+        description: 'Welcome to Hexology! All your progress has been saved.'
       });
 
       onConversionComplete();

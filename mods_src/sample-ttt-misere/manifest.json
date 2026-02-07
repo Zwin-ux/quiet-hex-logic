@@ -1,0 +1,9 @@
+{
+  "id": "sample-ttt-misere",
+  "name": "Misere Tic Tac Toe",
+  "version": "1.0.0",
+  "description": "Make three in a row and you lose.",
+  "author": "Hexology",
+  "games": {}
+}
+

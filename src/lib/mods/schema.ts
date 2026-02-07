@@ -10,9 +10,13 @@ export const modManifestSchema = z.object({
   description: z.string().optional(),
   author: z.string().optional(),
   // v1: rules-only mods. Assets are reserved for later.
-  games: z.record(gameKeySchema, z.object({
-    rules: z.unknown().optional(),
-  })).default({}),
+  games: z.object({
+    hex: z.object({ rules: z.unknown().optional() }).optional(),
+    chess: z.object({ rules: z.unknown().optional() }).optional(),
+    checkers: z.object({ rules: z.unknown().optional() }).optional(),
+    ttt: z.object({ rules: z.unknown().optional() }).optional(),
+    connect4: z.object({ rules: z.unknown().optional() }).optional(),
+  }).default({}),
 });
 
 export type ModManifest = z.infer<typeof modManifestSchema>;

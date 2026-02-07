@@ -1,5 +1,5 @@
 import { TicTacToe } from '@/lib/ttt/engine';
-import type { GameEngine } from '../types';
+import type { GameEngine, GameEngineOptions } from '../types';
 
 export type TttMove = number; // cell 0-8
 
@@ -10,8 +10,8 @@ export class TttAdapter implements GameEngine<TttMove> {
     this.ttt = ttt;
   }
 
-  static create(): TttAdapter {
-    return new TttAdapter(new TicTacToe());
+  static create(opts?: GameEngineOptions): TttAdapter {
+    return new TttAdapter(new TicTacToe(opts?.rules as any));
   }
 
   currentPlayer(): 1 | 2 {

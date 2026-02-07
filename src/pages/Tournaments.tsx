@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreateTournamentDialog } from '@/components/CreateTournamentDialog';
 import { Trophy, Users, Clock, Calendar, Plus } from 'lucide-react';
+import { NavBar } from '@/components/NavBar';
 import { toast } from 'sonner';
 
 interface Tournament {
@@ -115,7 +116,9 @@ export default function Tournaments() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen">
+      <NavBar />
+      <div className="p-4 md:p-8 pt-14">
       <div className="max-w-6xl mx-auto">
         {/* Guest Mode Banner */}
         {isGuest && (
@@ -237,6 +240,7 @@ export default function Tournaments() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

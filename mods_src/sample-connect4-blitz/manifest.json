@@ -1,0 +1,9 @@
+{
+  "id": "sample-connect4-blitz",
+  "name": "Connect 3 Blitz",
+  "version": "1.0.0",
+  "description": "First to connect 3 wins. Fast and chaotic.",
+  "author": "Hexology",
+  "games": {}
+}
+

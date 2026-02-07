@@ -214,7 +214,7 @@ export default function Auth() {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Welcome to The Open Board!',
+            description: 'Welcome to Hexology!',
           });
           navigate('/lobby');
         }
@@ -247,12 +247,12 @@ export default function Auth() {
   // Forgot Password View
   if (authView === 'forgot-password') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
-          <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
+          <div className="bg-card border-2 border-border rounded-xl p-8 shadow-lg">
             <div className="text-center mb-6">
-              <h1 className="font-body text-4xl text-ink mb-2">Reset Password</h1>
-              <p className="text-ink/60 text-sm">
+              <h1 className="font-display text-4xl text-foreground mb-2">Reset Password</h1>
+              <p className="text-foreground/60 text-sm">
                 {emailSent ? 'Check your inbox' : "Enter your email to receive a reset link"}
               </p>
             </div>
@@ -263,10 +263,10 @@ export default function Auth() {
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <p className="text-ink mb-2">We sent a reset link to</p>
-                  <p className="font-semibold text-ink">{email}</p>
+                  <p className="text-foreground mb-2">We sent a reset link to</p>
+                  <p className="font-semibold text-foreground">{email}</p>
                 </div>
-                <p className="text-ink/60 text-sm">
+                <p className="text-foreground/60 text-sm">
                   Click the link in your email to reset your password.
                 </p>
                 <Button
@@ -275,7 +275,7 @@ export default function Auth() {
                     setEmailSent(false);
                     setAuthView('main');
                   }}
-                  className="text-ink/60"
+                  className="text-foreground/60"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to sign in
@@ -284,14 +284,14 @@ export default function Auth() {
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
-                  <Label htmlFor="reset-email" className="text-ink">Email</Label>
+                  <Label htmlFor="reset-email" className="text-foreground">Email</Label>
                   <Input
                     id="reset-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="mt-1 bg-paper border-graphite/30"
+                    className="mt-1 bg-background border-border"
                     required
                     autoFocus
                   />
@@ -319,7 +319,7 @@ export default function Auth() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="w-full text-ink/60"
+                  className="w-full text-foreground/60"
                   onClick={() => setAuthView('main')}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -336,20 +336,20 @@ export default function Auth() {
   // Reset Password View (after clicking email link)
   if (authView === 'reset-password') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
-          <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
+          <div className="bg-card border-2 border-border rounded-xl p-8 shadow-lg">
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <KeyRound className="h-8 w-8 text-primary" />
               </div>
-              <h1 className="font-body text-4xl text-ink mb-2">New Password</h1>
-              <p className="text-ink/60 text-sm">Enter your new password below</p>
+              <h1 className="font-display text-4xl text-foreground mb-2">New Password</h1>
+              <p className="text-foreground/60 text-sm">Enter your new password below</p>
             </div>
 
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
-                <Label htmlFor="new-password" className="text-ink">New Password</Label>
+                <Label htmlFor="new-password" className="text-foreground">New Password</Label>
                 <div className="relative mt-1">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -358,7 +358,7 @@ export default function Auth() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-10 bg-paper border-graphite/30"
+                    className="pl-10 bg-background border-border"
                     required
                     autoFocus
                   />
@@ -366,7 +366,7 @@ export default function Auth() {
               </div>
 
               <div>
-                <Label htmlFor="confirm-password" className="text-ink">Confirm Password</Label>
+                <Label htmlFor="confirm-password" className="text-foreground">Confirm Password</Label>
                 <div className="relative mt-1">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -375,7 +375,7 @@ export default function Auth() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-10 bg-paper border-graphite/30"
+                    className="pl-10 bg-background border-border"
                     required
                   />
                 </div>
@@ -404,12 +404,12 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-8">
         {/* Features Unlock Preview - Desktop */}
         <div className="hidden lg:flex flex-col justify-center flex-1 pr-8">
-          <h2 className="text-2xl font-bold text-ink mb-2">Unlock Full Access</h2>
-          <p className="text-ink/60 mb-6">Create an account to access all features</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Unlock Full Access</h2>
+          <p className="text-foreground/60 mb-6">Create an account to access all features</p>
           <div className="space-y-4">
             {UNLOCK_FEATURES.map((feature, i) => (
               <div 
@@ -421,8 +421,8 @@ export default function Auth() {
                   <feature.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-ink">{feature.label}</p>
-                  <p className="text-sm text-ink/60">{feature.description}</p>
+                  <p className="font-medium text-foreground">{feature.label}</p>
+                  <p className="text-sm text-foreground/60">{feature.description}</p>
                 </div>
                 <CheckCircle2 className="h-5 w-5 text-primary/50" />
               </div>
@@ -435,24 +435,24 @@ export default function Auth() {
           {/* Mobile Features Preview */}
           <div className="lg:hidden mb-6">
             <div className="bg-gradient-to-r from-primary/10 to-violet/10 rounded-xl p-4 border border-primary/20">
-              <p className="text-sm font-medium text-ink mb-3 text-center">Unlock with an account:</p>
+              <p className="text-sm font-medium text-foreground mb-3 text-center">Unlock with an account:</p>
               <div className="flex justify-center gap-6">
                 {UNLOCK_FEATURES.map((feature) => (
                   <div key={feature.label} className="flex flex-col items-center gap-1">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <feature.icon className="h-5 w-5 text-primary" />
                     </div>
-                    <span className="text-xs text-ink/70 text-center max-w-[60px]">{feature.label.split(' ')[0]}</span>
+                    <span className="text-xs text-foreground/70 text-center max-w-[60px]">{feature.label.split(' ')[0]}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
+          <div className="bg-card border-2 border-border rounded-xl p-8 shadow-lg">
             <div className="text-center mb-6">
-              <h1 className="font-body text-4xl text-ink mb-2">The Open Board</h1>
-              <p className="text-ink/60 text-sm">
+              <h1 className="font-display text-4xl text-foreground mb-2">Hexology</h1>
+              <p className="text-foreground/60 text-sm">
                 {emailSent ? 'Check your inbox' : authTab === 'signup' ? 'Create your account' : 'Welcome back'}
               </p>
             </div>
@@ -463,10 +463,10 @@ export default function Auth() {
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <p className="text-ink mb-2">We sent a magic link to</p>
-                  <p className="font-semibold text-ink">{email}</p>
+                  <p className="text-foreground mb-2">We sent a magic link to</p>
+                  <p className="font-semibold text-foreground">{email}</p>
                 </div>
-                <p className="text-ink/60 text-sm">
+                <p className="text-foreground/60 text-sm">
                   Click the link in your email to sign in instantly.
                 </p>
                 <Button
@@ -475,7 +475,7 @@ export default function Auth() {
                     setEmailSent(false);
                     setEmail('');
                   }}
-                  className="text-ink/60"
+                  className="text-foreground/60"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Use a different email
@@ -537,10 +537,10 @@ export default function Auth() {
 
                 <div className="relative mb-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-graphite/20" />
+                    <div className="w-full border-t border-border/50" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-paper px-2 text-ink/50">or continue with email</span>
+                    <span className="bg-card px-2 text-foreground/50">or continue with email</span>
                   </div>
                 </div>
 
@@ -573,14 +573,14 @@ export default function Auth() {
                 {authMode === 'magic-link' ? (
                   <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="email" className="text-ink">Email</Label>
+                      <Label htmlFor="email" className="text-foreground">Email</Label>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="your@email.com"
-                        className="mt-1 bg-paper border-graphite/30"
+                        className="mt-1 bg-background border-border"
                         required
                         autoFocus
                       />
@@ -636,7 +636,7 @@ export default function Auth() {
                     <form onSubmit={handlePasswordSubmit} className="space-y-4">
                       {authTab === 'signup' && (
                         <div>
-                          <Label htmlFor="username" className="text-ink">Username</Label>
+                          <Label htmlFor="username" className="text-foreground">Username</Label>
                           <div className="relative mt-1">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
@@ -645,7 +645,7 @@ export default function Auth() {
                               value={username}
                               onChange={(e) => setUsername(e.target.value)}
                               placeholder="Choose a username"
-                              className="pl-10 bg-paper border-graphite/30"
+                              className="pl-10 bg-background border-border"
                               required
                               autoFocus
                             />
@@ -654,7 +654,7 @@ export default function Auth() {
                       )}
                       
                       <div>
-                        <Label htmlFor="email-password" className="text-ink">Email</Label>
+                        <Label htmlFor="email-password" className="text-foreground">Email</Label>
                         <div className="relative mt-1">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
@@ -663,7 +663,7 @@ export default function Auth() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="your@email.com"
-                            className="pl-10 bg-paper border-graphite/30"
+                            className="pl-10 bg-background border-border"
                             required
                             autoFocus={authTab === 'signin'}
                           />
@@ -672,7 +672,7 @@ export default function Auth() {
 
                       <div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="password" className="text-ink">Password</Label>
+                          <Label htmlFor="password" className="text-foreground">Password</Label>
                           {authTab === 'signin' && (
                             <button
                               type="button"
@@ -691,7 +691,7 @@ export default function Auth() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="pl-10 bg-paper border-graphite/30"
+                            className="pl-10 bg-background border-border"
                             required
                           />
                         </div>
@@ -722,14 +722,14 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => navigate('/lobby')}
-                className="text-sm text-ink/60 hover:text-ink transition-gentle"
+                className="text-sm text-foreground/60 hover:text-foreground transition-gentle"
               >
                 Continue as guest instead
               </button>
             </div>
           </div>
 
-          <p className="text-center text-ink/40 text-xs mt-8">
+          <p className="text-center text-foreground/40 text-xs mt-8">
             "Every move is a question. The board will answer."
           </p>
         </div>

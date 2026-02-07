@@ -1,11 +1,13 @@
-export type LocalGameKey = 'chess' | 'ttt' | 'checkers';
+export type LocalGameKey = 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
 
 export type LocalMatchStatus = 'active' | 'finished';
 
 export type LocalMove =
+  | { kind: 'hex'; cell: number | null }
   | { kind: 'chess'; uci: string }
   | { kind: 'ttt'; cell: number }
-  | { kind: 'checkers'; path: number[] };
+  | { kind: 'checkers'; path: number[] }
+  | { kind: 'connect4'; col: number };
 
 export type LocalMatch = {
   id: string;
@@ -26,9 +28,12 @@ function keyFor(id: string): string {
   return `openboard_local_match:${id}`;
 }
 
-export function createLocalMatch(opts: { gameKey: LocalGameKey; rules?: any | null }): LocalMatch {
+export function createLocalMatch(opts: { gameKey: LocalGameKey; rules?: any | null; pieRule?: boolean }): LocalMatch {
   const id = `local-${crypto.randomUUID()}`;
-  const size = opts.gameKey === 'ttt' ? 3 : 8;
+  const sizeMap: Record<LocalGameKey, number> = { hex: 11, chess: 8, checkers: 8, ttt: 3, connect4: 7 };
+  const size = sizeMap[opts.gameKey] ?? 8;
+  const defaultPieRule = opts.gameKey === 'hex';
+  const pieRule = opts.pieRule;
   const match: LocalMatch = {
     id,
     game_key: opts.gameKey,
@@ -38,7 +43,7 @@ export function createLocalMatch(opts: { gameKey: LocalGameKey; rules?: any | nu
     winner: null,
     result: null,
     size,
-    pie_rule: false,
+    pie_rule: typeof pieRule === 'boolean' ? pieRule : defaultPieRule,
     is_ranked: false,
     rules: opts.rules ?? null,
     moves: [],

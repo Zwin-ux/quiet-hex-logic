@@ -1,5 +1,6 @@
 import { unzipSync, strFromU8 } from 'fflate';
 import { modManifestSchema, type ModManifest } from '@/lib/mods/schema';
+import { validateModManifest } from '@/lib/mods/validate';
 
 async function readFileText(file: File): Promise<string> {
   return await file.text();
@@ -22,7 +23,9 @@ export async function importModFromFile(file: File): Promise<ModManifest> {
   if (lower.endsWith('.json')) {
     const raw = await readFileText(file);
     const json = JSON.parse(raw);
-    return modManifestSchema.parse(json);
+    const manifest = modManifestSchema.parse(json);
+    validateModManifest(manifest);
+    return manifest;
   }
 
   if (lower.endsWith('.zip') || lower.endsWith('.openboardmod')) {
@@ -49,6 +52,7 @@ export async function importModFromFile(file: File): Promise<ModManifest> {
       ['chess', 'rules/chess.json'],
       ['checkers', 'rules/checkers.json'],
       ['ttt', 'rules/ttt.json'],
+      ['connect4', 'rules/connect4.json'],
     ] as const;
 
     for (const [gameKey, p] of rulePaths) {
@@ -58,7 +62,9 @@ export async function importModFromFile(file: File): Promise<ModManifest> {
       games[gameKey] = { ...(games[gameKey] ?? {}), rules };
     }
 
-    return modManifestSchema.parse({ ...manifest, games });
+    const merged = modManifestSchema.parse({ ...manifest, games });
+    validateModManifest(merged);
+    return merged;
   }
 
   throw new Error('Unsupported mod file type (expected .json or .zip)');
