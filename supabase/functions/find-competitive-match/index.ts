@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,10 +34,14 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    const body = await req.json().catch(() => ({}));
+    const { gameKey } = z.object({ gameKey: z.string().optional() }).parse(body);
+    const resolvedGameKey = gameKey ?? 'hex';
+
     // Check if user is a guest (guests cannot play competitive)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('is_guest, elo_rating')
+      .select('is_guest')
       .eq('id', user.id)
       .single();
 
@@ -49,69 +54,38 @@ Deno.serve(async (req) => {
       throw new Error('Guests cannot play competitive mode. Please create an account.');
     }
 
-    const userElo = profile?.elo_rating ?? 1200;
-
-    // Try to find an existing waiting match atomically
-    // Use FOR UPDATE SKIP LOCKED to prevent race conditions
-    const { data: waitingMatch, error: searchError } = await supabaseAdmin
-      .rpc('find_and_lock_competitive_match', {
-        _user_id: user.id,
-        _user_elo: userElo
-      });
-
-    if (searchError) {
-      console.error('RPC error:', searchError);
-      // RPC might not exist yet, fall back to regular query
+    // Per-game rating (defaults to 1200).
+    let userElo = 1200;
+    try {
+      const { data: pr } = await supabaseAdmin
+        .from('player_ratings')
+        .select('elo_rating')
+        .eq('profile_id', user.id)
+        .eq('game_key', resolvedGameKey)
+        .maybeSingle();
+      if (pr?.elo_rating) userElo = pr.elo_rating;
+    } catch {
+      // If migrations aren't applied yet, fall back for hex.
+      if (resolvedGameKey === 'hex') {
+        const { data: p2 } = await supabaseAdmin
+          .from('profiles')
+          .select('elo_rating')
+          .eq('id', user.id)
+          .maybeSingle();
+        if ((p2 as any)?.elo_rating) userElo = (p2 as any).elo_rating;
+      }
     }
 
-    // If RPC worked and found a match, join it
-    if (waitingMatch && waitingMatch.length > 0) {
-      const matchId = waitingMatch[0].id;
+    const matchSize = (resolvedGameKey === 'chess' || resolvedGameKey === 'checkers') ? 8 : 13;
 
-      // Insert player
-      const { error: joinError } = await supabaseAdmin
-        .from('match_players')
-        .insert({
-          match_id: matchId,
-          profile_id: user.id,
-          color: 2, // Joiner is player 2 (ochre)
-          is_bot: false
-        });
-
-      if (joinError) {
-        console.error('Join error:', joinError);
-        throw new Error('Failed to join match');
-      }
-
-      // Update match to active
-      const { error: updateError } = await supabaseAdmin
-        .from('matches')
-        .update({
-          status: 'active',
-          turn_started_at: new Date().toISOString()
-        })
-        .eq('id', matchId);
-
-      if (updateError) {
-        console.error('Update error:', updateError);
-        throw new Error('Failed to activate match');
-      }
-
-      console.log(`User ${user.id} joined competitive match ${matchId}`);
-
-      return new Response(
-        JSON.stringify({ matchId, joined: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // No waiting match found - try finding one manually (fallback for when RPC doesn't exist)
+    // Find a waiting match (simple approach; can be upgraded to a locking RPC later)
     const { data: waitingMatches, error: manualSearchError } = await supabaseAdmin
       .from('matches')
       .select('id, owner')
       .eq('status', 'waiting')
       .eq('is_ranked', true)
-      .eq('size', 13)
+      .eq('size', matchSize)
+      .eq('game_key', resolvedGameKey)
       .neq('owner', user.id)
       .order('created_at', { ascending: true })
       .limit(1);
@@ -193,8 +167,9 @@ Deno.serve(async (req) => {
     const { data: newMatch, error: createError } = await supabaseAdmin
       .from('matches')
       .insert({
-        size: 13,
-        pie_rule: true,
+        game_key: resolvedGameKey,
+        size: matchSize,
+        pie_rule: (resolvedGameKey === 'chess' || resolvedGameKey === 'checkers') ? false : true,
         status: 'waiting',
         turn: 1,
         owner: user.id,

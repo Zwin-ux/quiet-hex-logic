@@ -71,14 +71,14 @@ serve(async (req) => {
       });
     }
 
-    // Hexology+ Monthly Price ID ($5/month)
-    const HEXOLOGY_PLUS_PRICE_ID = 'price_1Sf366KHzChTixtj9IVQyey9';
+    // The Open Board+ Monthly Price ID ($5/month)
+    const OPENBOARD_PLUS_PRICE_ID = 'price_1Sf366KHzChTixtj9IVQyey9';
 
     // Create checkout session
     const origin = req.headers.get('origin') || 'http://localhost:5173';
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      line_items: [{ price: HEXOLOGY_PLUS_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: OPENBOARD_PLUS_PRICE_ID, quantity: 1 }],
       mode: 'subscription',
       success_url: `${origin}/premium?success=true`,
       cancel_url: `${origin}/premium?canceled=true`,
@@ -89,7 +89,7 @@ serve(async (req) => {
     await supabase.from('subscriptions').upsert({
       user_id: user.id,
       stripe_customer_id: customerId,
-      plan: 'hexology_plus',
+      plan: 'openboard_plus',
       status: 'pending',
     }, { onConflict: 'user_id' });
 

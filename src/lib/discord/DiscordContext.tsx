@@ -72,7 +72,6 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
     setIsDiscordEnvironment(isDiscord);
     
     if (!isDiscord || initRef.current) {
-      console.log('[Discord] Not in Discord or already initialized');
       return;
     }
     
@@ -80,12 +79,8 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
 
     const setupDiscordSdk = async () => {
       try {
-        console.log('[Discord] Initializing Discord SDK...');
-        
         // Client ID is public/publishable - safe to hardcode as fallback
         const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1443319127170089172';
-        
-        console.log('[Discord] Using Client ID:', clientId);
 
         // Dynamic import to avoid bundler issues
         const { DiscordSDK } = await import('@discord/embedded-app-sdk');
@@ -94,14 +89,12 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
         setDiscordSdk(sdk);
 
         await sdk.ready();
-        console.log('[Discord] SDK is ready');
         setIsReady(true);
 
         setGuildId(sdk.guildId ?? null);
         setChannelId(sdk.channelId ?? null);
         setInstanceId(sdk.instanceId ?? null);
 
-        console.log('[Discord] Requesting authorization...');
         const { code } = await sdk.commands.authorize({
           client_id: clientId,
           response_type: 'code',
@@ -110,8 +103,6 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
           scope: ['identify', 'guilds', 'rpc.activities.write'],
         });
 
-        console.log('[Discord] Exchanging code for token...');
-
         // In Discord Activities, outbound HTTP requests may require a proxy mapping.
         // If you configured a Discord "Proxy Path Mapping" like:
         //   Prefix: /api
@@ -119,9 +110,7 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
         // then we should call the token exchange via a relative URL.
         const tokenExchangeUrl = isDiscord
           ? `/api/discord-token-exchange`
-          : `https://ptuxqfwicdpdslqwnswd.supabase.co/functions/v1/discord-token-exchange`;
-
-        console.log('[Discord] Token exchange URL:', tokenExchangeUrl);
+          : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/discord-token-exchange`;
 
         let response: Response;
         try {
@@ -143,13 +132,11 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
         const { access_token } = await response.json();
         setAccessToken(access_token);
 
-        console.log('[Discord] Authenticating...');
         const auth = await sdk.commands.authenticate({ access_token });
         
         if (auth?.user) {
           setDiscordUser(auth.user as DiscordUser);
           setIsAuthenticated(true);
-          console.log('[Discord] Authenticated as:', auth.user.username);
         }
 
         sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', (event: any) => {

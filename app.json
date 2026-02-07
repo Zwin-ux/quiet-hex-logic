@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Hexology+",
-    "slug": "hexology",
+    "name": "The Open Board+",
+    "slug": "openboard",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zwin.hexology",
+      "bundleIdentifier": "com.zwin.openboard",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.zwin.hexology"
+      "package": "com.zwin.openboard"
     },
     "web": {
       "favicon": "./public/favicon.ico"

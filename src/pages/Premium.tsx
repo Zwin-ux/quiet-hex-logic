@@ -37,7 +37,7 @@ export default function Premium() {
     setPurchasing(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId: 'hexology_plus_monthly' },
+        body: { priceId: 'openboard_plus_monthly' },
       });
 
       if (error) throw error;
@@ -67,7 +67,8 @@ export default function Premium() {
 
   const isNative = (window as unknown as { isNativeApp?: boolean }).isNativeApp;
   const isIOS = (window as unknown as { nativePlatform?: string }).nativePlatform === 'ios';
-  const showStripe = !isIOS; // Only show Stripe if not on iOS native
+  const showIAP = isIOS && isNative;
+  const showStripe = !showIAP;
 
   useEffect(() => {
     if (!isNative) return;
@@ -155,13 +156,13 @@ export default function Premium() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 px-5 py-2 rounded-full font-bold mb-6 shadow-xl animate-gentle-pulse">
             <Crown className="h-5 w-5" />
-            Hexology+
+            The Open Board+
           </div>
           <h1 className="text-5xl md:text-6xl font-display font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
             Elevate Your Experience
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Unlock the full potential of Hexology. Support independent development 
+            Unlock the full potential of The Open Board. Support independent development 
             and get exclusive features designed for true masters.
           </p>
         </div>
@@ -225,7 +226,7 @@ export default function Premium() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {isIOS && (
+                    {showIAP && (
                       <Button
                         onClick={handleNativePurchase}
                         disabled={loading}
@@ -238,13 +239,9 @@ export default function Premium() {
                       <Button
                         onClick={handleSubscribe}
                         disabled={purchasing || loading}
-                        variant={isIOS ? "outline" : "default"}
-                        className={cn(
-                          "w-full font-bold py-8 text-xl shadow-lg transition-all duration-300",
-                          !isIOS && "bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 hover:shadow-amber-500/20"
-                        )}
+                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 font-bold py-8 text-xl shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
                       >
-                        {purchasing ? 'Redirecting...' : isIOS ? 'Or Subscribe via Stripe' : 'Get Hexology+'}
+                        {purchasing ? 'Redirecting...' : 'Get The Open Board+'}
                       </Button>
                     )}
                     {isIOS && (
@@ -350,7 +347,7 @@ export default function Premium() {
           <h3 className="text-xl font-semibold mb-2">Our Promise</h3>
           <p className="text-sm text-muted-foreground">
             We are committed to fair play and transparency. Subscribing helps us 
-            keep Hexology independent and ad-free. No pay-to-win, ever.
+            keep The Open Board independent and ad-free. No pay-to-win, ever.
           </p>
         </div>
 

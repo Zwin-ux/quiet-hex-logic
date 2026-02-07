@@ -214,7 +214,7 @@ export default function Auth() {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Welcome to Hexology!',
+            description: 'Welcome to The Open Board!',
           });
           navigate('/lobby');
         }
@@ -451,7 +451,7 @@ export default function Auth() {
 
           <div className="bg-paper border-2 border-graphite/30 rounded-xl p-8 shadow-paper">
             <div className="text-center mb-6">
-              <h1 className="font-body text-4xl text-ink mb-2">Hexology</h1>
+              <h1 className="font-body text-4xl text-ink mb-2">The Open Board</h1>
               <p className="text-ink/60 text-sm">
                 {emailSent ? 'Check your inbox' : authTab === 'signup' ? 'Create your account' : 'Welcome back'}
               </p>

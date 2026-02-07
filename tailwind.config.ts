@@ -74,20 +74,28 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "page-enter": {
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "skeleton-pulse": {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "0.8" },
+        },
+        "win-flash": {
+          "0%": { opacity: "0.6" },
+          "100%": { opacity: "0" },
+        },
+        "breathe": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.003)" },
         },
       },
       animation: {
@@ -95,6 +103,10 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "float": "float 8s ease-in-out infinite",
         "gentle-pulse": "gentle-pulse 3s ease-in-out infinite",
+        "page-enter": "page-enter 200ms ease-out",
+        "skeleton-pulse": "skeleton-pulse 1.5s ease-in-out infinite",
+        "win-flash": "win-flash 600ms ease-out forwards",
+        "breathe": "breathe 4s ease-in-out infinite",
       },
       boxShadow: {
         'soft': 'var(--shadow-soft)',

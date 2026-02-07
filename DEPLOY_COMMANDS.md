@@ -76,7 +76,7 @@ eas submit --platform ios --latest
 
 ### "No bundle identifier found"
 
-- Make sure `app.json` has `"bundleIdentifier": "com.zwin.hexology"`
+- Make sure `app.json` has `"bundleIdentifier": "com.zwin.hexology"` (legacy bundle id)
 
 ### "Apple Developer account not found"
 
@@ -93,7 +93,7 @@ eas submit --platform ios --latest
 ## 📱 AFTER SUBMISSION
 
 1. Go to https://appstoreconnect.apple.com
-2. Select your app "Hexology"
+2. Select your app "The Open Board"
 3. The build should appear in "TestFlight" section within 5-10 minutes
 4. Click "Submit for Review" when ready
 5. Fill out the App Store questionnaire
@@ -121,4 +121,4 @@ eas submit --platform ios --latest
 - **First build takes longer** (~20-30 min) because EAS sets up credentials
 - **Subsequent builds** are faster (~10-15 min)
 - **You can close the terminal** - build runs in the cloud
-- **Check build status**: https://expo.dev/accounts/[your-username]/projects/hexology/builds
+- **Check build status**: https://expo.dev/accounts/[your-username]/projects/hexology/builds (legacy project slug)

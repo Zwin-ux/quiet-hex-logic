@@ -65,7 +65,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
             </div>
           </div>
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2">Hexology</h1>
+            <h1 className="font-display text-4xl font-bold text-foreground mb-2">The Open Board</h1>
             <p className="text-muted-foreground">Strategic Connection Game</p>
           </div>
           <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
@@ -79,7 +79,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
       <div className="w-full max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to Hexology</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to The Open Board</h1>
           <p className="text-muted-foreground">Choose how you'd like to start</p>
         </div>
 

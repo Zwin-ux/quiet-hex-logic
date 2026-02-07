@@ -29,8 +29,8 @@ interface TutorialStep {
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 1,
-    title: 'Welcome to Hexology',
-    description: 'Hexology is a connection game played on a hexagonal grid. Two players compete to connect opposite sides of the board.',
+    title: 'Welcome to The Open Board',
+    description: 'The Open Board is a connection game played on a hexagonal grid. Two players compete to connect opposite sides of the board.',
     instruction: 'Click Next to learn the basics',
     showBoard: false,
     winCondition: 'none',
@@ -146,7 +146,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 9,
     title: 'Ready to Play!',
-    description: 'You\'ve mastered the basics of Hexology. Now it\'s time to put your skills to the test against real opponents or AI.',
+    description: 'You\'ve mastered the basics of The Open Board. Now it\'s time to put your skills to the test against real opponents or AI.',
     instruction: 'Play as a guest or sign in to track your progress and challenge friends',
     showBoard: false,
     winCondition: 'none',

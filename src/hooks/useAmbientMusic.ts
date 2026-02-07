@@ -13,20 +13,20 @@ export function useAmbientMusic() {
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(() => {
-    const saved = localStorage.getItem('hexology_music_volume');
+    const saved = localStorage.getItem('openboard_music_volume');
     return saved ? parseFloat(saved) : 0.3;
   });
   const [isMuted, setIsMuted] = useState(() => {
-    return localStorage.getItem('hexology_music_muted') === 'true';
+    return localStorage.getItem('openboard_music_muted') === 'true';
   });
 
   // Persist settings
   useEffect(() => {
-    localStorage.setItem('hexology_music_volume', volume.toString());
+    localStorage.setItem('openboard_music_volume', volume.toString());
   }, [volume]);
 
   useEffect(() => {
-    localStorage.setItem('hexology_music_muted', isMuted.toString());
+    localStorage.setItem('openboard_music_muted', isMuted.toString());
   }, [isMuted]);
 
   const getAudioContext = useCallback(() => {

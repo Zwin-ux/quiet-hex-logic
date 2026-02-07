@@ -17,7 +17,7 @@
 ```
 1. Go to: https://developer.apple.com/account/resources/identifiers/list
 2. Click [+] > App IDs > App
-3. Description: "Hexology Game"
+3. Description: "The Open Board"
 4. Bundle ID: com.zwin.hexology
 5. Check: Sign In with Apple, In-App Purchase
 6. Click Register
@@ -40,7 +40,7 @@
 1. Go to: https://appstoreconnect.apple.com/apps
 2. Click [+] > New App
 3. Platforms: iOS (check macOS/visionOS if you want)
-4. Name: Hexology
+4. Name: The Open Board
 5. Bundle ID: com.zwin.hexology
 6. SKU: hexology_2026_01
 7. Click Create
@@ -51,10 +51,10 @@
 ```
 1. In your app > In-App Purchases > Manage
 2. Click [+] > Auto-Renewable Subscription
-3. Reference Name: Hexology Plus
+3. Reference Name: The Open Board Plus
 4. Product ID: hexology_plus_monthly
 5. Price: $5.00/month
-6. Add localization: "Hexology Plus" with description
+6. Add localization: "Open Board Plus" with description
 7. Save
 ```
 
@@ -74,8 +74,8 @@ Copy/paste from: store_assets/APP_STORE_METADATA.md
 - Description
 - Keywords
 - Promotional Text
-- Support URL: https://hexology.me/support
-- Privacy URL: https://hexology.me/privacy
+- Support URL: https://hexology.me/support (legacy)
+- Privacy URL: https://hexology.me/privacy (legacy)
 ```
 
 ## 📱 BUILD & SUBMIT (DO AFTER APPLE SETUP)

@@ -7,6 +7,7 @@ type Lobby = {
   code: string;
   host_id: string | null;
   status: string;
+  game_key?: string | null;
   board_size: number;
   pie_rule: boolean;
   turn_timer_seconds: number;
@@ -98,15 +99,8 @@ export const useLobby = (lobbyId: string | null, userId: string | undefined) => 
           },
           (payload) => {
             if (payload.eventType === 'UPDATE') {
-              console.log(`[useLobby] Lobby updated:`, {
-                lobby_id: lobbyId,
-                old_status: payload.old?.status,
-                new_status: payload.new?.status,
-                user_id: userId
-              });
               setLobby(payload.new as Lobby);
             } else if (payload.eventType === 'DELETE') {
-              console.log(`[useLobby] Lobby deleted:`, { lobby_id: lobbyId });
               setError('Lobby was deleted');
               setLobby(null);
             }

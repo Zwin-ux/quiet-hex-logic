@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, LogOut, User, Lock, Play, Loader2, Zap, Trophy, Target, History as HistoryIcon, Crown, BookOpen } from 'lucide-react';
+import { Users, LogOut, User, Lock, Play, Loader2, Zap, Trophy, Target, History as HistoryIcon, Crown, BookOpen, Package } from 'lucide-react';
 import { SpectateButton } from '@/components/SpectateButton';
 import { CreateLobby } from '@/components/CreateLobby';
 import { JoinLobby } from '@/components/JoinLobby';
@@ -36,6 +36,7 @@ type LobbyWithDetails = {
   id: string;
   code: string;
   host_id: string;
+  game_key?: string | null;
   board_size: number;
   pie_rule: boolean;
   status: string;
@@ -78,7 +79,7 @@ export default function Lobby() {
   useEffect(() => {
     if (!isDiscordEnvironment && !loading && !user) {
       // Check if they've seen onboarding before
-      const hasSeenOnboarding = localStorage.getItem('hexology_onboarded');
+      const hasSeenOnboarding = localStorage.getItem('openboard_onboarded');
       if (!hasSeenOnboarding) {
         setShowOnboarding(true);
       } else {
@@ -89,7 +90,7 @@ export default function Lobby() {
   }, [loading, user, signInAnonymously, isDiscordEnvironment]);
 
   const handleOnboardingComplete = () => {
-    localStorage.setItem('hexology_onboarded', 'true');
+    localStorage.setItem('openboard_onboarded', 'true');
     setShowOnboarding(false);
   };
 
@@ -116,14 +117,13 @@ export default function Lobby() {
       navigate(location.pathname, { replace: true, state: {} });
       findOrCreateCompetitiveMatch();
     }
-  }, [isLoading, isReadyToPlay, location.state, handledAutoCreate, isGuest]);
+  }, [isLoading, isReadyToPlay, location.state, location.pathname, handledAutoCreate, isGuest, navigate, createAIMatch, findOrCreateCompetitiveMatch]);
 
-  const createAIMatch = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
+  const createAIMatch = useCallback(async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', size: number = 11) => {
     setCreatingMatch(true);
     try {
       // Discord users: navigate directly to a local AI match
       if (isDiscordEnvironment && discordUser) {
-        console.log('[Discord] Creating local AI match for Discord user:', discordUser.username);
         // Generate a local match ID for Discord (no database needed for single-player AI)
         const localMatchId = `discord-${discordUser.id}-${Date.now()}`;
 
@@ -161,6 +161,7 @@ export default function Lobby() {
       const { data: newMatch, error } = await supabase
         .from('matches')
         .insert({
+          game_key: 'hex',
           size,
           pie_rule: true,
           status: 'active',
@@ -191,9 +192,9 @@ export default function Lobby() {
     } finally {
       setCreatingMatch(false);
     }
-  };
+  }, [isDiscordEnvironment, discordUser, navigate]);
 
-  const findOrCreateCompetitiveMatch = async () => {
+  const findOrCreateCompetitiveMatch = useCallback(async (gameKey: 'hex' | 'chess' | 'checkers' = 'hex') => {
     if (!user) {
       toast.error('You must be signed in to play Competitive');
       return;
@@ -208,7 +209,7 @@ export default function Lobby() {
     try {
       // Use edge function for atomic matchmaking
       const { data, error } = await supabase.functions.invoke('find-competitive-match', {
-        body: {}
+        body: { gameKey }
       });
 
       if (error) throw error;
@@ -229,7 +230,7 @@ export default function Lobby() {
     } finally {
       setCreatingMatch(false);
     }
-  };
+  }, [user, isGuest, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -245,7 +246,7 @@ export default function Lobby() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, fetchActiveMatches, fetchWaitingLobbies]);
 
   const fetchActiveMatches = useCallback(async () => {
     const { data } = await supabase
@@ -262,7 +263,7 @@ export default function Lobby() {
     setLoadingLobbies(true);
     const { data: lobbyData } = await supabase
       .from('lobbies')
-      .select('id, code, host_id, board_size, pie_rule, status, created_at, profiles!lobbies_host_id_fkey(username)')
+      .select('id, code, host_id, game_key, board_size, pie_rule, status, created_at, profiles!lobbies_host_id_fkey(username)')
       .eq('status', 'waiting')
       .order('created_at', { ascending: false })
       .limit(10);
@@ -358,7 +359,7 @@ export default function Lobby() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => navigate('/')} className="font-display text-xl font-bold hover:text-primary transition-colors">
-            Hexology
+            The Open Board
           </button>
           <div className="flex items-center gap-1">
             {user && (
@@ -366,6 +367,7 @@ export default function Lobby() {
                 {[
                   { icon: User, path: '/profile' },
                   { icon: Trophy, path: '/leaderboard' },
+                  { icon: Package, path: '/mods' },
                   { icon: Target, path: '/puzzles' },
                   { icon: HistoryIcon, path: '/history' },
                   { icon: Crown, path: '/premium', className: 'text-amber-500' },
@@ -427,19 +429,41 @@ export default function Lobby() {
           <div className="grid md:grid-cols-2 gap-4">
             {/* Competitive Mode */}
             {user && !isGuest && (
-              <Button
-                onClick={findOrCreateCompetitiveMatch}
-                disabled={creatingMatch}
-                className="w-full h-32 rounded-2xl bg-gradient-to-br from-ochre via-ochre to-amber-600 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-ochre/20 flex flex-col gap-1 items-center justify-center text-background p-0 relative overflow-hidden group"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <Trophy className="w-16 h-16" />
-                </div>
-                <div className="relative z-10 flex flex-col items-center">
-                  <span className="text-2xl font-bold font-display tracking-tight">Competitive</span>
-                  <span className="text-xs font-mono opacity-90 font-bold uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full mt-1">13×13 • ELO Rated</span>
-                </div>
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => findOrCreateCompetitiveMatch('hex')}
+                  disabled={creatingMatch}
+                  className="w-full h-32 rounded-2xl bg-gradient-to-br from-ochre via-ochre to-amber-600 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg border-2 border-ochre/20 flex flex-col gap-1 items-center justify-center text-background p-0 relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                    <Trophy className="w-16 h-16" />
+                  </div>
+                  <div className="relative z-10 flex flex-col items-center">
+                    <span className="text-2xl font-bold font-display tracking-tight">Competitive Hex</span>
+                    <span className="text-xs font-mono opacity-90 font-bold uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full mt-1">13×13 • ELO Rated</span>
+                  </div>
+                </Button>
+
+                <Button
+                  onClick={() => findOrCreateCompetitiveMatch('chess')}
+                  disabled={creatingMatch}
+                  variant="outline"
+                  className="w-full h-20 rounded-2xl border-2 border-border/60 hover:border-foreground/20 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex flex-col gap-1 items-center justify-center"
+                >
+                  <span className="text-lg font-bold font-display tracking-tight">Competitive Chess</span>
+                  <span className="text-xs font-mono text-muted-foreground font-bold uppercase tracking-widest">8x8 • ELO Rated</span>
+                </Button>
+
+                <Button
+                  onClick={() => findOrCreateCompetitiveMatch('checkers')}
+                  disabled={creatingMatch}
+                  variant="outline"
+                  className="w-full h-20 rounded-2xl border-2 border-border/60 hover:border-foreground/20 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex flex-col gap-1 items-center justify-center"
+                >
+                  <span className="text-lg font-bold font-display tracking-tight">Competitive Checkers</span>
+                  <span className="text-xs font-mono text-muted-foreground font-bold uppercase tracking-widest">8x8 • ELO Rated</span>
+                </Button>
+              </div>
             )}
 
             {/* Quick Play vs AI */}
@@ -572,7 +596,7 @@ export default function Lobby() {
           onOpenChange={setShowConversionModal}
           guestId={user.id}
           matchesCompleted={matchesCompleted}
-          onConversionComplete={() => toast.success('Welcome to Hexology!')}
+          onConversionComplete={() => toast.success('Welcome to The Open Board!')}
         />
       )}
     </div>

@@ -265,7 +265,7 @@ export default function Puzzles() {
                   Unlimited Puzzles
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Get unlimited puzzle access with Hexology+
+                  Get unlimited puzzle access with The Open Board+
                 </p>
               </div>
               <Button 

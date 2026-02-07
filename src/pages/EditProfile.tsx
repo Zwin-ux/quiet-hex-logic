@@ -98,7 +98,7 @@ export default function EditProfile() {
           <h1 className="font-body text-5xl font-bold mb-3 bg-gradient-to-br from-indigo via-indigo/80 to-ochre bg-clip-text text-transparent">
             Edit Profile
           </h1>
-          <p className="text-muted-foreground font-mono text-lg">Customize your Hexology identity</p>
+          <p className="text-muted-foreground font-mono text-lg">Customize your The Open Board identity</p>
         </div>
       </div>
 

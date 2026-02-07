@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy, Medal, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,8 @@ function getRankIcon(rank: number) {
 export default function Leaderboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { entries, loading, userRank, fetchUserRank } = useLeaderboard(100);
+  const [gameKey, setGameKey] = useState<'hex' | 'chess' | 'checkers'>('hex');
+  const { entries, loading, userRank, fetchUserRank } = useLeaderboard(100, gameKey);
 
   useEffect(() => {
     if (user?.id) {
@@ -49,7 +50,19 @@ export default function Leaderboard() {
         <div className="text-center mb-8">
           <Trophy className="h-12 w-12 text-amber-500 mx-auto mb-4" />
           <h1 className="text-3xl font-display font-bold">Leaderboard</h1>
-          <p className="text-muted-foreground">Top ranked players</p>
+          <p className="text-muted-foreground">Top ranked players ({gameKey.toUpperCase()})</p>
+        </div>
+
+        <div className="flex gap-2 justify-center mb-6">
+          <Button variant={gameKey === 'hex' ? 'default' : 'outline'} onClick={() => setGameKey('hex')}>
+            Hex
+          </Button>
+          <Button variant={gameKey === 'chess' ? 'default' : 'outline'} onClick={() => setGameKey('chess')}>
+            Chess
+          </Button>
+          <Button variant={gameKey === 'checkers' ? 'default' : 'outline'} onClick={() => setGameKey('checkers')}>
+            Checkers
+          </Button>
         </div>
 
         {user && userRank && (

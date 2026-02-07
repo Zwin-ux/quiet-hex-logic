@@ -1,73 +1,122 @@
-# Welcome to your Lovable project
+# The Open Board+
 
-## Project info
+An open-source, moddable board game platform. Play classic and custom board games online, locally, or as a Discord Activity.
 
-**URL**: https://lovable.dev/projects/ca987f1b-e343-48c8-a127-146149e94575
+[![CI](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## How can I edit this code?
+## Built-in Games
 
-There are several ways of editing your application.
+| Game | Board | Multiplayer | Ranked | AI |
+|------|-------|-------------|--------|----|
+| Hex | Variable (7x7, 9x9, 11x11) | Online + Local | Yes | Easy / Medium / Hard / Expert |
+| Chess | 8x8 | Online + Local | Yes | Easy / Medium |
+| Checkers | 8x8 (American) | Online + Local | Yes | - |
+| Tic Tac Toe | 3x3 | Online + Local | No | - |
+| Connect 4 | 7x6 | Online + Local | No | Easy / Medium / Hard |
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ca987f1b-e343-48c8-a127-146149e94575) and start prompting.
+- **Multiplayer** — Create lobbies, share codes, play online with Elo-rated matchmaking
+- **AI Opponents** — Multiple difficulty levels per game
+- **Discord Activity** — Play directly inside Discord voice channels
+- **Tournaments** — Bracket-based competitive play
+- **Puzzles** — Practice mode for Hex
+- **Replay System** — Review completed matches move-by-move
+- **Mod Support** — Extend games with custom rules (v1: local-only)
+- **Cross-platform** — Web (Vite/React) + iOS/Android (Expo)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Architecture
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+  lib/
+    engine/           # GameEngine interface, adapters, and registry
+      types.ts        # GameEngine<TMove> interface
+      registry.ts     # Central game registry (GameDefinition)
+      adapters/       # Wrappers: hex, chess, checkers, ttt, connect4
+    hex/              # Hex engine (DSU-based win detection)
+    chess/            # Chess engine (chess.js wrapper)
+    checkers/         # Checkers engine (American rules)
+    ttt/              # Tic Tac Toe engine
+    connect4/         # Connect 4 engine
+    mods/             # Mod system (schema, storage, import)
+    discord/          # Discord Activity SDK integration
+  hooks/              # React hooks (useMatchState, useMatchActions, etc.)
+  components/         # UI components (boards, panels, modals)
+  pages/              # Route components
+  integrations/
+    supabase/         # Supabase client and auto-generated types
+supabase/
+  functions/          # Deno Edge Functions (apply-move, create-lobby, etc.)
+  migrations/         # SQL migration files
 ```
 
-**Edit a file directly in GitHub**
+### Adding a New Game
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The Open Board+ uses a **game registry pattern**. To add a new game, you need:
 
-**Use GitHub Codespaces**
+1. **Engine** — `src/lib/<game>/engine.ts` with core game logic
+2. **Adapter** — `src/lib/engine/adapters/<game>Adapter.ts` implementing `GameEngine<TMove>`
+3. **Board component** — `src/components/<game>/<Game>Board.tsx`
+4. **Register** — One call to `registerGame()` in `src/lib/engine/registry.ts`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+That's it. The hooks, match page, lobby UI, and edge functions are all registry-driven.
 
-## What technologies are used for this project?
+## Development
 
-This project is built with:
+### Prerequisites
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- [Node.js](https://nodejs.org/) v18+
+- [pnpm](https://pnpm.io/)
 
-## How can I deploy this project?
+### Quick Start
 
-Simply open [Lovable](https://lovable.dev/projects/ca987f1b-e343-48c8-a127-146149e94575) and click on Share -> Publish.
+```bash
+pnpm install
+pnpm dev          # Start dev server at http://localhost:8080
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Commands
 
-Yes, you can!
+```bash
+pnpm dev          # Vite dev server (port 8080)
+pnpm build        # Production build
+pnpm lint         # ESLint
+pnpm test         # Run all tests (Vitest)
+pnpm test:watch   # Run tests in watch mode
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Mobile (Expo)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```bash
+pnpm ios          # Start Expo for iOS
+pnpm android      # Start Expo for Android
+pnpm start        # Start Expo dev server
+```
+
+## Supabase
+
+This repo uses Supabase for database, auth, realtime subscriptions, and edge functions.
+
+- **Migrations**: `supabase/migrations/` (65+ files)
+- **Edge Functions**: `supabase/functions/` (apply-move, create-lobby, update-ratings, etc.)
+- **Types**: `src/integrations/supabase/types.ts` (auto-generated, do not edit)
+
+## Mods (v1)
+
+Mods are **local-only** in v1: install from `/mods`, then start a local game.
+
+Mod package format:
+- `.zip` containing `manifest.json`
+- Optional per-game rules overlays: `rules/hex.json`, `rules/chess.json`, etc.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the mod format and how to create mods.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, branch conventions, and PR expectations.
+
+## License
+
+[MIT](LICENSE)

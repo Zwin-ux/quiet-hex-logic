@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords, AlertCircle } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Check, X, ArrowLeft, Swords, AlertCircle, Eye } from 'lucide-react';
 import { usePresence } from '@/hooks/usePresence';
 
 type FriendRow = {
@@ -132,8 +132,6 @@ export default function Friends() {
       toast.success(`Challenge sent to ${friendUsername}!`, {
         description: 'Navigating to lobby...'
       });
-
-      console.log(`[Friends] Challenge sent, lobby ${data.lobby_id} created, navigating...`);
 
       // Navigate challenger to the lobby immediately
       navigate(`/lobby/${data.lobby_id}`);
@@ -347,7 +345,16 @@ export default function Friends() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {friend.presenceStatus !== 'in_match' && (
+                      {friend.presenceStatus === 'in_match' && friend.matchId ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/match/${friend.matchId}`)}
+                          className="gap-2 hover:scale-105 transition-transform"
+                        >
+                          <Eye className="h-4 w-4" /> Watch
+                        </Button>
+                      ) : (
                         <Button
                           size="sm"
                           onClick={() => sendChallenge(friendUserId, friend.profile.username)}

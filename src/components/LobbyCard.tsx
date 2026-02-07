@@ -12,6 +12,7 @@ type LobbyCardProps = {
     id: string;
     code: string;
     host_id: string;
+    game_key?: string | null;
     board_size: number;
     pie_rule: boolean;
     created_at: string;
@@ -28,6 +29,7 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
 
   const isHost = lobby.host_id === currentUserId;
   const hostUsername = lobby.profiles?.username || 'Unknown';
+  const gameKey = lobby.game_key ?? 'hex';
 
   // Calculate time elapsed
   const createdTime = new Date(lobby.created_at);
@@ -129,10 +131,13 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
 
           {/* Settings badges */}
           <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="font-mono text-xs uppercase">
+              {gameKey}
+            </Badge>
             <Badge className="font-mono bg-indigo text-primary-foreground text-xs">
               {lobby.board_size}×{lobby.board_size}
             </Badge>
-            {lobby.pie_rule && (
+            {gameKey !== 'chess' && gameKey !== 'checkers' && gameKey !== 'ttt' && lobby.pie_rule && (
               <Badge variant="outline" className="font-mono text-xs">
                 Pie Rule
               </Badge>

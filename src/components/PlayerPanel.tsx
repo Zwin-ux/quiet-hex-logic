@@ -164,22 +164,22 @@ const PlayerPanelComponent = ({
           />
         )}
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className={cn(
-                "font-body font-semibold text-lg truncate",
-                isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-secondary via-secondary/80 to-secondary" : "text-foreground"
-              )}>
-                {username}
-              </h3>
-              {isVerifiedHuman && <VerifiedBadge size="sm" />}
-              {isPremium && <PremiumBadge size="sm" />}
-              {isAI && (
-                <Badge variant="outline" className="font-mono text-xs shrink-0">
-                  AI
-                </Badge>
-              )}
-            </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className={cn(
+              "font-body font-semibold text-lg truncate",
+              isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-secondary via-secondary/80 to-secondary" : "text-foreground"
+            )}>
+              {username}
+            </h3>
+            {isVerifiedHuman && <VerifiedBadge size="sm" />}
+            {isPremium && <PremiumBadge size="sm" />}
+            {isAI && (
+              <Badge variant="outline" className="font-mono text-xs shrink-0">
+                AI
+              </Badge>
+            )}
+          </div>
 
           {elo !== undefined && (
             <div className="mb-1">

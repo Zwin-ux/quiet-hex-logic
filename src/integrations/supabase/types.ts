@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
@@ -139,6 +137,7 @@ export type Database = {
           board_size: number
           code: string
           created_at: string | null
+          game_key: string
           host_id: string | null
           id: string
           pie_rule: boolean
@@ -150,6 +149,7 @@ export type Database = {
           board_size?: number
           code: string
           created_at?: string | null
+          game_key?: string
           host_id?: string | null
           id?: string
           pie_rule?: boolean
@@ -161,6 +161,7 @@ export type Database = {
           board_size?: number
           code?: string
           created_at?: string | null
+          game_key?: string
           host_id?: string | null
           id?: string
           pie_rule?: boolean
@@ -306,11 +307,13 @@ export type Database = {
           ai_difficulty: Database["public"]["Enums"]["ai_difficulty"] | null
           allow_spectators: boolean
           created_at: string | null
+          game_key: string
           id: string
           is_ranked: boolean | null
           lobby_id: string | null
           owner: string | null
           pie_rule: boolean
+          result: string | null
           size: number
           status: Database["public"]["Enums"]["match_status"]
           timeout_limit: number | null
@@ -326,11 +329,13 @@ export type Database = {
           ai_difficulty?: Database["public"]["Enums"]["ai_difficulty"] | null
           allow_spectators?: boolean
           created_at?: string | null
+          game_key?: string
           id?: string
           is_ranked?: boolean | null
           lobby_id?: string | null
           owner?: string | null
           pie_rule?: boolean
+          result?: string | null
           size: number
           status?: Database["public"]["Enums"]["match_status"]
           timeout_limit?: number | null
@@ -346,11 +351,13 @@ export type Database = {
           ai_difficulty?: Database["public"]["Enums"]["ai_difficulty"] | null
           allow_spectators?: boolean
           created_at?: string | null
+          game_key?: string
           id?: string
           is_ranked?: boolean | null
           lobby_id?: string | null
           owner?: string | null
           pie_rule?: boolean
+          result?: string | null
           size?: number
           status?: Database["public"]["Enums"]["match_status"]
           timeout_limit?: number | null
@@ -425,6 +432,8 @@ export type Database = {
           color: number
           created_at: string | null
           match_id: string
+          move: Json | null
+          notation: string | null
           ply: number
         }
         Insert: {
@@ -433,6 +442,8 @@ export type Database = {
           color: number
           created_at?: string | null
           match_id: string
+          move?: Json | null
+          notation?: string | null
           ply: number
         }
         Update: {
@@ -441,6 +452,8 @@ export type Database = {
           color?: number
           created_at?: string | null
           match_id?: string
+          move?: Json | null
+          notation?: string | null
           ply?: number
         }
         Relationships: [
@@ -498,6 +511,38 @@ export type Database = {
           },
         ]
       }
+      player_ratings: {
+        Row: {
+          elo_rating: number
+          game_key: string
+          games_rated: number
+          profile_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          elo_rating?: number
+          game_key: string
+          games_rated?: number
+          profile_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          elo_rating?: number
+          game_key?: string
+          games_rated?: number
+          profile_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_ratings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_color: string | null
@@ -521,6 +566,7 @@ export type Database = {
           puzzle_streak: number | null
           puzzle_streak_best: number | null
           rating_deviation: number | null
+          tutorial_completed: boolean | null
           username: string
           wallet_address: string | null
           wallet_connected_at: string | null
@@ -549,6 +595,7 @@ export type Database = {
           puzzle_streak?: number | null
           puzzle_streak_best?: number | null
           rating_deviation?: number | null
+          tutorial_completed?: boolean | null
           username: string
           wallet_address?: string | null
           wallet_connected_at?: string | null
@@ -577,6 +624,7 @@ export type Database = {
           puzzle_streak?: number | null
           puzzle_streak_best?: number | null
           rating_deviation?: number | null
+          tutorial_completed?: boolean | null
           username?: string
           wallet_address?: string | null
           wallet_connected_at?: string | null
@@ -674,6 +722,7 @@ export type Database = {
       rating_history: {
         Row: {
           created_at: string | null
+          game_key: string
           id: string
           match_id: string | null
           new_rating: number
@@ -683,6 +732,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          game_key?: string
           id?: string
           match_id?: string | null
           new_rating: number
@@ -692,6 +742,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          game_key?: string
           id?: string
           match_id?: string | null
           new_rating?: number
@@ -1381,7 +1432,6 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<

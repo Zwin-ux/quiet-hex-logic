@@ -66,8 +66,12 @@ Deno.serve(async (req) => {
 
     // Update settings
     const updates: any = {};
-    if (boardSize) updates.board_size = boardSize;
-    if (pieRule !== undefined) updates.pie_rule = pieRule;
+    const gameKey = (lobby as any).game_key ?? 'hex';
+
+    if (gameKey !== 'chess' && gameKey !== 'checkers' && gameKey !== 'ttt' && gameKey !== 'connect4') {
+      if (boardSize) updates.board_size = boardSize;
+      if (pieRule !== undefined) updates.pie_rule = pieRule;
+    }
     if (turnTimer) updates.turn_timer_seconds = turnTimer;
 
     const { data: updated, error: updateError } = await supabase

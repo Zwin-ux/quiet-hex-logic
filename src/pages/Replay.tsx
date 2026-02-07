@@ -189,7 +189,7 @@ export default function Replay() {
     if (!match) return;
     const content = generateHexReplay(match, moves);
     const dateStr = new Date(match.created_at).toISOString().split('T')[0];
-    downloadReplay(content, `hexology-${dateStr}.hex`, 'text/plain');
+    downloadReplay(content, `openboard-${dateStr}.hex`, 'text/plain');
     toast.success('Replay exported as HEX');
   };
 
@@ -197,7 +197,7 @@ export default function Replay() {
     if (!match) return;
     const content = generateJsonReplay(match, moves);
     const dateStr = new Date(match.created_at).toISOString().split('T')[0];
-    downloadReplay(content, `hexology-${dateStr}.json`, 'application/json');
+    downloadReplay(content, `openboard-${dateStr}.json`, 'application/json');
     toast.success('Replay exported as JSON');
   };
 

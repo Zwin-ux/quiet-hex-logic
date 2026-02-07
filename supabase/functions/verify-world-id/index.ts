@@ -1,142 +1,182 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Hono } from "https://deno.land/x/hono@v4.3.0/mod.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const app = new Hono();
-
-interface WorldIDProof {
-  merkle_root: string;
-  nullifier_hash: string;
-  proof: string;
-  verification_level: string;
-}
-
-app.options("/*", (c) => {
-  return c.text("OK", 200, corsHeaders);
+// World ID proof validation schema
+const worldIdProofSchema = z.object({
+  merkle_root: z.string().min(1, 'merkle_root is required'),
+  nullifier_hash: z.string().min(1, 'nullifier_hash is required'),
+  proof: z.string().min(1, 'proof is required'),
+  verification_level: z.enum(['orb', 'device']).optional().default('device'),
 });
 
-app.post("/", async (c) => {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return c.json({ error: "Unauthorized" }, 401, corsHeaders);
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('[verify-world-id] Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const worldIdApiKey = Deno.env.get("WORLD_ID_API_KEY");
-    const worldIdAppId = "app_8d9cada1f2ced37b03654cf63e62d540";
-    const worldIdAction = "verify-hexology-player";
+    // Create user-context client for auth
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
-    if (!worldIdApiKey) {
-      console.error("[verify-world-id] WORLD_ID_API_KEY not configured");
-      return c.json({ error: "World ID not configured" }, 500, corsHeaders);
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
+      console.error('[verify-world-id] Auth error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    console.log('[verify-world-id] User authenticated:', user.id);
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validationResult = worldIdProofSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('[verify-world-id] Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid proof data',
+          details: validationResult.error.format()
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Get user from auth
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const { merkle_root, nullifier_hash, proof, verification_level } = validationResult.data;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      console.error("[verify-world-id] Auth error:", claimsError);
-      return c.json({ error: "Unauthorized" }, 401, corsHeaders);
+    // Get World ID app ID from environment
+    const appId = Deno.env.get('WORLD_ID_APP_ID');
+    if (!appId) {
+      console.error('[verify-world-id] WORLD_ID_APP_ID not configured');
+      return new Response(
+        JSON.stringify({ error: 'World ID not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const userId = claimsData.claims.sub;
-    console.log(`[verify-world-id] Verifying for user: ${userId}`);
+    // Create service role client for database operations
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Parse request body
-    const body: WorldIDProof = await c.req.json();
-    const { merkle_root, nullifier_hash, proof, verification_level } = body;
-
-    if (!merkle_root || !nullifier_hash || !proof) {
-      return c.json({ error: "Missing required proof fields" }, 400, corsHeaders);
-    }
-
-    // Use service role client for database operations
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check if nullifier already used by another account
-    const { data: existingUser, error: lookupError } = await adminClient
-      .from("profiles")
-      .select("id, username")
-      .eq("world_id_nullifier", nullifier_hash)
+    // Check if nullifier already used (prevent double-verification)
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, username')
+      .eq('world_id_nullifier', nullifier_hash)
       .maybeSingle();
 
-    if (lookupError) {
-      console.error("[verify-world-id] Nullifier lookup error:", lookupError);
-      return c.json({ error: "Database error" }, 500, corsHeaders);
+    if (checkError) {
+      console.error('[verify-world-id] DB check error:', checkError);
+      return new Response(
+        JSON.stringify({ error: 'Database error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    if (existingUser && existingUser.id !== userId) {
-      console.warn(`[verify-world-id] Nullifier already used by user: ${existingUser.id}`);
-      return c.json({ 
-        error: "This World ID has already been used to verify another account" 
-      }, 409, corsHeaders);
+    if (existingUser) {
+      if (existingUser.id === user.id) {
+        // User already verified with this nullifier
+        console.log('[verify-world-id] User already verified:', user.id);
+        return new Response(
+          JSON.stringify({ success: true, already_verified: true }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        // Different user already used this World ID
+        console.warn('[verify-world-id] Nullifier already used by another user');
+        return new Response(
+          JSON.stringify({ error: 'This World ID has already been used by another account' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    // Call World ID verification API
-    console.log(`[verify-world-id] Calling World ID API for app: ${worldIdAppId}`);
+    // Verify proof with World ID API
+    console.log('[verify-world-id] Verifying proof with World ID API...');
     const verifyResponse = await fetch(
-      `https://developer.worldcoin.org/api/v2/verify/${worldIdAppId}`,
+      `https://developer.worldcoin.org/api/v2/verify/${appId}`,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           merkle_root,
           nullifier_hash,
           proof,
-          action: worldIdAction,
-          signal: userId,
+          action: 'verify-openboard-player',
+          signal: user.id, // Bind proof to this user
         }),
       }
     );
 
-    const verifyResult = await verifyResponse.json();
-    console.log(`[verify-world-id] World ID API response:`, verifyResult);
+    const verifyData = await verifyResponse.json();
+    console.log('[verify-world-id] World ID API response:', verifyResponse.status, verifyData);
 
     if (!verifyResponse.ok) {
-      console.error("[verify-world-id] World ID verification failed:", verifyResult);
-      return c.json({ 
-        error: verifyResult.detail || verifyResult.message || "Verification failed" 
-      }, 400, corsHeaders);
+      console.error('[verify-world-id] World ID verification failed:', verifyData);
+      return new Response(
+        JSON.stringify({
+          error: 'World ID verification failed',
+          details: verifyData.detail || verifyData.message || 'Unknown error'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Update user profile with verification status
-    const { error: updateError } = await adminClient
-      .from("profiles")
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
       .update({
         is_verified_human: true,
         world_id_nullifier: nullifier_hash,
         world_id_verified_at: new Date().toISOString(),
       })
-      .eq("id", userId);
+      .eq('id', user.id);
 
     if (updateError) {
-      console.error("[verify-world-id] Profile update error:", updateError);
-      return c.json({ error: "Failed to update verification status" }, 500, corsHeaders);
+      console.error('[verify-world-id] Profile update error:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to save verification status' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`[verify-world-id] Successfully verified user: ${userId}`);
-    return c.json({ 
-      success: true, 
-      verified_at: new Date().toISOString() 
-    }, 200, corsHeaders);
+    console.log('[verify-world-id] User verified successfully:', user.id);
+    return new Response(
+      JSON.stringify({
+        success: true,
+        verified: true,
+        verification_level
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error("[verify-world-id] Unexpected error:", error);
-    return c.json({ error: "Internal server error" }, 500, corsHeaders);
+    console.error('[verify-world-id] Unexpected error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
-
-Deno.serve(app.fetch);

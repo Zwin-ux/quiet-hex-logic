@@ -61,7 +61,6 @@ export function GlobalChat() {
   useEffect(() => {
     if (!user) return;
 
-    console.log('[GlobalChat] Subscribing to global_chat channel');
     const channel = supabase
       .channel('global_chat') // Use consistent channel name
       .on(
@@ -72,7 +71,6 @@ export function GlobalChat() {
           table: 'global_chat_messages',
         },
         async (payload) => {
-          console.log('[GlobalChat] New message received:', payload.new.id);
           // Fetch the full message with profile data
           const { data } = await supabase
             .from('global_chat_messages')
@@ -98,12 +96,9 @@ export function GlobalChat() {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('[GlobalChat] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('[GlobalChat] Unsubscribing from global_chat channel');
       supabase.removeChannel(channel);
     };
   }, [user, isExpanded]);

@@ -3,135 +3,176 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { supabase } from '@/integrations/supabase/client';
 
-export const WORLD_ID_APP_ID = 'app_8d9cada1f2ced37b03654cf63e62d540';
-export const WORLD_ID_ACTION = 'verify-hexology-player';
+export type VerificationLevel = 'orb' | 'device';
 
-interface WorldIDProof {
+export interface WorldIDProof {
   merkle_root: string;
   nullifier_hash: string;
   proof: string;
-  verification_level: string;
+  verification_level: VerificationLevel;
 }
 
-interface UseWorldIDReturn {
+export interface WorldIDState {
   isVerified: boolean;
   isVerifying: boolean;
   isLoading: boolean;
   verifiedAt: string | null;
   error: string | null;
-  platform: 'web' | 'discord' | 'mobile';
+  platform: 'web' | 'discord' | 'native';
   canVerify: boolean;
-  verifyProof: (proof: WorldIDProof) => Promise<boolean>;
-  clearError: () => void;
 }
 
-export function useWorldID(): UseWorldIDReturn {
+/**
+ * Hook for World ID integration across all platforms
+ * - Web: Uses IDKit widget
+ * - Discord: Shows info card (verification available on web/native)
+ * - Native (iOS/Android): Uses native IDKit SDK
+ */
+export function useWorldID() {
   const { user } = useAuth();
   const { isDiscordEnvironment } = useDiscord();
-  
-  const [isVerified, setIsVerified] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const [state, setState] = useState<WorldIDState>({
+    isVerified: false,
+    isVerifying: false,
+    isLoading: true,
+    verifiedAt: null,
+    error: null,
+    platform: 'web',
+    canVerify: false,
+  });
 
   // Detect platform
-  const platform: 'web' | 'discord' | 'mobile' = isDiscordEnvironment 
-    ? 'discord' 
-    : 'web';
+  useEffect(() => {
+    const isNative = typeof window !== 'undefined' &&
+      (window as unknown as { isNativeApp?: boolean }).isNativeApp === true;
 
-  // Can only verify on web (for now)
-  const canVerify = platform === 'web' && !!user && !isVerified;
+    let platform: 'web' | 'discord' | 'native' = 'web';
+    if (isNative) {
+      platform = 'native';
+    } else if (isDiscordEnvironment) {
+      platform = 'discord';
+    }
 
-  // Load verification status on mount
+    // Web and native can verify
+    const canVerify = platform !== 'discord';
+
+    setState(prev => ({ ...prev, platform, canVerify }));
+  }, [isDiscordEnvironment]);
+
+  // Load verification status from database
   useEffect(() => {
     async function loadVerificationStatus() {
-      if (!user) {
-        setIsLoading(false);
+      if (!user?.id) {
+        setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('is_verified_human, world_id_verified_at')
           .eq('id', user.id)
           .single();
 
-        if (fetchError) {
-          console.error('[useWorldID] Failed to load status:', fetchError);
-        } else if (data) {
-          setIsVerified(data.is_verified_human || false);
-          setVerifiedAt(data.world_id_verified_at || null);
+        if (error) {
+          console.error('[useWorldID] Failed to load status:', error);
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Failed to load verification status'
+          }));
+          return;
         }
+
+        setState(prev => ({
+          ...prev,
+          isVerified: data?.is_verified_human ?? false,
+          verifiedAt: data?.world_id_verified_at ?? null,
+          isLoading: false,
+          error: null,
+        }));
       } catch (err) {
-        console.error('[useWorldID] Unexpected error:', err);
-      } finally {
-        setIsLoading(false);
+        console.error('[useWorldID] Error:', err);
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Failed to load verification status'
+        }));
       }
     }
 
     loadVerificationStatus();
-  }, [user]);
+  }, [user?.id]);
 
-  const verifyProof = useCallback(async (proof: WorldIDProof): Promise<boolean> => {
-    if (!user) {
-      setError('You must be logged in to verify');
-      return false;
+  // Submit proof to backend for verification
+  const verifyProof = useCallback(async (proof: WorldIDProof): Promise<{ success: boolean; error?: string }> => {
+    if (!user?.id) {
+      return { success: false, error: 'Not authenticated' };
     }
 
-    setIsVerifying(true);
-    setError(null);
+    setState(prev => ({ ...prev, isVerifying: true, error: null }));
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Session expired, please log in again');
-        return false;
-      }
-
-      const response = await supabase.functions.invoke('verify-world-id', {
+      const { data, error } = await supabase.functions.invoke('verify-world-id', {
         body: proof,
       });
 
-      if (response.error) {
-        const errorMessage = response.error.message || 'Verification failed';
-        setError(errorMessage);
-        console.error('[useWorldID] Verification error:', response.error);
-        return false;
+      if (error) {
+        console.error('[useWorldID] Verification error:', error);
+        setState(prev => ({
+          ...prev,
+          isVerifying: false,
+          error: error.message || 'Verification failed'
+        }));
+        return { success: false, error: error.message };
       }
 
-      // Check for 409 conflict (already used)
-      if (response.data?.error) {
-        setError(response.data.error);
-        return false;
+      if (data?.success) {
+        setState(prev => ({
+          ...prev,
+          isVerified: true,
+          isVerifying: false,
+          verifiedAt: new Date().toISOString(),
+          error: null,
+        }));
+        return { success: true };
       }
 
-      setIsVerified(true);
-      setVerifiedAt(response.data?.verified_at || new Date().toISOString());
-      return true;
+      const errorMsg = data?.error || 'Verification failed';
+      setState(prev => ({
+        ...prev,
+        isVerifying: false,
+        error: errorMsg
+      }));
+      return { success: false, error: errorMsg };
+
     } catch (err) {
-      console.error('[useWorldID] Unexpected error:', err);
-      setError('An unexpected error occurred');
-      return false;
-    } finally {
-      setIsVerifying(false);
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useWorldID] Error:', err);
+      setState(prev => ({
+        ...prev,
+        isVerifying: false,
+        error: errorMsg
+      }));
+      return { success: false, error: errorMsg };
     }
-  }, [user]);
+  }, [user?.id]);
 
   const clearError = useCallback(() => {
-    setError(null);
+    setState(prev => ({ ...prev, error: null }));
   }, []);
 
   return {
-    isVerified,
-    isVerifying,
-    isLoading,
-    verifiedAt,
-    error,
-    platform,
-    canVerify,
+    ...state,
     verifyProof,
     clearError,
   };
 }
+
+// App ID for World ID (from environment or fallback)
+export const WORLD_ID_APP_ID =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WORLD_ID_APP_ID) ||
+  'app_8d9cada1f2ced37b03654cf63e62d540';
+
+export const WORLD_ID_ACTION = 'verify-openboard-player';

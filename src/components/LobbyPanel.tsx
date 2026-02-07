@@ -45,6 +45,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const currentPlayer = players.find(p => p.player_id === userId);
   const allReady = players.length === 2 && players.every(p => p.is_ready);
   const canStart = isHost && allReady;
+  const gameKey = (lobby as any)?.game_key ?? 'hex';
 
   // Auto-navigate both players when match starts (critical for guest navigation)
   useEffect(() => {
@@ -52,7 +53,6 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
 
     // Detect when lobby status changes to 'starting'
     if (lobby.status === 'starting') {
-      console.log(`[LobbyPanel] Lobby ${lobbyId} starting, fetching match...`);
       setHasNavigated(true); // Prevent duplicate navigation
 
       // Quick poll with timeout to get matchId
@@ -69,7 +69,6 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               .maybeSingle();
 
             if (match?.id) {
-              console.log(`[LobbyPanel] Match ${match.id} found, navigating...`);
               toast.success('Match starting!');
               navigate(`/match/${match.id}`);
               return;
@@ -241,8 +240,6 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      console.log('[LobbyPanel] Host received matchId:', data.matchId);
-      
       // Host navigates immediately with matchId
       if (data.matchId) {
         toast.success('Match starting!');
@@ -420,7 +417,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               <Select
                 value={lobby.board_size.toString()}
                 onValueChange={(v) => updateSettings('boardSize', parseInt(v))}
-                disabled={!isHost || updating}
+                disabled={!isHost || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -443,7 +440,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
                 variant={lobby.pie_rule ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => updateSettings('pieRule', !lobby.pie_rule)}
-                disabled={!isHost || updating}
+                disabled={!isHost || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
               >
                 {lobby.pie_rule ? 'On' : 'Off'}
               </Button>

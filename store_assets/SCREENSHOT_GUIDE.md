@@ -11,7 +11,7 @@ You need 3-10 screenshots for each device size. Apple requires:
 
 ### Option 1: Use Your Phone/Tablet
 
-1. Open https://hexology.me/ on your iPhone and iPad
+1. Open https://openboard.io/ on your iPhone and iPad
 2. Take screenshots of these pages:
    - Home page (with the Jan 25th banner)
    - Game board (during a match)
@@ -34,7 +34,7 @@ You need 3-10 screenshots for each device size. Apple requires:
 
 1. **Home page** - Shows launch dates and Discord link ✅
 2. **Game board** - The actual hex game in action
-3. **Premium page** - Hexology+ features
+3. **Premium page** - Plus features
 4. **Tournaments** - Shows the $500 tournament
 5. **Leaderboard** - Competitive aspect
 

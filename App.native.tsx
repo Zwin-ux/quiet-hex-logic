@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -9,20 +9,21 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as SplashScreen from "expo-splash-screen";
+import * as Haptics from "expo-haptics";
 
 import * as InAppPurchases from 'expo-in-app-purchases';
 
-// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-const PRODUCTION_URL = "https://hexology.me/";
-const SUBSCRIPTION_ID = "hexology_plus_monthly";
+const PRODUCTION_URL = "https://openboard.io/";
+const SUBSCRIPTION_ID = "openboard_plus_monthly";
+const APP_VERSION = "1.0.1";
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+  const [splashHidden, setSplashHidden] = useState(false);
 
   useEffect(() => {
-    // 1. Setup IAP Connection
     const setupIAP = async () => {
       try {
         await InAppPurchases.connectAsync();
@@ -30,7 +31,6 @@ export default function App() {
           if (responseCode === InAppPurchases.IAPResponseCode.OK) {
             results?.forEach(purchase => {
               if (!purchase.acknowledged) {
-                // Inform webview of success
                 webViewRef.current?.injectJavaScript(`
                   window.dispatchEvent(new CustomEvent('iap-success', { detail: ${JSON.stringify(purchase)} }));
                   true;
@@ -49,13 +49,16 @@ export default function App() {
         console.error("IAP connect error", e);
       }
     };
-    
+
     setupIAP();
 
-    // 2. Hide splash screen
+    // Fallback: hide splash after 1s if onLoadEnd hasn't fired
     const timer = setTimeout(async () => {
-      await SplashScreen.hideAsync();
-    }, 3000);
+      if (!splashHidden) {
+        await SplashScreen.hideAsync();
+        setSplashHidden(true);
+      }
+    }, 1000);
 
     const onBackPress = () => {
       if (webViewRef.current) {
@@ -82,16 +85,36 @@ export default function App() {
   const onMessage = async (event: { nativeEvent: { data: string } }) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'PURCHASE_PREMIUM') {
-        await InAppPurchases.getProductsAsync([SUBSCRIPTION_ID]);
-        await InAppPurchases.purchaseItemAsync(SUBSCRIPTION_ID);
-      }
-      if (data.type === 'RESTORE_PURCHASES') {
-        const { results } = await InAppPurchases.getPurchaseHistoryAsync();
-        webViewRef.current?.injectJavaScript(`
-          window.dispatchEvent(new CustomEvent('iap-restore', { detail: ${JSON.stringify(results)} }));
-          true;
-        `);
+      switch (data.type) {
+        case 'PURCHASE_PREMIUM':
+          await InAppPurchases.getProductsAsync([SUBSCRIPTION_ID]);
+          await InAppPurchases.purchaseItemAsync(SUBSCRIPTION_ID);
+          break;
+        case 'RESTORE_PURCHASES': {
+          const { results } = await InAppPurchases.getPurchaseHistoryAsync();
+          webViewRef.current?.injectJavaScript(`
+            window.dispatchEvent(new CustomEvent('iap-restore', { detail: ${JSON.stringify(results)} }));
+            true;
+          `);
+          break;
+        }
+        case 'NAVIGATE_TO':
+          if (data.url) {
+            webViewRef.current?.injectJavaScript(`window.location.href = '${data.url}'; true;`);
+          }
+          break;
+        case 'HAPTIC_FEEDBACK':
+          if (data.style === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          else if (data.style === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          else if (data.style === 'heavy') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          else if (data.style === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          break;
+        case 'SHARE': {
+          const { Share } = require('react-native');
+          await Share.share({ message: data.message || 'Check out The Open Board!', url: data.url });
+          break;
+        }
       }
     } catch (e) {
       console.error("Native message error", e);
@@ -101,11 +124,18 @@ export default function App() {
   const injectedJS = `
     window.isNativeApp = true;
     window.nativePlatform = "${Platform.OS}";
+    window.nativeAppVersion = "${APP_VERSION}";
     window.triggerNativePurchase = () => {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'PURCHASE_PREMIUM' }));
     };
     window.triggerNativeRestore = () => {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'RESTORE_PURCHASES' }));
+    };
+    window.triggerHaptic = (style) => {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'HAPTIC_FEEDBACK', style: style || 'light' }));
+    };
+    window.triggerShare = (message, url) => {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'SHARE', message, url }));
     };
     true;
   `;
@@ -121,10 +151,14 @@ export default function App() {
         domStorageEnabled={true}
         startInLoadingState={true}
         scalesPageToFit={true}
+        cacheEnabled={true}
         injectedJavaScript={injectedJS}
         onMessage={onMessage}
         onLoadEnd={async () => {
-          await SplashScreen.hideAsync();
+          if (!splashHidden) {
+            await SplashScreen.hideAsync();
+            setSplashHidden(true);
+          }
         }}
       />
     </SafeAreaView>

@@ -1,237 +1,80 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { HexServerValidator } from '../_shared/validators/hex.ts';
+import { ChessServerValidator } from '../_shared/validators/chess.ts';
+import { TttServerValidator } from '../_shared/validators/ttt.ts';
+import { CheckersServerValidator } from '../_shared/validators/checkers.ts';
+import { Connect4ServerValidator } from '../_shared/validators/connect4.ts';
+import type { ServerValidator, MoveContext } from '../_shared/validators/types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Input validation schema
 const applyMoveSchema = z.object({
   matchId: z.string().uuid('Invalid match ID'),
-  cell: z.number().int().min(0).max(10000).nullable(),
-  actionId: z.string().uuid('Invalid action ID')
+  cell: z.number().int().min(0).max(10000).nullable().optional(),
+  move: z.unknown().optional(),
+  actionId: z.string().uuid('Invalid action ID'),
+}).superRefine((val, ctx) => {
+  if (val.cell === undefined && val.move === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Either cell or move must be provided' });
+  }
 });
 
-// Disjoint Set Union for connectivity tracking
-class DSU {
-  parent: number[];
-  
-  constructor(n: number) {
-    this.parent = Array.from({ length: n }, (_, i) => i);
-  }
-  
-  find(x: number): number {
-    if (this.parent[x] !== x) {
-      this.parent[x] = this.find(this.parent[x]);
-    }
-    return this.parent[x];
-  }
-  
-  union(x: number, y: number): void {
-    const rootX = this.find(x);
-    const rootY = this.find(y);
-    if (rootX !== rootY) {
-      this.parent[rootY] = rootX;
-    }
-  }
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
 
-// Hex game engine
-class HexValidator {
-  n: number;
-  board: (0 | 1 | 2)[];
-  turn: number;
-  pieRule: boolean;
-  dsu1: DSU;
-  dsu2: DSU;
-  
-  constructor(size: number, pieRule: boolean) {
-    this.n = size;
-    this.pieRule = pieRule;
-    this.board = Array(size * size).fill(0);
-    this.turn = 1;
-    this.dsu1 = new DSU(size * size + 2);
-    this.dsu2 = new DSU(size * size + 2);
-  }
-  
-  legal(cell: number | null): boolean {
-    if (cell === null) {
-      return this.turn === 2 && this.pieRule;
-    }
-    return cell >= 0 && cell < this.board.length && this.board[cell] === 0;
-  }
-  
-  play(cell: number | null): void {
-    if (!this.legal(cell)) {
-      throw new Error('Illegal move');
-    }
-    
-    if (cell === null) {
-      // Pie rule: swap colors and rebuild DSU
-      this.board = this.board.map(c => c === 1 ? 2 : c === 2 ? 1 : 0) as (0 | 1 | 2)[];
-      
-      // Rebuild DSU after swap
-      this.dsu1 = new DSU(this.n * this.n + 2);
-      this.dsu2 = new DSU(this.n * this.n + 2);
-      
-      // Reconnect borders to virtual nodes (initially empty)
-      for (let r = 0; r < this.n; r++) {
-        this.dsu1.union(r * this.n, this.board.length);
-        this.dsu1.union(r * this.n + this.n - 1, this.board.length + 1);
-      }
-      for (let c = 0; c < this.n; c++) {
-        this.dsu2.union(c, this.board.length);
-        this.dsu2.union((this.n - 1) * this.n + c, this.board.length + 1);
-      }
-      
-      // Reconnect stones to each other and to borders
-      for (let i = 0; i < this.board.length; i++) {
-        if (this.board[i] !== 0) {
-          const color = this.board[i];
-          const dsu = color === 1 ? this.dsu1 : this.dsu2;
-          const row = Math.floor(i / this.n);
-          const col = i % this.n;
-          
-          // Connect to neighbors
-          for (const nb of this.getNeighbors(i)) {
-            if (this.board[nb] === color) {
-              dsu.union(i, nb);
-            }
-          }
-          
-          // Connect to borders if on edge
-          if (color === 1) {
-            if (col === 0) dsu.union(i, this.board.length);
-            if (col === this.n - 1) dsu.union(i, this.board.length + 1);
-          } else {
-            if (row === 0) dsu.union(i, this.board.length);
-            if (row === this.n - 1) dsu.union(i, this.board.length + 1);
-          }
-        }
-      }
-      
-      this.turn++;
-      return;
-    }
-    
-    const color = this.turn % 2 === 1 ? 1 : 2;
-    this.board[cell] = color;
-    const dsu = color === 1 ? this.dsu1 : this.dsu2;
-    
-    const neighbors = this.getNeighbors(cell);
-    for (const nb of neighbors) {
-      if (this.board[nb] === color) {
-        dsu.union(cell, nb);
-      }
-    }
-    
-    if (color === 1) {
-      const col = cell % this.n;
-      if (col === 0) dsu.union(cell, this.board.length);
-      if (col === this.n - 1) dsu.union(cell, this.board.length + 1);
-    } else {
-      const row = Math.floor(cell / this.n);
-      if (row === 0) dsu.union(cell, this.board.length);
-      if (row === this.n - 1) dsu.union(cell, this.board.length + 1);
-    }
-    
-    this.turn++;
-  }
-  
-  getNeighbors(cell: number): number[] {
-    const row = Math.floor(cell / this.n);
-    const col = cell % this.n;
-    const neighbors: number[] = [];
-    
-    // Offset coordinates (odd-q): odd columns are shifted down by 0.5
-    // Different deltas for even vs odd columns
-    const deltasEven = [[1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1], [0, -1]]; // [dc, dr]
-    const deltasOdd = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [0, -1]];   // [dc, dr]
-    
-    const deltas = col % 2 === 0 ? deltasEven : deltasOdd;
-    
-    for (const [dc, dr] of deltas) {
-      const newRow = row + dr;
-      const newCol = col + dc;
-      if (newRow >= 0 && newRow < this.n && newCol >= 0 && newCol < this.n) {
-        neighbors.push(newRow * this.n + newCol);
-      }
-    }
-    
-    return neighbors;
-  }
-  
-  winner(): 0 | 1 | 2 {
-    const left1 = this.board.length;
-    const right1 = this.board.length + 1;
-    
-    if (this.dsu1.find(left1) === this.dsu1.find(right1)) return 1;
-    if (this.dsu2.find(left1) === this.dsu2.find(right1)) return 2;
-    return 0;
+/** Create the correct server-side validator for a game key. */
+function createValidator(gameKey: string, match: any): ServerValidator {
+  switch (gameKey) {
+    case 'chess': return new ChessServerValidator();
+    case 'ttt': return new TttServerValidator();
+    case 'checkers': return new CheckersServerValidator();
+    case 'connect4': return new Connect4ServerValidator();
+    default: return new HexServerValidator(match.size, match.pie_rule);
   }
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
-    
-    // Validate input
     const validationResult = applyMoveSchema.safeParse(body);
     if (!validationResult.success) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid input parameters', 
-          details: validationResult.error.format() 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Invalid input parameters', details: validationResult.error.format() }, 400);
     }
-    
-    const { matchId, cell, actionId } = validationResult.data;
-    
+
+    const { matchId, cell, move, actionId } = validationResult.data;
+
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401);
 
-    // Check rate limit - implement directly since RPC requires auth.uid() context
-    // Simple rate limit: check if user made too many moves in the last second
-    const oneSecondAgo = new Date(Date.now() - 1000).toISOString();
+    // Rate limit
     const { count: recentMoveCount } = await supabase
       .from('move_rate_limits')
       .select('*', { count: 'exact', head: true })
       .eq('match_id', matchId)
       .eq('user_id', user.id)
-      .gte('window_start', oneSecondAgo);
+      .gte('window_start', new Date(Date.now() - 1000).toISOString());
 
     if (recentMoveCount !== null && recentMoveCount >= 4) {
-      return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded - too many moves' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Rate limit exceeded - too many moves' }, 429);
     }
 
     // Update rate limit tracking
@@ -247,7 +90,7 @@ Deno.serve(async (req) => {
         onConflict: 'match_id,user_id'
       });
 
-    // Check for duplicate action_id (idempotency)
+    // Idempotency check
     const { data: existingMove } = await supabase
       .from('moves')
       .select('ply')
@@ -256,27 +99,22 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingMove) {
-      // Move already processed - return success (idempotent)
-      console.log('Duplicate action_id detected, returning cached result');
       const { data: currentMatch } = await supabase
         .from('matches')
         .select('*')
         .eq('id', matchId)
         .single();
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          turn: currentMatch.turn,
-          winner: currentMatch.winner,
-          status: currentMatch.status,
-          cached: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({
+        success: true,
+        turn: currentMatch.turn,
+        winner: currentMatch.winner,
+        result: (currentMatch as any).result ?? null,
+        status: currentMatch.status,
+        cached: true,
+      });
     }
 
-    // Verify user is a player in this match
+    // Verify player
     const { data: player, error: playerError } = await supabase
       .from('match_players')
       .select('color, is_bot')
@@ -284,46 +122,26 @@ Deno.serve(async (req) => {
       .eq('profile_id', user.id)
       .single();
 
-    if (playerError || !player) {
-      return new Response(
-        JSON.stringify({ error: 'Not authorized for this match' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (playerError || !player) return json({ error: 'Not authorized for this match' }, 403);
 
-    // Fetch match details with version for optimistic concurrency
+    // Fetch match
     const { data: match, error: matchError } = await supabase
       .from('matches')
       .select('*')
       .eq('id', matchId)
       .single();
-    
+
+    if (matchError || !match) return json({ error: 'Match not found' }, 404);
     const currentVersion = match?.version || 0;
 
-    if (matchError || !match) {
-      return new Response(
-        JSON.stringify({ error: 'Match not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     if (match.status === 'finished' || match.status === 'aborted') {
-      return new Response(
-        JSON.stringify({ error: 'Match is already finished' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Match is already finished' }, 400);
     }
 
-    // Check if it's the player's turn
     const currentPlayerColor = match.turn % 2 === 1 ? 1 : 2;
-    if (player.color !== currentPlayerColor) {
-      return new Response(
-        JSON.stringify({ error: 'Not your turn' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (player.color !== currentPlayerColor) return json({ error: 'Not your turn' }, 400);
 
-    // Fetch all moves and reconstruct game state
+    // Fetch moves
     const { data: moves, error: movesError } = await supabase
       .from('moves')
       .select('*')
@@ -332,98 +150,86 @@ Deno.serve(async (req) => {
 
     if (movesError) {
       console.error('Error fetching moves:', movesError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch moves' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Failed to fetch moves' }, 500);
     }
 
-    // Reconstruct game state
-    const validator = new HexValidator(match.size, match.pie_rule);
-    
-    for (const move of moves || []) {
-      validator.play(move.cell);
+    const gameKey = (match as any).game_key ?? 'hex';
+
+    // Create validator, replay history, and apply new move
+    const validator = createValidator(gameKey, match);
+
+    for (const m of moves || []) {
+      try {
+        validator.replayMove(m);
+      } catch (e) {
+        console.error('Error replaying move:', e);
+        return json({ error: 'Invalid move history' }, 500);
+      }
     }
 
-    // Validate and apply the proposed move
-    if (!validator.legal(cell)) {
-      return new Response(
-        JSON.stringify({ valid: false, error: 'Illegal move' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const ctx: MoveContext = {
+      matchId,
+      actionId,
+      currentTurn: match.turn,
+      currentPlayerColor: currentPlayerColor as 1 | 2,
+    };
+
+    let moveResult;
+    try {
+      moveResult = validator.applyProposedMove(move, cell, ctx);
+    } catch (e: any) {
+      return json({ valid: false, error: e.message || 'Illegal move' }, 400);
     }
 
-    validator.play(cell);
-    const winner = validator.winner();
-    const newTurn = validator.turn;
-    const newStatus = winner ? 'finished' : 'active';
+    const { moveInsert, newTurn, newStatus, winner, result } = moveResult;
 
-    // Insert move with action_id for idempotency
-    const { error: moveInsertError } = await supabase
-      .from('moves')
-      .insert({
-        match_id: matchId,
-        ply: match.turn,
-        color: currentPlayerColor,
-        cell: cell,
-        action_id: actionId
-      });
+    // Insert move
+    const { error: moveInsertError } = await supabase.from('moves').insert(moveInsert);
 
     if (moveInsertError) {
       console.error('Error inserting move:', moveInsertError);
-      // Check if duplicate key violation (23505) - treat as idempotent if same cell
       if (moveInsertError.code === '23505') {
-        // Check if the existing move at this ply has the same cell (idempotent success)
         const { data: existingMoveAtPly } = await supabase
           .from('moves')
-          .select('cell')
+          .select('cell, move')
           .eq('match_id', matchId)
           .eq('ply', match.turn)
           .maybeSingle();
-        
-        if (existingMoveAtPly && existingMoveAtPly.cell === cell) {
-          // Same move already recorded - return success (idempotent)
-          console.log('Idempotent duplicate detected - same cell at same ply');
+
+        const same =
+          (gameKey === 'hex' && existingMoveAtPly && (existingMoveAtPly as any).cell === moveInsert.cell) ||
+          (gameKey !== 'hex' && existingMoveAtPly && JSON.stringify((existingMoveAtPly as any).move ?? null) === JSON.stringify(moveInsert.move ?? null));
+
+        if (same) {
           const { data: currentMatch } = await supabase
             .from('matches')
-            .select('turn, winner, status')
+            .select('turn, winner, status, result')
             .eq('id', matchId)
             .single();
-          
-          return new Response(
-            JSON.stringify({
-              success: true,
-              turn: currentMatch?.turn || newTurn,
-              winner: currentMatch?.winner || null,
-              status: currentMatch?.status || newStatus,
-              cached: true
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return json({
+            success: true,
+            turn: currentMatch?.turn || newTurn,
+            winner: currentMatch?.winner || null,
+            result: (currentMatch as any)?.result ?? null,
+            status: currentMatch?.status || newStatus,
+            cached: true,
+          });
         }
-        
-        // Different move at same ply - real conflict (shouldn't happen in normal play)
-        console.log('Real conflict: different move at same ply');
-        return new Response(
-          JSON.stringify({ error: 'Move already made - refresh to see current state' }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return json({ error: 'Move already made - refresh to see current state' }, 409);
       }
-      return new Response(
-        JSON.stringify({ error: 'Failed to record move' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Failed to record move' }, 500);
     }
 
-    // Update match with optimistic concurrency control
+    // Update match with optimistic concurrency
     const { data: updatedMatch, error: matchUpdateError } = await supabase
       .from('matches')
       .update({
         turn: newTurn,
         status: newStatus,
         winner: winner || null,
+        result,
         version: currentVersion + 1,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', matchId)
       .eq('version', currentVersion)
@@ -432,88 +238,49 @@ Deno.serve(async (req) => {
 
     if (matchUpdateError || !updatedMatch) {
       console.error('Error updating match (concurrency conflict):', matchUpdateError);
-      // Rollback move insert would happen automatically via RLS/permissions
-      return new Response(
-        JSON.stringify({ error: 'Match state changed - please retry' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Match state changed - please retry' }, 409);
     }
 
-    // Update ratings for ranked matches when they finish
-    console.log(`Match result - Winner: ${winner}, is_ranked: ${updatedMatch.is_ranked}`);
-
-    if (winner && updatedMatch.is_ranked) {
+    // Update ratings for finished ranked matches
+    if (gameKey !== 'ttt' && updatedMatch.is_ranked && newStatus === 'finished' && (result === 'draw' || !!winner)) {
       try {
-        console.log('🏆 Match finished with winner - updating ratings for ranked match');
-
-        // Get the two players from match_players
-        const { data: players, error: playersError } = await supabase
+        const { data: players } = await supabase
           .from('match_players')
           .select('profile_id, color')
           .eq('match_id', matchId)
-          .eq('is_bot', false); // Only count human players
+          .eq('is_bot', false);
 
-        console.log(`Players fetched: ${players?.length || 0} players`, players);
-
-        if (playersError || !players || players.length !== 2) {
-          console.error('Could not fetch players for rating update:', playersError);
-        } else {
-          const winnerPlayer = players.find(p => p.color === winner);
-          const loserPlayer = players.find(p => p.color !== winner);
-
-          console.log(`Winner player: ${winnerPlayer?.profile_id}, Loser player: ${loserPlayer?.profile_id}`);
-
-          if (winnerPlayer && loserPlayer) {
-            // Use direct HTTP fetch to update-ratings instead of supabase.functions.invoke
+        if (players && players.length === 2) {
+          const p1 = players.find(p => p.color === 1);
+          const p2 = players.find(p => p.color === 2);
+          if (p1 && p2) {
             const updateRatingsUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/update-ratings`;
-            const response = await fetch(updateRatingsUrl, {
+            await fetch(updateRatingsUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
               },
               body: JSON.stringify({
-                matchId: matchId,
-                winnerId: winnerPlayer.profile_id,
-                loserId: loserPlayer.profile_id
-              })
+                matchId,
+                gameKey,
+                result,
+                p1Id: p1.profile_id,
+                p2Id: p2.profile_id,
+                winner: winner || null,
+              }),
             });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-              console.error('❌ Failed to update ratings:', result);
-            } else {
-              console.log('✅ Ratings updated successfully:', result);
-            }
-          } else {
-            console.error('Missing winner or loser player');
           }
         }
       } catch (error) {
-        console.error('❌ Error in rating update:', error);
-        // Don't fail the move if rating update fails
+        console.error('Error in rating update:', error);
       }
-    } else if (winner && !updatedMatch.is_ranked) {
-      console.log('Match finished but not ranked - skipping rating update');
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        turn: newTurn,
-        winner: winner || null,
-        status: newStatus
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return json({ success: true, turn: newTurn, winner: winner || null, result, status: newStatus });
   } catch (error) {
     console.error('Error in apply-move:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json({ error: errorMessage }, 500);
   }
 });

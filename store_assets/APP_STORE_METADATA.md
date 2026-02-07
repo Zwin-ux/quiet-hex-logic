@@ -2,7 +2,7 @@
 
 ## App Information
 
-**App Name**: Hexology
+**App Name**: The Open Board
 **Subtitle**: Strategic Hex Board Game
 **Category**: Games > Strategy
 
@@ -10,7 +10,7 @@
 
 ## Description (4000 char limit)
 
-**Hexology** is a deep, strategic hex-based board game where every move matters. Connect your sides of the board before your opponent does in this beautifully crafted digital adaptation of the classic connection game.
+**The Open Board** is a deep, strategic hex-based board game where every move matters. Connect your sides of the board before your opponent does in this beautifully crafted digital adaptation of the classic connection game.
 
 🎮 **LAUNCH SPECIAL**
 
@@ -27,9 +27,9 @@
 • Cross-Platform - Play on iPhone, iPad, Mac, and Vision Pro
 
 🧠 **STRATEGIC DEPTH**
-Hexology is easy to learn but impossible to master. Each game presents unique tactical challenges as you balance offense and defense, control key hexes, and outmaneuver your opponent.
+The Open Board is easy to learn but impossible to master. Each game presents unique tactical challenges as you balance offense and defense, control key hexes, and outmaneuver your opponent.
 
-💎 **HEXOLOGY+ SUBSCRIPTION**
+💎 **THE OPEN BOARD+ SUBSCRIPTION**
 Unlock the full experience with our auto-renewable monthly subscription at $5.00/month:
 
 - Exclusive premium board skins (Galaxy, Royal, Retro & Aurora)
@@ -42,8 +42,8 @@ Subscription auto-renews monthly unless canceled. Manage or cancel anytime from 
 
 Join thousands of players in the ultimate test of strategic thinking. Will you master the hex?
 
-**Terms of Use**: https://hexology.me/terms
-**Privacy Policy**: https://hexology.me/privacy
+**Terms of Use**: https://openboard.io/terms
+**Privacy Policy**: https://openboard.io/privacy
 
 ---
 
@@ -57,7 +57,7 @@ hex,strategy,board game,multiplayer,tournament,puzzle,logic,chess,go,abstract
 
 **Version 1.0 - Grand Launch**
 
-Welcome to Hexology! This is our official launch with:
+Welcome to The Open Board! This is our official launch with:
 
 ✨ Full multiplayer matchmaking system
 🏆 Tournament support with our first $500 event on Feb 25th
@@ -79,9 +79,9 @@ Master the hex! Join our $500 tournament on Feb 25th. Strategic board game with 
 
 ## Support Information
 
-**Support URL**: https://hexology.me/support
-**Privacy Policy URL**: https://hexology.me/privacy
-**Terms of Service URL**: https://hexology.me/terms
+**Support URL**: https://openboard.io/support
+**Privacy Policy URL**: https://openboard.io/privacy
+**Terms of Service URL**: https://openboard.io/terms
 
 ---
 
@@ -102,7 +102,7 @@ You need:
 **Recommended Screenshots:**
 
 1. Main game board in action
-2. Premium page showing Hexology+ features
+2. Premium page showing Plus features
 3. Tournament/Leaderboard page
 4. Friends/Social features
 5. Premium skin showcase

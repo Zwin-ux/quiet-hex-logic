@@ -8,6 +8,7 @@ const corsHeaders = {
 
 // Comprehensive input validation schema
 const createLobbySchema = z.object({
+  gameKey: z.string().optional().default('hex'),
   boardSize: z.number()
     .int('Board size must be an integer')
     .min(5, 'Board size must be at least 5')
@@ -43,13 +44,11 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    console.log('Getting user...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error('Auth error:', userError);
       throw new Error('Unauthorized');
     }
-    console.log('User authenticated:', user.id);
 
     const body = await req.json();
     
@@ -66,27 +65,23 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { boardSize, pieRule, turnTimer } = validationResult.data;
-    console.log('Lobby settings:', { boardSize, pieRule, turnTimer });
+    const { gameKey, boardSize, pieRule, turnTimer } = validationResult.data;
 
     // Generate unique code
-    console.log('Generating lobby code...');
     const { data: code, error: codeError } = await supabase.rpc('generate_lobby_code');
     if (codeError) {
       console.error('Code generation error:', codeError);
       throw codeError;
     }
-    console.log('Code generated:', code);
-
     // Create lobby
-    console.log('Creating lobby...');
     const { data: lobby, error: lobbyError } = await supabase
       .from('lobbies')
       .insert({
         code,
         host_id: user.id,
-        board_size: boardSize || 11,
-        pie_rule: pieRule !== false,
+        game_key: gameKey,
+        board_size: (gameKey === 'chess' || gameKey === 'checkers') ? 8 : gameKey === 'ttt' ? 3 : gameKey === 'connect4' ? 6 : (boardSize || 11),
+        pie_rule: (gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt' || gameKey === 'connect4') ? false : (pieRule !== false),
         turn_timer_seconds: turnTimer || 45,
         status: 'waiting'
       })
@@ -97,10 +92,7 @@ Deno.serve(async (req) => {
       console.error('Lobby creation error:', lobbyError);
       throw lobbyError;
     }
-    console.log('Lobby created:', lobby.id);
-
     // Add host as first player
-    console.log('Adding host to lobby_players...');
     const { error: playerError } = await supabase
       .from('lobby_players')
       .insert({
@@ -114,10 +106,6 @@ Deno.serve(async (req) => {
       console.error('Player insertion error:', playerError);
       throw playerError;
     }
-    console.log('Host added to lobby');
-
-    console.log(`Lobby created successfully: ${code} by ${user.id}`);
-
     return new Response(
       JSON.stringify({ lobby, code }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

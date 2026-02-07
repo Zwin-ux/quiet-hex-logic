@@ -67,8 +67,17 @@ Deno.serve(async (req) => {
       .insert({
         lobby_id: lobbyId,
         owner: lobby.host_id,
-        size: lobby.board_size,
-        pie_rule: lobby.pie_rule,
+        game_key: (lobby as any).game_key ?? 'hex',
+        size: ((lobby as any).game_key ?? 'hex') === 'chess'
+          ? 8
+          : ((lobby as any).game_key ?? 'hex') === 'checkers'
+            ? 8
+            : ((lobby as any).game_key ?? 'hex') === 'ttt'
+              ? 3
+              : ((lobby as any).game_key ?? 'hex') === 'connect4'
+                ? 6
+                : lobby.board_size,
+        pie_rule: (((lobby as any).game_key ?? 'hex') === 'chess' || ((lobby as any).game_key ?? 'hex') === 'checkers' || ((lobby as any).game_key ?? 'hex') === 'ttt' || ((lobby as any).game_key ?? 'hex') === 'connect4') ? false : lobby.pie_rule,
         turn_timer_seconds: lobby.turn_timer_seconds,
         status: 'active'
       })

@@ -38,8 +38,6 @@ export function useDiscordAuth(): DiscordAuthState {
       }
 
       try {
-        console.log('[Discord Auth] Checking for existing Supabase session...');
-        
         // Check if user already has a Supabase session
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -58,7 +56,6 @@ export function useDiscordAuth(): DiscordAuthState {
         }
 
         // No session - sign in anonymously and link Discord
-        console.log('[Discord Auth] Creating anonymous session for Discord user...');
         const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
         
         if (anonError) {

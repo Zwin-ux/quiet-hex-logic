@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-type NotificationType = 'friend_challenge' | 'match_invitation';
+type NotificationType = 'friend_challenge' | 'match_invitation' | 'tournament_start' | 'match_ready' | 'friend_request' | 'achievement_earned';
 
 interface Notification {
   id: string;
@@ -13,6 +13,10 @@ interface Notification {
     sender_name?: string;
     match_id?: string;
     board_size?: number;
+    tournament_id?: string;
+    tournament_name?: string;
+    achievement_name?: string;
+    achievement_icon?: string;
   };
   read: boolean;
   created_at: string;
@@ -61,7 +65,23 @@ export const useNotifications = (userId: string | undefined) => {
           // Show toast for new notifications
           if (notification.type === 'friend_challenge') {
             toast.success("Challenge Received!", {
-              description: `${notification.payload.sender_name} challenged you to a ${notification.payload.board_size}×${notification.payload.board_size} game`,
+              description: `${notification.payload.sender_name} challenged you to a ${notification.payload.board_size}x${notification.payload.board_size} game`,
+            });
+          } else if (notification.type === 'tournament_start') {
+            toast.success("Tournament Starting!", {
+              description: notification.payload.tournament_name || 'A tournament you joined is starting now',
+            });
+          } else if (notification.type === 'match_ready') {
+            toast.success("Match Ready!", {
+              description: 'Your opponent is ready to play',
+            });
+          } else if (notification.type === 'friend_request') {
+            toast.success("Friend Request!", {
+              description: `${notification.payload.sender_name} sent you a friend request`,
+            });
+          } else if (notification.type === 'achievement_earned') {
+            toast.success(`Achievement Unlocked: ${notification.payload.achievement_name || 'New Achievement'}`, {
+              description: notification.payload.achievement_icon || '',
             });
           }
         }
@@ -101,5 +121,22 @@ export const useNotifications = (userId: string | undefined) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   };
 
-  return { notifications, markAsRead, deleteNotification };
+  const markAllAsRead = async () => {
+    if (!userId || notifications.length === 0) return;
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('receiver_id', userId)
+      .eq('read', false);
+
+    if (error) {
+      console.error('Error marking all as read:', error);
+      return;
+    }
+    setNotifications([]);
+  };
+
+  const unreadCount = notifications.length;
+
+  return { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification };
 };

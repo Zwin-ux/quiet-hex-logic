@@ -41,7 +41,7 @@ serve(async (req) => {
             user_id: userId,
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: subscription.id,
-            plan: 'hexology_plus',
+            plan: 'openboard_plus',
             status: subscription.status,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),

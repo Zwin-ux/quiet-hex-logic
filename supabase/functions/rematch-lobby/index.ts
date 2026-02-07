@@ -8,6 +8,7 @@ const corsHeaders = {
 async function createRematchLobby(supabase: any, match: any, matchPlayers: any[], hostId: string) {
   // Get original lobby settings if available
   let lobbySettings = {
+    game_key: match.game_key ?? 'hex',
     board_size: match.size,
     pie_rule: match.pie_rule,
     turn_timer_seconds: 45,
@@ -16,7 +17,7 @@ async function createRematchLobby(supabase: any, match: any, matchPlayers: any[]
   if (match.lobby_id) {
     const { data: lobby } = await supabase
       .from("lobbies")
-      .select("board_size, pie_rule, turn_timer_seconds")
+      .select("game_key, board_size, pie_rule, turn_timer_seconds")
       .eq("id", match.lobby_id)
       .single();
 
@@ -35,6 +36,7 @@ async function createRematchLobby(supabase: any, match: any, matchPlayers: any[]
     .insert({
       code,
       host_id: hostId,
+      game_key: lobbySettings.game_key,
       board_size: lobbySettings.board_size,
       pie_rule: lobbySettings.pie_rule,
       turn_timer_seconds: lobbySettings.turn_timer_seconds,

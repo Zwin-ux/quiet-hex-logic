@@ -1,21 +1,18 @@
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LobbyPanel } from '@/components/LobbyPanel';
+import { EnhancedChat } from '@/components/EnhancedChat';
 import { usePresence } from '@/hooks/usePresence';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle } from 'lucide-react';
-import { useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { CheckCircle, MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function LobbyView() {
   const { lobbyId } = useParams<{ lobbyId: string }>();
   const { user } = useAuth();
 
   usePresence(user?.id);
-
-  useEffect(() => {
-    // Log navigation success for debugging
-    console.log(`[LobbyView] Successfully loaded lobby ${lobbyId} for user ${user?.id}`);
-  }, [lobbyId, user?.id]);
 
   if (!user || !lobbyId) {
     return (
@@ -46,7 +43,18 @@ export default function LobbyView() {
           </p>
         </div>
 
-        <LobbyPanel lobbyId={lobbyId} userId={user.id} />
+        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+          <LobbyPanel lobbyId={lobbyId} userId={user.id} />
+          <Card className="h-[400px] lg:h-[500px] overflow-hidden flex flex-col">
+            <div className="flex items-center gap-2 p-3 border-b">
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Lobby Chat</span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <EnhancedChat channelType="lobby" channelId={lobbyId} maxHeight="100%" showHeader={false} />
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

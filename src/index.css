@@ -10,7 +10,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Hexology Design System - Warm, Hand-Crafted Aesthetic */
+    /* The Open Board Design System - Warm, Hand-Crafted Aesthetic */
     --background: 40 33% 96%;
     --foreground: 0 0% 10%;
 
@@ -45,7 +45,7 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    /* Custom Hexology tokens */
+    /* Custom The Open Board tokens */
     --paper: 40 33% 96%;
     --ink: 0 0% 10%;
     --indigo: 223 45% 29%;
@@ -64,8 +64,8 @@ All colors MUST be HSL.
     /* Shadows - soft, organic */
     --shadow-soft: 0 2px 8px hsl(0 0% 10% / 0.08);
     --shadow-medium: 0 4px 16px hsl(0 0% 10% / 0.12);
-    --shadow-paper: 0 1px 3px hsl(0 0% 10% / 0.1),
-      0 8px 24px hsl(0 0% 10% / 0.08);
+    --shadow-paper:
+      0 1px 3px hsl(0 0% 10% / 0.1), 0 8px 24px hsl(0 0% 10% / 0.08);
 
     /* Transitions */
     --transition-gentle: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -127,7 +127,9 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-body antialiased;
-    font-feature-settings: "kern" 1, "liga" 1;
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1;
     /* iOS safe area support */
     -webkit-text-size-adjust: 100%;
   }

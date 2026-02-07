@@ -8,6 +8,8 @@ import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
 import { BaseProvider } from "@/lib/base/BaseProvider";
 import { supabase } from "@/integrations/supabase/client";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PageTransition } from "@/components/PageTransition";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
@@ -30,6 +32,7 @@ import Puzzles from "./pages/Puzzles";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
+import Mods from "./pages/Mods";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +55,9 @@ const App = () => (
           <AchievementToast />
           
           <BrowserRouter>
+            <ErrorBoundary>
             <DiscordActivityWrapper>
+              <PageTransition>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -74,10 +79,13 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/mods" element={<Mods />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+              </PageTransition>
             </DiscordActivityWrapper>
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </BaseProvider>

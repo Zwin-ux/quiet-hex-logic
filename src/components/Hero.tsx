@@ -81,7 +81,7 @@ const Hero = () => {
       <div className="absolute inset-0 z-0">
         <img
           src={heroBoard}
-          alt="Hexology game board"
+          alt="The Open Board game board"
           className="w-full h-full object-cover opacity-90 animate-in fade-in duration-1000"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/10 to-background/60" />
@@ -97,11 +97,18 @@ const Hero = () => {
       {/* Hero content */}
       <div className="relative z-20 max-w-5xl mx-auto px-6 text-center">
         <div className="mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo/10 border border-indigo/20 text-indigo text-xs font-mono mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo"></span>
+            </span>
+            Open Source Platform
+          </div>
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-ink tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-            Hexology
+            The Open Board
           </h1>
           <p className="text-muted-foreground font-mono text-sm mt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            made by Bonelli Labs
+            An Open Source Strategy Platform
           </p>
         </div>
 

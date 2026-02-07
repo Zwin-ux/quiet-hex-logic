@@ -42,7 +42,7 @@ export default function Support() {
                 <p>Connect your side of the board to the opposite side before your opponent does. Click on empty hexes to place your pieces.</p>
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">What is Hexology+?</h3>
+                <h3 className="font-semibold text-foreground">What is The Open Board+?</h3>
                 <p>Our premium subscription ($5/month) that unlocks exclusive board skins, unlimited AI practice, and advanced features.</p>
               </div>
               <div>
@@ -56,8 +56,8 @@ export default function Support() {
             <h2 className="text-2xl font-semibold text-foreground mb-3">Contact</h2>
             <p>
               For business inquiries or technical issues, reach out to us on Discord or email us at{" "}
-              <a href="mailto:support@hexology.me" className="text-primary hover:underline">
-                support@hexology.me
+              <a href="mailto:community@openboard.io" className="text-primary hover:underline">
+                community@openboard.io
               </a>
             </p>
           </section>
