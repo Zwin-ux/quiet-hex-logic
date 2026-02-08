@@ -28,6 +28,7 @@ import WorldIDWidget from '@/components/WorldID';
 import { BaseWalletSection } from '@/components/Base';
 import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
 import { NavBar } from '@/components/NavBar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface ProfileData {
   username: string;
@@ -40,6 +41,7 @@ interface ProfileData {
 }
 
 const Profile = () => {
+  useDocumentTitle('Profile');
   const { user } = useAuth();
   const { stats, loading: statsLoading } = useUserStats(user?.id);
   const { achievements, loading: achievementsLoading } = useAchievements(user?.id);

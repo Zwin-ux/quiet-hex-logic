@@ -93,15 +93,17 @@ Deno.serve(async (req) => {
       }
 
       // Update ratings for ranked matches
+      // Rate when both players are human (0 bots) or both are bots (2 bots)
       if (match.is_ranked && gameKey !== 'ttt') {
         try {
           const { data: players } = await supabase
             .from('match_players')
-            .select('profile_id, color')
-            .eq('match_id', matchId)
-            .eq('is_bot', false);
+            .select('profile_id, color, is_bot')
+            .eq('match_id', matchId);
 
           if (players && players.length === 2) {
+            const botCount = players.filter(p => p.is_bot).length;
+            if (botCount === 0 || botCount === 2) {
             const p1 = players.find(p => p.color === 1);
             const p2 = players.find(p => p.color === 2);
             if (p1 && p2) {
@@ -121,6 +123,7 @@ Deno.serve(async (req) => {
                   winner: null,
                 }),
               });
+            }
             }
           }
         } catch (error) {

@@ -12,6 +12,7 @@ import { usePuzzles, Puzzle } from '@/hooks/usePuzzles';
 import PuzzleSolver from '@/components/PuzzleSolver';
 import PuzzleRush from '@/components/PuzzleRush';
 import OpeningBook from '@/components/OpeningBook';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const difficultyConfig = {
   beginner: { label: 'Beginner', color: 'bg-green-500', icon: Target },
@@ -21,6 +22,7 @@ const difficultyConfig = {
 };
 
 export default function Puzzles() {
+  useDocumentTitle('Puzzles');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium } = usePremium(user?.id);

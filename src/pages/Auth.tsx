@@ -17,10 +17,10 @@ type AuthTab = 'signin' | 'signup';
 type AuthView = 'main' | 'forgot-password' | 'reset-password';
 
 const UNLOCK_FEATURES = [
-  { icon: Swords, label: 'Multiplayer Matches', description: 'Challenge real players' },
-  { icon: Trophy, label: 'Tournaments', description: 'Compete for rankings' },
-  { icon: Users, label: 'Friends & Chat', description: 'Connect with players' },
-  { icon: Crown, label: 'Leaderboards', description: 'Track your progress' },
+  { icon: Swords, label: 'Tactical Matches', description: 'Challenge Grandmasters worldwide' },
+  { icon: Trophy, label: 'Official Tournaments', description: 'Compete for prestige and ranking' },
+  { icon: Users, label: 'Strategy Hub', description: 'Connect with elite players' },
+  { icon: Crown, label: 'Boutique Status', description: 'Unlock premium board aesthetics' },
 ];
 
 export default function Auth() {
@@ -449,11 +449,15 @@ export default function Auth() {
             </div>
           </div>
 
-          <div className="bg-card border-2 border-border rounded-xl p-8 shadow-lg">
-            <div className="text-center mb-6">
-              <h1 className="font-display text-4xl text-foreground mb-2">Hexology</h1>
-              <p className="text-foreground/60 text-sm">
-                {emailSent ? 'Check your inbox' : authTab === 'signup' ? 'Create your account' : 'Welcome back'}
+          <div className="bg-card/40 backdrop-blur-xl border border-primary/20 rounded-3xl p-10 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <Shield className="h-20 w-20 text-primary" />
+            </div>
+            
+            <div className="text-center mb-10">
+              <h1 className="font-display-text text-5xl font-bold text-white mb-2 bg-gradient-to-b from-primary to-primary/60 bg-clip-text text-transparent">Hexology</h1>
+              <p className="text-muted-foreground/60 text-xs font-mono uppercase tracking-[0.2em]">
+                {emailSent ? 'Verify Identity' : authTab === 'signup' ? 'Join the Hub' : 'Elite Access'}
               </p>
             </div>
 

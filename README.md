@@ -2,7 +2,7 @@
 
 A moddable board game platform. Play classic and custom board games online, locally, or as a Discord Activity.
 
-[![CI](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/actions/workflows/ci.yml)
+[![CI](https://github.com/Zwin-ux/quiet-hex-logic-2/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic-2/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Built-in Games
@@ -98,7 +98,7 @@ npm start         # Start Expo dev server
 
 This repo uses Supabase for database, auth, realtime subscriptions, and edge functions.
 
-- **Migrations**: `supabase/migrations/` (65+ files)
+- **Migrations**: `supabase/migrations/` (76 files)
 - **Edge Functions**: `supabase/functions/` (apply-move, create-lobby, update-ratings, etc.)
 - **Types**: `src/integrations/supabase/types.ts` (auto-generated, do not edit)
 

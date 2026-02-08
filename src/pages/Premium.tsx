@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { premiumSkins } from '@/lib/boardSkins';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const features = [
   { icon: Palette, title: 'Exclusive Board Skins', description: 'Access premium themes like Galaxy, Royal, Retro & Aurora' },
@@ -22,6 +23,7 @@ const features = [
 ];
 
 export default function Premium() {
+  useDocumentTitle('Premium');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium, subscription, loading } = usePremium(user?.id);

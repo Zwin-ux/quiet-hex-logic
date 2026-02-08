@@ -12,8 +12,10 @@ import { MatchBoard } from '@/components/match/MatchBoard';
 import { MatchSidebar } from '@/components/match/MatchSidebar';
 import { MatchLoading, MatchWaiting } from '@/components/match/MatchLoadingStates';
 import { toast } from 'sonner';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function Match() {
+  useDocumentTitle('Match');
   const { matchId } = useParams();
   const [showTutorial, setShowTutorial] = useState(false);
   const [showAIReasoning, setShowAIReasoning] = useState(false);

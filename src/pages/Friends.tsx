@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { UserPlus, UserCheck, UserX, Check, X, Swords, AlertCircle, Eye } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
 import { usePresence } from '@/hooks/usePresence';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type FriendRow = {
   a: string;
@@ -40,6 +41,7 @@ type BlockedUser = {
 };
 
 export default function Friends() {
+  useDocumentTitle('Friends');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);

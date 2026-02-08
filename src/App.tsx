@@ -68,19 +68,19 @@ const App = () => (
               <Route path="/match/:matchId" element={<RouteErrorBoundary fallbackTitle="Match failed to load"><Match /></RouteErrorBoundary>} />
               <Route path="/tournaments" element={<RouteErrorBoundary fallbackTitle="Tournaments failed to load"><Tournaments /></RouteErrorBoundary>} />
               <Route path="/tournament/:tournamentId" element={<RouteErrorBoundary fallbackTitle="Tournament failed to load"><TournamentView /></RouteErrorBoundary>} />
-              <Route path="/friends" element={<Friends />} />
-              <Route path="/history" element={<History />} />
+              <Route path="/friends" element={<RouteErrorBoundary fallbackTitle="Friends failed to load"><Friends /></RouteErrorBoundary>} />
+              <Route path="/history" element={<RouteErrorBoundary fallbackTitle="History failed to load"><History /></RouteErrorBoundary>} />
               <Route path="/replay/:matchId" element={<RouteErrorBoundary fallbackTitle="Replay failed to load"><Replay /></RouteErrorBoundary>} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:userId" element={<Profile />} />
-              <Route path="/profile/edit" element={<EditProfile />} />
-              <Route path="/premium" element={<Premium />} />
+              <Route path="/profile" element={<RouteErrorBoundary fallbackTitle="Profile failed to load"><Profile /></RouteErrorBoundary>} />
+              <Route path="/profile/:userId" element={<RouteErrorBoundary fallbackTitle="Profile failed to load"><Profile /></RouteErrorBoundary>} />
+              <Route path="/profile/edit" element={<RouteErrorBoundary fallbackTitle="Edit Profile failed to load"><EditProfile /></RouteErrorBoundary>} />
+              <Route path="/premium" element={<RouteErrorBoundary fallbackTitle="Premium failed to load"><Premium /></RouteErrorBoundary>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/puzzles" element={<Puzzles />} />
+              <Route path="/puzzles" element={<RouteErrorBoundary fallbackTitle="Puzzles failed to load"><Puzzles /></RouteErrorBoundary>} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/support" element={<Support />} />
-              <Route path="/mods" element={<Mods />} />
+              <Route path="/mods" element={<RouteErrorBoundary fallbackTitle="Mods failed to load"><Mods /></RouteErrorBoundary>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

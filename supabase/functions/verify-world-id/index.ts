@@ -123,7 +123,8 @@ Deno.serve(async (req) => {
           merkle_root,
           nullifier_hash,
           proof,
-          action: 'verify-openboard-player',
+          // NOTE: This action string must match the one configured in the World ID developer dashboard
+          action: 'verify-hexology-player',
           signal: user.id, // Bind proof to this user
         }),
       }

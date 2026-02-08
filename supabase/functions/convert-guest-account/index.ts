@@ -1,5 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const convertSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  username: z.string().min(1).max(30),
+  avatarColor: z.string().optional(),
+  guestId: z.string().uuid(),
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,15 +21,15 @@ serve(async (req) => {
   }
 
   try {
-    const { email, password, username, avatarColor, guestId } = await req.json();
-
-    // Validate input
-    if (!email || !password || !username || !guestId) {
+    const body = await req.json();
+    const parsed = convertSchema.safeParse(body);
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Invalid input', details: parsed.error.format() }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    const { email, password, username, avatarColor, guestId } = parsed.data;
 
     // Get current user (guest)
     const authHeader = req.headers.get('Authorization');

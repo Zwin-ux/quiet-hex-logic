@@ -10,122 +10,64 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Hexology Design System */
-    --background: 40 33% 96%;
-    --foreground: 0 0% 10%;
+    /* Hexology — Dark-first fintech palette */
+    --background: 228 16% 6%;
+    --foreground: 220 20% 98%;
 
-    --card: 40 33% 98%;
-    --card-foreground: 0 0% 10%;
+    --card: 228 15% 10%;
+    --card-foreground: 220 20% 98%;
 
-    --popover: 40 33% 98%;
-    --popover-foreground: 0 0% 10%;
+    --popover: 228 15% 10%;
+    --popover-foreground: 220 20% 98%;
 
-    /* Primary: Indigo - First player color */
-    --primary: 223 45% 29%;
-    --primary-foreground: 40 33% 96%;
+    /* Primary: Logo Yellow/Gold (#FFB800) */
+    --primary: 45 100% 50%;
+    --primary-foreground: 230 15% 4%;
 
-    /* Secondary: Ochre - Second player color */
-    --secondary: 40 76% 43%;
-    --secondary-foreground: 40 33% 96%;
+    /* Secondary: Deep Indigo */
+    --secondary: 223 60% 50%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted: Graphite - Board lines and subtle elements */
-    --muted: 39 13% 71%;
-    --muted-foreground: 0 0% 10%;
+    /* Muted: Deep Graphite */
+    --muted: 228 12% 12%;
+    --muted-foreground: 220 10% 60%;
 
-    /* Accent: Soft ochre variant */
-    --accent: 40 60% 85%;
-    --accent-foreground: 0 0% 10%;
+    /* Accent: Brand Yellow Glow */
+    --accent: 45 100% 6%;
+    --accent-foreground: 45 100% 50%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 40 33% 96%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 39 13% 71%;
-    --input: 40 20% 90%;
-    --ring: 223 45% 29%;
+    --border: 228 10% 14%;
+    --input: 228 12% 12%;
+    --ring: 45 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 1.5rem;
 
-    /* Game piece colors */
-    --indigo: 223 45% 29%;
-    --ochre: 40 76% 43%;
+    /* Game Piece Constants */
+    --indigo: 223 60% 50%;
+    --ochre: 45 100% 50%;
 
-    /* Per-game accent colors */
-    --game-hex: 262 83% 58%;
-    --game-chess: 220 14% 70%;
+    --game-hex: 45 100% 50%;
+    --game-chess: 0 0% 90%;
     --game-checkers: 0 72% 51%;
     --game-ttt: 142 71% 45%;
     --game-connect4: 25 95% 53%;
 
-    /* Gradients */
-    --gradient-warm: linear-gradient(135deg, hsl(40 33% 96%), hsl(40 30% 92%));
-    --gradient-indigo: linear-gradient(
-      135deg,
-      hsl(223 45% 29%),
-      hsl(223 45% 35%)
-    );
-    --gradient-ochre: linear-gradient(135deg, hsl(40 76% 43%), hsl(40 76% 50%));
+    /* Shadows */
+    --shadow-soft: 0 1px 6px hsl(0 0% 0% / 0.2);
+    --shadow-medium: 0 2px 12px hsl(0 0% 0% / 0.3);
+    --shadow-glow: 0 0 20px -5px hsl(var(--primary) / 0.3);
 
-    /* Shadows - soft, organic */
-    --shadow-soft: 0 2px 8px hsl(0 0% 10% / 0.08);
-    --shadow-medium: 0 4px 16px hsl(0 0% 10% / 0.12);
     /* Transitions */
-    --transition-gentle: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --transition-gentle: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    /* Modern dark palette with blue tint */
-    --background: 230 15% 8%;
-    --foreground: 220 20% 95%;
-
-    --card: 230 15% 11%;
-    --card-foreground: 220 20% 95%;
-
-    --popover: 230 15% 11%;
-    --popover-foreground: 220 20% 95%;
-
-    --primary: 220 20% 95%;
-    --primary-foreground: 223 45% 29%;
-
-    --secondary: 40 76% 43%;
-    --secondary-foreground: 220 20% 95%;
-
-    --muted: 230 12% 16%;
-    --muted-foreground: 220 10% 60%;
-
-    --accent: 230 12% 18%;
-    --accent-foreground: 220 20% 95%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 220 20% 95%;
-
-    --border: 230 12% 18%;
-    --input: 230 12% 16%;
-    --ring: 262 83% 58%;
-
-    /* Per-game accent colors (same in dark) */
-    --game-hex: 262 83% 58%;
-    --game-chess: 220 14% 70%;
-    --game-checkers: 0 72% 51%;
-    --game-ttt: 142 71% 45%;
-    --game-connect4: 25 95% 53%;
-
-    --sidebar-background: 230 15% 8%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 12% 16%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 230 12% 18%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Same as root — fixed dark theme */
+    --background: 228 16% 6%;
+    --foreground: 220 20% 98%;
   }
 }
 
@@ -135,111 +77,72 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
-    font-feature-settings:
-      "kern" 1,
-      "liga" 1;
-    /* iOS safe area support */
-    -webkit-text-size-adjust: 100%;
+    @apply bg-background text-foreground font-body antialiased selection:bg-primary/30;
+    font-feature-settings: "kern" 1, "liga" 1;
+    min-height: 100vh;
   }
 
-  /* iOS Safe Area utility class */
-  .ios-safe-area {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
   }
 
   @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0) translateX(0);
-      opacity: 0.3;
-    }
-    50% {
-      transform: translateY(-20px) translateX(10px);
-      opacity: 0.6;
-    }
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-6px) scale(1.01); }
   }
 
   @keyframes gentle-pulse {
-    0%,
-    100% {
-      opacity: 0.5;
-    }
-    50% {
-      opacity: 0.8;
-    }
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 0.6; }
   }
 
-  @keyframes scroll {
-    0% {
-      transform: translateY(0);
-      opacity: 0;
-    }
-    30% {
-      opacity: 1;
-    }
-    60% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(12px);
-      opacity: 0;
-    }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+
+  .animate-float {
+    animation: float 10s ease-in-out infinite;
   }
 
   .animate-gentle-pulse {
     animation: gentle-pulse 3s ease-in-out infinite;
   }
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animate-scroll {
-    animation: scroll 2s ease-in-out infinite;
-  }
-  @keyframes gradient-x {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-
-  .animate-gradient-x {
-    background-size: 200% 200%;
-    animation: gradient-x 3s ease infinite;
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,184,0,0.05), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
   }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  /* Glass utility */
   .glass {
-    @apply bg-card/60 backdrop-blur-xl border border-white/5;
+    @apply bg-card/40 backdrop-blur-lg border border-border/50;
+    box-shadow: var(--shadow-soft);
   }
 
-  /* Mobile touch optimizations */
-  @media (hover: none) and (pointer: coarse) {
-    * {
-      -webkit-tap-highlight-color: transparent;
-    }
+  .surface {
+    @apply bg-card border border-border/50 rounded-xl;
+  }
+
+  .stat-value {
+    @apply font-mono tabular-nums text-foreground;
+  }
+
+  .section-heading {
+    @apply text-xs font-mono uppercase tracking-widest text-muted-foreground;
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

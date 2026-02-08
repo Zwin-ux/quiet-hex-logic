@@ -1,4 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+// No Supabase auth check here — this function is called during the Discord OAuth
+// flow before the user has a Supabase session. Security relies on the Discord
+// client_secret (server-side only) and the one-time authorization code.
+
+const codeSchema = z.object({
+  code: z.string().min(1, 'Authorization code is required'),
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,18 +21,21 @@ serve(async (req) => {
   }
 
   try {
-    const { code } = await req.json();
+    const body = await req.json();
+    const parsed = codeSchema.safeParse(body);
 
-    if (!code) {
-      console.error('[Discord Token Exchange] No code provided');
+    if (!parsed.success) {
+      console.error('[Discord Token Exchange] Validation error:', parsed.error);
       return new Response(
-        JSON.stringify({ error: 'Authorization code is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ error: 'Authorization code is required', details: parsed.error.format() }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
+
+    const { code } = parsed.data;
 
     const clientId = Deno.env.get('DISCORD_CLIENT_ID');
     const clientSecret = Deno.env.get('DISCORD_CLIENT_SECRET');

@@ -1,65 +1,64 @@
+import { memo, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const Hero = () => {
+const Hero = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(({ className, ...props }, ref) => {
   const scrollToGames = () => {
     document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
-      {/* Gradient mesh background */}
+    <section 
+      ref={ref}
+      className={cn("relative min-h-[85vh] flex items-center justify-center overflow-hidden", className)}
+      {...props}
+    >
+      {/* Background decoration - matching the logo vibe */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-game-hex/15 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-game-connect4/10 rounded-full blur-[100px]" />
-        <div className="absolute top-[30%] right-[20%] w-[30%] h-[30%] bg-game-ttt/8 rounded-full blur-[80px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[140px] animate-float" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-secondary/5 rounded-full blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
       </div>
 
       {/* Hero content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-game-hex/10 border border-game-hex/20 text-game-hex text-xs font-mono mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border-primary/20 text-primary text-xs font-mono mb-8 tracking-wider uppercase">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-game-hex opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-game-hex"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            Open Source Platform
+            Premium Strategy Hub
           </div>
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-extrabold tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100 bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-7xl md:text-8xl lg:text-9xl font-display-text font-extrabold tracking-tighter mb-6 bg-gradient-to-b from-primary via-primary/90 to-primary/40 bg-clip-text text-transparent drop-shadow-2xl">
             Hexology
           </h1>
-          <p className="text-muted-foreground text-lg md:text-xl mt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 max-w-xl mx-auto">
-            Five strategy games. One platform. Play Hex, Chess, Checkers, Tic Tac Toe, and Connect 4 — all free, all open source.
+          <p className="text-muted-foreground text-lg md:text-2xl mt-4 max-w-2xl mx-auto leading-relaxed font-body">
+            Five timeless strategy games. One premium experience. <br className="hidden md:block" />
+            Join the boutique hub for Hex, Chess, and more.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
           <Button
             size="lg"
-            className="h-14 px-8 rounded-2xl text-base font-semibold bg-game-hex hover:bg-game-hex/90 text-white shadow-lg hover:shadow-game-hex/20 hover:scale-[1.03] active:scale-[0.98] transition-all"
+            className="h-16 px-10 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)] hover:shadow-[0_0_40px_-5px_hsl(var(--primary)/0.5)] hover:scale-[1.05] active:scale-[0.98] transition-all duration-300"
             onClick={scrollToGames}
           >
-            Pick a Game
+            Start Playing
           </Button>
           <Button
             size="lg"
-            variant="outline"
-            className="h-14 px-8 rounded-2xl text-base font-semibold border-2 border-border hover:border-foreground/20 hover:scale-[1.03] active:scale-[0.98] transition-all"
+            variant="ghost"
+            className="h-16 px-10 rounded-2xl text-lg font-semibold glass hover:bg-white/5 border-white/5 hover:border-white/10 hover:scale-[1.05] active:scale-[0.98] transition-all duration-300"
             onClick={() => window.location.href = '/lobby'}
           >
             Multiplayer Lobby
           </Button>
         </div>
-
-        {/* Scroll hint */}
-        <div className="mt-12 animate-in fade-in duration-1000 delay-700">
-          <button onClick={scrollToGames} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors">
-            <ChevronDown className="h-6 w-6 mx-auto animate-bounce" />
-          </button>
-        </div>
       </div>
     </section>
   );
-};
+}));
 
+Hero.displayName = "Hero";
 export default Hero;

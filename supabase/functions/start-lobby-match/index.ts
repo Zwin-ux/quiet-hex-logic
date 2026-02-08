@@ -1,4 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const lobbySchema = z.object({
+  lobbyId: z.string().uuid('Invalid lobby ID'),
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,7 +32,15 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { lobbyId } = await req.json();
+    const body = await req.json();
+    const parsed = lobbySchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid input', details: parsed.error.format() }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { lobbyId } = parsed.data;
 
     // Get lobby details
     const { data: lobby, error: lobbyError } = await supabase

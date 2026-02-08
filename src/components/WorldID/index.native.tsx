@@ -8,8 +8,6 @@ export default function WorldIDWidget() {
   const { isVerified, isVerifying, isLoading, verifiedAt, error, verifyProof, clearError } = useWorldID();
 
   const handleVerify = async (result: ISuccessResult) => {
-    console.log('[WorldID Native] Proof received:', result);
-
     const { success, error: verifyError } = await verifyProof({
       merkle_root: result.merkle_root,
       nullifier_hash: result.nullifier_hash,

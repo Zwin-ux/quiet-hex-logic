@@ -10,6 +10,7 @@ import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { UserAvatar } from '@/components/UserAvatar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 function getRankIcon(rank: number) {
   switch (rank) {
@@ -25,6 +26,7 @@ function getRankIcon(rank: number) {
 }
 
 export default function Leaderboard() {
+  useDocumentTitle('Leaderboard');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [gameKey, setGameKey] = useState<'hex' | 'chess' | 'checkers'>('hex');

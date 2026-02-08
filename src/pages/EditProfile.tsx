@@ -10,6 +10,7 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { Check } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
 import { toast } from 'sonner';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const avatarColors = [
   'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose',
@@ -18,6 +19,7 @@ const avatarColors = [
 ] as const;
 
 export default function EditProfile() {
+  useDocumentTitle('Edit Profile');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');

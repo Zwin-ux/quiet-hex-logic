@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Trophy, TrendingDown, Play, Sparkles } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type MatchHistory = {
   id: string;
@@ -29,6 +30,7 @@ type MatchHistory = {
 };
 
 export default function History() {
+  useDocumentTitle('Match History');
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();

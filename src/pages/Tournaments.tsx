@@ -11,6 +11,7 @@ import { CreateTournamentDialog } from '@/components/CreateTournamentDialog';
 import { Trophy, Users, Clock, Calendar, Plus } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
 import { toast } from 'sonner';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface Tournament {
   id: string;
@@ -28,6 +29,7 @@ interface Tournament {
 }
 
 export default function Tournaments() {
+  useDocumentTitle('Tournaments');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isGuest, guestUsername } = useGuestMode();

@@ -1,100 +1,150 @@
+import { memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Hash, Grid2x2, Hexagon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getGameMeta } from '@/lib/gameMetadata';
-import { createLocalMatch, type LocalGameKey } from '@/lib/localMatches/storage';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-type FeaturedMod = {
-  name: string;
-  description: string;
-  gameKey: LocalGameKey;
-  rules: Record<string, unknown> | null;
-};
-
-const FEATURED_MODS: FeaturedMod[] = [
+const FEATURED_MODS = [
   {
+    id: 'misere-ttt',
     name: 'Misere Tic Tac Toe',
-    description: 'Make three in a row and you lose.',
-    gameKey: 'ttt',
+    description: 'A tactical inversion: the first player to complete three in a row loses the match.',
+    game_key: 'ttt',
+    icon: Hash,
     rules: { misere: true },
   },
   {
+    id: 'connect-3',
     name: 'Connect 3 Blitz',
-    description: 'First to connect 3 wins.',
-    gameKey: 'connect4',
+    description: 'High-speed variant where the objective is reduced to three connections for rapid tactical play.',
+    game_key: 'connect4',
+    icon: Grid2x2,
     rules: { connect: 3 },
   },
   {
-    name: 'No Pie Rule (Hex)',
-    description: 'Disables the pie swap.',
-    gameKey: 'hex',
+    id: 'no-pie-hex',
+    name: 'Direct Hex',
+    description: 'Pure confrontation with the pie rule disabled, forcing immediate strategic commitment.',
+    game_key: 'hex',
+    icon: Hexagon,
     rules: { pieRule: false },
   },
 ];
 
-export function FeaturedMods() {
+export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(({ className, ...props }, ref) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleTryIt = (mod: FeaturedMod) => {
-    const pieRule = mod.gameKey === 'hex' && typeof (mod.rules as any)?.pieRule === 'boolean' ? (mod.rules as any).pieRule : undefined;
-    const match = createLocalMatch({ gameKey: mod.gameKey, rules: mod.rules, pieRule });
-    navigate(`/match/${match.id}`);
+  const handleTryIt = async (mod: typeof FEATURED_MODS[0]) => {
+    let currentUser = user;
+    if (!currentUser) {
+      try {
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+        currentUser = data.user;
+      } catch (err) {
+        toast.error('Failed to create guest session');
+        return;
+      }
+    }
+
+    if (!currentUser) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .insert({
+          game_key: mod.game_key,
+          status: 'active',
+          turn: 1,
+          owner: currentUser.id,
+          // rules: mod.rules as any, // Only add if the schema supports it, otherwise use game_key/options
+          is_ranked: false,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        navigate(`/match/${data.id}`);
+      }
+    } catch (error) {
+      console.error('Error creating match:', error);
+      toast.error('Failed to launch variant');
+    }
   };
 
   return (
-    <section className="py-16 px-6 border-t border-border/30">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center gap-2 justify-center mb-2">
-          <Sparkles className="h-5 w-5 text-game-hex" />
-          <h2 className="text-3xl font-display font-bold text-center">
-            Featured Mods
-          </h2>
+    <section 
+      ref={ref}
+      className={cn("py-32 px-6 relative bg-white/[0.01]", className)}
+      {...props}
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
+          <div className="space-y-4">
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-primary animate-gentle-pulse">Boutique Workshop</p>
+            <h2 className="text-5xl md:text-6xl font-display-text font-bold text-white tracking-tight">Featured Variants</h2>
+            <p className="text-muted-foreground text-lg max-w-xl">
+              Curated modifications that push the boundaries of classic strategy.
+            </p>
+          </div>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/mods')} 
+            className="group h-12 px-6 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-primary transition-all font-mono text-xs uppercase tracking-widest"
+          >
+            Explore Library <Sparkles className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+          </Button>
         </div>
-        <p className="text-muted-foreground text-center mb-10">
-          Try unique game variants with one click
-        </p>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-6">
           {FEATURED_MODS.map((mod) => {
-            const meta = getGameMeta(mod.gameKey);
-            const Icon = meta.icon;
+            const meta = getGameMeta(mod.game_key);
+            const Icon = mod.icon;
 
             return (
               <div
-                key={mod.name}
-                className={`flex flex-col p-5 rounded-2xl border ${meta.borderClass} ${meta.bgClass} transition-all hover:shadow-md`}
+                key={mod.id}
+                className="group relative flex flex-col p-10 rounded-3xl border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-500 overflow-hidden glass"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${meta.bgClass}`}>
-                    <Icon className={`h-5 w-5 ${meta.accentClass}`} />
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                  <Icon className="h-20 w-20" />
+                </div>
+                
+                <div className="flex items-center gap-4 mb-8 relative z-10">
+                  <div className="h-14 w-14 rounded-xl glass flex items-center justify-center border-white/10 group-hover:border-primary/30 transition-colors">
+                    <Icon className={cn('h-7 w-7', meta.accentClass)} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">{mod.name}</h3>
-                    <p className="text-xs text-muted-foreground capitalize">{mod.gameKey}</p>
+                    <h3 className="font-display-text text-2xl font-bold text-white group-hover:text-primary transition-colors">{mod.name}</h3>
+                    <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{mod.game_key}</p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4 flex-1">
+                
+                <p className="text-base text-muted-foreground mb-10 flex-1 leading-relaxed">
                   {mod.description}
                 </p>
+                
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => handleTryIt(mod)}
-                  className="w-full"
+                  className="w-full h-12 rounded-xl glass border-white/5 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-sm"
                 >
-                  Try It
+                  Quick Launch
                 </Button>
               </div>
             );
           })}
         </div>
-
-        <div className="text-center mt-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/mods')} className="text-muted-foreground">
-            Browse all mods
-          </Button>
-        </div>
       </div>
     </section>
   );
-}
+}));
+
+FeaturedMods.displayName = 'FeaturedMods';
