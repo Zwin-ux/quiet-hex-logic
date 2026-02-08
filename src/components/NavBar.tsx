@@ -1,14 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Trophy, Package, Target, LogOut, User, Crown, Hexagon } from 'lucide-react';
+import { Trophy, Package, Target, LogOut, User, Crown, Hexagon, Swords } from 'lucide-react';
 
 export function NavBar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+    <div className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -22,6 +22,9 @@ export function NavBar() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/lobby')} className="hidden sm:inline-flex text-sm">
             Play
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/arena')} className="hidden sm:inline-flex text-sm">
+            Arena
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate('/leaderboard')} className="hidden sm:inline-flex text-sm">
             Leaderboard
           </Button>
@@ -32,6 +35,7 @@ export function NavBar() {
             <>
               {[
                 { icon: User, path: '/profile' },
+                { icon: Swords, path: '/arena', className: 'sm:hidden' },
                 { icon: Trophy, path: '/leaderboard', className: 'sm:hidden' },
                 { icon: Package, path: '/mods', className: 'sm:hidden' },
                 { icon: Target, path: '/puzzles' },

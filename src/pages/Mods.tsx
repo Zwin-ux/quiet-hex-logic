@@ -50,7 +50,9 @@ const SAMPLE_MODS: Array<{
 
 export default function Mods() {
   const navigate = useNavigate();
-  const [mods, setMods] = useState<InstalledMod[]>(() => listMods());
+  const [mods, setMods] = useState<InstalledMod[]>(() => {
+    try { return listMods(); } catch { return []; }
+  });
   const [importing, setImporting] = useState(false);
 
   const [localGameKey, setLocalGameKey] = useState<LocalGameKey>('checkers');
@@ -60,7 +62,7 @@ export default function Mods() {
     return mods.filter((m) => (m.manifest.games as any)?.[localGameKey]?.rules != null);
   }, [mods, localGameKey]);
 
-  const refresh = () => setMods(listMods());
+  const refresh = () => { try { setMods(listMods()); } catch { setMods([]); } };
 
   const onImport = async (file: File | null) => {
     if (!file) return;

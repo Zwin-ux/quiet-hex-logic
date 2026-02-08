@@ -28,6 +28,8 @@ const Index = () => {
               Join Discord
             </a>
             <span>•</span>
+            <Link to="/arena" className="hover:text-foreground transition-colors">Bot Arena</Link>
+            <span>•</span>
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
             <span>•</span>
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>

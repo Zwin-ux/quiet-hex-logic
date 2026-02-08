@@ -1,4 +1,4 @@
-project_id = "ptuxqfwicdpdslqwnswd"
+project_id = "kgwxaenxdlzuzqyoewpe"
 
 [functions.cleanup-empty-lobbies]
 verify_jwt = false

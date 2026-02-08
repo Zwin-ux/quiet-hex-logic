@@ -47,9 +47,9 @@ AS $$
     OR
     -- Tournament co-participants
     EXISTS (
-      SELECT 1 FROM public.tournament_players tp1
-      JOIN public.tournament_players tp2 ON tp1.tournament_id = tp2.tournament_id
-      WHERE tp1.profile_id = _viewer_id AND tp2.profile_id = _profile_id
+      SELECT 1 FROM public.tournament_participants tp1
+      JOIN public.tournament_participants tp2 ON tp1.tournament_id = tp2.tournament_id
+      WHERE tp1.player_id = _viewer_id AND tp2.player_id = _profile_id
     )
   )
 $$;

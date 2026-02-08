@@ -55,8 +55,9 @@ AS $$
   )
 $$;
 
--- Drop the recursive policy
+-- Drop any prior policies
 DROP POLICY IF EXISTS "profiles_select_restricted" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_select_safe" ON public.profiles;
 
 -- Create new non-recursive policy using the security definer function
 CREATE POLICY "profiles_select_safe"

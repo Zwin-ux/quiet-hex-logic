@@ -72,14 +72,15 @@ export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HT
       if (data) {
         navigate(`/match/${data.id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating match:', error);
-      toast.error('Failed to launch variant');
+      const isNetwork = error instanceof TypeError && /fetch/i.test(error.message);
+      toast.error(isNetwork ? 'Network error — server may be offline' : 'Failed to launch variant');
     }
   };
 
   return (
-    <section 
+    <section
       ref={ref}
       className={cn("py-32 px-6 relative bg-white/[0.01]", className)}
       {...props}
@@ -93,9 +94,9 @@ export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HT
               Curated modifications that push the boundaries of classic strategy.
             </p>
           </div>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/mods')} 
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/mods')}
             className="group h-12 px-6 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-primary transition-all font-mono text-xs uppercase tracking-widest"
           >
             Explore Library <Sparkles className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
@@ -110,31 +111,41 @@ export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HT
             return (
               <div
                 key={mod.id}
-                className="group relative flex flex-col p-10 rounded-3xl border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-500 overflow-hidden glass"
+                className={cn(
+                  "group relative flex flex-col p-10 rounded-3xl border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-500 overflow-hidden glass",
+                  `hover:${meta.borderClass}`
+                )}
               >
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-                  <Icon className="h-20 w-20" />
+                  <Icon className={cn("h-20 w-20", meta.accentClass)} />
                 </div>
-                
+
                 <div className="flex items-center gap-4 mb-8 relative z-10">
-                  <div className="h-14 w-14 rounded-xl glass flex items-center justify-center border-white/10 group-hover:border-primary/30 transition-colors">
+                  <div className={cn(
+                    "h-14 w-14 rounded-xl glass flex items-center justify-center border-white/10 transition-colors",
+                    `group-hover:${meta.borderClass}`,
+                    `group-hover:${meta.bgClass}`
+                  )}>
                     <Icon className={cn('h-7 w-7', meta.accentClass)} />
                   </div>
                   <div>
-                    <h3 className="font-display-text text-2xl font-bold text-white group-hover:text-primary transition-colors">{mod.name}</h3>
+                    <h3 className={cn("font-display-text text-2xl font-bold text-white transition-colors", `group-hover:${meta.accentClass}`)}>{mod.name}</h3>
                     <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{mod.game_key}</p>
                   </div>
                 </div>
-                
+
                 <p className="text-base text-muted-foreground mb-10 flex-1 leading-relaxed">
                   {mod.description}
                 </p>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleTryIt(mod)}
-                  className="w-full h-12 rounded-xl glass border-white/5 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-sm"
+                  className={cn(
+                    "w-full h-12 rounded-xl glass border-white/5 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-sm",
+                    "hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                  )}
                 >
                   Quick Launch
                 </Button>

@@ -24,7 +24,7 @@ export async function importModFromFile(file: File): Promise<ModManifest> {
     const raw = await readFileText(file);
     const json = JSON.parse(raw);
     const manifest = modManifestSchema.parse(json);
-    validateModManifest(manifest);
+    await validateModManifest(manifest);
     return manifest;
   }
 
@@ -63,7 +63,7 @@ export async function importModFromFile(file: File): Promise<ModManifest> {
     }
 
     const merged = modManifestSchema.parse({ ...manifest, games });
-    validateModManifest(merged);
+    await validateModManifest(merged);
     return merged;
   }
 

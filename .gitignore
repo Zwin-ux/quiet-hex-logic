@@ -16,6 +16,14 @@ dist-ssr
 *.local
 .env
 
+# Secrets & certs
+*.key
+*.pem
+*.p12
+
+# Build artifacts
+build_log.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

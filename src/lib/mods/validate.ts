@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import type { ModManifest } from '@/lib/mods/schema';
 import { gameKeySchema } from '@/lib/mods/schema';
-import { ChessEngine } from '@/lib/chess/engine';
 
 const hexRulesSchema = z.object({
   pieRule: z.boolean().optional(),
@@ -35,7 +34,7 @@ const rulesSchemas = {
   connect4: connect4RulesSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
-export function validateModManifest(manifest: ModManifest): void {
+export async function validateModManifest(manifest: ModManifest): Promise<void> {
   // Validate per-game rules shapes and do a couple semantic checks (like FEN validity).
   for (const [gameKey, gameDef] of Object.entries(manifest.games ?? {})) {
     const parsedGameKey = gameKeySchema.safeParse(gameKey);
@@ -62,6 +61,7 @@ export function validateModManifest(manifest: ModManifest): void {
     if (key === 'chess') {
       const fen = (rules as any).startFen;
       if (typeof fen === 'string' && fen.trim()) {
+        const { ChessEngine } = await import('@/lib/chess/engine');
         try {
           // chess.js validates FEN on construction.
           new ChessEngine(fen);
@@ -72,4 +72,3 @@ export function validateModManifest(manifest: ModManifest): void {
     }
   }
 }
-

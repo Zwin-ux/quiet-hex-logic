@@ -71,17 +71,18 @@ export const GameGrid = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLEl
       navigate(`/match/${newMatch.id}`, {
         state: { optimistic: true, userId: currentUser.id },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating match:', error);
-      toast.error('Failed to create match. Please try again.');
+      const isNetwork = error instanceof TypeError && /fetch/i.test(error.message);
+      toast.error(isNetwork ? 'Network error — server may be offline' : 'Failed to create match. Please try again.');
     } finally {
       setLoadingDifficulty(null);
     }
   };
 
   return (
-    <section 
-      id="games" 
+    <section
+      id="games"
       ref={ref}
       className={cn("py-32 px-6 relative", className)}
       {...props}
@@ -135,7 +136,7 @@ export const GameGrid = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLEl
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {games.map((game) => {
             const meta = getGameMeta(game.key);
             const Icon = meta.icon;
@@ -147,21 +148,30 @@ export const GameGrid = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLEl
                 onClick={() => setSelectedGame(game.key)}
                 disabled={!!loadingDifficulty}
                 className={cn(
-                  'group relative flex flex-col items-center gap-5 p-10 rounded-3xl transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 overflow-hidden glass',
-                  isSelected ? 'ring-2 ring-primary border-primary/40 bg-primary/5' : 'hover:bg-white/[0.05] border-white/5',
+                  'group relative flex flex-col items-center gap-4 p-6 md:p-10 rounded-3xl transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 overflow-hidden glass',
+                  isSelected
+                    ? `ring-2 ring-primary ${meta.borderClass} ${meta.bgClass}`
+                    : `hover:${meta.bgClass} border-white/5 hover:${meta.borderClass}`,
                 )}
               >
-                {/* Decorative glow */}
-                <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
-                
+                {/* Decorative glow - per-game color */}
                 <div className={cn(
-                  "h-20 w-20 rounded-2xl flex items-center justify-center transition-all duration-500 glass border-white/10",
-                  isSelected ? "bg-primary/20 border-primary/30 shadow-glow" : "group-hover:bg-white/10 group-hover:border-primary/20"
+                  "absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl transition-all duration-500",
+                  meta.bgClass,
+                  "group-hover:opacity-100 opacity-30"
+                )} />
+
+                <div className={cn(
+                  "h-16 w-16 md:h-20 md:w-20 rounded-2xl flex items-center justify-center transition-all duration-500 glass border-white/10",
+                  isSelected ? `${meta.bgClass} ${meta.borderClass} shadow-glow` : `group-hover:${meta.bgClass} group-hover:${meta.borderClass}`
                 )}>
-                  <Icon className={cn('h-10 w-10 transition-transform duration-500 group-hover:scale-110', isSelected ? 'text-primary' : 'text-primary/70')} />
+                  <Icon className={cn(
+                    'h-8 w-8 md:h-10 md:w-10 transition-transform duration-500 group-hover:scale-110',
+                    isSelected ? meta.accentClass : `${meta.accentClass} opacity-70 group-hover:opacity-100`
+                  )} />
                 </div>
                 <div className="text-center relative z-10">
-                  <h3 className="font-display-text text-2xl font-bold text-white mb-2">
+                  <h3 className="font-display-text text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
                     {game.displayName}
                   </h3>
                   <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-[0.2em] opacity-40 group-hover:opacity-100 transition-all duration-500">

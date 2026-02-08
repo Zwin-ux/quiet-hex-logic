@@ -8,15 +8,30 @@ const Hero = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(({ 
   };
 
   return (
-    <section 
+    <section
       ref={ref}
-      className={cn("relative min-h-[85vh] flex items-center justify-center overflow-hidden", className)}
+      className={cn("relative min-h-[75vh] flex items-center justify-center overflow-hidden", className)}
       {...props}
     >
-      {/* Background decoration - matching the logo vibe */}
+      {/* Background decoration - per-game accent color blobs */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[140px] animate-float" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-secondary/5 rounded-full blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[140px] animate-float bg-game-hex/15" />
+        <div className="absolute bottom-[-15%] right-[-5%] w-[40%] h-[40%] rounded-full blur-[120px] animate-float bg-game-chess/10" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-[30%] right-[15%] w-[25%] h-[25%] rounded-full blur-[100px] animate-float bg-game-ttt/8" style={{ animationDelay: '4s' }} />
+        <div className="absolute bottom-[10%] left-[20%] w-[20%] h-[20%] rounded-full blur-[80px] animate-float bg-game-checkers/8" style={{ animationDelay: '3s' }} />
+      </div>
+
+      {/* Subtle hex grid pattern */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="hex-grid" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(1.5)">
+              <path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+              <path d="M28 0L28 -34L0 -50L0 -16L28 0" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hex-grid)" className="text-white" />
+        </svg>
       </div>
 
       {/* Hero content */}
@@ -27,14 +42,14 @@ const Hero = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(({ 
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            Premium Strategy Hub
+            Five Games, One Platform
           </div>
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-display-text font-extrabold tracking-tighter mb-6 bg-gradient-to-b from-primary via-primary/90 to-primary/40 bg-clip-text text-transparent drop-shadow-2xl">
             Hexology
           </h1>
           <p className="text-muted-foreground text-lg md:text-2xl mt-4 max-w-2xl mx-auto leading-relaxed font-body">
-            Five timeless strategy games. One premium experience. <br className="hidden md:block" />
-            Join the boutique hub for Hex, Chess, and more.
+            Hex, Chess, Checkers, and more — play against AI, <br className="hidden md:block" />
+            challenge friends, or climb the ranked ladder.
           </p>
         </div>
 

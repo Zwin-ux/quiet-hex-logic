@@ -72,7 +72,7 @@ That's it. The hooks, match page, lobby UI, and edge functions are all registry-
 ### Quick Start
 
 ```bash
-npm install
+npm install --legacy-peer-deps
 npm run dev       # Start dev server at http://localhost:8080
 ```
 
@@ -98,7 +98,7 @@ npm start         # Start Expo dev server
 
 This repo uses Supabase for database, auth, realtime subscriptions, and edge functions.
 
-- **Migrations**: `supabase/migrations/` (76 files)
+- **Migrations**: `supabase/migrations/` (70 files)
 - **Edge Functions**: `supabase/functions/` (apply-move, create-lobby, update-ratings, etc.)
 - **Types**: `src/integrations/supabase/types.ts` (auto-generated, do not edit)
 
