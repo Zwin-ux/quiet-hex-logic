@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MusicControls } from '@/components/MusicControls';
-import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Flag } from 'lucide-react';
+import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Flag, Handshake } from 'lucide-react';
 import type { MatchData, Player } from '@/hooks/useMatchState';
 
 interface MatchHeaderProps {
@@ -14,6 +14,7 @@ interface MatchHeaderProps {
   showAIReasoning: boolean;
   aiReasoning: string;
   requestingRematch: boolean;
+  drawOfferedBy?: number | null;
   musicControls: {
     isPlaying: boolean;
     volume: number;
@@ -25,6 +26,9 @@ interface MatchHeaderProps {
   onBack: () => void;
   onRematch: () => void;
   onForfeit: () => void;
+  onOfferDraw?: () => void;
+  onAcceptDraw?: () => void;
+  onDeclineDraw?: () => void;
   onToggleSpectate: () => void;
   onShowTutorial: () => void;
   onToggleAIReasoning: () => void;
@@ -32,8 +36,8 @@ interface MatchHeaderProps {
 
 export function MatchHeader({
   match, isAIMatch, isPlayer, isSpectating, isLocalMatch, userPlayer,
-  showAIReasoning, aiReasoning, requestingRematch,
-  musicControls, onBack, onRematch, onForfeit,
+  showAIReasoning, aiReasoning, requestingRematch, drawOfferedBy,
+  musicControls, onBack, onRematch, onForfeit, onOfferDraw, onAcceptDraw, onDeclineDraw,
   onToggleSpectate, onShowTutorial, onToggleAIReasoning,
 }: MatchHeaderProps) {
   return (
@@ -55,6 +59,9 @@ export function MatchHeader({
                 {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}
               </Badge>
             )}
+            {match.status === 'finished' && !match.winner && match.result === 'draw' && (
+              <Badge variant="secondary">Draw</Badge>
+            )}
           </div>
         </div>
       </div>
@@ -67,10 +74,35 @@ export function MatchHeader({
           </Button>
         )}
         {match.status === 'active' && isPlayer && !isAIMatch && !isLocalMatch && (
-          <Button variant="destructive" size="sm" onClick={onForfeit} className="shrink-0">
-            <Flag className="h-4 w-4 mr-1.5" />
-            Forfeit
-          </Button>
+          <>
+            <Button variant="destructive" size="sm" onClick={onForfeit} className="shrink-0">
+              <Flag className="h-4 w-4 mr-1.5" />
+              Forfeit
+            </Button>
+            {drawOfferedBy == null && (
+              <Button variant="outline" size="sm" onClick={onOfferDraw} className="shrink-0">
+                <Handshake className="h-4 w-4 mr-1.5" />
+                Offer Draw
+              </Button>
+            )}
+            {drawOfferedBy != null && drawOfferedBy === userPlayer?.color && (
+              <Badge variant="secondary" className="shrink-0 h-8 px-3 flex items-center gap-1.5">
+                <Handshake className="h-3.5 w-3.5" />
+                Draw Offered
+              </Badge>
+            )}
+            {drawOfferedBy != null && drawOfferedBy !== userPlayer?.color && (
+              <>
+                <Button variant="default" size="sm" onClick={onAcceptDraw} className="shrink-0">
+                  <Handshake className="h-4 w-4 mr-1.5" />
+                  Accept Draw
+                </Button>
+                <Button variant="outline" size="sm" onClick={onDeclineDraw} className="shrink-0">
+                  Decline
+                </Button>
+              </>
+            )}
+          </>
         )}
         {!isAIMatch && !isPlayer && !isLocalMatch && (
           <Button variant={isSpectating ? "default" : "outline"} size="sm" onClick={onToggleSpectate} className="shrink-0">

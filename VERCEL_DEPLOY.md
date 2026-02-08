@@ -1,4 +1,4 @@
-# Deploying to Vercel (The Open Board)
+# Deploying to Vercel (Hexology)
 
 This guide covers migrating the frontend from Lovable to Vercel.
 
@@ -51,8 +51,8 @@ If prompted for build settings, use the defaults for Vite/React:
 
 - **Build Command**: `vite build`
 - **Output Directory**: `dist`
-- **Install Command**: `npm install` (or `pnpm install` / `yarn install`)
+- **Install Command**: `npm install`
 
 ## 5. Deployment Result
 
-Once deployed, Vercel will provide a URL (e.g., `the-open-board.vercel.app`). You can link a custom domain in the project settings.
+Once deployed, Vercel will provide a URL (e.g., `hexology.vercel.app`). You can link a custom domain in the project settings.

@@ -16,6 +16,8 @@ import { loadLocalMatch } from '@/lib/localMatches/storage';
 import { getGame, createEngine } from '@/lib/engine/registry';
 import type { GameEngine } from '@/lib/engine/types';
 
+export type GameKey = 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
+
 export interface MatchData {
   id: string;
   size: number;
@@ -29,6 +31,9 @@ export interface MatchData {
   turn_timer_seconds?: number | null;
   turn_started_at?: string | null;
   is_ranked?: boolean | null;
+  draw_offered_by?: number | null;
+  version?: number;
+  updated_at?: string;
 }
 
 export interface Player {

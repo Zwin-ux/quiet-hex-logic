@@ -12,18 +12,18 @@ This is a Lovable (lovable.dev) project. The `lovable-tagger` dev dependency add
 
 ```bash
 # Web
-pnpm dev              # Vite dev server on port 8080
-pnpm build            # Production build
-pnpm lint             # ESLint
+npm run dev              # Vite dev server on port 8080
+npm run build            # Production build
+npm run lint             # ESLint
 
 # Tests (Vitest)
-pnpm test             # Run all tests (92 tests across 5 engines)
-pnpm test:watch       # Watch mode
+npm test             # Run all tests (92 tests across 5 engines)
+npm test:watch       # Watch mode
 npx vitest run src/lib/hex  # Run tests for a single game engine
 
 # Mobile (Expo)
-pnpm ios              # iOS
-pnpm android          # Android
+npm run ios              # iOS
+npm run android          # Android
 ```
 
 Test files live at `src/lib/<game>/__tests__/engine.test.ts`. Vitest is configured with the `@/*` path alias.

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 const LearnMode = () => {
   const steps = [
     { number: 1, title: "Place a stone", description: "Make your first move" },
-    { number: 2, title: "Connect your sides", description: "Build a path from edge to edge" },
+    { number: 2, title: "Connect your sides", description: "Build a path from West to East (or North to South)" },
     { number: 3, title: "Win the game", description: "Complete your connection first" }
   ];
 
@@ -16,7 +16,7 @@ const LearnMode = () => {
     <section className="py-24 px-4 bg-gradient-to-b from-accent/20 to-background">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="font-body text-5xl md:text-6xl font-semibold text-foreground mb-12">
-          Learn to Play
+          Learn to Play Hex
         </h2>
 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
@@ -56,7 +56,7 @@ const LearnMode = () => {
               className="text-lg px-10 py-7 h-auto font-body shadow-medium hover:shadow-soft transition-all duration-300"
               onClick={handleStartTutorial}
             >
-              Start Tutorial
+              Start Hex Tutorial
             </Button>
           </div>
         </Card>

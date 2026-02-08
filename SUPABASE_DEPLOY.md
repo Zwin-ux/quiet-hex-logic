@@ -1,4 +1,4 @@
-# Supabase Deploy (The Open Board)
+# Supabase Deploy (Hexology)
 
 This repo uses Supabase for:
 - Database schema + migrations (`supabase/migrations/`)

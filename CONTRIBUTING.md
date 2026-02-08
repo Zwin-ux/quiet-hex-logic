@@ -7,7 +7,6 @@ Thanks for your interest in contributing! This guide will help you get started.
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v18+
-- [pnpm](https://pnpm.io/) package manager
 - A [Supabase](https://supabase.com/) project (for backend features)
 
 ### Getting Started
@@ -18,10 +17,10 @@ git clone https://github.com/YOUR_USERNAME/quiet-hex-logic-2.git
 cd quiet-hex-logic-2
 
 # Install dependencies
-pnpm install
+npm install
 
 # Start the dev server
-pnpm dev
+npm run dev
 ```
 
 The app runs at `http://localhost:8080`.
@@ -29,14 +28,14 @@ The app runs at `http://localhost:8080`.
 ### Running Tests
 
 ```bash
-pnpm test          # Run all tests
-pnpm test:watch    # Run in watch mode
+npm test           # Run all tests
+npm run test:watch # Run in watch mode
 ```
 
 ### Linting
 
 ```bash
-pnpm lint
+npm run lint
 ```
 
 ## Branch Conventions
@@ -61,7 +60,7 @@ See the existing games (hex, chess, checkers, ttt) for examples.
 
 - Keep PRs focused — one feature or fix per PR
 - Include tests for new game engine logic
-- Run `pnpm lint` and `pnpm test` before submitting
+- Run `npm run lint` and `npm test` before submitting
 - Fill out the PR template
 - Link related issues
 

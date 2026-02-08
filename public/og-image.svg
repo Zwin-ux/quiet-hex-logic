@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#121520"/>
+      <stop offset="100%" stop-color="#1a1f30"/>
+    </linearGradient>
+    <linearGradient id="hex" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Decorative hexagons -->
+  <g opacity="0.1" stroke="#7c3aed" stroke-width="2" fill="none">
+    <polygon points="200,200 240,175 280,200 280,250 240,275 200,250"/>
+    <polygon points="280,200 320,175 360,200 360,250 320,275 280,250"/>
+    <polygon points="240,275 280,250 320,275 320,325 280,350 240,325"/>
+    <polygon points="840,100 880,75 920,100 920,150 880,175 840,150"/>
+    <polygon points="920,100 960,75 1000,100 1000,150 960,175 920,150"/>
+    <polygon points="880,175 920,150 960,175 960,225 920,250 880,225"/>
+    <polygon points="100,400 140,375 180,400 180,450 140,475 100,450"/>
+    <polygon points="950,380 990,355 1030,380 1030,430 990,455 950,430"/>
+  </g>
+  <!-- Title -->
+  <text x="600" y="260" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="80" font-weight="800" fill="white" letter-spacing="-2">Hexology</text>
+  <!-- Tagline -->
+  <text x="600" y="330" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="400" fill="#94a3b8">Five strategy games. One platform.</text>
+  <!-- Game icons row -->
+  <g transform="translate(600, 420)" text-anchor="middle">
+    <g transform="translate(-200, 0)">
+      <polygon points="0,-20 17,-10 17,10 0,20 -17,10 -17,-10" fill="url(#hex)" opacity="0.8"/>
+      <text y="45" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#94a3b8">Hex</text>
+    </g>
+    <g transform="translate(-100, 0)">
+      <rect x="-15" y="-15" width="30" height="30" rx="3" fill="#c0c0c0" opacity="0.8"/>
+      <text y="45" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#94a3b8">Chess</text>
+    </g>
+    <g transform="translate(0, 0)">
+      <circle r="15" fill="#ef4444" opacity="0.8"/>
+      <text y="45" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#94a3b8">Checkers</text>
+    </g>
+    <g transform="translate(100, 0)">
+      <line x1="-12" y1="-12" x2="12" y2="12" stroke="#22c55e" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+      <line x1="12" y1="-12" x2="-12" y2="12" stroke="#22c55e" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+      <text y="45" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#94a3b8">Tic Tac Toe</text>
+    </g>
+    <g transform="translate(200, 0)">
+      <circle r="15" fill="#f97316" opacity="0.8"/>
+      <text y="45" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#94a3b8">Connect 4</text>
+    </g>
+  </g>
+  <!-- Footer -->
+  <text x="600" y="570" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="#475569">bonelli.dev</text>
+</svg>

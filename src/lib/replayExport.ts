@@ -96,7 +96,7 @@ export function generateJsonReplay(match: MatchData, moves: Move[]): string {
   const player2 = match.players.find(p => p.color === 2);
   
   const exportData = {
-    format: 'openboard-replay-v1',
+    format: 'hexology-replay-v1',
     game: {
       id: match.id,
       date: match.created_at,

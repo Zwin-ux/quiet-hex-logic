@@ -18,7 +18,7 @@ export function parseUci(uci: string): { from: string; to: string; promotion?: '
   if (!isUci(uci)) throw new Error(`Invalid UCI: ${uci}`);
   const from = uci.slice(0, 2);
   const to = uci.slice(2, 4);
-  const promotion = (uci.length === 5 ? (uci[4] as any) : undefined) as 'q' | 'r' | 'b' | 'n' | undefined;
+  const promotion = uci.length === 5 ? uci[4] as 'q' | 'r' | 'b' | 'n' : undefined;
   return { from, to, promotion };
 }
 
@@ -53,7 +53,7 @@ export class ChessEngine {
   }
 
   legalMovesFrom(square: string): Array<{ to: string; san: string; uci: string }> {
-    const moves = this.chess.moves({ square: square as any, verbose: true }) as any[];
+    const moves = this.chess.moves({ square: square as any, verbose: true });
     return moves.map((m) => ({
       to: m.to,
       san: m.san,
@@ -69,9 +69,9 @@ export class ChessEngine {
 
   playUci(uci: string): { san: string } {
     const { from, to, promotion } = parseUci(uci);
-    const move = this.chess.move({ from: from as any, to: to as any, promotion } as any);
+    const move = this.chess.move({ from: from as any, to: to as any, promotion });
     if (!move) throw new Error('Illegal move');
-    return { san: (move as any).san };
+    return { san: move.san };
   }
 
   board(): ReturnType<Chess['board']> {

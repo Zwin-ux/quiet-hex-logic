@@ -1,4 +1,4 @@
-# The Open Board: "Clean Break" Deployment
+# Hexology: "Clean Break" Deployment
 
 Use this guide to move the entire project (Frontend + Backend) away from Lovable and into your own controlled accounts.
 
@@ -7,7 +7,7 @@ Use this guide to move the entire project (Frontend + Backend) away from Lovable
 To get out of Lovable's managed Supabase:
 
 1.  Go to [supabase.com/dashboard](https://supabase.com/dashboard).
-2.  Click **New Project** and name it `The Open Board`.
+2.  Click **New Project** and name it `Hexology`.
 3.  **IMPORTANT**: Copy your **Database Password** and **Project Reference**.
 
 Then run this "Lazy Command" (replace the brackets):

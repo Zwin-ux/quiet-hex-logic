@@ -2,20 +2,15 @@
 
 ## App Information
 
-**App Name**: The Open Board
-**Subtitle**: Strategic Hex Board Game
+**App Name**: Hexology
+**Subtitle**: Five Strategy Games, One Platform
 **Category**: Games > Strategy
 
 ---
 
 ## Description (4000 char limit)
 
-**The Open Board** is a deep, strategic hex-based board game where every move matters. Connect your sides of the board before your opponent does in this beautifully crafted digital adaptation of the classic connection game.
-
-🎮 **LAUNCH SPECIAL**
-
-- Official Release: January 25th, 2026
-- First Tournament: February 25th, 2026 with $500 Prize Pool!
+**Hexology** is a deep, strategic board game platform featuring five classic games: Hex, Chess, Checkers, Tic Tac Toe, and Connect 4. Connect your sides of the board, checkmate your opponent, or line up four in a row in these beautifully crafted digital adaptations.
 
 🏆 **FEATURES**
 • Ranked Multiplayer - Climb the global leaderboard
@@ -27,9 +22,9 @@
 • Cross-Platform - Play on iPhone, iPad, Mac, and Vision Pro
 
 🧠 **STRATEGIC DEPTH**
-The Open Board is easy to learn but impossible to master. Each game presents unique tactical challenges as you balance offense and defense, control key hexes, and outmaneuver your opponent.
+Hexology is easy to learn but impossible to master. Each game presents unique tactical challenges as you balance offense and defense, control key positions, and outmaneuver your opponent.
 
-💎 **THE OPEN BOARD+ SUBSCRIPTION**
+💎 **HEXOLOGY+ SUBSCRIPTION**
 Unlock the full experience with our auto-renewable monthly subscription at $5.00/month:
 
 - Exclusive premium board skins (Galaxy, Royal, Retro & Aurora)
@@ -40,16 +35,16 @@ Unlock the full experience with our auto-renewable monthly subscription at $5.00
 
 Subscription auto-renews monthly unless canceled. Manage or cancel anytime from your App Store account settings.
 
-Join thousands of players in the ultimate test of strategic thinking. Will you master the hex?
+Join thousands of players in the ultimate test of strategic thinking!
 
-**Terms of Use**: https://openboard.io/terms
-**Privacy Policy**: https://openboard.io/privacy
+**Terms of Use**: https://hexology.me/terms
+**Privacy Policy**: https://hexology.me/privacy
 
 ---
 
 ## Keywords (100 char limit)
 
-hex,strategy,board game,multiplayer,tournament,puzzle,logic,chess,go,abstract
+hex,strategy,board game,multiplayer,tournament,puzzle,logic,chess,checkers,connect4
 
 ---
 
@@ -57,31 +52,30 @@ hex,strategy,board game,multiplayer,tournament,puzzle,logic,chess,go,abstract
 
 **Version 1.0 - Grand Launch**
 
-Welcome to The Open Board! This is our official launch with:
+Welcome to Hexology! This is our official launch with:
 
-✨ Full multiplayer matchmaking system
-🏆 Tournament support with our first $500 event on Feb 25th
-👥 Friends system and in-game chat
-🎨 Premium board skins and customization
-📊 Global leaderboards and ranking system
-🤖 Multiple AI difficulty levels
-📱 Native iOS experience with Sign In with Apple
-
-Mark your calendars for our first major tournament on February 25th, 2026!
+- Full multiplayer matchmaking system
+- Tournament support
+- Friends system and in-game chat
+- Premium board skins and customization
+- Global leaderboards and ranking system
+- Multiple AI difficulty levels
+- Native iOS experience with Sign In with Apple
+- Five games: Hex, Chess, Checkers, Tic Tac Toe, Connect 4
 
 ---
 
 ## Promotional Text (170 char limit)
 
-Master the hex! Join our $500 tournament on Feb 25th. Strategic board game with ranked multiplayer, AI practice, and stunning premium skins. Launch: Jan 25th!
+Five strategy games, one platform. Play Hex, Chess, Checkers, TTT & Connect 4 with ranked multiplayer, AI opponents, and tournaments. Download Hexology today!
 
 ---
 
 ## Support Information
 
-**Support URL**: https://openboard.io/support
-**Privacy Policy URL**: https://openboard.io/privacy
-**Terms of Service URL**: https://openboard.io/terms
+**Support URL**: https://hexology.me/support
+**Privacy Policy URL**: https://hexology.me/privacy
+**Terms of Service URL**: https://hexology.me/terms
 
 ---
 
@@ -101,7 +95,7 @@ You need:
 
 **Recommended Screenshots:**
 
-1. Main game board in action
+1. Main game board in action (show multiple games)
 2. Premium page showing Plus features
 3. Tournament/Leaderboard page
 4. Friends/Social features
@@ -113,7 +107,6 @@ You need:
 
 15-30 second video showing:
 
-- Quick gameplay clip
+- Quick gameplay clips across multiple games
 - Tournament announcement
 - Premium features
-- "Available January 25th" end card

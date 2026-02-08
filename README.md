@@ -68,31 +68,30 @@ That's it. The hooks, match page, lobby UI, and edge functions are all registry-
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v18+
-- [pnpm](https://pnpm.io/)
 
 ### Quick Start
 
 ```bash
-pnpm install
-pnpm dev          # Start dev server at http://localhost:8080
+npm install
+npm run dev       # Start dev server at http://localhost:8080
 ```
 
 ### Commands
 
 ```bash
-pnpm dev          # Vite dev server (port 8080)
-pnpm build        # Production build
-pnpm lint         # ESLint
-pnpm test         # Run all tests (Vitest)
-pnpm test:watch   # Run tests in watch mode
+npm run dev       # Vite dev server (port 8080)
+npm run build     # Production build
+npm run lint      # ESLint
+npm test          # Run all tests (Vitest)
+npm run test:watch  # Run tests in watch mode
 ```
 
 ### Mobile (Expo)
 
 ```bash
-pnpm ios          # Start Expo for iOS
-pnpm android      # Start Expo for Android
-pnpm start        # Start Expo dev server
+npm run ios       # Start Expo for iOS
+npm run android   # Start Expo for Android
+npm start         # Start Expo dev server
 ```
 
 ## Supabase

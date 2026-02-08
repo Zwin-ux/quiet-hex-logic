@@ -108,14 +108,14 @@ export default function Lobby() {
   // Handle auto-create AI match from location state
   useEffect(() => {
     if (isLoading || !isReadyToPlay) return;
-    const state = location.state as { createAI?: boolean; difficulty?: string; boardSize?: number };
+    const state = location.state as { createAI?: boolean; difficulty?: string; boardSize?: number; competitive?: boolean } | null;
     if (state?.createAI && state?.difficulty && !handledAutoCreate) {
       setHandledAutoCreate(true);
       const difficulty = state.difficulty as 'easy' | 'medium' | 'hard' | 'expert';
       const boardSize = state.boardSize || 7;
       navigate(location.pathname, { replace: true, state: {} });
       createAIMatch(difficulty, boardSize);
-    } else if ((state as any)?.competitive && !handledAutoCreate && !isGuest) {
+    } else if (state?.competitive && !handledAutoCreate && !isGuest) {
       setHandledAutoCreate(true);
       navigate(location.pathname, { replace: true, state: {} });
       findOrCreateCompetitiveMatch();
@@ -342,7 +342,7 @@ export default function Lobby() {
   }
 
   // Prevent flash when auto-creating AI match
-  const isAutoCreating = (location.state as any)?.createAI && !handledAutoCreate;
+  const isAutoCreating = (location.state as { createAI?: boolean })?.createAI && !handledAutoCreate;
   if (isAutoCreating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -354,7 +354,7 @@ export default function Lobby() {
     );
   }
 
-  const isCompetitive = (location.state as any)?.competitive && !handledAutoCreate;
+  const isCompetitive = (location.state as { competitive?: boolean })?.competitive && !handledAutoCreate;
   if (isCompetitive) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

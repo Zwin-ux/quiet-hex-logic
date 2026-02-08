@@ -360,7 +360,7 @@ export default function Tutorial() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="font-display text-2xl font-semibold text-foreground">
-              Tutorial
+              Hex Tutorial
             </h1>
           </div>
           <Button variant="outline" onClick={() => navigate('/')} className="gap-2">

@@ -8,17 +8,27 @@ import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward,  Download, 
-  FileText, 
-  FileJson, 
-  Brain, 
-  Loader2, 
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward,  Download,
+  FileText,
+  FileJson,
+  Brain,
+  Loader2,
   Crown,
   Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HexBoard } from '@/components/HexBoard';
-import { Hex } from '@/lib/hex/engine';
+import { ChessBoard } from '@/components/chess/ChessBoard';
+import { TicTacToeBoard } from '@/components/ttt/TicTacToeBoard';
+import { CheckersBoard } from '@/components/checkers/CheckersBoard';
+import { Connect4Board } from '@/components/connect4/Connect4Board';
+import { getGame, createEngine } from '@/lib/engine/registry';
+import type { GameEngine } from '@/lib/engine/types';
+import type { Hex } from '@/lib/hex/engine';
+import type { ChessEngine } from '@/lib/chess/engine';
+import type { TicTacToe } from '@/lib/ttt/engine';
+import type { CheckersEngine } from '@/lib/checkers/engine';
+import type { Connect4 } from '@/lib/connect4/engine';
 import { generateHexReplay, generateJsonReplay, downloadReplay } from '@/lib/replayExport';
 import {
   DropdownMenu,
@@ -27,13 +37,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type Move = {
+type MoveRecord = {
   ply: number;
-  cell: number | null;
+  move: Record<string, unknown>;
   color: number;
+  cell?: number | null;
 };
 
-type AnalyzedMove = Move & {
+type AnalyzedMove = MoveRecord & {
   rating?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
   comment?: string;
   best_alternative?: number;
@@ -45,6 +56,7 @@ type MatchData = {
   winner: number | null;
   pie_rule: boolean;
   created_at: string;
+  game_key?: string | null;
   players: Array<{
     color: number;
     profile: { username: string };
@@ -69,10 +81,10 @@ const ratingColors: Record<string, string> = {
 export default function Replay() {
   const { matchId } = useParams();
   const [match, setMatch] = useState<MatchData | null>(null);
-  const [moves, setMoves] = useState<Move[]>([]);
+  const [moves, setMoves] = useState<MoveRecord[]>([]);
   const [currentPly, setCurrentPly] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [game, setGame] = useState<Hex | null>(null);
+  const [engine, setEngine] = useState<GameEngine<any> | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [showHints, setShowHints] = useState(true);
@@ -95,12 +107,19 @@ export default function Replay() {
 
   useEffect(() => {
     if (!match || moves.length === 0) return;
-    
-    const newGame = new Hex(match.size);
-    for (let i = 0; i < currentPly && i < moves.length; i++) {
-      newGame.play(moves[i].cell);
+    const gameKey = match.game_key ?? 'hex';
+
+    try {
+      const adapter = createEngine(gameKey, { boardSize: match.size, pieRule: match.pie_rule });
+      for (let i = 0; i < currentPly && i < moves.length; i++) {
+        const moveData = moves[i].move ?? { cell: moves[i].cell };
+        const move = adapter.deserializeMove(moveData);
+        adapter.applyMove(move);
+      }
+      setEngine(adapter);
+    } catch (e) {
+      console.error('Replay engine error:', e);
     }
-    setGame(newGame);
   }, [currentPly, match, moves]);
 
   useEffect(() => {
@@ -134,6 +153,7 @@ export default function Replay() {
           winner,
           pie_rule,
           created_at,
+          game_key,
           players:match_players(
             color,
             is_bot,
@@ -189,7 +209,7 @@ export default function Replay() {
     if (!match) return;
     const content = generateHexReplay(match, moves);
     const dateStr = new Date(match.created_at).toISOString().split('T')[0];
-    downloadReplay(content, `openboard-${dateStr}.hex`, 'text/plain');
+    downloadReplay(content, `hexology-${dateStr}.hex`, 'text/plain');
     toast.success('Replay exported as HEX');
   };
 
@@ -197,7 +217,7 @@ export default function Replay() {
     if (!match) return;
     const content = generateJsonReplay(match, moves);
     const dateStr = new Date(match.created_at).toISOString().split('T')[0];
-    downloadReplay(content, `openboard-${dateStr}.json`, 'application/json');
+    downloadReplay(content, `hexology-${dateStr}.json`, 'application/json');
     toast.success('Replay exported as JSON');
   };
 
@@ -257,7 +277,7 @@ export default function Replay() {
     );
   }
 
-  if (!match || !game) {
+  if (!match || !engine) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4">
         <Card className="p-8 max-w-md text-center space-y-4">
@@ -272,9 +292,99 @@ export default function Replay() {
     );
   }
 
+  const gameKey = (match.game_key ?? 'hex') as string;
+  const gameDef = (() => { try { return getGame(gameKey); } catch { return null; } })();
   const player1 = match.players.find(p => p.color === 1);
   const player2 = match.players.find(p => p.color === 2);
   const currentMove = analysis?.moves?.find(m => m.ply === currentPly);
+
+  const p1Label = gameKey === 'chess' ? 'White' : gameKey === 'connect4' ? 'Red' : 'Indigo';
+  const p2Label = gameKey === 'chess' ? 'Black' : gameKey === 'connect4' ? 'Yellow' : 'Ochre';
+
+  /** Get the inner raw engine for game-specific board props. */
+  const rawEngine = (engine as any)?.hex ?? (engine as any)?._engine ?? engine;
+
+  /** Format a move for the move list display. */
+  const formatMove = (move: MoveRecord): string => {
+    const data = move.move ?? { cell: move.cell };
+    if (gameKey === 'hex') {
+      return data.cell === null || data.cell === undefined ? 'Swap' : `Cell ${data.cell}`;
+    }
+    if (gameKey === 'chess') return (data.uci as string) ?? '?';
+    if (gameKey === 'ttt') return `Cell ${data.cell}`;
+    if (gameKey === 'checkers') return `Path ${(data.path as number[])?.join('-') ?? '?'}`;
+    if (gameKey === 'connect4') return `Col ${data.col}`;
+    return JSON.stringify(data);
+  };
+
+  /** Get the last-move value for the current ply (used by board components). */
+  const getLastMove = () => {
+    if (currentPly === 0) return undefined;
+    const data = moves[currentPly - 1].move ?? { cell: moves[currentPly - 1].cell };
+    if (gameKey === 'hex') return data.cell;
+    if (gameKey === 'chess') return data.uci as string;
+    if (gameKey === 'ttt') return data.cell as number;
+    if (gameKey === 'checkers') return data.path as number[];
+    if (gameKey === 'connect4') return data.col as number;
+    return undefined;
+  };
+
+  const renderBoard = () => {
+    if (!engine) return null;
+
+    if (gameKey === 'connect4') {
+      return (
+        <Connect4Board
+          engine={rawEngine as Connect4}
+          lastMove={getLastMove() as number | undefined}
+          disabled={true}
+          onMove={() => {}}
+        />
+      );
+    }
+    if (gameKey === 'ttt') {
+      return (
+        <TicTacToeBoard
+          engine={rawEngine as TicTacToe}
+          lastMove={getLastMove() as number | undefined}
+          disabled={true}
+          onMove={() => {}}
+        />
+      );
+    }
+    if (gameKey === 'checkers') {
+      return (
+        <CheckersBoard
+          engine={rawEngine as CheckersEngine}
+          lastMovePath={getLastMove() as number[] | undefined}
+          disabled={true}
+          onMove={() => {}}
+        />
+      );
+    }
+    if (gameKey === 'chess') {
+      return (
+        <ChessBoard
+          engine={rawEngine as ChessEngine}
+          lastMoveUci={getLastMove() as string | undefined}
+          disabled={true}
+          onMove={() => {}}
+        />
+      );
+    }
+    // Default: Hex
+    const hexEngine = rawEngine as Hex;
+    return (
+      <HexBoard
+        size={match.size}
+        board={hexEngine.board}
+        lastMove={currentPly > 0 ? (moves[currentPly - 1].move?.cell ?? moves[currentPly - 1].cell) : undefined}
+        hintCell={showHints ? (analysis?.moves.find(m => m.ply === currentPly + 1)?.best_alternative) : null}
+        disabled={true}
+        winningPath={match.winner ? hexEngine.getWinningPath() : undefined}
+      />
+    );
+  };
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -283,32 +393,34 @@ export default function Replay() {
           <Button variant="ghost" onClick={() => navigate('/history')} className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to History
           </Button>
-          
+
           <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={handleExportHex}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  HEX Format
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportJson}>
-                  <FileJson className="h-4 w-4 mr-2" />
-                  JSON Format
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
+            {gameKey === 'hex' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleExportHex}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    HEX Format
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportJson}>
+                    <FileJson className="h-4 w-4 mr-2" />
+                    JSON Format
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             {isPremium ? (
               <>
-                <Button 
-                variant="outline" 
-                size="sm" 
+                <Button
+                variant="outline"
+                size="sm"
                 onClick={handleAnalyze}
                 disabled={analyzing || !!analysis}
                 className="gap-2"
@@ -336,9 +448,9 @@ export default function Replay() {
                 )}
               </>
             ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigate('/premium')}
                 className="gap-2 text-amber-600 border-amber-400"
               >
@@ -353,16 +465,9 @@ export default function Replay() {
           {/* Board */}
           <div>
             <Card className="p-6 shadow-lg border-2">
-              <HexBoard
-                size={match.size}
-                board={game.board}
-                lastMove={currentPly > 0 ? moves[currentPly - 1].cell : undefined}
-                hintCell={showHints ? (analysis?.moves.find(m => m.ply === currentPly + 1)?.best_alternative) : null}
-                disabled={true}
-                winningPath={match.winner ? game.getWinningPath() : undefined}
-              />
+              {renderBoard()}
             </Card>
-            
+
             {/* Current Move Analysis */}
             {analysis && currentMove && currentMove.rating && (
               <Card className="mt-4 p-4">
@@ -382,20 +487,28 @@ export default function Replay() {
           <div className="space-y-6">
             <Card className="p-6 shadow-lg border-2">
               <div className="mb-6">
-                <h2 className="font-body text-2xl font-semibold mb-4">Match Replay</h2>
+                <h2 className="font-body text-2xl font-semibold mb-4">
+                  {gameDef?.displayName ?? 'Match'} Replay
+                </h2>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Board Size:</span>
-                    <Badge className="font-mono">{match.size}×{match.size}</Badge>
+                    <span className="text-sm text-muted-foreground">Game:</span>
+                    <Badge className="font-mono">{gameDef?.displayName ?? gameKey}</Badge>
                   </div>
+                  {(gameKey === 'hex' || match.size) && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Board Size:</span>
+                      <Badge className="font-mono">{match.size}×{match.size}</Badge>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Indigo:</span>
+                    <span className="text-sm text-muted-foreground">{p1Label}:</span>
                     <span className="font-body font-semibold">
                       {player1?.is_bot ? 'AI' : player1?.profile.username}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Ochre:</span>
+                    <span className="text-sm text-muted-foreground">{p2Label}:</span>
                     <span className="font-body font-semibold">
                       {player2?.is_bot ? 'AI' : player2?.profile.username}
                     </span>
@@ -404,7 +517,7 @@ export default function Replay() {
                     <div className="flex items-center justify-between pt-2 border-t">
                       <span className="text-sm text-muted-foreground">Winner:</span>
                       <Badge className={match.winner === 1 ? 'bg-indigo' : 'bg-ochre'}>
-                        {match.winner === 1 ? 'Indigo' : 'Ochre'}
+                        {match.winner === 1 ? p1Label : p2Label}
                       </Badge>
                     </div>
                   )}
@@ -490,7 +603,7 @@ export default function Replay() {
                       } ${idx === currentPly - 1 ? 'ring-2 ring-indigo' : ''}`}
                     >
                       <span className="font-mono text-sm">
-                        {idx + 1}. {move.cell === null ? 'Swap' : `Cell ${move.cell}`}
+                        {idx + 1}. {formatMove(move)}
                       </span>
                       <div className="flex items-center gap-2">
                         {analyzedMove?.rating && (
@@ -499,7 +612,7 @@ export default function Replay() {
                           </Badge>
                         )}
                         <Badge variant="outline" className={move.color === 1 ? 'border-indigo' : 'border-ochre'}>
-                          {move.color === 1 ? 'Indigo' : 'Ochre'}
+                          {move.color === 1 ? p1Label : p2Label}
                         </Badge>
                       </div>
                     </div>

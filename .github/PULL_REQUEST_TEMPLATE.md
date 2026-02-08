@@ -12,8 +12,8 @@ Closes #
 
 ## Testing
 
-- [ ] `pnpm lint` passes
-- [ ] `pnpm test` passes
+- [ ] `npm run lint` passes
+- [ ] `npm test` passes
 - [ ] Manually tested affected games
 
 ## Screenshots

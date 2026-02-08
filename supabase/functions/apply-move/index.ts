@@ -228,6 +228,7 @@ Deno.serve(async (req) => {
         status: newStatus,
         winner: winner || null,
         result,
+        draw_offered_by: null,
         version: currentVersion + 1,
         updated_at: new Date().toISOString(),
       })

@@ -93,7 +93,7 @@ eas submit --platform ios --latest
 ## 📱 AFTER SUBMISSION
 
 1. Go to https://appstoreconnect.apple.com
-2. Select your app "The Open Board"
+2. Select your app "Hexology"
 3. The build should appear in "TestFlight" section within 5-10 minutes
 4. Click "Submit for Review" when ready
 5. Fill out the App Store questionnaire

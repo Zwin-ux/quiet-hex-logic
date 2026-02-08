@@ -9,6 +9,7 @@ import { BaseProvider } from "@/lib/base/BaseProvider";
 import { supabase } from "@/integrations/supabase/client";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -62,14 +63,14 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/tutorial" element={<Tutorial />} />
-              <Route path="/lobby" element={<Lobby />} />
-              <Route path="/lobby/:lobbyId" element={<LobbyView />} />
-              <Route path="/match/:matchId" element={<Match />} />
-              <Route path="/tournaments" element={<Tournaments />} />
-              <Route path="/tournament/:tournamentId" element={<TournamentView />} />
+              <Route path="/lobby" element={<RouteErrorBoundary fallbackTitle="Lobby failed to load"><Lobby /></RouteErrorBoundary>} />
+              <Route path="/lobby/:lobbyId" element={<RouteErrorBoundary fallbackTitle="Lobby failed to load"><LobbyView /></RouteErrorBoundary>} />
+              <Route path="/match/:matchId" element={<RouteErrorBoundary fallbackTitle="Match failed to load"><Match /></RouteErrorBoundary>} />
+              <Route path="/tournaments" element={<RouteErrorBoundary fallbackTitle="Tournaments failed to load"><Tournaments /></RouteErrorBoundary>} />
+              <Route path="/tournament/:tournamentId" element={<RouteErrorBoundary fallbackTitle="Tournament failed to load"><TournamentView /></RouteErrorBoundary>} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/history" element={<History />} />
-              <Route path="/replay/:matchId" element={<Replay />} />
+              <Route path="/replay/:matchId" element={<RouteErrorBoundary fallbackTitle="Replay failed to load"><Replay /></RouteErrorBoundary>} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:userId" element={<Profile />} />
               <Route path="/profile/edit" element={<EditProfile />} />

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMatchState } from '@/hooks/useMatchState';
+import { useMatchState, type GameKey } from '@/hooks/useMatchState';
 import { useMatchActions } from '@/hooks/useMatchActions';
 import { useAIOpponent } from '@/hooks/useAIOpponent';
 import { useMatchTimer } from '@/hooks/useMatchTimer';
@@ -73,87 +73,119 @@ export default function Match() {
     }
   }, [match, engine, isDiscordLocalMatch]);
 
+  /** Generic Discord local move handler for all games. */
+  const handleDiscordLocalMove = useCallback((move: any) => {
+    if (!engine || !match) return;
+    if (actions.moveInProgress.current || ai.aiMoveInProgress.current) return;
+    const gameKey = (match.game_key ?? 'hex') as string;
+    const currentColor = match.turn % 2 === 1 ? 1 : 2;
+    if (currentColor !== 1) {
+      actions.playErrorSound();
+      toast.error('Wait for the computer to move');
+      return;
+    }
+    if (!engine.isLegal(move)) {
+      actions.playErrorSound();
+      toast.error('Invalid move');
+      return;
+    }
+
+    actions.moveInProgress.current = true;
+    ai.setIsAggressiveMove(false);
+    actions.playPlaceSound();
+
+    const newEngine = engine.clone();
+    newEngine.applyMove(move);
+    setEngine(newEngine);
+    setLastMove(move);
+    setMatch(prev => prev ? { ...prev, turn: prev.turn + 1 } : null);
+
+    const winner = newEngine.winner();
+    if (winner) {
+      if (gameKey === 'hex') {
+        setWinningPath((newEngine as any).getWinningPath?.() || (newEngine as any).hex?.getWinningPath?.() || []);
+      }
+      setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
+      actions.playWinSound();
+      setShowConfetti(true);
+      toast.success('Victory!', { description: 'You won!', duration: 5000 });
+      actions.moveInProgress.current = false;
+      return;
+    }
+
+    if (newEngine.isDraw()) {
+      setMatch(prev => prev ? { ...prev, status: 'finished', winner: null, result: 'draw' } : null);
+      toast.success('Draw', { description: 'Game ended in a draw', duration: 5000 });
+      actions.moveInProgress.current = false;
+      return;
+    }
+
+    actions.moveInProgress.current = false;
+
+    if (match.ai_difficulty && !newEngine.winner()) {
+      setTimeout(() => {
+        ai.makeDiscordLocalAIMove(newEngine, match.ai_difficulty!, gameKey);
+      }, 100);
+    }
+  }, [engine, match, actions, ai, setEngine, setLastMove, setMatch, setWinningPath, setShowConfetti]);
+
   // Move callbacks above returns to satisfy React Hook rules
   const handleCellClick = useCallback((cell: number) => {
     if (!engine || !match) return;
-    const gameKey = (match.game_key ?? 'hex') as any;
+    const gameKey = (match.game_key ?? 'hex') as GameKey;
     if (gameKey !== 'hex') return;
 
     if (isDiscordLocalMatch) {
-      if (actions.moveInProgress.current || ai.aiMoveInProgress.current) return;
-      const currentColor = match.turn % 2 === 1 ? 1 : 2;
-      if (currentColor !== 1) {
-        actions.playErrorSound();
-        toast.error('Wait for the computer to move');
-        return;
-      }
-      if (!engine.legal(cell)) {
-        actions.playErrorSound();
-        toast.error('Invalid move');
-        return;
-      }
-
-      actions.moveInProgress.current = true;
-      ai.setIsAggressiveMove(false);
-      actions.playPlaceSound();
-
-      const newEngine = engine.clone();
-      newEngine.play(cell);
-      setEngine(newEngine);
-      setLastMove(cell);
-      setMatch(prev => prev ? { ...prev, turn: prev.turn + 1 } : null);
-
-      const winner = newEngine.winner();
-      if (winner) {
-        setWinningPath(newEngine.getWinningPath() || []);
-        setMatch(prev => prev ? { ...prev, status: 'finished', winner } : null);
-        actions.playWinSound();
-        setShowConfetti(true);
-        toast.success('Victory!', { description: 'You won!', duration: 5000 });
-        actions.moveInProgress.current = false;
-        return;
-      }
-
-      actions.moveInProgress.current = false;
-
-      if (match.ai_difficulty && !newEngine.winner()) {
-        setTimeout(() => {
-          ai.makeDiscordLocalAIMove(newEngine, match.ai_difficulty!, gameKey);
-        }, 100);
-      }
+      handleDiscordLocalMove(cell);
       return;
     }
 
     actions.handleCellClick(cell);
-  }, [engine, match, isDiscordLocalMatch, actions, ai, setEngine, setLastMove, setMatch, setWinningPath, setShowConfetti]);
+  }, [engine, match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
 
   const handleChessMove = useCallback((move: { uci: string; promotion?: 'q' | 'r' | 'b' | 'n' }) => {
     if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as any;
+    const gameKey = (match.game_key ?? 'hex') as GameKey;
     if (gameKey !== 'chess') return;
+    if (isDiscordLocalMatch) {
+      handleDiscordLocalMove(move);
+      return;
+    }
     actions.handleChessMove(move);
-  }, [match, actions]);
+  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
 
   const handleTttMove = useCallback((cell: number) => {
     if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as any;
+    const gameKey = (match.game_key ?? 'hex') as GameKey;
     if (gameKey !== 'ttt') return;
+    if (isDiscordLocalMatch) {
+      handleDiscordLocalMove(cell);
+      return;
+    }
     actions.handleTttMove(cell);
-  }, [match, actions]);
+  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
 
   const handleCheckersMove = useCallback((move: { path: number[] }) => {
     if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as any;
+    const gameKey = (match.game_key ?? 'hex') as GameKey;
     if (gameKey !== 'checkers') return;
+    if (isDiscordLocalMatch) {
+      handleDiscordLocalMove(move);
+      return;
+    }
     actions.handleCheckersMove(move.path);
-  }, [match, actions]);
+  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
 
   const handleConnect4Move = useCallback((col: number) => {
     if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as any;
+    const gameKey = (match.game_key ?? 'hex') as GameKey;
     if (gameKey !== 'connect4') return;
+    if (isDiscordLocalMatch) {
+      handleDiscordLocalMove(col);
+      return;
+    }
     actions.handleConnect4Move(col);
-  }, [match, actions]);
+  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
 
   // Loading / Waiting states
   if (!match || !engine) return <MatchLoading />;
@@ -211,6 +243,7 @@ export default function Match() {
           showAIReasoning={showAIReasoning}
           aiReasoning={ai.aiReasoning}
           requestingRematch={requestingRematch}
+          drawOfferedBy={match.draw_offered_by}
           musicControls={{
             isPlaying: music.isPlaying,
             volume: music.volume,
@@ -222,6 +255,9 @@ export default function Match() {
           onBack={() => navigate('/lobby')}
           onRematch={handleRematch}
           onForfeit={actions.handleForfeit}
+          onOfferDraw={actions.handleOfferDraw}
+          onAcceptDraw={() => actions.handleRespondDraw(true)}
+          onDeclineDraw={() => actions.handleRespondDraw(false)}
           onToggleSpectate={handleToggleSpectate}
           onShowTutorial={() => setShowTutorial(true)}
           onToggleAIReasoning={() => setShowAIReasoning(!showAIReasoning)}

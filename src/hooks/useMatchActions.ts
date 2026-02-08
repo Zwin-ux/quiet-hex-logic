@@ -120,7 +120,7 @@ export function useMatchActions({
     const updatedLocal = { ...local, moves: [...local.moves, localMove], turn: nextTurn, status, winner, result };
     saveLocalMatch(updatedLocal);
 
-    setMatch((prev) => prev ? ({ ...prev, turn: nextTurn, status, winner, result } as any) : prev);
+    setMatch((prev) => prev ? { ...prev, turn: nextTurn, status, winner, result } : prev);
   }, [match, setMatch]);
 
   const endMatch = useCallback(async (
@@ -156,7 +156,7 @@ export function useMatchActions({
         if (matchPlayers && matchPlayers.length === 2) {
           const p1 = matchPlayers.find(p => p.color === 1);
           const p2 = matchPlayers.find(p => p.color === 2);
-          const gameKey = (match as any).game_key ?? 'hex';
+          const gameKey = match.game_key ?? 'hex';
           const resultKey = winnerColor === 1 ? 'p1' : 'p2';
 
           if (p1 && p2) {
@@ -169,7 +169,7 @@ export function useMatchActions({
               setRatingResult({
                 winner: winnerIsP1 ? res.p1 : res.p2,
                 loser: winnerIsP1 ? res.p2 : res.p1,
-              } as any);
+              });
             }
           }
         }
@@ -185,7 +185,7 @@ export function useMatchActions({
 
   const handleCellClick = useCallback(async (cell: number) => {
     if (!engine || !match) return;
-    if (((match as any).game_key ?? 'hex') !== 'hex') return;
+    if (((match.game_key) ?? 'hex') !== 'hex') return;
     if (!(engine instanceof Hex)) return;
 
     if (isDiscordLocalMatch || isLocalMatch) {
@@ -274,7 +274,7 @@ export function useMatchActions({
 
   const handleChessMove = useCallback(async (move: { uci: string; promotion?: 'q' | 'r' | 'b' | 'n' }) => {
     if (!engine || !match) return;
-    if (((match as any).game_key ?? 'hex') !== 'chess') return;
+    if (((match.game_key) ?? 'hex') !== 'chess') return;
     if (!(engine instanceof ChessEngine)) return;
 
     if (isDiscordLocalMatch) return;
@@ -364,7 +364,7 @@ export function useMatchActions({
 
   const handleTttMove = useCallback(async (cell: number) => {
     if (!engine || !match) return;
-    if (((match as any).game_key ?? 'hex') !== 'ttt') return;
+    if (((match.game_key) ?? 'hex') !== 'ttt') return;
     if (!(engine instanceof TicTacToe)) return;
 
     if (isDiscordLocalMatch) return;
@@ -451,7 +451,7 @@ export function useMatchActions({
 
   const handleCheckersMove = useCallback(async (path: number[]) => {
     if (!engine || !match) return;
-    if (((match as any).game_key ?? 'hex') !== 'checkers') return;
+    if (((match.game_key) ?? 'hex') !== 'checkers') return;
     if (!(engine instanceof CheckersEngine)) return;
 
     if (isDiscordLocalMatch) return;
@@ -539,7 +539,7 @@ export function useMatchActions({
 
   const handleConnect4Move = useCallback(async (col: number) => {
     if (!engine || !match) return;
-    if (((match as any).game_key ?? 'hex') !== 'connect4') return;
+    if (((match.game_key) ?? 'hex') !== 'connect4') return;
     if (!(engine instanceof Connect4)) return;
 
     if (isDiscordLocalMatch) return;
@@ -580,7 +580,7 @@ export function useMatchActions({
       setLastConnect4Move?.(col);
 
       if (isLocalMatch) {
-        applyLocalUpdate({ kind: 'connect4', col } as any, optimistic);
+        applyLocalUpdate({ kind: 'connect4', col }, optimistic);
         if (optimistic.winner()) toast.success('Game Over', { description: 'Winner', duration: 5000 });
         else if (optimistic.isDraw()) toast.success('Draw', { description: 'Board is full', duration: 5000 });
         return;
@@ -626,7 +626,7 @@ export function useMatchActions({
 
   const handleSwapColors = useCallback(async () => {
     if (!engine || !match || !user) return;
-    if (((match as any).game_key ?? 'hex') !== 'hex') return;
+    if (((match.game_key) ?? 'hex') !== 'hex') return;
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
     const currentPlayer = players.find(p => p.color === currentColor);
     if (!currentPlayer || currentPlayer.profile_id !== user.id) {
@@ -661,6 +661,46 @@ export function useMatchActions({
     if (!success) toast.error('Failed to forfeit');
   }, [match, user, players, endMatch]);
 
+  const handleOfferDraw = useCallback(async () => {
+    if (!match || !user || match.status !== 'active') return;
+    try {
+      const { data: result, error } = await supabase.functions.invoke('offer-draw', {
+        body: { matchId: match.id }
+      });
+      if (error || !result?.success) {
+        toast.error(result?.error || error?.message || 'Failed to offer draw');
+        return;
+      }
+      toast.success('Draw offered', { description: 'Waiting for opponent to respond' });
+      await loadMatch();
+    } catch (e) {
+      console.error('Draw offer error:', e);
+      toast.error('Failed to offer draw');
+    }
+  }, [match, user, loadMatch]);
+
+  const handleRespondDraw = useCallback(async (accept: boolean) => {
+    if (!match || !user || match.status !== 'active') return;
+    try {
+      const { data: result, error } = await supabase.functions.invoke('respond-draw', {
+        body: { matchId: match.id, accept }
+      });
+      if (error || !result?.success) {
+        toast.error(result?.error || error?.message || 'Failed to respond to draw');
+        return;
+      }
+      if (accept) {
+        toast.success('Draw accepted', { description: 'The match ended in a draw' });
+      } else {
+        toast.info('Draw declined', { description: 'The match continues' });
+      }
+      await loadMatch();
+    } catch (e) {
+      console.error('Draw response error:', e);
+      toast.error('Failed to respond to draw');
+    }
+  }, [match, user, loadMatch]);
+
   const handleRematch = useCallback(async (matchId: string, isPlayer: boolean) => {
     if (!matchId || !isPlayer) return;
     try {
@@ -688,6 +728,8 @@ export function useMatchActions({
     handleConnect4Move,
     handleSwapColors,
     handleForfeit,
+    handleOfferDraw,
+    handleRespondDraw,
     handleRematch,
     handlePlayAgainAI,
     endMatch,

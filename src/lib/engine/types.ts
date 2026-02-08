@@ -79,8 +79,8 @@ export interface GameDefinition<TMove = unknown> {
   /** Create a fresh engine instance. */
   createEngine(opts?: GameEngineOptions): GameEngine<TMove>;
 
-  /** React component that renders the board. */
-  boardComponent: React.ComponentType<any>;
+  /** React component that renders the board (resolved at render time, not stored here). */
+  boardComponent?: React.ComponentType<any> | null;
 
   /** Default board size for this game. */
   defaultBoardSize: number;

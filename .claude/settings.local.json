@@ -35,7 +35,11 @@
       "Bash(xargs cat:*)",
       "Bash(test:*)",
       "Bash(git -C /c/Users/mzwin/quiet-hex-logic-2 log --oneline --max-count=10)",
-      "Bash(git -C /c/Users/mzwin/quiet-hex-logic-2 diff --name-only)"
+      "Bash(git -C /c/Users/mzwin/quiet-hex-logic-2 diff --name-only)",
+      "Bash(find:*)",
+      "Bash(npm ls:*)",
+      "Bash(wc:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -10 {}')"
     ],
     "deny": [],
     "ask": []
