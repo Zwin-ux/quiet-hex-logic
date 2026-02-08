@@ -1,30 +1,20 @@
-import { HexBoard } from '@/components/HexBoard';
-import { ChessBoard } from '@/components/chess/ChessBoard';
-import { TicTacToeBoard } from '@/components/ttt/TicTacToeBoard';
-import { CheckersBoard } from '@/components/checkers/CheckersBoard';
-import { Connect4Board } from '@/components/connect4/Connect4Board';
+import React from 'react';
+import { Button } from '@/components/ui/button';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { AnimatedRatingChange } from '@/components/AnimatedRatingChange';
 import { VictoryConfetti } from '@/components/VictoryConfetti';
-import { Button } from '@/components/ui/button';
 import { Sparkles, ArrowLeft, RefreshCw } from 'lucide-react';
 import type { MatchData, Player, RatingResult } from '@/hooks/useMatchState';
 import type { BoardSkin } from '@/lib/boardSkins';
-import type { ChessEngine } from '@/lib/chess/engine';
-import type { TicTacToe } from '@/lib/ttt/engine';
-import type { CheckersEngine, CheckersMove } from '@/lib/checkers/engine';
-import type { Connect4 } from '@/lib/connect4/engine';
+import { getGameOrNull } from '@/lib/engine/registry';
+import type { GameEngine } from '@/lib/engine/types';
 
 interface MatchBoardProps {
   match: MatchData;
-  gameKey: 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
-  engine: any;
+  gameKey: string;
+  engine: GameEngine<any>;
   boardSkin: BoardSkin;
-  lastMove: number | undefined;
-  lastChessMoveUci: string | null;
-  lastTttMove: number | null;
-  lastCheckersMovePath: number[] | null;
-  lastConnect4Move: number | null;
+  lastMove: any | null;
   winningPath: number[];
   isAggressiveMove: boolean;
   currentColor: number;
@@ -45,26 +35,41 @@ interface MatchBoardProps {
   ratingResult: RatingResult | null;
   requestingRematch: boolean;
   userId: string | undefined;
-  onCellClick: (cell: number) => void;
-  onChessMove: (move: { uci: string; promotion?: 'q' | 'r' | 'b' | 'n' }) => void;
-  onTttMove: (cell: number) => void;
-  onCheckersMove: (move: CheckersMove) => void;
-  onConnect4Move: (col: number) => void;
+  onMove: (move: any) => void;
   onSwapColors: () => void;
   onRematch: () => void;
   onPlayAgainAI: () => void;
   onNavigate: (to: string) => void;
 }
 
-export function MatchBoard({
-  match, gameKey, engine, boardSkin, lastMove, lastChessMoveUci, lastTttMove, winningPath, isAggressiveMove,
-  lastCheckersMovePath, lastConnect4Move,
-  currentColor, currentPlayer, userPlayer, player1, player2,
-  isAIMatch, isAITurn, isPlayer, isSpectating, isDiscordLocalMatch, isLocalMatch,
-  aiThinking, showAIReasoning, aiReasoning,
-  showConfetti, ratingResult, requestingRematch,
-  userId, onCellClick, onChessMove, onTttMove, onCheckersMove, onConnect4Move, onSwapColors, onRematch, onPlayAgainAI, onNavigate,
-}: MatchBoardProps) {
+export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps) {
+  const {
+    match, gameKey, engine, boardSkin, lastMove, winningPath, isAggressiveMove,
+    currentColor, currentPlayer, userPlayer, player1, player2,
+    isAIMatch, isAITurn, isPlayer, isSpectating, isDiscordLocalMatch, isLocalMatch,
+    aiThinking, showAIReasoning, aiReasoning,
+    showConfetti, ratingResult, requestingRematch,
+    userId, onMove, onSwapColors, onRematch, onPlayAgainAI, onNavigate,
+  } = props;
+
+  const gameDef = getGameOrNull(gameKey);
+  const Board = gameDef?.boardComponent ?? null;
+
+  const disabled =
+    match.status !== 'active' ||
+    !(currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
+    isSpectating ||
+    !isPlayer ||
+    isAITurn;
+
+  const canSwap =
+    gameKey === 'hex' &&
+    match.pie_rule &&
+    (engine as any)?.hex?.ply === 1 &&
+    !(engine as any)?.hex?.swapped &&
+    (currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) &&
+    match.status === 'active';
+
   return (
     <div className="order-2 lg:order-2 flex flex-col items-center gap-3 md:gap-6 w-full">
       {showAIReasoning && aiReasoning && (
@@ -80,79 +85,32 @@ export function MatchBoard({
       )}
 
       <div className="w-full max-w-[min(100vw-1.5rem,560px)] lg:max-w-none aspect-square lg:aspect-auto">
-        {gameKey === 'connect4' ? (
-          <Connect4Board
-            engine={engine as Connect4}
-            lastMove={lastConnect4Move}
-            disabled={
-              match.status !== 'active' ||
-              !(currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
-              isSpectating ||
-              !isPlayer
-            }
-            onMove={onConnect4Move}
-          />
-        ) : gameKey === 'ttt' ? (
-          <TicTacToeBoard
-            engine={engine as TicTacToe}
-            lastMove={lastTttMove}
-            disabled={
-              match.status !== 'active' ||
-              !(currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
-              isSpectating ||
-              !isPlayer
-            }
-            onMove={onTttMove}
-          />
-        ) : gameKey === 'checkers' ? (
-          <CheckersBoard
-            engine={engine as CheckersEngine}
-            lastMovePath={lastCheckersMovePath}
-            disabled={
-              match.status !== 'active' ||
-              !(currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
-              isSpectating ||
-              !isPlayer
-            }
-            onMove={onCheckersMove}
-          />
-        ) : gameKey === 'chess' ? (
-          <ChessBoard
-            engine={engine as ChessEngine}
-            lastMoveUci={lastChessMoveUci}
-            disabled={
-              match.status !== 'active' ||
-              !(currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
-              isSpectating ||
-              !isPlayer
-            }
-            onMove={onChessMove}
-          />
-        ) : (
-          <HexBoard
-            size={match.size}
-            board={engine.board}
-            lastMove={lastMove}
+        {Board ? (
+          <Board
+            engine={engine}
+            matchSize={match.size}
+            boardSkin={boardSkin}
             winningPath={winningPath}
-            onCellClick={onCellClick}
-            skin={boardSkin}
-            isAggressive={isAggressiveMove}
-            disabled={
-              match.status !== 'active' ||
-              !(currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) ||
-              isAITurn ||
-              isSpectating ||
-              !isPlayer
-            }
-            canSwap={
-              match.pie_rule &&
-              engine.ply === 1 &&
-              !engine.swapped &&
-              (currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player')) &&
-              match.status === 'active'
-            }
+            lastMove={lastMove}
+            isAggressiveMove={isAggressiveMove}
+            disabled={disabled}
+            canSwap={canSwap}
+            onMove={onMove}
             onSwapColors={onSwapColors}
           />
+        ) : (
+          <div className="h-full flex items-center justify-center border rounded-xl bg-card/50 text-muted-foreground">
+            <div className="text-center space-y-2 p-6">
+              <div className="font-mono text-sm">No board UI registered for</div>
+              <div className="font-display text-2xl font-bold">{gameKey}</div>
+              <div className="text-xs">
+                Add a <span className="font-mono">boardComponent</span> in <span className="font-mono">src/lib/engine/registry.ts</span>.
+              </div>
+              <Button variant="outline" size="sm" onClick={() => onNavigate('/docs')}>
+                Open Docs
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -162,13 +120,12 @@ export function MatchBoard({
             {isSpectating
               ? `Watching ${currentPlayer?.username || 'opponent'}'s turn`
               : (currentPlayer?.profile_id === userId || (isDiscordLocalMatch && currentPlayer?.profile_id === 'discord-player'))
-                ? "Your turn"
+                ? 'Your turn'
                 : `Waiting for ${currentPlayer?.username || 'opponent'}...`}
           </p>
         </div>
       )}
 
-      {/* Mobile AI Thinking below board */}
       {isAIMatch && currentColor === 2 && match.status === 'active' && (
         <div className="lg:hidden w-full">
           <AIThinkingIndicator isThinking={aiThinking} difficulty={match.ai_difficulty} />
@@ -214,6 +171,7 @@ export function MatchBoard({
                     </div>
                   </>
                 )}
+
                 {match.is_ranked && ratingResult && (
                   <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Rating Changes</p>
@@ -242,17 +200,6 @@ export function MatchBoard({
                   </div>
                 )}
               </div>
-              {isAIMatch && match.winner === userPlayer?.color && (
-                <p className="text-lg text-primary font-semibold">
-                  You defeated the {match.ai_difficulty?.toUpperCase()} AI!
-                </p>
-              )}
-              {isAIMatch && match.winner !== userPlayer?.color && (
-                <div className="text-base text-muted-foreground space-y-1">
-                  <p className="font-semibold">The AI found a winning path.</p>
-                  <p className="text-sm italic">Analyze the board and try a different strategy next time.</p>
-                </div>
-              )}
 
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center pt-4">
                 {isAIMatch ? (
@@ -277,4 +224,5 @@ export function MatchBoard({
       )}
     </div>
   );
-}
+});
+

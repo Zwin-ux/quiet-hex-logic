@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ModManifest } from '@/lib/mods/schema';
 import { gameKeySchema } from '@/lib/mods/schema';
+import { getGameOrNull } from '@/lib/engine/registry';
 
 const hexRulesSchema = z.object({
   pieRule: z.boolean().optional(),
@@ -40,6 +41,9 @@ export async function validateModManifest(manifest: ModManifest): Promise<void> 
     const parsedGameKey = gameKeySchema.safeParse(gameKey);
     if (!parsedGameKey.success) continue;
     const key = parsedGameKey.data;
+    if (!getGameOrNull(key)) {
+      throw new Error(`[${key}] unknown game key (not registered in this build)`);
+    }
     const rules = (gameDef as any)?.rules;
     if (rules == null) continue;
 

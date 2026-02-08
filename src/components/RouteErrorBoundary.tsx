@@ -38,7 +38,7 @@ export class RouteErrorBoundary extends React.Component<
             <p className="text-muted-foreground text-sm">
               This section encountered an error. The rest of the app is still working.
             </p>
-            {this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <pre className="text-xs text-left bg-muted p-3 rounded-md overflow-auto max-h-24">
                 {this.state.error.message}
               </pre>

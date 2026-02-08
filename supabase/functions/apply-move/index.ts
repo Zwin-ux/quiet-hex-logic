@@ -50,20 +50,29 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return json({ error: 'Unauthorized' }, 401);
 
-    // Rate limit
-    const { count: recentMoveCount } = await supabase
-      .from('move_rate_limits')
-      .select('*', { count: 'exact', head: true })
-      .eq('match_id', matchId)
-      .eq('user_id', user.id)
-      .gte('window_start', new Date(Date.now() - 1000).toISOString());
+    // Parallel group 1: rate limit check + idempotency check
+    const [rateLimitResult, idempotencyResult] = await Promise.all([
+      supabase
+        .from('move_rate_limits')
+        .select('*', { count: 'exact', head: true })
+        .eq('match_id', matchId)
+        .eq('user_id', user.id)
+        .gte('window_start', new Date(Date.now() - 1000).toISOString()),
+      supabase
+        .from('moves')
+        .select('ply')
+        .eq('match_id', matchId)
+        .eq('action_id', actionId)
+        .maybeSingle(),
+    ]);
 
+    const { count: recentMoveCount } = rateLimitResult;
     if (recentMoveCount !== null && recentMoveCount >= 4) {
       return json({ error: 'Rate limit exceeded - too many moves' }, 429);
     }
 
-    // Update rate limit tracking
-    await supabase
+    // Update rate limit tracking (fire-and-forget, no need to await)
+    supabase
       .from('move_rate_limits')
       .upsert({
         match_id: matchId,
@@ -73,20 +82,13 @@ Deno.serve(async (req) => {
         window_start: new Date().toISOString()
       }, {
         onConflict: 'match_id,user_id'
-      });
+      }).then(() => {});
 
-    // Idempotency check
-    const { data: existingMove } = await supabase
-      .from('moves')
-      .select('ply')
-      .eq('match_id', matchId)
-      .eq('action_id', actionId)
-      .maybeSingle();
-
+    const { data: existingMove } = idempotencyResult;
     if (existingMove) {
       const { data: currentMatch } = await supabase
         .from('matches')
-        .select('*')
+        .select('turn, winner, status, result')
         .eq('id', matchId)
         .single();
       return json({
@@ -99,23 +101,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify player
-    const { data: player, error: playerError } = await supabase
-      .from('match_players')
-      .select('color, is_bot')
-      .eq('match_id', matchId)
-      .eq('profile_id', user.id)
-      .single();
+    // Parallel group 2: player verify + match fetch
+    const [playerResult, matchResult] = await Promise.all([
+      supabase
+        .from('match_players')
+        .select('color, is_bot')
+        .eq('match_id', matchId)
+        .eq('profile_id', user.id)
+        .single(),
+      supabase
+        .from('matches')
+        .select('id, status, turn, size, pie_rule, game_key, version, is_ranked, ai_difficulty, result, winner, draw_offered_by, turn_timer_seconds, turn_started_at, updated_at, owner, is_arena')
+        .eq('id', matchId)
+        .single(),
+    ]);
 
+    const { data: player, error: playerError } = playerResult;
     if (playerError || !player) return json({ error: 'Not authorized for this match' }, 403);
 
-    // Fetch match
-    const { data: match, error: matchError } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('id', matchId)
-      .single();
-
+    const { data: match, error: matchError } = matchResult;
     if (matchError || !match) return json({ error: 'Match not found' }, 404);
     const currentVersion = match?.version || 0;
 
@@ -129,7 +133,7 @@ Deno.serve(async (req) => {
     // Fetch moves
     const { data: moves, error: movesError } = await supabase
       .from('moves')
-      .select('*')
+      .select('ply, move, cell, color')
       .eq('match_id', matchId)
       .order('ply', { ascending: true });
 

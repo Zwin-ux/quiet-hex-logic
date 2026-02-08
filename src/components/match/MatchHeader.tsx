@@ -4,6 +4,26 @@ import { MusicControls } from '@/components/MusicControls';
 import { Sparkles, BookOpen, ArrowLeft, Eye, EyeOff, RotateCcw, RefreshCw, Flag, Handshake } from 'lucide-react';
 import type { MatchData, Player } from '@/hooks/useMatchState';
 
+function matchDims(match: MatchData): string {
+  const gameKey = ((match as any)?.game_key ?? 'hex') as string;
+  const size = Number((match as any)?.size ?? 0) || 0;
+  if (gameKey === 'connect4') return `${size}x6`;
+  return `${size}x${size}`;
+}
+
+function variantLabel(match: MatchData): string | null {
+  const rules = (match as any)?.rules ?? null;
+  const gameKey = ((match as any)?.game_key ?? 'hex') as string;
+  const preset = typeof rules?.presetKey === 'string' ? rules.presetKey : null;
+  if (preset) return preset;
+  if (gameKey === 'ttt' && rules?.misere === true) return 'Misere';
+  if (gameKey === 'connect4' && Number.isInteger(rules?.connect) && Number(rules.connect) !== 4) return `Connect ${Number(rules.connect)}`;
+  if (gameKey === 'checkers' && rules?.mandatoryCapture === false) return 'No Forced Capture';
+  if (gameKey === 'chess' && typeof rules?.startFen === 'string' && rules.startFen.trim()) return 'Custom FEN';
+  if (gameKey === 'hex' && typeof rules?.pieRule === 'boolean' && rules.pieRule === false) return 'No Swap';
+  return null;
+}
+
 interface MatchHeaderProps {
   match: MatchData;
   isAIMatch: boolean;
@@ -52,8 +72,16 @@ export function MatchHeader({
           </h1>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="font-mono text-xs">
-              {match.size}x{match.size}
+              {String(((match as any)?.game_key ?? 'hex')).toUpperCase()}
             </Badge>
+            <Badge variant="outline" className="font-mono text-xs">
+              {matchDims(match)}
+            </Badge>
+            {variantLabel(match) && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                {variantLabel(match)}
+              </Badge>
+            )}
             {match.status === 'finished' && match.winner && (
               <Badge className={match.winner === userPlayer?.color ? 'bg-green-500/90' : 'bg-red-500/90'}>
                 {match.winner === userPlayer?.color ? 'Victory' : 'Defeat'}

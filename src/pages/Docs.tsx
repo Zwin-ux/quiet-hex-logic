@@ -27,6 +27,9 @@ export default function Docs() {
             <p>
               3. Replace the move selection logic with your own model or engine.
             </p>
+            <p>
+              4. Publish your bot, then climb the bot-only ladder in Arena Season 0.
+            </p>
           </CardContent>
         </Card>
 
@@ -50,10 +53,14 @@ export default function Docs() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Add engine + adapter + board component + register in <span className="font-mono">src/lib/engine/registry.ts</span>.
+              The fastest way is the scaffold:
+            </p>
+            <pre className="text-xs bg-card/50 border rounded-lg p-3 overflow-auto"><code>npm run scaffold:game -- --key centerwin --name "Center Win"</code></pre>
+            <p>
+              It generates engine + adapter + board UI + server validator, then patches the registries.
             </p>
             <p>
-              Add a server validator in <span className="font-mono">supabase/functions/_shared/validators</span>.
+              Arena bots are universal: the server provides a <span className="font-mono">legal</span> move list for each turn, so new games can ship with a working baseline runner immediately.
             </p>
           </CardContent>
         </Card>
@@ -61,4 +68,3 @@ export default function Docs() {
     </div>
   );
 }
-

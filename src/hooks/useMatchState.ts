@@ -5,18 +5,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { usePresence } from '@/hooks/usePresence';
 import { useSpectators } from '@/hooks/useSpectators';
-import { Hex } from '@/lib/hex/engine';
 import { AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
-import { ChessEngine } from '@/lib/chess/engine';
-import { TicTacToe } from '@/lib/ttt/engine';
-import { CheckersEngine } from '@/lib/checkers/engine';
-import { Connect4 } from '@/lib/connect4/engine';
 import { loadLocalMatch } from '@/lib/localMatches/storage';
 import { getGame, createEngine } from '@/lib/engine/registry';
 import type { GameEngine } from '@/lib/engine/types';
 
-export type GameKey = 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
+export type GameKey = string;
 
 export interface MatchData {
   id: string;
@@ -59,13 +54,8 @@ export function useMatchState(matchId: string | undefined) {
 
   const [match, setMatch] = useState<MatchData | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  // Keep legacy engine state for backward compatibility with existing board components
-  const [engine, setEngine] = useState<Hex | ChessEngine | TicTacToe | CheckersEngine | Connect4 | null>(null);
-  const [lastMove, setLastMove] = useState<number | undefined>();
-  const [lastChessMoveUci, setLastChessMoveUci] = useState<string | null>(null);
-  const [lastTttMove, setLastTttMove] = useState<number | null>(null);
-  const [lastCheckersMovePath, setLastCheckersMovePath] = useState<number[] | null>(null);
-  const [lastConnect4Move, setLastConnect4Move] = useState<number | null>(null);
+  const [engine, setEngine] = useState<GameEngine<any> | null>(null);
+  const [lastMove, setLastMove] = useState<any | null>(null);
   const [winningPath, setWinningPath] = useState<number[]>([]);
   const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
@@ -73,6 +63,7 @@ export function useMatchState(matchId: string | undefined) {
 
   const loadInFlight = useRef(false);
   const lastAITurnProcessed = useRef<number | null>(null);
+  const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
   const isLocalMatch = matchId?.startsWith('local-');
@@ -126,11 +117,7 @@ export function useMatchState(matchId: string | undefined) {
 
   /** Clear all per-game last-move state. */
   const clearLastMoves = useCallback(() => {
-    setLastMove(undefined);
-    setLastChessMoveUci(null);
-    setLastTttMove(null);
-    setLastCheckersMovePath(null);
-    setLastConnect4Move(null);
+    setLastMove(null);
     setWinningPath([]);
   }, []);
 
@@ -164,7 +151,7 @@ export function useMatchState(matchId: string | undefined) {
           // Hex online: cell is a top-level column
           moveData = { cell: m.cell };
         } else if (m.kind) {
-          // Local match format
+          // Legacy local match format (back-compat)
           if (m.kind === 'chess') moveData = { uci: m.uci };
           else if (m.kind === 'ttt') moveData = { cell: m.cell };
           else if (m.kind === 'checkers') moveData = { path: m.path };
@@ -182,51 +169,24 @@ export function useMatchState(matchId: string | undefined) {
       }
     }
 
-    return { adapter, lastMoveData };
+    const lastMoveTyped = lastMoveData ? adapter.deserializeMove(lastMoveData) : null;
+    return { adapter, lastMoveData, lastMoveTyped };
   }, []);
 
-  /**
-   * Set the legacy per-game engine + last-move state from a registry adapter.
-   * This bridges the new adapter system to the existing board components
-   * which still expect the raw engine classes.
-   */
   const setEngineFromAdapter = useCallback((
     gameKey: string,
-    adapter: any,
-    lastMoveData: Record<string, unknown> | null,
+    adapter: GameEngine<any>,
+    lastMoveTyped: any | null,
   ) => {
     clearLastMoves();
+    setEngine(adapter);
+    setLastMove(lastMoveTyped);
 
-    if (gameKey === 'chess') {
-      setEngine(adapter.chess);
-      if (lastMoveData?.uci) setLastChessMoveUci(String(lastMoveData.uci));
-    } else if (gameKey === 'ttt') {
-      setEngine(adapter.ttt);
-      if (lastMoveData?.cell !== undefined && lastMoveData?.cell !== null) {
-        setLastTttMove(Number(lastMoveData.cell));
-      }
-    } else if (gameKey === 'checkers') {
-      setEngine(adapter.checkers);
-      if (Array.isArray(lastMoveData?.path)) {
-        setLastCheckersMovePath((lastMoveData.path as number[]).map(Number));
-      }
-    } else if (gameKey === 'connect4') {
-      setEngine(adapter.c4);
-      if (lastMoveData?.col !== undefined && lastMoveData?.col !== null) {
-        setLastConnect4Move(Number(lastMoveData.col));
-      }
-    } else {
-      // Hex (default)
-      setEngine(adapter.hex);
-      if (lastMoveData?.cell !== undefined && lastMoveData?.cell !== null) {
-        setLastMove(Number(lastMoveData.cell));
-      }
-      // Check for winning path
-      const hex = adapter.hex as Hex;
-      if (hex.winner()) {
-        const path = hex.getWinningPath();
-        setWinningPath(path || []);
-      }
+    // Optional winning path support for Hex-like engines.
+    const rawHex = (adapter as any)?.hex;
+    if (rawHex && typeof rawHex.winner === 'function' && rawHex.winner()) {
+      const path = typeof rawHex.getWinningPath === 'function' ? rawHex.getWinningPath() : null;
+      setWinningPath(path || []);
     }
   }, [clearLastMoves]);
 
@@ -264,13 +224,13 @@ export function useMatchState(matchId: string | undefined) {
           { profile_id: 'local-p2', color: 2, is_bot: false, username: 'Player 2', avatar_color: 'ochre' },
         ]);
 
-        const { adapter, lastMoveData } = replayMoves(gameKey, local.moves, {
+        const { adapter, lastMoveTyped } = replayMoves(gameKey, local.moves, {
           boardSize: local.size,
           pieRule: local.pie_rule,
           fen: local.rules?.startFen,
           rules: local.rules,
         });
-        setEngineFromAdapter(gameKey, adapter, lastMoveData);
+        setEngineFromAdapter(gameKey, adapter, lastMoveTyped);
 
         return { matchData: local as any };
       }
@@ -278,7 +238,7 @@ export function useMatchState(matchId: string | undefined) {
       // ---- Online match ----
       const { data: matchData } = await supabase
         .from('matches')
-        .select('*')
+        .select('id, size, pie_rule, status, turn, winner, game_key, result, ai_difficulty, turn_timer_seconds, turn_started_at, is_ranked, draw_offered_by, version, updated_at, is_arena')
         .eq('id', matchId)
         .single();
 
@@ -385,15 +345,15 @@ export function useMatchState(matchId: string | undefined) {
       // Fetch moves and replay
       const { data: moves } = await supabase
         .from('moves')
-        .select('*')
+        .select('ply, move, cell, color')
         .eq('match_id', matchId)
         .order('ply', { ascending: true });
 
-      const { adapter, lastMoveData } = replayMoves(gameKey, moves || [], {
+      const { adapter, lastMoveTyped } = replayMoves(gameKey, moves || [], {
         boardSize: matchData.size,
         pieRule: matchData.pie_rule,
       });
-      setEngineFromAdapter(gameKey, adapter, lastMoveData);
+      setEngineFromAdapter(gameKey, adapter, lastMoveTyped);
 
       // Load rating results for finished ranked matches
       if (matchData.status === 'finished' && matchData.is_ranked) {
@@ -471,6 +431,15 @@ export function useMatchState(matchId: string | undefined) {
     setEngineFromAdapter(gameKey, adapter, null);
   }, [isDiscordLocalMatch, discordLocalInit, matchId, discordUser]);
 
+  // Debounced load: coalesces multiple realtime events within 100ms into one loadMatch()
+  const scheduleLoad = useCallback(() => {
+    if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+    realtimeDebounceRef.current = setTimeout(() => {
+      realtimeDebounceRef.current = null;
+      loadMatch();
+    }, 100);
+  }, [loadMatch]);
+
   // Load match and subscribe to realtime for non-Discord matches
   useEffect(() => {
     if (!matchId || isDiscordLocalMatch || isLocalMatch) return;
@@ -485,23 +454,22 @@ export function useMatchState(matchId: string | undefined) {
 
     const channel = supabase
       .channel(`match:${matchId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, () => loadMatch())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `match_id=eq.${matchId}` }, () => loadMatch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${matchId}` }, () => loadMatch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, scheduleLoad)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `match_id=eq.${matchId}` }, scheduleLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${matchId}` }, scheduleLoad)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [matchId, user, loading, navigate, isDiscordEnvironment, isLocalMatch, isDiscordLocalMatch, loadBoardSkin, loadMatch]);
+    return () => {
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [matchId, user, loading, navigate, isDiscordEnvironment, isLocalMatch, isDiscordLocalMatch, loadBoardSkin, loadMatch, scheduleLoad]);
 
   return {
     match, setMatch,
     players, setPlayers,
     engine, setEngine,
     lastMove, setLastMove,
-    lastChessMoveUci, setLastChessMoveUci,
-    lastTttMove, setLastTttMove,
-    lastCheckersMovePath, setLastCheckersMovePath,
-    lastConnect4Move, setLastConnect4Move,
     winningPath, setWinningPath,
     boardSkin,
     ratingResult, setRatingResult,

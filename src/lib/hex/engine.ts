@@ -61,6 +61,14 @@ class DSU {
     this.p[b] = a;
     if (this.r[a] === this.r[b]) this.r[a]++;
   }
+
+  // O(n) clone via flat array copy
+  clone(): DSU {
+    const copy = new DSU(0);
+    copy.p = this.p.slice();
+    copy.r = this.r.slice();
+    return copy;
+  }
 }
 
 /**
@@ -316,39 +324,21 @@ export class Hex {
     return empty;
   }
 
-  // Create a deep copy of the game state
+  // Create a deep copy of the game state — O(n) flat array copy
   clone(): Hex {
-    const copy = new Hex(this.n, this.pieRule);
+    const copy = Object.create(Hex.prototype) as Hex;
+    copy.n = this.n;
+    copy.pieRule = this.pieRule;
     copy.board = new Uint8Array(this.board);
     copy.turn = this.turn;
     copy.ply = this.ply;
     copy.swapped = this.swapped;
-
-    // Rebuild DSU state from board position
-    for (let i = 0; i < this.board.length; i++) {
-      const color = this.board[i];
-      if (color === 0) continue;
-
-      const dsu = color === 1 ? copy.dsu1 : copy.dsu2;
-
-      // Union with same-color neighbors
-      for (const nb of copy.neighbors(i)) {
-        if (copy.board[nb] === color) {
-          dsu.union(i, nb);
-        }
-      }
-
-      // Connect to borders if on edge
-      const [c, r] = copy.coords(i);
-      if (color === 1) {
-        if (c === 0) dsu.union(i, copy.v1a);
-        if (c === copy.n - 1) dsu.union(i, copy.v1b);
-      } else {
-        if (r === 0) dsu.union(i, copy.v2a);
-        if (r === copy.n - 1) dsu.union(i, copy.v2b);
-      }
-    }
-
+    copy.dsu1 = this.dsu1.clone();
+    copy.dsu2 = this.dsu2.clone();
+    copy.v1a = this.v1a;
+    copy.v1b = this.v1b;
+    copy.v2a = this.v2a;
+    copy.v2b = this.v2b;
     return copy;
   }
 

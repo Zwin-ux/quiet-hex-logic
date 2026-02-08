@@ -8,7 +8,11 @@ import { toast } from 'sonner';
 import { importModFromFile } from '@/lib/mods/import';
 import { listMods, removeMod, upsertMod } from '@/lib/mods/storage';
 import type { InstalledMod } from '@/lib/mods/schema';
-import { createLocalMatch, type LocalGameKey } from '@/lib/localMatches/storage';
+import { createLocalMatch } from '@/lib/localMatches/storage';
+import { listGames } from '@/lib/engine/registry';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorkshopMods } from '@/hooks/useWorkshopMods';
 
 const SAMPLE_MODS: Array<{
   id: string;
@@ -50,13 +54,17 @@ const SAMPLE_MODS: Array<{
 
 export default function Mods() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [mods, setMods] = useState<InstalledMod[]>(() => {
     try { return listMods(); } catch { return []; }
   });
   const [importing, setImporting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
-  const [localGameKey, setLocalGameKey] = useState<LocalGameKey>('checkers');
+  const games = useMemo(() => listGames(), []);
+  const [localGameKey, setLocalGameKey] = useState<string>(() => games.find((g) => g.key === 'checkers')?.key ?? (games[0]?.key ?? 'hex'));
   const [selectedModId, setSelectedModId] = useState<string>('__none__');
+  const { mods: workshopMods, loading: workshopLoading } = useWorkshopMods({});
 
   const filteredMods = useMemo(() => {
     return mods.filter((m) => (m.manifest.games as any)?.[localGameKey]?.rules != null);
@@ -107,6 +115,63 @@ export default function Mods() {
     }
   };
 
+  const onInstallWorkshop = async (modId: string) => {
+    const mod = workshopMods.find((m) => m.id === modId);
+    const versionId = mod?.latest_version_id ?? null;
+    if (!versionId) {
+      toast.error('This mod has no downloadable version yet');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const { data, error } = await supabase
+        .from('workshop_mod_versions' as any)
+        .select('manifest')
+        .eq('id', versionId)
+        .single();
+
+      if (error) throw error;
+      const manifest = (data as any)?.manifest;
+      if (!manifest) throw new Error('Missing manifest in version row');
+
+      upsertMod(manifest);
+      refresh();
+      toast.success('Mod installed', { description: `${mod?.name ?? 'Workshop mod'}` });
+    } catch (e: any) {
+      console.error('[Mods] workshop install error:', e);
+      toast.error('Failed to install workshop mod', { description: e?.message ?? 'Unknown error' });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const onPublishWorkshop = async (file: File | null) => {
+    if (!file) return;
+    if (!user) {
+      toast.error('Sign in to publish');
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const manifest = await importModFromFile(file);
+      const { data, error } = await supabase.functions.invoke('workshop-publish-mod', {
+        body: { manifest },
+      });
+
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast.success('Published to Workshop', { description: `${manifest.name} (${manifest.id}@${manifest.version})` });
+    } catch (e: any) {
+      console.error('[Mods] publish error:', e);
+      toast.error('Failed to publish', { description: e?.message ?? 'Unknown error' });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -127,7 +192,7 @@ export default function Mods() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              v1 mods are local-only: they affect local games started from this page, not online multiplayer.
+              Installed mods affect local games started from this page. For online multiplayer variants, use Workshop mods via lobby settings (server-enforced).
             </p>
             <input
               type="file"
@@ -135,6 +200,64 @@ export default function Mods() {
               disabled={importing}
               onChange={(e) => onImport(e.target.files?.[0] ?? null)}
             />
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Workshop (Public Registry)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Browse published variants. Install adds the mod to your local library; online matches use a server rules snapshot.
+            </p>
+
+            {workshopLoading ? (
+              <p className="text-sm text-muted-foreground">Loading workshop...</p>
+            ) : workshopMods.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No published mods yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {workshopMods.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card/50">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{m.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{m.description || m.game_key}</p>
+                      <p className="text-[11px] text-muted-foreground font-mono truncate">
+                        {m.manifest_id ? `${m.manifest_id}` : m.id}{m.latest_version_id ? '' : ' (no version)'}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={importing || !m.latest_version_id}
+                      onClick={() => onInstallWorkshop(m.id)}
+                    >
+                      Install
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="pt-2 border-t space-y-2">
+              <p className="text-sm font-medium">Publish a Mod</p>
+              <p className="text-xs text-muted-foreground">
+                Upload a `.openboardmod` or `.zip` with `manifest.json` and `rules/{game}.json`.
+              </p>
+              <input
+                type="file"
+                accept=".zip,.json,.openboardmod"
+                disabled={publishing || !user}
+                onChange={(e) => onPublishWorkshop(e.target.files?.[0] ?? null)}
+              />
+              {!user ? (
+                <p className="text-xs text-muted-foreground">
+                  Sign in to publish.
+                </p>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 
@@ -178,12 +301,10 @@ export default function Mods() {
                   <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hex">Hex</SelectItem>
-                    <SelectItem value="chess">Chess</SelectItem>
-                    <SelectItem value="checkers">Checkers</SelectItem>
-                    <SelectItem value="ttt">Tic Tac Toe</SelectItem>
-                    <SelectItem value="connect4">Connect 4</SelectItem>
+                <SelectContent>
+                    {games.map((g) => (
+                      <SelectItem key={g.key} value={g.key}>{g.displayName}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

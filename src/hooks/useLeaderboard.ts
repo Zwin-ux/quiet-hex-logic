@@ -12,7 +12,7 @@ export interface LeaderboardEntry {
   rank: number;
 }
 
-export function useLeaderboard(limit = 100, gameKey: 'hex' | 'chess' | 'checkers' = 'hex') {
+export function useLeaderboard(limit = 100, gameKey: 'hex' | 'chess' | 'checkers' | 'ttt' | 'connect4' = 'hex') {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);

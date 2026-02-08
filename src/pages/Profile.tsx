@@ -25,7 +25,7 @@ import { boardSkins } from '@/lib/boardSkins';
 import { toast } from 'sonner';
 import { RatingHistoryChart } from '@/components/RatingHistoryChart';
 import WorldIDWidget from '@/components/WorldID';
-import { BaseWalletSection } from '@/components/Base';
+import { BaseWalletSectionLazy } from '@/components/Base';
 import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
 import { NavBar } from '@/components/NavBar';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -309,7 +309,7 @@ const Profile = () => {
           </div>
           <div className="space-y-4">
             <WorldIDWidget />
-            <BaseWalletSection />
+            <BaseWalletSectionLazy />
           </div>
         </div>
 

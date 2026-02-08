@@ -3,11 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface WorkshopMod {
   id: string;
+  manifest_id?: string;
   name: string;
   description: string;
   game_key: string;
   rules: Record<string, unknown>;
   is_featured: boolean;
+  latest_version_id?: string | null;
   author_id: string;
   created_at: string;
 }

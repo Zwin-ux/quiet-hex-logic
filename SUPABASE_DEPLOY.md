@@ -52,7 +52,10 @@ npx supabase functions deploy arena-create-match
 npx supabase functions deploy create-bot
 npx supabase functions deploy bot-poll
 npx supabase functions deploy bot-submit-move
+npx supabase functions deploy update-bot-ratings
 npx supabase functions deploy rotate-bot-token
+npx supabase functions deploy arena-auto-matchmake
+npx supabase functions deploy workshop-publish-mod
 ```
 
 ## Regenerate Types (Optional but Recommended)

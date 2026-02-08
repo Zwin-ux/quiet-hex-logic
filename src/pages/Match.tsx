@@ -25,10 +25,6 @@ export default function Match() {
   const {
     match, setMatch, players, engine, setEngine,
     lastMove, setLastMove, winningPath, setWinningPath,
-    lastChessMoveUci, setLastChessMoveUci,
-    lastTttMove, setLastTttMove,
-    lastCheckersMovePath, setLastCheckersMovePath,
-    lastConnect4Move, setLastConnect4Move,
     boardSkin, ratingResult, setRatingResult,
     showConfetti, setShowConfetti,
     lastAITurnProcessed,
@@ -41,7 +37,7 @@ export default function Match() {
   const actions = useMatchActions({
     match, setMatch, engine, setEngine, players, user,
     isDiscordLocalMatch, isLocalMatch, isSpectating,
-    setLastMove, setLastChessMoveUci, setLastTttMove, setLastCheckersMovePath, setLastConnect4Move, setWinningPath, setRatingResult, setShowConfetti,
+    setLastMove, setWinningPath, setRatingResult, setShowConfetti,
     loadMatch, navigate,
   });
 
@@ -133,63 +129,13 @@ export default function Match() {
     }
   }, [engine, match, actions, ai, setEngine, setLastMove, setMatch, setWinningPath, setShowConfetti]);
 
-  // Move callbacks above returns to satisfy React Hook rules
-  const handleCellClick = useCallback((cell: number) => {
-    if (!engine || !match) return;
-    const gameKey = (match.game_key ?? 'hex') as GameKey;
-    if (gameKey !== 'hex') return;
-
-    if (isDiscordLocalMatch) {
-      handleDiscordLocalMove(cell);
-      return;
-    }
-
-    actions.handleCellClick(cell);
-  }, [engine, match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
-
-  const handleChessMove = useCallback((move: { uci: string; promotion?: 'q' | 'r' | 'b' | 'n' }) => {
-    if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as GameKey;
-    if (gameKey !== 'chess') return;
+  const handleMove = useCallback((move: any) => {
     if (isDiscordLocalMatch) {
       handleDiscordLocalMove(move);
       return;
     }
-    actions.handleChessMove(move);
-  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
-
-  const handleTttMove = useCallback((cell: number) => {
-    if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as GameKey;
-    if (gameKey !== 'ttt') return;
-    if (isDiscordLocalMatch) {
-      handleDiscordLocalMove(cell);
-      return;
-    }
-    actions.handleTttMove(cell);
-  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
-
-  const handleCheckersMove = useCallback((move: { path: number[] }) => {
-    if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as GameKey;
-    if (gameKey !== 'checkers') return;
-    if (isDiscordLocalMatch) {
-      handleDiscordLocalMove(move);
-      return;
-    }
-    actions.handleCheckersMove(move.path);
-  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
-
-  const handleConnect4Move = useCallback((col: number) => {
-    if (!match) return;
-    const gameKey = (match.game_key ?? 'hex') as GameKey;
-    if (gameKey !== 'connect4') return;
-    if (isDiscordLocalMatch) {
-      handleDiscordLocalMove(col);
-      return;
-    }
-    actions.handleConnect4Move(col);
-  }, [match, isDiscordLocalMatch, actions, handleDiscordLocalMove]);
+    actions.handleMove(move);
+  }, [isDiscordLocalMatch, actions, handleDiscordLocalMove]);
 
   // Loading / Waiting states
   if (!match || !engine) return <MatchLoading />;
@@ -203,7 +149,7 @@ export default function Match() {
   const isPlayer = !!userPlayer || isDiscordLocalMatch || isLocalMatch;
   const isAIMatch = match.ai_difficulty != null;
   const isAITurn = isAIMatch && currentColor === 2;
-  const gameKey = (match.game_key ?? 'hex') as 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
+  const gameKey = (match.game_key ?? 'hex') as string;
 
   const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar
     ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=128`
@@ -286,10 +232,6 @@ export default function Match() {
             engine={engine}
             boardSkin={boardSkin}
             lastMove={lastMove}
-            lastChessMoveUci={lastChessMoveUci}
-            lastTttMove={lastTttMove}
-            lastCheckersMovePath={lastCheckersMovePath}
-            lastConnect4Move={lastConnect4Move}
             winningPath={winningPath}
             isAggressiveMove={ai.isAggressiveMove}
             currentColor={currentColor}
@@ -310,11 +252,7 @@ export default function Match() {
             ratingResult={ratingResult}
             requestingRematch={requestingRematch}
             userId={userIdForMoves}
-            onCellClick={handleCellClick}
-            onChessMove={handleChessMove}
-            onTttMove={handleTttMove}
-            onCheckersMove={handleCheckersMove}
-            onConnect4Move={handleConnect4Move}
+            onMove={handleMove}
             onSwapColors={actions.handleSwapColors}
             onRematch={handleRematch}
             onPlayAgainAI={actions.handlePlayAgainAI}

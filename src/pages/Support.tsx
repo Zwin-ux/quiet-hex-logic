@@ -42,7 +42,7 @@ export default function Support() {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">How do tournaments work?</h3>
-                <p>Join our first tournament on February 25th, 2026 for a $500 prize pool! More details coming soon in Discord.</p>
+                <p>Check our Discord for the latest tournament schedule and prize pools.</p>
               </div>
             </div>
           </section>

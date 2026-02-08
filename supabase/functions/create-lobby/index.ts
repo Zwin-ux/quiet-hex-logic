@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { defaultsForGame } from '../_shared/gameDefaults.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,6 +67,7 @@ Deno.serve(async (req) => {
     }
     
     const { gameKey, boardSize, pieRule, turnTimer } = validationResult.data;
+    const defaults = defaultsForGame(gameKey);
 
     // Generate unique code
     const { data: code, error: codeError } = await supabase.rpc('generate_lobby_code');
@@ -80,9 +82,8 @@ Deno.serve(async (req) => {
         code,
         host_id: user.id,
         game_key: gameKey,
-        // NOTE: For connect4, board_size stores columns (standard 7x6 => 7).
-        board_size: (gameKey === 'chess' || gameKey === 'checkers') ? 8 : gameKey === 'ttt' ? 3 : gameKey === 'connect4' ? 7 : (boardSize || 11),
-        pie_rule: (gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt' || gameKey === 'connect4') ? false : (pieRule !== false),
+        board_size: (gameKey === 'hex') ? (boardSize || defaults.boardSize) : defaults.boardSize,
+        pie_rule: defaults.pieRule ? (pieRule !== false) : false,
         turn_timer_seconds: turnTimer || 45,
         status: 'waiting'
       })

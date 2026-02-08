@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const gameKeySchema = z.enum(['hex', 'chess', 'checkers', 'ttt', 'connect4']);
+// v2: allow arbitrary game keys (validated against the runtime registry during import).
+export const gameKeySchema = z.string().min(1);
 export type GameKey = z.infer<typeof gameKeySchema>;
 
 export const modManifestSchema = z.object({
@@ -10,13 +11,10 @@ export const modManifestSchema = z.object({
   description: z.string().optional(),
   author: z.string().optional(),
   // v1: rules-only mods. Assets are reserved for later.
-  games: z.object({
-    hex: z.object({ rules: z.unknown().optional() }).optional(),
-    chess: z.object({ rules: z.unknown().optional() }).optional(),
-    checkers: z.object({ rules: z.unknown().optional() }).optional(),
-    ttt: z.object({ rules: z.unknown().optional() }).optional(),
-    connect4: z.object({ rules: z.unknown().optional() }).optional(),
-  }).default({}),
+  games: z.record(
+    z.string().min(1),
+    z.object({ rules: z.unknown().optional() })
+  ).default({}),
 });
 
 export type ModManifest = z.infer<typeof modManifestSchema>;

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { defaultsForGame } from '../_shared/gameDefaults.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,7 +77,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const matchSize = (resolvedGameKey === 'chess' || resolvedGameKey === 'checkers') ? 8 : 13;
+    const matchSize = defaultsForGame(resolvedGameKey).competitiveSize;
 
     // Find a waiting match (simple approach; can be upgraded to a locking RPC later)
     const { data: waitingMatches, error: manualSearchError } = await supabaseAdmin
@@ -169,7 +170,7 @@ Deno.serve(async (req) => {
       .insert({
         game_key: resolvedGameKey,
         size: matchSize,
-        pie_rule: (resolvedGameKey === 'chess' || resolvedGameKey === 'checkers') ? false : true,
+        pie_rule: defaultsForGame(resolvedGameKey).pieRule,
         status: 'waiting',
         turn: 1,
         owner: user.id,

@@ -98,9 +98,41 @@ export function useAIOpponent({
       aiMoveInProgress.current = false;
 
       // Serialize the move for the server
-      const serializedMove = engine.serializeMove(move);
-
       const actionId = crypto.randomUUID();
+
+      // Hex uses the legacy `cell` field (including null for pie swap).
+      if (gameKey === 'hex') {
+        const { data: result, error } = await supabase.functions.invoke('apply-move', {
+          body: { matchId: matchData.id, cell: move ?? null, actionId }
+        });
+
+        if (error || !result?.success) {
+          const errorMsg = result?.error || error?.message || 'Failed to apply AI move';
+          if ((errorMsg.includes('Rate limit') || error?.status === 429) && retryCount < 3) {
+            const delay = Math.pow(2, retryCount) * 1000;
+            setTimeout(() => {
+              aiMoveInProgress.current = false;
+              setAiThinking(false);
+              makeAIMove(engine, matchData, retryCount + 1);
+            }, delay);
+            return;
+          }
+          if (!errorMsg.includes('Not your turn') && !errorMsg.includes('Not AI turn')) {
+            toast.error('Computer move failed', {
+              description: retryCount > 0 ? 'Failed after retries' : 'The game will continue when ready'
+            });
+          }
+          return;
+        }
+
+        if (result.winner) {
+          playLoseSound();
+        }
+        await loadMatch();
+        return;
+      }
+
+      const serializedMove = engine.serializeMove(move);
       const { data: result, error } = await supabase.functions.invoke('apply-move', {
         body: {
           matchId: matchData.id,

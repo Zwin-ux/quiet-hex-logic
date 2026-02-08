@@ -11,7 +11,9 @@ const updateLobbySettingsSchema = z.object({
   lobbyId: z.string().uuid('Invalid lobby ID'),
   boardSize: z.number().int().min(5).max(19).optional(),
   pieRule: z.boolean().optional(),
-  turnTimer: z.number().int().min(10).max(300).optional()
+  turnTimer: z.number().int().min(10).max(300).optional(),
+  // Optional Workshop variant. Use null/undefined to clear.
+  modVersionId: z.string().uuid().nullable().optional(),
 });
 
 Deno.serve(async (req) => {
@@ -50,7 +52,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { lobbyId, boardSize, pieRule, turnTimer } = validationResult.data;
+    const { lobbyId, boardSize, pieRule, turnTimer, modVersionId } = validationResult.data;
 
     // Verify user is host
     const { data: lobby, error: lobbyError } = await supabase
@@ -73,6 +75,28 @@ Deno.serve(async (req) => {
       if (pieRule !== undefined) updates.pie_rule = pieRule;
     }
     if (turnTimer) updates.turn_timer_seconds = turnTimer;
+
+    if (modVersionId !== undefined) {
+      if (modVersionId === null) {
+        updates.mod_version_id = null;
+      } else {
+        const { data: ver, error: verErr } = await supabase
+          .from('workshop_mod_versions' as any)
+          .select('id, workshop_mods!inner(game_key, is_published)')
+          .eq('id', modVersionId)
+          .maybeSingle();
+
+        if (verErr) throw verErr;
+        if (!ver) throw new Error('Unknown mod version');
+        const modGameKey = (ver as any)?.workshop_mods?.game_key;
+        const isPublished = (ver as any)?.workshop_mods?.is_published === true;
+
+        if (!isPublished) throw new Error('Mod is not published');
+        if (modGameKey !== gameKey) throw new Error('Mod does not match lobby game');
+
+        updates.mod_version_id = modVersionId;
+      }
+    }
 
     const { data: updated, error: updateError } = await supabase
       .from('lobbies')

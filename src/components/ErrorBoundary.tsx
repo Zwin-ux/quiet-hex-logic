@@ -27,11 +27,11 @@ export class ErrorBoundary extends React.Component<
       return (
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
           <div className="text-center max-w-md space-y-4">
-            <h1 className="text-2xl font-semibold font-spectral">Something went wrong</h1>
+            <h1 className="text-2xl font-semibold font-display">Something went wrong</h1>
             <p className="text-muted-foreground">
               An unexpected error occurred. Please try reloading the page.
             </p>
-            {this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <pre className="text-xs text-left bg-muted p-3 rounded-md overflow-auto max-h-32">
                 {this.state.error.message}
               </pre>

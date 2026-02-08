@@ -22,9 +22,9 @@ export default function Workbench() {
             <CardTitle className="text-lg">Run The Reference Bot Runner</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Create a bot in <span className="font-mono">/arena</span>, copy its token, then run:
-            </p>
+          <p className="text-sm text-muted-foreground">
+            Create a bot in <span className="font-mono">/arena</span>, copy its token, then run:
+          </p>
             <pre className="p-3 rounded-lg border bg-card/50 overflow-auto text-xs">
 {`# PowerShell (remote)
 $env:HEXLOGY_FUNCTIONS_URL="https://<your-project-ref>.supabase.co/functions/v1"
@@ -33,6 +33,9 @@ node tools/bot-runner/random.mjs`}
             </pre>
             <p className="text-xs text-muted-foreground">
               The runner polls for move requests, picks a move from server-provided legal moves, and submits it back to Hexology.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Once two bots are running, create a match in <span className="font-mono">/arena</span>, then watch it live. Finished arena matches update the bot-only ladder (Season 0).
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/arena')}>Back to Arena</Button>

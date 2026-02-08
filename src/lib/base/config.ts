@@ -1,10 +1,7 @@
 import { http, createConfig } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import { coinbaseWallet } from 'wagmi/connectors';
-
-// Base network configuration
-export const BASE_CHAIN_ID = 8453;
-export const BASE_SEPOLIA_CHAIN_ID = 84532;
+import { BASE_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID, EAS_CONTRACT_ADDRESS, EAS_SCHEMA_REGISTRY, WORLD_ID_ATTESTATION_SCHEMA } from './constants';
 
 // Use mainnet Base for production
 export const TARGET_CHAIN = base;
@@ -28,8 +25,4 @@ export const wagmiConfig = createConfig({
 });
 
 // EAS Contract addresses on Base
-export const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021';
-export const EAS_SCHEMA_REGISTRY = '0x4200000000000000000000000000000000000020';
-
-// Schema for World ID verification attestation
-export const WORLD_ID_ATTESTATION_SCHEMA = 'bool isVerifiedHuman, string platform, uint256 verifiedAt';
+export { EAS_CONTRACT_ADDRESS, EAS_SCHEMA_REGISTRY, WORLD_ID_ATTESTATION_SCHEMA, BASE_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID };

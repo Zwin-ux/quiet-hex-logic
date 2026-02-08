@@ -3,7 +3,7 @@ import { useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
 import { useBaseContext } from '@/lib/base/BaseProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { BASE_CHAIN_ID } from '@/lib/base/config';
+import { BASE_CHAIN_ID } from '@/lib/base/constants';
 
 interface UseBaseReturn {
   // Connection state

@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useLobby } from '@/hooks/useLobby';
+import { useWorkshopMods } from '@/hooks/useWorkshopMods';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -46,6 +47,8 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const allReady = players.length === 2 && players.every(p => p.is_ready);
   const canStart = isHost && allReady;
   const gameKey = (lobby as any)?.game_key ?? 'hex';
+  const currentModVersionId = (lobby as any)?.mod_version_id ?? null;
+  const { mods: workshopMods, loading: workshopModsLoading } = useWorkshopMods({ gameKey });
 
   // Auto-navigate both players when match starts (critical for guest navigation)
   useEffect(() => {
@@ -410,6 +413,36 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
           <h3 className="font-semibold mb-4 text-base sm:text-lg">Game Settings</h3>
           
           <div className="space-y-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-2 block">
+                Rules Variant (Workshop)
+              </label>
+              <Select
+                value={typeof currentModVersionId === 'string' && currentModVersionId ? currentModVersionId : '__none__'}
+                onValueChange={(v) => updateSettings('modVersionId', v === '__none__' ? null : v)}
+                disabled={!isHost || updating || workshopModsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {workshopMods.map((m) => (
+                    <SelectItem
+                      key={m.id}
+                      value={m.latest_version_id ?? `__missing__${m.id}`}
+                      disabled={!m.latest_version_id}
+                    >
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                Variants are enforced server-side via a rules snapshot and are always unranked.
+              </p>
+            </div>
+
             <div>
               <label className="text-sm text-muted-foreground mb-2 block">
                 Board Size

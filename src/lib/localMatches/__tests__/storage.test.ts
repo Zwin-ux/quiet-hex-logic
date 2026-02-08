@@ -45,7 +45,7 @@ describe('Local Match Storage', () => {
   it('saveLocalMatch persists updates', () => {
     const match = createLocalMatch({ gameKey: 'chess' });
     match.turn = 5;
-    match.moves.push({ kind: 'chess', uci: 'e2e4' });
+    match.moves.push({ move: { uci: 'e2e4' } });
     saveLocalMatch(match);
     const loaded = loadLocalMatch(match.id);
     expect(loaded!.turn).toBe(5);

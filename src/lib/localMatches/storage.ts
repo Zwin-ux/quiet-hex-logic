@@ -1,13 +1,10 @@
-export type LocalGameKey = 'hex' | 'chess' | 'ttt' | 'checkers' | 'connect4';
+import { getGameOrNull } from '@/lib/engine/registry';
+
+export type LocalGameKey = string;
 
 export type LocalMatchStatus = 'active' | 'finished';
 
-export type LocalMove =
-  | { kind: 'hex'; cell: number | null }
-  | { kind: 'chess'; uci: string }
-  | { kind: 'ttt'; cell: number }
-  | { kind: 'checkers'; path: number[] }
-  | { kind: 'connect4'; col: number };
+export type LocalMove = { move: Record<string, unknown> } | any;
 
 export type LocalMatch = {
   id: string;
@@ -30,9 +27,13 @@ function keyFor(id: string): string {
 
 export function createLocalMatch(opts: { gameKey: LocalGameKey; rules?: any | null; pieRule?: boolean }): LocalMatch {
   const id = `local-${crypto.randomUUID()}`;
-  const sizeMap: Record<LocalGameKey, number> = { hex: 11, chess: 8, checkers: 8, ttt: 3, connect4: 7 };
-  const size = sizeMap[opts.gameKey] ?? 8;
-  const defaultPieRule = opts.gameKey === 'hex';
+  // v2: default sizing comes from the game registry when possible.
+  const def = getGameOrNull(opts.gameKey);
+  const size =
+    def?.defaultBoardSize ??
+    (opts.gameKey === 'hex' ? 11 : opts.gameKey === 'ttt' ? 3 : opts.gameKey === 'connect4' ? 7 : 8);
+  const defaultPieRule = def?.supportsPieRule === true || opts.gameKey === 'hex';
+
   const pieRule = opts.pieRule;
   const match: LocalMatch = {
     id,

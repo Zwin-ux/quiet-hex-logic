@@ -11,6 +11,7 @@ type Lobby = {
   board_size: number;
   pie_rule: boolean;
   turn_timer_seconds: number;
+  mod_version_id?: string | null;
   created_at: string;
   updated_at: string;
 };

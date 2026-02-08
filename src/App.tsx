@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,37 +7,43 @@ import { DiscordProvider } from "@/lib/discord/DiscordContext";
 import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
 import { BaseProvider } from "@/lib/base/BaseProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { EnvSanityBanner } from "@/components/EnvSanityBanner";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Eager: primary entry points
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Lobby from "./pages/Lobby";
 import Match from "./pages/Match";
-import Friends from "./pages/Friends";
-import History from "./pages/History";
-import Replay from "./pages/Replay";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-import Tutorial from "./pages/Tutorial";
-import LobbyView from "./pages/LobbyView";
-import Tournaments from "./pages/Tournaments";
-import TournamentView from "./pages/TournamentView";
-import Premium from "./pages/Premium";
-import Leaderboard from "./pages/Leaderboard";
-import Puzzles from "./pages/Puzzles";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import Support from "./pages/Support";
-import Mods from "./pages/Mods";
-import Arena from "./pages/Arena";
-import Workbench from "./pages/Workbench";
-import Docs from "./pages/Docs";
-import BotProfile from "./pages/BotProfile";
+
+// Lazy: secondary pages
+const Friends = lazy(() => import("./pages/Friends"));
+const History = lazy(() => import("./pages/History"));
+const Replay = lazy(() => import("./pages/Replay"));
+const Profile = lazy(() => import("./pages/Profile"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
+const Tutorial = lazy(() => import("./pages/Tutorial"));
+const LobbyView = lazy(() => import("./pages/LobbyView"));
+const Tournaments = lazy(() => import("./pages/Tournaments"));
+const TournamentView = lazy(() => import("./pages/TournamentView"));
+const Premium = lazy(() => import("./pages/Premium"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const Puzzles = lazy(() => import("./pages/Puzzles"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Support = lazy(() => import("./pages/Support"));
+const Mods = lazy(() => import("./pages/Mods"));
+const Arena = lazy(() => import("./pages/Arena"));
+const Workbench = lazy(() => import("./pages/Workbench"));
+const Docs = lazy(() => import("./pages/Docs"));
+const BotProfile = lazy(() => import("./pages/BotProfile"));
+const Debug = lazy(() => import("./pages/Debug"));
 
 const queryClient = new QueryClient();
 
@@ -58,11 +64,13 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AchievementToast />
+          <EnvSanityBanner />
           
           <BrowserRouter>
             <ErrorBoundary>
             <DiscordActivityWrapper>
               <PageTransition>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-pulse text-muted-foreground">Loading…</div></div>}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -89,9 +97,11 @@ const App = () => (
               <Route path="/bot/:botId" element={<RouteErrorBoundary fallbackTitle="Bot page failed to load"><BotProfile /></RouteErrorBoundary>} />
               <Route path="/workbench" element={<RouteErrorBoundary fallbackTitle="Workbench failed to load"><Workbench /></RouteErrorBoundary>} />
               <Route path="/docs" element={<RouteErrorBoundary fallbackTitle="Docs failed to load"><Docs /></RouteErrorBoundary>} />
+              <Route path="/debug" element={<RouteErrorBoundary fallbackTitle="Debug failed to load"><Debug /></RouteErrorBoundary>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
               </PageTransition>
             </DiscordActivityWrapper>
             </ErrorBoundary>

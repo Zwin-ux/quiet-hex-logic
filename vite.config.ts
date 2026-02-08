@@ -5,6 +5,16 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    // Used by /debug to help confirm you are on the latest deployment (not a cached JS bundle).
+    __HEXLOGY_BUILD_ID__: JSON.stringify(
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+        process.env.VERCEL_DEPLOYMENT_ID ||
+        process.env.GITHUB_SHA ||
+        process.env.COMMIT_SHA ||
+        new Date().toISOString()
+    ),
+  },
   server: {
     host: "::",
     port: 8080,

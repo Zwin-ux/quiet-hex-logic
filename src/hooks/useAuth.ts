@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+function normalizeError(err: unknown): { message: string } {
+  if (err && typeof err === 'object') {
+    const anyErr = err as any;
+    if (typeof anyErr.message === 'string' && anyErr.message.trim()) return { message: anyErr.message };
+    if (typeof anyErr.error_description === 'string' && anyErr.error_description.trim()) return { message: anyErr.error_description };
+  }
+  return { message: 'Request failed' };
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -28,91 +37,131 @@ export function useAuth() {
   }, []);
 
   const signUp = async (email: string, password: string, username: string, avatarColor: string = 'indigo') => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          username,
-          avatar_color: avatarColor,
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            username,
+            avatar_color: avatarColor,
+          },
         },
-      },
-    });
-    return { error };
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signInWithMagicLink = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/lobby`;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
-    return { error };
+    try {
+      const redirectUrl = `${window.location.origin}/lobby`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signInAnonymously = async () => {
-    const { error } = await supabase.auth.signInAnonymously();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth?reset=true`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    return { error };
+    try {
+      const redirectUrl = `${window.location.origin}/auth?reset=true`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    return { error };
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/lobby`,
-      },
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/lobby`,
+        },
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signInWithDiscord = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: `${window.location.origin}/lobby`,
-      },
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/lobby`,
+        },
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   const signInWithApple = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo: `${window.location.origin}/lobby`,
-      },
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/lobby`,
+        },
+      });
+      return { error };
+    } catch (err) {
+      return { error: normalizeError(err) as any };
+    }
   };
 
   return {

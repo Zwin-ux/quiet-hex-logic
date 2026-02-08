@@ -17,15 +17,15 @@ An open-source board game engine and platform: play classic games, mod the rules
 
 ## Features
 
-- **Multiplayer** — Create lobbies, share codes, play online with Elo-rated matchmaking
-- **AI Opponents** — Multiple difficulty levels per game
-- **Bot Arena (BYO AI)** — Run your own bot runner (local or hosted) and let it play unranked arena matches
-- **Discord Activity** — Play directly inside Discord voice channels
-- **Tournaments** — Bracket-based competitive play
-- **Puzzles** — Practice mode for Hex
-- **Replay System** — Review completed matches move-by-move
-- **Mod Support** — Extend games with custom rules (v1: local-only)
-- **Cross-platform** — Web (Vite/React) + iOS/Android (Expo)
+- **Multiplayer** -- Create lobbies, share codes, play online with Elo-rated matchmaking
+- **AI Opponents** -- Multiple difficulty levels per game
+- **Bot Arena (BYO AI)** -- Run your own bot runner (local or hosted) and let it fight in public-spectate Arena matches
+- **Discord Activity** -- Play directly inside Discord voice channels
+- **Tournaments** -- Bracket-based competitive play
+- **Puzzles** -- Practice mode for Hex
+- **Replay System** -- Review completed matches move-by-move
+- **Mod Support** -- Extend games with custom rules (v1: local-only)
+- **Cross-platform** -- Web (Vite/React) + iOS/Android (Expo)
 
 ## Architecture
 
@@ -57,10 +57,17 @@ supabase/
 
 Hexology uses a **game registry pattern**. To add a new game, you need:
 
-1. **Engine** — `src/lib/<game>/engine.ts` with core game logic
-2. **Adapter** — `src/lib/engine/adapters/<game>Adapter.ts` implementing `GameEngine<TMove>`
-3. **Board component** — `src/components/<game>/<Game>Board.tsx`
-4. **Register** — One call to `registerGame()` in `src/lib/engine/registry.ts`
+```bash
+npm run scaffold:game -- --key centerwin --name "Center Win"
+```
+
+This generates a fully-working template game (engine + adapter + board UI + server validator) and patches the registries.
+
+1. **Engine** -- `src/lib/<game>/engine.ts` with core game logic
+2. **Adapter** -- `src/lib/engine/adapters/<game>Adapter.ts` implementing `GameEngine<TMove>`
+3. **Board component** -- `src/components/<game>/<Game>Board.tsx`
+4. **Register** -- One call to `registerGame()` in `src/lib/engine/registry.ts`
+5. **Server validator** -- `supabase/functions/_shared/validators/<game>.ts` + a case in `supabase/functions/_shared/gameValidators.ts`
 
 That's it. The hooks, match page, lobby UI, and edge functions are all registry-driven.
 
@@ -115,15 +122,22 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the mod format and how to 
 
 ## Bot Arena (MVP)
 
-Hexology includes a Bot Arena where external AI runners can connect via a bot token and play unranked matches.
+Hexology includes a Bot Arena where external AI runners can connect via a bot token and play matches across multiple games.
 
-- UI: `/arena` and `/workbench`
-- Reference runner: `tools/bot-runner/hex-random.mjs`
+- UI: `/arena`, `/bot/:botId`, and `/workbench`
+- Reference runner: `tools/bot-runner/random.mjs` (works for all games)
 
 High level flow:
 1. Create a bot in the Arena (token is shown once).
 2. Run the bot runner with `HEXLOGY_BOT_TOKEN` set.
 3. Create a bot-vs-bot arena match and spectate it in `/match/:id`.
+
+Bot-only ladder:
+- Arena matches are unranked for humans, but bots earn Elo in **Season 0**. See the Ladder tab in `/arena`.
+
+House League (optional):
+- A server-side matchmaker can spawn public "House League" Arena matches to keep the ladder moving even when humans are asleep.
+- Edge function: `arena-auto-matchmake` (service role protected)
 
 ## Contributing
 

@@ -27,6 +27,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Service client is used to create modded matches with server-enforced rules snapshots.
+    // In local dev environments without a service role key, we fall back to the user client,
+    // and disallow starting modded matches.
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const service = serviceRoleKey
+      ? createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
+      : null;
+    const db = service ?? supabase;
+
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
@@ -43,7 +52,7 @@ Deno.serve(async (req) => {
     const { lobbyId } = parsed.data;
 
     // Get lobby details
-    const { data: lobby, error: lobbyError } = await supabase
+    const { data: lobby, error: lobbyError } = await db
       .from('lobbies')
       .select('*')
       .eq('id', lobbyId)
@@ -58,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Get all players
-    const { data: players, error: playersError } = await supabase
+    const { data: players, error: playersError } = await db
       .from('lobby_players')
       .select('*')
       .eq('lobby_id', lobbyId);
@@ -74,8 +83,37 @@ Deno.serve(async (req) => {
       throw new Error('All players must be ready');
     }
 
+    // Optional: server-enforced variant rules snapshot from Workshop.
+    const lobbyModVersionId = (lobby as any)?.mod_version_id ?? null;
+    let rules: any = null;
+    let modVersionId: string | null = null;
+    if (typeof lobbyModVersionId === 'string' && lobbyModVersionId) {
+      if (!service) {
+        throw new Error('Server is missing service role key; cannot start a modded match in this environment');
+      }
+
+      const { data: ver, error: verErr } = await service
+        .from('workshop_mod_versions' as any)
+        .select('id, rules, workshop_mods!inner(game_key, is_published)')
+        .eq('id', lobbyModVersionId)
+        .maybeSingle();
+
+      if (verErr) throw verErr;
+      if (!ver) throw new Error('Unknown mod version');
+
+      const modGameKey = (ver as any)?.workshop_mods?.game_key;
+      const isPublished = (ver as any)?.workshop_mods?.is_published === true;
+      const gameKey = (lobby as any).game_key ?? 'hex';
+
+      if (!isPublished) throw new Error('Mod is not published');
+      if (modGameKey !== gameKey) throw new Error('Mod does not match lobby game');
+
+      rules = (ver as any).rules ?? null;
+      modVersionId = (ver as any).id ?? null;
+    }
+
     // Create match
-    const { data: match, error: matchError } = await supabase
+    const { data: match, error: matchError } = await db
       .from('matches')
       .insert({
         lobby_id: lobbyId,
@@ -92,6 +130,8 @@ Deno.serve(async (req) => {
                 : lobby.board_size,
         pie_rule: (((lobby as any).game_key ?? 'hex') === 'chess' || ((lobby as any).game_key ?? 'hex') === 'checkers' || ((lobby as any).game_key ?? 'hex') === 'ttt' || ((lobby as any).game_key ?? 'hex') === 'connect4') ? false : lobby.pie_rule,
         turn_timer_seconds: lobby.turn_timer_seconds,
+        rules: rules ?? null,
+        mod_version_id: modVersionId,
         status: 'active'
       })
       .select()
@@ -103,7 +143,7 @@ Deno.serve(async (req) => {
     const hostPlayer = players.find(p => p.role === 'host');
     const guestPlayer = players.find(p => p.role === 'guest');
 
-    const { error: player1Error } = await supabase
+    const { error: player1Error } = await db
       .from('match_players')
       .insert({
         match_id: match.id,
@@ -113,7 +153,7 @@ Deno.serve(async (req) => {
 
     if (player1Error) throw player1Error;
 
-    const { error: player2Error } = await supabase
+    const { error: player2Error } = await db
       .from('match_players')
       .insert({
         match_id: match.id,
@@ -124,7 +164,7 @@ Deno.serve(async (req) => {
     if (player2Error) throw player2Error;
 
     // Update lobby status and force realtime event
-    await supabase
+    await db
       .from('lobbies')
       .update({
         status: 'starting',

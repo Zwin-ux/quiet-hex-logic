@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Trophy, Package, Target, LogOut, User, Crown, Hexagon, Swords, BookOpen, Wrench } from 'lucide-react';
+import { Trophy, Package, Target, LogOut, User, Users, Crown, Hexagon, Swords, BookOpen, Wrench, Medal } from 'lucide-react';
 
 export function NavBar() {
   const navigate = useNavigate();
@@ -31,6 +31,12 @@ export function NavBar() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/leaderboard')} className="hidden sm:inline-flex text-sm">
             Leaderboard
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/tournaments')} className="hidden sm:inline-flex text-sm">
+            Tournaments
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/friends')} className="hidden sm:inline-flex text-sm">
+            Friends
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate('/mods')} className="hidden sm:inline-flex text-sm">
             Mods
           </Button>
@@ -42,6 +48,8 @@ export function NavBar() {
                 { icon: BookOpen, path: '/docs', className: 'sm:hidden' },
                 { icon: Trophy, path: '/leaderboard', className: 'sm:hidden' },
                 { icon: Package, path: '/mods', className: 'sm:hidden' },
+                { icon: Medal, path: '/tournaments', className: 'sm:hidden' },
+                { icon: Users, path: '/friends', className: 'sm:hidden' },
                 { icon: Wrench, path: '/workbench' },
                 { icon: Target, path: '/puzzles' },
                 { icon: Crown, path: '/premium', className: 'text-amber-500' },

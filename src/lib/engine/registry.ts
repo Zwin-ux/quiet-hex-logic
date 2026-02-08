@@ -43,6 +43,11 @@ import { ChessAdapter } from './adapters/chessAdapter';
 import { TttAdapter } from './adapters/tttAdapter';
 import { CheckersAdapter } from './adapters/checkersAdapter';
 import { Connect4Adapter } from './adapters/connect4Adapter';
+import { HexBoardGame } from '@/components/gameBoards/HexBoardGame';
+import { ChessBoardGame } from '@/components/gameBoards/ChessBoardGame';
+import { TttBoardGame } from '@/components/gameBoards/TttBoardGame';
+import { CheckersBoardGame } from '@/components/gameBoards/CheckersBoardGame';
+import { Connect4BoardGame } from '@/components/gameBoards/Connect4BoardGame';
 import { createTttAI } from '@/lib/ttt/ai';
 import { createCheckersAI } from '@/lib/checkers/ai';
 import { createChessAI } from '@/lib/chess/ai';
@@ -55,7 +60,7 @@ registerGame({
   key: 'hex',
   displayName: 'Hex',
   createEngine: (opts) => HexAdapter.create(opts),
-  boardComponent: null,
+  boardComponent: HexBoardGame,
   defaultBoardSize: 11,
   configurableBoardSize: true,
   boardSizeOptions: [
@@ -73,7 +78,7 @@ registerGame({
   key: 'chess',
   displayName: 'Chess',
   createEngine: (opts) => ChessAdapter.create(opts),
-  boardComponent: null,
+  boardComponent: ChessBoardGame,
   defaultBoardSize: 8,
   configurableBoardSize: false,
   boardSizeOptions: [{ value: 8, label: '8x8 - Standard' }],
@@ -87,7 +92,7 @@ registerGame({
   key: 'checkers',
   displayName: 'Checkers',
   createEngine: (opts) => CheckersAdapter.create(opts),
-  boardComponent: null,
+  boardComponent: CheckersBoardGame,
   defaultBoardSize: 8,
   configurableBoardSize: false,
   boardSizeOptions: [{ value: 8, label: '8x8 - American' }],
@@ -101,7 +106,7 @@ registerGame({
   key: 'ttt',
   displayName: 'Tic Tac Toe',
   createEngine: (opts) => TttAdapter.create(opts),
-  boardComponent: null,
+  boardComponent: TttBoardGame,
   defaultBoardSize: 3,
   configurableBoardSize: false,
   boardSizeOptions: [{ value: 3, label: '3x3 - Classic' }],
@@ -115,7 +120,7 @@ registerGame({
   key: 'connect4',
   displayName: 'Connect 4',
   createEngine: (opts) => Connect4Adapter.create(opts),
-  boardComponent: null,
+  boardComponent: Connect4BoardGame,
   defaultBoardSize: 7,
   configurableBoardSize: false,
   boardSizeOptions: [{ value: 7, label: '7x6 - Classic' }],

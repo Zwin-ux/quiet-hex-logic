@@ -3,14 +3,59 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+function safeSupabaseUrl(): string {
+  const raw = typeof SUPABASE_URL === 'string' ? SUPABASE_URL.trim() : '';
+  if (raw) return raw;
+  const pid = typeof SUPABASE_PROJECT_ID === 'string' ? SUPABASE_PROJECT_ID.trim() : '';
+  if (pid) return `https://${pid}.supabase.co`;
+  return '';
+}
+
+function createMemoryStorage(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    clear() {
+      map.clear();
+    },
+    getItem(key: string) {
+      return map.has(key) ? map.get(key)! : null;
+    },
+    key(index: number) {
+      return Array.from(map.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      map.delete(key);
+    },
+    setItem(key: string, value: string) {
+      map.set(key, String(value));
+    },
+  } as Storage;
+}
+
+function safeAuthStorage(): Storage {
+  try {
+    const testKey = '__hexology_storage_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return localStorage;
+  } catch {
+    // Some environments (privacy mode, embedded contexts) block storage access.
+    return createMemoryStorage();
+  }
+}
+
+export const supabase = createClient<Database>(safeSupabaseUrl(), SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: safeAuthStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }

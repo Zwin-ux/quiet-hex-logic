@@ -120,3 +120,8 @@ verify_jwt = true
 [functions.rotate-bot-token]
 verify_jwt = true
 
+[functions.arena-auto-matchmake]
+verify_jwt = false
+
+[functions.workshop-publish-mod]
+verify_jwt = true

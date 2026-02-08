@@ -1,12 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { defaultsForGame } from '../_shared/gameDefaults.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Comprehensive input validation schema
 const createTournamentSchema = z.object({
   name: z.string()
     .trim()
@@ -16,6 +16,7 @@ const createTournamentSchema = z.object({
     .trim()
     .max(1000, 'Description must be less than 1000 characters')
     .optional(),
+  gameKey: z.string().optional(),
   format: z.enum(['single_elimination', 'double_elimination', 'round_robin'], {
     errorMap: () => ({ message: 'Invalid tournament format' })
   }).optional(),
@@ -29,7 +30,7 @@ const createTournamentSchema = z.object({
     .max(128, 'Min players cannot exceed 128'),
   boardSize: z.number()
     .int('Board size must be an integer')
-    .min(5, 'Board size must be at least 5')
+    .min(3, 'Board size must be at least 3')
     .max(19, 'Board size cannot exceed 19')
     .optional(),
   pieRule: z.boolean().optional(),
@@ -91,6 +92,7 @@ Deno.serve(async (req) => {
     const {
       name,
       description,
+      gameKey,
       format,
       maxPlayers,
       minPlayers,
@@ -101,6 +103,8 @@ Deno.serve(async (req) => {
       startTime
     } = validationResult.data;
 
+    const defaults = defaultsForGame(gameKey || 'hex');
+
     // Create tournament (data already validated and trimmed by Zod)
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
@@ -110,8 +114,8 @@ Deno.serve(async (req) => {
         format: format || 'single_elimination',
         max_players: maxPlayers || 8,
         min_players: minPlayers || 4,
-        board_size: boardSize || 11,
-        pie_rule: pieRule !== false,
+        board_size: boardSize ?? defaults.boardSize,
+        pie_rule: defaults.pieRule ? (pieRule ?? defaults.pieRule) : false,
         turn_timer_seconds: turnTimerSeconds || 45,
         registration_deadline: registrationDeadline || null,
         start_time: startTime || null,

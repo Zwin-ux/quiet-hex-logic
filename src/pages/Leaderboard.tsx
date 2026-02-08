@@ -29,7 +29,7 @@ export default function Leaderboard() {
   useDocumentTitle('Leaderboard');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [gameKey, setGameKey] = useState<'hex' | 'chess' | 'checkers'>('hex');
+  const [gameKey, setGameKey] = useState<'hex' | 'chess' | 'checkers' | 'ttt' | 'connect4'>('hex');
   const { entries, loading, userRank, fetchUserRank } = useLeaderboard(100, gameKey);
 
   useEffect(() => {
@@ -57,6 +57,12 @@ export default function Leaderboard() {
           </Button>
           <Button variant={gameKey === 'checkers' ? 'default' : 'outline'} onClick={() => setGameKey('checkers')}>
             Checkers
+          </Button>
+          <Button variant={gameKey === 'ttt' ? 'default' : 'outline'} onClick={() => setGameKey('ttt')}>
+            TTT
+          </Button>
+          <Button variant={gameKey === 'connect4' ? 'default' : 'outline'} onClick={() => setGameKey('connect4')}>
+            Connect 4
           </Button>
         </div>
 
