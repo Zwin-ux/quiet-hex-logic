@@ -36,6 +36,9 @@ export const usePresence = (userId: string | undefined, matchId?: string) => {
           status: 'offline',
           match_id: null,
           updated_at: new Date().toISOString()
+        })
+        .then(({ error }) => {
+          if (error) console.error('Failed to set presence offline:', error);
         });
     };
   }, [userId, matchId]);

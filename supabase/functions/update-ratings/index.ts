@@ -145,8 +145,10 @@ serve(async (req) => {
     if (histErr) throw histErr;
 
     // Update match_players with rating deltas (used by post-game UI).
-    await supabase.from("match_players").update({ rating_change: n1 - r1 }).eq("match_id", matchId).eq("profile_id", p1Id);
-    await supabase.from("match_players").update({ rating_change: n2 - r2 }).eq("match_id", matchId).eq("profile_id", p2Id);
+    const { error: mp1Err } = await supabase.from("match_players").update({ rating_change: n1 - r1 }).eq("match_id", matchId).eq("profile_id", p1Id);
+    if (mp1Err) throw mp1Err;
+    const { error: mp2Err } = await supabase.from("match_players").update({ rating_change: n2 - r2 }).eq("match_id", matchId).eq("profile_id", p2Id);
+    if (mp2Err) throw mp2Err;
 
     return new Response(
       JSON.stringify({

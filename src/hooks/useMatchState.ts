@@ -290,59 +290,96 @@ export function useMatchState(matchId: string | undefined) {
       const gameKey = (matchData as any)?.game_key ?? 'hex';
       setMatch({ ...(matchData as any), game_key: gameKey });
 
-      const { data: playersData } = await supabase
-        .from('match_players')
-        .select(`
-          profile_id,
-          color,
-          is_bot,
-          rating_change,
-          profiles!inner(username, avatar_color, elo_rating)
-        `)
-        .eq('match_id', matchId);
-
-      if (playersData) {
-        const ratingMap = new Map<string, number>();
+      // Arena matches use bot metadata instead of match_players.
+      if ((matchData as any)?.is_arena) {
         try {
-          const ids = playersData.filter((p: any) => !p.is_bot).map((p: any) => p.profile_id);
-          if (ids.length) {
-            const { data: ratings } = await supabase
-              .from('player_ratings')
-              .select('profile_id, elo_rating')
-              .eq('game_key', gameKey)
-              .in('profile_id', ids as any);
-            (ratings as any[] | null)?.forEach((r: any) => {
-              if (r?.profile_id) ratingMap.set(r.profile_id, r.elo_rating ?? 1200);
+          const { data: bm } = await supabase
+            .from('bot_matches')
+            .select('p1_bot_id,p2_bot_id')
+            .eq('match_id', matchId)
+            .single();
+
+          const botIds = [bm?.p1_bot_id, bm?.p2_bot_id].filter(Boolean) as string[];
+          const botsById = new Map<string, { name: string }>();
+          if (botIds.length) {
+            const { data: bots } = await supabase
+              .from('bots')
+              .select('id,name')
+              .in('id', botIds as any);
+            (bots as any[] | null)?.forEach((b: any) => {
+              if (b?.id) botsById.set(b.id, { name: b.name ?? 'Bot' });
             });
           }
-        } catch {
-          // Ignore until migrations/types land everywhere.
+
+          const p1Name = bm?.p1_bot_id ? (botsById.get(bm.p1_bot_id)?.name ?? 'Bot P1') : 'Bot P1';
+          const p2Name = bm?.p2_bot_id ? (botsById.get(bm.p2_bot_id)?.name ?? 'Bot P2') : 'Bot P2';
+
+          setPlayers([
+            { profile_id: bm?.p1_bot_id ? `bot:${bm.p1_bot_id}` : 'bot:p1', color: 1, is_bot: true, username: p1Name, avatar_color: 'indigo' },
+            { profile_id: bm?.p2_bot_id ? `bot:${bm.p2_bot_id}` : 'bot:p2', color: 2, is_bot: true, username: p2Name, avatar_color: 'ochre' },
+          ]);
+        } catch (e) {
+          console.error('Failed to load arena bots:', e);
+          setPlayers([
+            { profile_id: 'bot:p1', color: 1, is_bot: true, username: 'Bot P1', avatar_color: 'indigo' },
+            { profile_id: 'bot:p2', color: 2, is_bot: true, username: 'Bot P2', avatar_color: 'ochre' },
+          ]);
         }
+      } else {
+        const { data: playersData } = await supabase
+          .from('match_players')
+          .select(`
+            profile_id,
+            color,
+            is_bot,
+            rating_change,
+            profiles!inner(username, avatar_color, elo_rating)
+          `)
+          .eq('match_id', matchId);
 
-        const enrichedPlayers = playersData.map(p => ({
-          profile_id: p.profile_id,
-          color: p.color,
-          is_bot: p.is_bot,
-          username: (p.profiles as any).username,
-          avatar_color: (p.profiles as any).avatar_color || 'indigo',
-          elo: ratingMap.get(p.profile_id) ?? (p.profiles as any).elo_rating,
-          rating_change: p.rating_change
-        }));
+        if (playersData) {
+          const ratingMap = new Map<string, number>();
+          try {
+            const ids = playersData.filter((p: any) => !p.is_bot).map((p: any) => p.profile_id);
+            if (ids.length) {
+              const { data: ratings } = await supabase
+                .from('player_ratings')
+                .select('profile_id, elo_rating')
+                .eq('game_key', gameKey)
+                .in('profile_id', ids as any);
+              (ratings as any[] | null)?.forEach((r: any) => {
+                if (r?.profile_id) ratingMap.set(r.profile_id, r.elo_rating ?? 1200);
+              });
+            }
+          } catch {
+            // Ignore until migrations/types land everywhere.
+          }
 
-        if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
-          const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
-          enrichedPlayers.push({
-            profile_id: 'ai-player',
-            color: 2,
-            is_bot: true,
-            username: `Computer (${difficultyLabel})`,
-            avatar_color: 'slate',
-            elo: undefined,
-            rating_change: undefined
-          });
+          const enrichedPlayers = playersData.map(p => ({
+            profile_id: p.profile_id,
+            color: p.color,
+            is_bot: p.is_bot,
+            username: (p.profiles as any).username,
+            avatar_color: (p.profiles as any).avatar_color || 'indigo',
+            elo: ratingMap.get(p.profile_id) ?? (p.profiles as any).elo_rating,
+            rating_change: p.rating_change
+          }));
+
+          if (matchData.ai_difficulty && !enrichedPlayers.find(p => p.color === 2)) {
+            const difficultyLabel = matchData.ai_difficulty.charAt(0).toUpperCase() + matchData.ai_difficulty.slice(1);
+            enrichedPlayers.push({
+              profile_id: 'ai-player',
+              color: 2,
+              is_bot: true,
+              username: `Computer (${difficultyLabel})`,
+              avatar_color: 'slate',
+              elo: undefined,
+              rating_change: undefined
+            });
+          }
+
+          setPlayers(enrichedPlayers);
         }
-
-        setPlayers(enrichedPlayers);
       }
 
       // Fetch moves and replay
@@ -454,7 +491,7 @@ export function useMatchState(matchId: string | undefined) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [matchId, user, loading, navigate]);
+  }, [matchId, user, loading, navigate, isDiscordEnvironment, isLocalMatch, isDiscordLocalMatch, loadBoardSkin, loadMatch]);
 
   return {
     match, setMatch,

@@ -34,6 +34,10 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
 import Mods from "./pages/Mods";
+import Arena from "./pages/Arena";
+import Workbench from "./pages/Workbench";
+import Docs from "./pages/Docs";
+import BotProfile from "./pages/BotProfile";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +85,10 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/support" element={<Support />} />
               <Route path="/mods" element={<RouteErrorBoundary fallbackTitle="Mods failed to load"><Mods /></RouteErrorBoundary>} />
+              <Route path="/arena" element={<RouteErrorBoundary fallbackTitle="Arena failed to load"><Arena /></RouteErrorBoundary>} />
+              <Route path="/bot/:botId" element={<RouteErrorBoundary fallbackTitle="Bot page failed to load"><BotProfile /></RouteErrorBoundary>} />
+              <Route path="/workbench" element={<RouteErrorBoundary fallbackTitle="Workbench failed to load"><Workbench /></RouteErrorBoundary>} />
+              <Route path="/docs" element={<RouteErrorBoundary fallbackTitle="Docs failed to load"><Docs /></RouteErrorBoundary>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

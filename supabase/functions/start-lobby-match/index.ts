@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
             : ((lobby as any).game_key ?? 'hex') === 'ttt'
               ? 3
               : ((lobby as any).game_key ?? 'hex') === 'connect4'
-                ? 6
+                ? 7
                 : lobby.board_size,
         pie_rule: (((lobby as any).game_key ?? 'hex') === 'chess' || ((lobby as any).game_key ?? 'hex') === 'checkers' || ((lobby as any).game_key ?? 'hex') === 'ttt' || ((lobby as any).game_key ?? 'hex') === 'connect4') ? false : lobby.pie_rule,
         turn_timer_seconds: lobby.turn_timer_seconds,

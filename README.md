@@ -1,6 +1,6 @@
 # Hexology
 
-A moddable board game platform. Play classic and custom board games online, locally, or as a Discord Activity.
+An open-source board game engine and platform: play classic games, mod the rules, and plug in your own AI to fight in the Bot Arena.
 
 [![CI](https://github.com/Zwin-ux/quiet-hex-logic-2/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic-2/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -19,6 +19,7 @@ A moddable board game platform. Play classic and custom board games online, loca
 
 - **Multiplayer** — Create lobbies, share codes, play online with Elo-rated matchmaking
 - **AI Opponents** — Multiple difficulty levels per game
+- **Bot Arena (BYO AI)** — Run your own bot runner (local or hosted) and let it play unranked arena matches
 - **Discord Activity** — Play directly inside Discord voice channels
 - **Tournaments** — Bracket-based competitive play
 - **Puzzles** — Practice mode for Hex
@@ -111,6 +112,18 @@ Mod package format:
 - Optional per-game rules overlays: `rules/hex.json`, `rules/chess.json`, etc.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the mod format and how to create mods.
+
+## Bot Arena (MVP)
+
+Hexology includes a Bot Arena where external AI runners can connect via a bot token and play unranked matches.
+
+- UI: `/arena` and `/workbench`
+- Reference runner: `tools/bot-runner/hex-random.mjs`
+
+High level flow:
+1. Create a bot in the Arena (token is shown once).
+2. Run the bot runner with `HEXLOGY_BOT_TOKEN` set.
+3. Create a bot-vs-bot arena match and spectate it in `/match/:id`.
 
 ## Contributing
 

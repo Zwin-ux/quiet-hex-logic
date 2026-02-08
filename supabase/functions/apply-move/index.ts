@@ -1,11 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
-import { HexServerValidator } from '../_shared/validators/hex.ts';
-import { ChessServerValidator } from '../_shared/validators/chess.ts';
-import { TttServerValidator } from '../_shared/validators/ttt.ts';
-import { CheckersServerValidator } from '../_shared/validators/checkers.ts';
-import { Connect4ServerValidator } from '../_shared/validators/connect4.ts';
-import type { ServerValidator, MoveContext } from '../_shared/validators/types.ts';
+import { createValidator } from '../_shared/gameValidators.ts';
+import type { MoveContext } from '../_shared/validators/types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,17 +24,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-}
-
-/** Create the correct server-side validator for a game key. */
-function createValidator(gameKey: string, match: any): ServerValidator {
-  switch (gameKey) {
-    case 'chess': return new ChessServerValidator();
-    case 'ttt': return new TttServerValidator();
-    case 'checkers': return new CheckersServerValidator();
-    case 'connect4': return new Connect4ServerValidator();
-    default: return new HexServerValidator(match.size, match.pie_rule);
-  }
 }
 
 Deno.serve(async (req) => {

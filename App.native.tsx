@@ -15,7 +15,7 @@ import * as InAppPurchases from 'expo-in-app-purchases';
 
 SplashScreen.preventAutoHideAsync();
 
-const PRODUCTION_URL = "https://openboard.io/";
+const PRODUCTION_URL = "https://hexology.me/";
 const SUBSCRIPTION_ID = "openboard_plus_monthly";
 const APP_VERSION = "1.0.1";
 

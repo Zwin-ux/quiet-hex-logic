@@ -104,26 +104,26 @@ Deno.serve(async (req) => {
           if (players && players.length === 2) {
             const botCount = players.filter(p => p.is_bot).length;
             if (botCount === 0 || botCount === 2) {
-            const p1 = players.find(p => p.color === 1);
-            const p2 = players.find(p => p.color === 2);
-            if (p1 && p2) {
-              const updateRatingsUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/update-ratings`;
-              await fetch(updateRatingsUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                },
-                body: JSON.stringify({
-                  matchId,
-                  gameKey,
-                  result: 'draw',
-                  p1Id: p1.profile_id,
-                  p2Id: p2.profile_id,
-                  winner: null,
-                }),
-              });
-            }
+              const p1 = players.find(p => p.color === 1);
+              const p2 = players.find(p => p.color === 2);
+              if (p1 && p2) {
+                const updateRatingsUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/update-ratings`;
+                await fetch(updateRatingsUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                  },
+                  body: JSON.stringify({
+                    matchId,
+                    gameKey,
+                    result: 'draw',
+                    p1Id: p1.profile_id,
+                    p2Id: p2.profile_id,
+                    winner: null,
+                  }),
+                });
+              }
             }
           }
         } catch (error) {

@@ -3,10 +3,12 @@ import type { ServerValidator, MoveContext, MoveResult } from './types.ts';
 export class TttServerValidator implements ServerValidator {
   private board: (0 | 1 | 2)[];
   private turn: number;
+  private misere: boolean;
 
-  constructor() {
+  constructor(opts?: { misere?: boolean }) {
     this.board = Array(9).fill(0) as (0 | 1 | 2)[];
     this.turn = 1;
+    this.misere = opts?.misere === true;
   }
 
   private legal(cell: number): boolean {
@@ -44,6 +46,14 @@ export class TttServerValidator implements ServerValidator {
     this.play(Number(c));
   }
 
+  listLegalMoves(): unknown[] {
+    const out: any[] = [];
+    for (let i = 0; i < 9; i++) {
+      if (this.board[i] === 0) out.push({ kind: 'ttt', cell: i });
+    }
+    return out;
+  }
+
   applyProposedMove(move: unknown, _cell: number | null | undefined, ctx: MoveContext): MoveResult {
     const tttCell = (move as any)?.cell;
     if (tttCell === undefined || tttCell === null) throw new Error('Missing ttt cell');
@@ -51,15 +61,19 @@ export class TttServerValidator implements ServerValidator {
     if (!this.legal(Number(tttCell))) throw new Error('Illegal move');
     this.play(Number(tttCell));
 
-    const w = this.winner();
+    const wLine = this.winner();
     let newStatus: 'active' | 'finished' = 'active';
     let winner: 0 | 1 | 2 = 0;
     let result: 'p1' | 'p2' | 'draw' | null = null;
 
-    if (w) {
+    if (wLine) {
       newStatus = 'finished';
-      winner = w;
-      result = w === 1 ? 'p1' : 'p2';
+      if (this.misere) {
+        winner = wLine === 1 ? 2 : 1;
+      } else {
+        winner = wLine;
+      }
+      result = winner === 1 ? 'p1' : 'p2';
     } else if (this.isDraw()) {
       newStatus = 'finished';
       result = 'draw';

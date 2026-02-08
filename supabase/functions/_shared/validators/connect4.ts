@@ -7,14 +7,16 @@ import type { ServerValidator, MoveContext, MoveResult } from './types.ts';
 export class Connect4ServerValidator implements ServerValidator {
   private cols: number;
   private rows: number;
+  private connect: number;
   private board: Uint8Array;
   private heights: number[];
   private turn: number;
   private winner_: 0 | 1 | 2 = 0;
 
-  constructor(cols = 7, rows = 6) {
+  constructor(cols = 7, rows = 6, connect = 4) {
     this.cols = cols;
     this.rows = rows;
+    this.connect = Math.max(3, Math.min(6, Math.floor(connect)));
     this.board = new Uint8Array(cols * rows);
     this.heights = Array(cols).fill(0);
     this.turn = 1;
@@ -50,19 +52,19 @@ export class Connect4ServerValidator implements ServerValidator {
     const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
     for (const [dc, dr] of dirs) {
       let count = 1;
-      for (let i = 1; i < 4; i++) {
+      for (let i = 1; i < this.connect; i++) {
         const c = col + dc * i, r = row + dr * i;
         if (c < 0 || c >= this.cols || r < 0 || r >= this.rows) break;
         if (this.get(c, r) !== player) break;
         count++;
       }
-      for (let i = 1; i < 4; i++) {
+      for (let i = 1; i < this.connect; i++) {
         const c = col - dc * i, r = row - dr * i;
         if (c < 0 || c >= this.cols || r < 0 || r >= this.rows) break;
         if (this.get(c, r) !== player) break;
         count++;
       }
-      if (count >= 4) return true;
+      if (count >= this.connect) return true;
     }
     return false;
   }
@@ -75,6 +77,14 @@ export class Connect4ServerValidator implements ServerValidator {
     const col = (moveRecord?.move as any)?.col;
     if (col === undefined || col === null) return;
     this.play(Number(col));
+  }
+
+  listLegalMoves(): unknown[] {
+    const out: any[] = [];
+    for (let c = 0; c < this.cols; c++) {
+      if (this.legal(c)) out.push({ kind: 'connect4', col: c });
+    }
+    return out;
   }
 
   applyProposedMove(move: unknown, _cell: number | null | undefined, ctx: MoveContext): MoveResult {

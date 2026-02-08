@@ -139,6 +139,17 @@ export class HexServerValidator implements ServerValidator {
     this.play(moveRecord.cell);
   }
 
+  listLegalMoves(): unknown[] {
+    const out: any[] = [];
+    // Pie swap is encoded as cell=null and is only legal on turn 2 if enabled.
+    if (this.legal(null)) out.push({ kind: 'hex', cell: null });
+
+    for (let i = 0; i < this.board.length; i++) {
+      if (this.board[i] === 0) out.push({ kind: 'hex', cell: i });
+    }
+    return out;
+  }
+
   applyProposedMove(move: unknown, cell: number | null | undefined, ctx: MoveContext): MoveResult {
     if (cell === undefined) throw new Error('Missing hex cell');
     const proposedCell = cell === undefined ? null : cell;

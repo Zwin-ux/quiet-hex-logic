@@ -124,9 +124,11 @@ export default function Match() {
 
     actions.moveInProgress.current = false;
 
-    if (match.ai_difficulty && !newEngine.winner()) {
+    if (match.ai_difficulty && !newEngine.winner() && !ai.aiMoveInProgress.current) {
       setTimeout(() => {
-        ai.makeDiscordLocalAIMove(newEngine, match.ai_difficulty!, gameKey);
+        if (!ai.aiMoveInProgress.current) {
+          ai.makeDiscordLocalAIMove(newEngine, match.ai_difficulty!, gameKey);
+        }
       }, 100);
     }
   }, [engine, match, actions, ai, setEngine, setLastMove, setMatch, setWinningPath, setShowConfetti]);

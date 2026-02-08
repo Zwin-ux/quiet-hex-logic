@@ -37,7 +37,9 @@ Deno.serve(async (req) => {
         turn_started_at,
         size,
         ai_difficulty,
-        match_players!inner(profile_id, color)
+        is_ranked,
+        game_key,
+        match_players!inner(profile_id, color, is_bot)
       `)
       .eq('status', 'active')
       .not('turn_timer_seconds', 'is', null)
@@ -80,12 +82,16 @@ Deno.serve(async (req) => {
         // Winner is the opponent
         const winner = currentColor === 1 ? 2 : 1;
 
+        // Winner is p1 or p2
+        const result = winner === 1 ? 'p1' : 'p2';
+
         // Update match to finished with opponent as winner
         const { error: updateError } = await supabase
           .from('matches')
           .update({
             status: 'finished',
             winner: winner,
+            result: result,
             updated_at: new Date().toISOString()
           })
           .eq('id', match.id)
@@ -96,6 +102,42 @@ Deno.serve(async (req) => {
         } else {
           console.log(`[check-turn-timeouts] Match ${match.id} forfeited due to timeout. Winner: ${winner}`);
           forfeitedCount++;
+
+          // Update ratings for ranked matches
+          const gameKey = (match as any).game_key ?? 'hex';
+          if ((match as any).is_ranked && gameKey !== 'ttt') {
+            try {
+              const players = match.match_players as any[];
+              if (players && players.length === 2) {
+                const botCount = players.filter((p: any) => p.is_bot).length;
+                if (botCount === 0 || botCount === 2) {
+                  const p1 = players.find((p: any) => p.color === 1);
+                  const p2 = players.find((p: any) => p.color === 2);
+                  if (p1 && p2) {
+                    const updateRatingsUrl = `${supabaseUrl}/functions/v1/update-ratings`;
+                    await fetch(updateRatingsUrl, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseServiceKey}`,
+                      },
+                      body: JSON.stringify({
+                        matchId: match.id,
+                        gameKey,
+                        result,
+                        p1Id: p1.profile_id,
+                        p2Id: p2.profile_id,
+                        winner,
+                      }),
+                    });
+                    console.log(`[check-turn-timeouts] Rating update sent for match ${match.id}`);
+                  }
+                }
+              }
+            } catch (ratingError) {
+              console.error(`[check-turn-timeouts] Error updating ratings for match ${match.id}:`, ratingError);
+            }
+          }
         }
       }
     }

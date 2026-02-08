@@ -95,7 +95,7 @@ export default function WorldIDWidget() {
               World ID verification requires the World App on your phone and is not available directly in Discord.
             </p>
             <a
-              href="https://theopenboard.io/profile"
+              href="https://hexology.me/profile"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium"

@@ -23,11 +23,18 @@ export class CheckersServerValidator implements ServerValidator {
   private ply = 1;
   private repetition = new Map<string, number>();
   private noCaptureHalfMoves = 0;
+  private mandatoryCapture: boolean;
+  private drawThreefold: boolean;
+  private drawNoCaptureHalfMoves: number;
 
-  constructor() {
+  constructor(opts?: { mandatoryCapture?: boolean; draw?: { threefoldRepetition?: boolean; noCaptureHalfMoves?: number } }) {
     this.board = new Uint8Array(64);
     this.reset();
     this.recordPos();
+    this.mandatoryCapture = opts?.mandatoryCapture !== false;
+    this.drawThreefold = opts?.draw?.threefoldRepetition !== false;
+    const n = opts?.draw?.noCaptureHalfMoves;
+    this.drawNoCaptureHalfMoves = Number.isInteger(n) ? Math.max(1, Math.min(500, Number(n))) : 50;
   }
 
   private reset(): void {
@@ -94,7 +101,7 @@ export class CheckersServerValidator implements ServerValidator {
   }
 
   private legalMoves(): number[][] {
-    const mustCapture = this.hasAnyCapture();
+    const mustCapture = this.mandatoryCapture && this.hasAnyCapture();
     const out: number[][] = [];
     for (let i = 0; i < 64; i++) {
       const p = this.pieceAt(i);
@@ -189,6 +196,10 @@ export class CheckersServerValidator implements ServerValidator {
     this.recordPos();
   }
 
+  listLegalMoves(): unknown[] {
+    return this.legalMoves().map((path) => ({ kind: 'checkers', path }));
+  }
+
   applyProposedMove(move: unknown, _cell: number | null | undefined, ctx: MoveContext): MoveResult {
     const proposedPath = (move as any)?.path as unknown;
     if (!Array.isArray(proposedPath) || proposedPath.length < 2) throw new Error('Missing checkers path');
@@ -206,8 +217,8 @@ export class CheckersServerValidator implements ServerValidator {
     this.recordPos();
 
     const repCount = this.repetition.get(this.hash()) ?? 0;
-    const drawByRep = repCount >= 3;
-    const drawByNoCapture = this.noCaptureHalfMoves >= 50;
+    const drawByRep = this.drawThreefold && repCount >= 3;
+    const drawByNoCapture = this.noCaptureHalfMoves >= this.drawNoCaptureHalfMoves;
 
     const w = this.winner();
     let newStatus: 'active' | 'finished' = 'active';

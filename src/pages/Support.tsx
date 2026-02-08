@@ -51,8 +51,8 @@ export default function Support() {
             <h2 className="text-2xl font-semibold text-foreground mb-3">Contact</h2>
             <p>
               For business inquiries or technical issues, reach out to us on Discord or email us at{" "}
-              <a href="mailto:community@openboard.io" className="text-primary hover:underline">
-                community@openboard.io
+              <a href="mailto:community@hexology.me" className="text-primary hover:underline">
+                community@hexology.me
               </a>
             </p>
           </section>

@@ -9,6 +9,12 @@ export interface ServerValidator {
   /** Replay a single move from the database move record. */
   replayMove(moveRecord: any): void;
 
+  /**
+   * List legal moves for the current reconstructed position.
+   * Returned values must be directly consumable by bot runners and/or clients.
+   */
+  listLegalMoves(): unknown[];
+
   /** Validate and apply a proposed move. Returns the move insert record. */
   applyProposedMove(
     move: unknown,

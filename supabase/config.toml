@@ -81,6 +81,9 @@ verify_jwt = false
 [functions.update-ratings]
 verify_jwt = false
 
+[functions.update-bot-ratings]
+verify_jwt = false
+
 [functions.create-friend-challenge]
 verify_jwt = true
 
@@ -100,5 +103,20 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.find-competitive-match]
+verify_jwt = true
+
+[functions.bot-poll]
+verify_jwt = false
+
+[functions.bot-submit-move]
+verify_jwt = false
+
+[functions.arena-create-match]
+verify_jwt = true
+
+[functions.create-bot]
+verify_jwt = true
+
+[functions.rotate-bot-token]
 verify_jwt = true
 

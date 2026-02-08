@@ -342,10 +342,10 @@ export class Hex {
       const [c, r] = copy.coords(i);
       if (color === 1) {
         if (c === 0) dsu.union(i, copy.v1a);
-        if (c === this.n - 1) dsu.union(i, copy.v1b);
+        if (c === copy.n - 1) dsu.union(i, copy.v1b);
       } else {
         if (r === 0) dsu.union(i, copy.v2a);
-        if (r === this.n - 1) dsu.union(i, copy.v2b);
+        if (r === copy.n - 1) dsu.union(i, copy.v2b);
       }
     }
 

@@ -4,8 +4,8 @@ import type { ServerValidator, MoveContext, MoveResult } from './types.ts';
 export class ChessServerValidator implements ServerValidator {
   private chess: Chess;
 
-  constructor() {
-    this.chess = new Chess();
+  constructor(opts?: { startFen?: string }) {
+    this.chess = new Chess(opts?.startFen);
   }
 
   replayMove(moveRecord: any): void {
@@ -16,6 +16,14 @@ export class ChessServerValidator implements ServerValidator {
     const promotion = uci.length === 5 ? uci[4] : undefined;
     const ok = this.chess.move({ from, to, promotion } as any);
     if (!ok) throw new Error('Invalid move history');
+  }
+
+  listLegalMoves(): unknown[] {
+    const moves = this.chess.moves({ verbose: true }) as any[];
+    return moves.map((m) => {
+      const uci = `${m.from}${m.to}${m.promotion ?? ''}`;
+      return { kind: 'chess', uci };
+    });
   }
 
   applyProposedMove(move: unknown, _cell: number | null | undefined, ctx: MoveContext): MoveResult {

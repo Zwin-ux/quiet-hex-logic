@@ -80,7 +80,8 @@ Deno.serve(async (req) => {
         code,
         host_id: user.id,
         game_key: gameKey,
-        board_size: (gameKey === 'chess' || gameKey === 'checkers') ? 8 : gameKey === 'ttt' ? 3 : gameKey === 'connect4' ? 6 : (boardSize || 11),
+        // NOTE: For connect4, board_size stores columns (standard 7x6 => 7).
+        board_size: (gameKey === 'chess' || gameKey === 'checkers') ? 8 : gameKey === 'ttt' ? 3 : gameKey === 'connect4' ? 7 : (boardSize || 11),
         pie_rule: (gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt' || gameKey === 'connect4') ? false : (pieRule !== false),
         turn_timer_seconds: turnTimer || 45,
         status: 'waiting'

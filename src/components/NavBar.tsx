@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Trophy, Package, Target, LogOut, User, Crown, Hexagon, Swords } from 'lucide-react';
+import { Trophy, Package, Target, LogOut, User, Crown, Hexagon, Swords, BookOpen, Wrench } from 'lucide-react';
 
 export function NavBar() {
   const navigate = useNavigate();
@@ -25,6 +25,9 @@ export function NavBar() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/arena')} className="hidden sm:inline-flex text-sm">
             Arena
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/docs')} className="hidden sm:inline-flex text-sm">
+            Docs
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate('/leaderboard')} className="hidden sm:inline-flex text-sm">
             Leaderboard
           </Button>
@@ -36,8 +39,10 @@ export function NavBar() {
               {[
                 { icon: User, path: '/profile' },
                 { icon: Swords, path: '/arena', className: 'sm:hidden' },
+                { icon: BookOpen, path: '/docs', className: 'sm:hidden' },
                 { icon: Trophy, path: '/leaderboard', className: 'sm:hidden' },
                 { icon: Package, path: '/mods', className: 'sm:hidden' },
+                { icon: Wrench, path: '/workbench' },
                 { icon: Target, path: '/puzzles' },
                 { icon: Crown, path: '/premium', className: 'text-amber-500' },
               ].map(({ icon: Icon, path, className }) => (
@@ -62,9 +67,14 @@ export function NavBar() {
             </>
           )}
           {!user && (
-            <Button onClick={() => navigate('/auth')} size="sm">
-              Sign In
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/docs')} className="hidden sm:inline-flex text-sm">
+                Docs
+              </Button>
+              <Button onClick={() => navigate('/auth')} size="sm">
+                Sign In
+              </Button>
+            </div>
           )}
         </div>
       </div>

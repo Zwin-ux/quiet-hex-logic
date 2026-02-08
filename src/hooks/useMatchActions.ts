@@ -606,7 +606,7 @@ export function useMatchActions({
         }
         const winner = result.winner as (1 | 2 | null);
         if (winner) {
-          const isVictory = winner === currentPlayer?.color;
+          const isVictory = winner === currentPlayer.color;
           if (isVictory) { playWinSound(); setShowConfetti(true); }
           else { playLoseSound(); }
           toast.success(isVictory ? 'Victory!' : 'Game Over', {
