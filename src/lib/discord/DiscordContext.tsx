@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { getAppApiUrl } from '@/lib/appApi';
 
 interface DiscordUser {
   id: string;
@@ -109,7 +110,7 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
         //   Target: https://<your-backend-domain>/functions/v1
         // then we should call the token exchange via a relative URL.
         const tokenExchangeUrl = isDiscord
-          ? `/api/discord-token-exchange`
+          ? getAppApiUrl('/api/discord-token-exchange')
           : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/discord-token-exchange`;
 
         let response: Response;

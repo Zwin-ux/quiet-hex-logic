@@ -385,7 +385,7 @@ export function getAIReasoning(game: Hex, move: Cell, difficulty: AIDifficulty):
       }
       break;
 
-    case 'medium':
+    case 'medium': {
       if (game.turn === 1) {
         reasons.push('Advancing west-east connection');
       } else {
@@ -400,6 +400,7 @@ export function getAIReasoning(game: Hex, move: Cell, difficulty: AIDifficulty):
         reasons.push('blocking opponent threats');
       }
       break;
+    }
 
     case 'hard':
       reasons.push('UCB1-based tree search identified this as the strongest move');

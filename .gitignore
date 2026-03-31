@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+server-dist
 .rgignore
 nul
 supabase/.temp/
@@ -36,3 +37,4 @@ build_log.txt
 *.sw?
 .vercel
 .vercel.env*
+.railway
