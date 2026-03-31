@@ -37,20 +37,22 @@ export function useBase(): UseBaseReturn {
   const { isBaseAvailable, platform } = useBaseContext();
   const { user } = useAuth();
   
-  // These hooks are only valid when Base is available
-  const account = isBaseAvailable ? useAccountSafe() : null;
-  const chainId = isBaseAvailable ? useChainIdSafe() : undefined;
-  const { switchChainAsync } = isBaseAvailable ? useSwitchChainSafe() : { switchChainAsync: undefined };
-  const { disconnect: wagmiDisconnect } = isBaseAvailable ? useDisconnectSafe() : { disconnect: () => {} };
+  // Keep hook order stable even when Base support is disabled in this environment.
+  const account = useAccountSafe();
+  const rawChainId = useChainIdSafe();
+  const { switchChainAsync: rawSwitchChainAsync } = useSwitchChainSafe();
+  const { disconnect: rawWagmiDisconnect } = useDisconnectSafe();
   
   const [baseName, setBaseName] = useState<string | null>(null);
   const [walletLinked, setWalletLinked] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  const isConnected = account?.isConnected ?? false;
-  const isConnecting = account?.isConnecting ?? false;
-  const address = account?.address;
+  const chainId = isBaseAvailable ? rawChainId : undefined;
+  const switchChainAsync = isBaseAvailable ? rawSwitchChainAsync : undefined;
+  const isConnected = isBaseAvailable ? (account?.isConnected ?? false) : false;
+  const isConnecting = isBaseAvailable ? (account?.isConnecting ?? false) : false;
+  const address = isBaseAvailable ? account?.address : undefined;
   const isOnBase = chainId === BASE_CHAIN_ID;
 
   // Load profile wallet data
@@ -135,8 +137,9 @@ export function useBase(): UseBaseReturn {
   }, [user, address]);
 
   const disconnect = useCallback(() => {
-    wagmiDisconnect();
-  }, [wagmiDisconnect]);
+    if (!isBaseAvailable) return;
+    rawWagmiDisconnect();
+  }, [isBaseAvailable, rawWagmiDisconnect]);
 
   return {
     isConnected,

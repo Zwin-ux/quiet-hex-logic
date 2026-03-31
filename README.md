@@ -2,7 +2,7 @@
 
 An open-source board game engine and platform: play classic games, mod the rules, and plug in your own AI to fight in the Bot Arena.
 
-[![CI](https://github.com/Zwin-ux/quiet-hex-logic-2/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic-2/actions/workflows/ci.yml)
+[![CI](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Built-in Games
@@ -81,18 +81,34 @@ That's it. The hooks, match page, lobby UI, and edge functions are all registry-
 
 ```bash
 npm install --legacy-peer-deps
-npm run dev       # Start dev server at http://localhost:8080
+npm run dev       # Vite client at http://localhost:8080
+npm run dev:server  # Railway-style API server at http://localhost:3001
 ```
 
 ### Commands
 
 ```bash
 npm run dev       # Vite dev server (port 8080)
+npm run dev:server  # Express API server for Railway routes
 npm run build     # Production build
+npm run build:server  # Compile Railway server
+npm run build:railway  # Build frontend + Railway server
+npm run serve:railway  # Serve the production Railway build locally
 npm run lint      # ESLint
 npm test          # Run all tests (Vitest)
 npm run test:watch  # Run tests in watch mode
 ```
+
+## Railway
+
+Hexology now ships with a Railway-first web server:
+
+- static Vite bundle serving
+- `POST /api/chat` powered by the AI SDK
+- `POST /api/discord-token-exchange` proxy for Discord Activity auth
+- `GET /api/health` for deploy health checks
+
+Deployment notes live in [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md).
 
 ### Mobile (Expo)
 
@@ -109,6 +125,14 @@ This repo uses Supabase for database, auth, realtime subscriptions, and edge fun
 - **Migrations**: `supabase/migrations/` (70 files)
 - **Edge Functions**: `supabase/functions/` (apply-move, create-lobby, update-ratings, etc.)
 - **Types**: `src/integrations/supabase/types.ts` (auto-generated, do not edit)
+
+## AI Coach
+
+Replay now includes a Railway-backed coaching panel using the AI SDK. It can:
+
+- explain the last visible move
+- summarize the turning point in the current replay
+- reference the current replay snapshot through Supabase-backed context loading
 
 ## Mods (v1)
 

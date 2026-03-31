@@ -23,6 +23,7 @@ function tryParseJwtRef(jwt: string): string | null {
 
 export default function Debug() {
   const buildId = typeof __HEXLOGY_BUILD_ID__ === 'string' ? __HEXLOGY_BUILD_ID__ : '';
+  const apiBase = envString(import.meta.env.VITE_API_BASE_URL).trim();
   const url = envString(import.meta.env.VITE_SUPABASE_URL).trim();
   const pid = envString(import.meta.env.VITE_SUPABASE_PROJECT_ID).trim();
   const anon = envString(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY).trim();
@@ -90,6 +91,9 @@ export default function Debug() {
           <CardContent className="space-y-2 text-sm">
             <div>
               Build ID: <span className="font-mono">{buildId || '(unknown)'}</span>
+            </div>
+            <div>
+              VITE_API_BASE_URL: <span className="font-mono">{apiBase || '(same-origin /api)'}</span>
             </div>
             <div>
               VITE_SUPABASE_URL: <span className="font-mono">{url || '(missing)'}</span>

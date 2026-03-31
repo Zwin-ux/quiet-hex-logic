@@ -22,6 +22,7 @@ import { ChessBoard } from '@/components/chess/ChessBoard';
 import { TicTacToeBoard } from '@/components/ttt/TicTacToeBoard';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { Connect4Board } from '@/components/connect4/Connect4Board';
+import { ReplayCoachPanel } from '@/components/coach/ReplayCoachPanel';
 import { getGame, createEngine } from '@/lib/engine/registry';
 import type { GameEngine } from '@/lib/engine/types';
 import type { Hex } from '@/lib/hex/engine';
@@ -587,6 +588,13 @@ export default function Replay() {
                 )}
               </Card>
             )}
+
+            <ReplayCoachPanel
+              currentPly={currentPly}
+              gameKey={gameKey}
+              matchId={match.id}
+              moveCount={moves.length}
+            />
 
             {/* Move List */}
             <Card className="p-6 shadow-lg border-2 max-h-96 overflow-y-auto">

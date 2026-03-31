@@ -13,23 +13,28 @@ Thanks for your interest in contributing! This guide will help you get started.
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/quiet-hex-logic-2.git
-cd quiet-hex-logic-2
+git clone https://github.com/Zwin-ux/quiet-hex-logic.git
+cd quiet-hex-logic
 
 # Install dependencies
-npm install
+npm install --legacy-peer-deps
 
-# Start the dev server
+# Start the app client
 npm run dev
+
+# Start the Railway-style API server
+npm run dev:server
 ```
 
 The app runs at `http://localhost:8080`.
+The Railway API server runs at `http://localhost:3001`.
 
 ### Running Tests
 
 ```bash
 npm test           # Run all tests
 npm run test:watch # Run in watch mode
+npm run build:railway # Verify the production Railway build
 ```
 
 ### Linting
@@ -60,7 +65,7 @@ See the existing games (hex, chess, checkers, ttt) for examples.
 
 - Keep PRs focused — one feature or fix per PR
 - Include tests for new game engine logic
-- Run `npm run lint` and `npm test` before submitting
+- Run `npm run lint`, `npm test`, and `npm run build:railway` before submitting
 - Fill out the PR template
 - Link related issues
 
@@ -73,7 +78,7 @@ See the existing games (hex, chess, checkers, ttt) for examples.
 
 ## Reporting Bugs
 
-Use the [bug report template](https://github.com/YOUR_USERNAME/quiet-hex-logic-2/issues/new?template=bug_report.md).
+Use the [bug report template](https://github.com/Zwin-ux/quiet-hex-logic/issues/new?template=bug_report.md).
 
 ## License
 

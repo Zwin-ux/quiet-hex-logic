@@ -4,11 +4,16 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const apiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "http://localhost:3001";
+
+  return ({
   define: {
     // Used by /debug to help confirm you are on the latest deployment (not a cached JS bundle).
     __HEXLOGY_BUILD_ID__: JSON.stringify(
-      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.RAILWAY_GIT_COMMIT_SHA ||
+        process.env.RAILWAY_DEPLOYMENT_ID ||
+        process.env.VERCEL_GIT_COMMIT_SHA ||
         process.env.VERCEL_DEPLOYMENT_ID ||
         process.env.GITHUB_SHA ||
         process.env.COMMIT_SHA ||
@@ -20,10 +25,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://kgwxaenxdlzuzqyoewpe.supabase.co/functions/v1',
+        target: apiProxyTarget,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        secure: true,
       },
     },
   },
@@ -48,4 +51,5 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-}));
+  });
+});

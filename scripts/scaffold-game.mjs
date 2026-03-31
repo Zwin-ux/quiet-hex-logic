@@ -433,4 +433,4 @@ console.log(`- FE engine: src/lib/${key}/engine.ts`);
 console.log(`- FE adapter: src/lib/engine/adapters/${key}Adapter.ts`);
 console.log(`- FE board: src/components/${key}/${boardComponent}.tsx`);
 console.log(`- Server validator: supabase/functions/_shared/validators/${key}.ts`);
-console.log(`Next: run npm run typecheck && npm test, then deploy Supabase functions and Vercel.`);
+console.log(`Next: run npm run typecheck && npm test, then deploy Supabase functions and Railway.`);
