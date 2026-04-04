@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getPublicEnv } from '@/lib/runtimeEnv';
 
 export type VerificationLevel = 'orb' | 'device';
 
@@ -172,7 +173,7 @@ export function useWorldID() {
 
 // App ID for World ID (from environment or fallback)
 export const WORLD_ID_APP_ID =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WORLD_ID_APP_ID) ||
+  getPublicEnv('VITE_WORLD_ID_APP_ID') ||
   'app_8d9cada1f2ced37b03654cf63e62d540';
 
 export const WORLD_ID_ACTION = 'verify-openboard-player';

@@ -2,6 +2,12 @@
 
 Hexology now expects Railway to own the app-facing web server.
 
+Important change:
+
+- The Railway server now injects critical public env into the HTML response at request time.
+- That means a missing frontend Supabase config should no longer hard-crash the bundle at boot.
+- On Railway, setting `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` is enough for both the server and the frontend shell.
+
 ## What Railway Runs
 
 - Express server in [`server/index.ts`](./server/index.ts)
@@ -17,8 +23,10 @@ Supabase still handles auth, realtime, Postgres, and the existing game edge func
 
 Set these in Railway for the web service:
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- Recommended: `SUPABASE_URL`
+- Recommended: `SUPABASE_PUBLISHABLE_KEY`
+- Optional: `VITE_SUPABASE_URL`
+- Optional: `VITE_SUPABASE_PUBLISHABLE_KEY`
 - Optional: `VITE_SUPABASE_PROJECT_ID`
 - Optional: `VITE_API_BASE_URL`
   - Leave unset when the frontend and API are served from the same Railway service.
@@ -38,12 +46,8 @@ or
 - `AI_GATEWAY_API_KEY`
 - Optional: `AI_MODEL`
 
-The Railway server also accepts:
-
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
-
-If those are omitted, it falls back to the `VITE_*` values above.
+If `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` are present, the server injects them into the frontend at request time.
+If they are omitted, the app falls back to the `VITE_*` values above.
 
 ## Local Development
 

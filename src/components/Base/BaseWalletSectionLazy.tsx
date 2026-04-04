@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react';
+import { getBooleanPublicEnv } from '@/lib/runtimeEnv';
 
 const Lazy = lazy(async () => {
   const mod = await import('./BaseWalletSection');
@@ -6,7 +7,7 @@ const Lazy = lazy(async () => {
 });
 
 export function BaseWalletSectionLazy() {
-  const enabled = String(import.meta.env.VITE_ENABLE_BASE_WALLET ?? '').toLowerCase() === 'true';
+  const enabled = getBooleanPublicEnv('VITE_ENABLE_BASE_WALLET');
   if (!enabled) return null;
   return (
     <Suspense fallback={null}>

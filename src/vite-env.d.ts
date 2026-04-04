@@ -16,3 +16,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface Window {
+  __HEXLOGY_RUNTIME_ENV__?: Partial<Record<keyof ImportMetaEnv, string>>;
+}

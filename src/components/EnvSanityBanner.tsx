@@ -1,16 +1,10 @@
 import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-
-function envString(val: unknown): string {
-  return typeof val === 'string' ? val : '';
-}
+import { getSupabaseConfigSnapshot } from '@/integrations/supabase/client';
 
 export function EnvSanityBanner() {
-  const navigate = useNavigate();
-  const url = envString(import.meta.env.VITE_SUPABASE_URL).trim();
-  const pid = envString(import.meta.env.VITE_SUPABASE_PROJECT_ID).trim();
+  const { resolvedUrl: url, projectId: pid } = getSupabaseConfigSnapshot();
 
   // Known deleted/old project ref that causes ERR_NAME_NOT_RESOLVED.
   const knownBadRefs = new Set(['ptuxqfwicdpdslqwnswd']);
@@ -36,10 +30,10 @@ export function EnvSanityBanner() {
               This build is pointing at <span className="font-mono">{activeRef || '(missing)'}</span>.
             </div>
             <div className="text-xs text-muted-foreground">
-              Fix by setting <span className="font-mono">VITE_SUPABASE_URL</span> to your project’s Supabase URL and redeploying the frontend.
+              Fix by setting <span className="font-mono">SUPABASE_URL</span> or <span className="font-mono">VITE_SUPABASE_URL</span> and restarting the Railway service.
             </div>
             <div className="pt-2">
-              <Button size="sm" variant="outline" onClick={() => navigate('/debug')}>Open Debug</Button>
+              <Button size="sm" variant="outline" onClick={() => { window.location.href = '/debug'; }}>Open Debug</Button>
             </div>
           </div>
         </CardContent>

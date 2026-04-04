@@ -86,6 +86,40 @@ type ChatContext = {
   moveCount?: number;
 };
 
+function getPublicRuntimeEnv() {
+  return {
+    VITE_API_BASE_URL: getEnv('VITE_API_BASE_URL'),
+    VITE_DISCORD_CLIENT_ID: getEnv('VITE_DISCORD_CLIENT_ID', 'DISCORD_CLIENT_ID'),
+    VITE_ENABLE_BASE_WALLET: getEnv('VITE_ENABLE_BASE_WALLET', 'ENABLE_BASE_WALLET'),
+    VITE_ONCHAINKIT_API_KEY: getEnv('VITE_ONCHAINKIT_API_KEY', 'ONCHAINKIT_API_KEY'),
+    VITE_SUPABASE_PROJECT_ID: getEnv('VITE_SUPABASE_PROJECT_ID'),
+    VITE_SUPABASE_PUBLISHABLE_KEY: getEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_PUBLISHABLE_KEY'),
+    VITE_SUPABASE_URL: getEnv('VITE_SUPABASE_URL', 'SUPABASE_URL'),
+    VITE_WORLD_ID_APP_ID: getEnv('VITE_WORLD_ID_APP_ID', 'WORLD_ID_APP_ID'),
+  };
+}
+
+function serializeRuntimeEnvScript() {
+  const serializedEnv = JSON.stringify(getPublicRuntimeEnv())
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
+  return `<script>window.__HEXLOGY_RUNTIME_ENV__=${serializedEnv};</script>`;
+}
+
+function injectRuntimeEnv(html: string) {
+  const scriptTag = serializeRuntimeEnvScript();
+
+  if (html.includes('</head>')) {
+    return html.replace('</head>', `${scriptTag}</head>`);
+  }
+
+  return `${scriptTag}${html}`;
+}
+
 function buildSystemPrompt(context?: ChatContext) {
   const pageHint = context?.page ? `Current surface: ${context.page}.` : 'Current surface: general product chat.';
   const gameHint = context?.gameKey ? `Game: ${context.gameKey}.` : 'Game unknown.';
@@ -251,7 +285,7 @@ app.use(express.static(distDir, { index: false }));
 app.get(/^(?!\/api(?:\/|$)).*/, async (_req, res) => {
   try {
     const html = await fs.readFile(indexHtmlPath, 'utf8');
-    res.type('html').send(html);
+    res.type('html').send(injectRuntimeEnv(html));
   } catch {
     res.status(500).send('Build output not found. Run npm run build:railway first.');
   }

@@ -1,6 +1,7 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDiscord } from '@/lib/discord/DiscordContext';
+import { getBooleanPublicEnv, getPublicEnv } from '@/lib/runtimeEnv';
 
 // Load OnchainKit styles dynamically to avoid PostCSS/Tailwind layer conflicts.
 // Important: keep this behind the "enabled" gate so Web3 libs don't execute for most users.
@@ -67,8 +68,8 @@ export function BaseProvider({ children }: BaseProviderProps) {
 
   const enableWallet =
     platform === 'web' &&
-    String(import.meta.env.VITE_ENABLE_BASE_WALLET ?? '').toLowerCase() === 'true' &&
-    Boolean(import.meta.env.VITE_ONCHAINKIT_API_KEY);
+    getBooleanPublicEnv('VITE_ENABLE_BASE_WALLET') &&
+    Boolean(getPublicEnv('VITE_ONCHAINKIT_API_KEY'));
 
   const [loaded, setLoaded] = useState<LoadedProviders | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);

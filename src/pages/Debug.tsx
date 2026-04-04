@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { NavBar } from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseConfigSnapshot, supabase } from '@/integrations/supabase/client';
+import { getPublicEnv } from '@/lib/runtimeEnv';
 
 function envString(val: unknown): string {
   return typeof val === 'string' ? val : '';
@@ -23,10 +24,11 @@ function tryParseJwtRef(jwt: string): string | null {
 
 export default function Debug() {
   const buildId = typeof __HEXLOGY_BUILD_ID__ === 'string' ? __HEXLOGY_BUILD_ID__ : '';
-  const apiBase = envString(import.meta.env.VITE_API_BASE_URL).trim();
-  const url = envString(import.meta.env.VITE_SUPABASE_URL).trim();
-  const pid = envString(import.meta.env.VITE_SUPABASE_PROJECT_ID).trim();
-  const anon = envString(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY).trim();
+  const apiBase = envString(getPublicEnv('VITE_API_BASE_URL')).trim();
+  const url = envString(getPublicEnv('VITE_SUPABASE_URL')).trim();
+  const pid = envString(getPublicEnv('VITE_SUPABASE_PROJECT_ID')).trim();
+  const anon = envString(getPublicEnv('VITE_SUPABASE_PUBLISHABLE_KEY')).trim();
+  const { configError } = getSupabaseConfigSnapshot();
   const anonRef = useMemo(() => (anon ? tryParseJwtRef(anon) : null), [anon]);
 
   const computedRef = useMemo(() => {
@@ -80,7 +82,7 @@ export default function Debug() {
         <div>
           <h1 className="text-4xl font-display font-bold">Debug</h1>
           <p className="text-muted-foreground mt-2">
-            This page shows what the running frontend is actually compiled against.
+            This page shows what the running frontend is actually using after Railway runtime env injection.
           </p>
         </div>
 
@@ -106,6 +108,9 @@ export default function Debug() {
             </div>
             <div>
               Anon key ref: <span className="font-mono">{anonRef || '(unknown)'}</span>
+            </div>
+            <div>
+              Config error: <span className="font-mono">{configError || '(none)'}</span>
             </div>
             <div className="text-xs text-muted-foreground">
               Known-bad ref (deleted project): <span className="font-mono">{knownBadRef}</span>

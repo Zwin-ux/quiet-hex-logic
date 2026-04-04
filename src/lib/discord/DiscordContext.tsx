@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { getAppApiUrl } from '@/lib/appApi';
+import { getPublicEnv } from '@/lib/runtimeEnv';
 
 interface DiscordUser {
   id: string;
@@ -81,7 +82,7 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
     const setupDiscordSdk = async () => {
       try {
         // Client ID is public/publishable - safe to hardcode as fallback
-        const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1443319127170089172';
+        const clientId = getPublicEnv('VITE_DISCORD_CLIENT_ID') || '1443319127170089172';
 
         // Dynamic import to avoid bundler issues
         const { DiscordSDK } = await import('@discord/embedded-app-sdk');
@@ -111,7 +112,7 @@ export const DiscordProvider: React.FC<DiscordProviderProps> = ({ children }) =>
         // then we should call the token exchange via a relative URL.
         const tokenExchangeUrl = isDiscord
           ? getAppApiUrl('/api/discord-token-exchange')
-          : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/discord-token-exchange`;
+          : `${getPublicEnv('VITE_SUPABASE_URL')}/functions/v1/discord-token-exchange`;
 
         let response: Response;
         try {
