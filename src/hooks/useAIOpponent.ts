@@ -174,7 +174,7 @@ export function useAIOpponent({
     }
   }, [loadMatch, playPlaceSound, playLoseSound, getAIMoveForGame]);
 
-  const makeDiscordLocalAIMove = useCallback(
+  const makeLocalAIMove = useCallback(
     async (baseEngine: GameEngine<any>, difficulty: AIDifficulty, gameKey = 'hex') => {
       if (aiMoveInProgress.current) return;
       aiMoveInProgress.current = true;
@@ -220,7 +220,7 @@ export function useAIOpponent({
     aiReasoning,
     isAggressiveMove, setIsAggressiveMove,
     makeAIMove,
-    makeDiscordLocalAIMove,
+    makeLocalAIMove,
     aiMoveInProgress,
   };
 }

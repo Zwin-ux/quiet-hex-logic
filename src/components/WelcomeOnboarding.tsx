@@ -4,11 +4,9 @@ import { Button } from '@/components/ui/button';
 import {
   ChevronRight,
   Loader2,
-  Sparkles,
   Zap,
   Hexagon,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { listGames } from '@/lib/engine/registry';
 import { getGameMeta } from '@/lib/gameMetadata';
 
@@ -20,7 +18,6 @@ interface WelcomeOnboardingProps {
 
 export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: WelcomeOnboardingProps) {
   const navigate = useNavigate();
-  const { signInAnonymously } = useAuth();
   const [step, setStep] = useState<'welcome' | 'choice'>('welcome');
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -38,7 +35,6 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
     setSelectedGame(gameKey);
     setIsSigningIn(true);
     try {
-      await signInAnonymously();
       const gameDef = games.find((g) => g.key === gameKey);
       const size = gameDef?.defaultBoardSize ?? 7;
       onCreateMatch('easy', size, gameKey);

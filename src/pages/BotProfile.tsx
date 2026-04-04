@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { guestAuthMessage } from '@/lib/authErrors';
 import { toast } from 'sonner';
 
 type BotRow = {
@@ -83,7 +84,7 @@ export default function BotProfile() {
     if (user) return true;
     const { error } = await signInAnonymously();
     if (error) {
-      toast.error('Failed to create guest session', { description: error.message });
+      toast.error('Sign in required', { description: guestAuthMessage(error, 'challenge bots') });
       return false;
     }
     return true;

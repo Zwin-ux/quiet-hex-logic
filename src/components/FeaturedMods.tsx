@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { getGameMeta } from '@/lib/gameMetadata';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { guestAuthMessage } from '@/lib/authErrors';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +48,7 @@ export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HT
         if (error) throw error;
         currentUser = data.user;
       } catch (err) {
-        toast.error('Failed to create guest session');
+        toast.error('Sign in required', { description: guestAuthMessage(err, 'launch variants') });
         return;
       }
     }

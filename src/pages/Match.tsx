@@ -1,12 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMatchState, type GameKey } from '@/hooks/useMatchState';
+import { useMatchState } from '@/hooks/useMatchState';
 import { useMatchActions } from '@/hooks/useMatchActions';
 import { useAIOpponent } from '@/hooks/useAIOpponent';
 import { useMatchTimer } from '@/hooks/useMatchTimer';
 import { useAmbientMusic } from '@/hooks/useAmbientMusic';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
-import { PlayerPanel } from '@/components/PlayerPanel';
 import { MatchHeader } from '@/components/match/MatchHeader';
 import { MatchBoard } from '@/components/match/MatchBoard';
 import { MatchSidebar } from '@/components/match/MatchSidebar';
@@ -28,7 +27,7 @@ export default function Match() {
     boardSkin, ratingResult, setRatingResult,
     showConfetti, setShowConfetti,
     lastAITurnProcessed,
-    isDiscordLocalMatch, isLocalMatch, discordLocalInit,
+    isDiscordLocalMatch, isLocalMatch, isLocalAIMatch,
     spectators, isSpectating, joinAsSpectator, leaveAsSpectator,
     user, discordUser, isDiscordEnvironment,
     loadMatch, navigate,
@@ -58,9 +57,19 @@ export default function Match() {
     return () => { music.stopMusic(); };
   }, [music.stopMusic]);
 
+  const player1 = players.find(p => p.color === 1);
+  const player2 = players.find(p => p.color === 2);
+  const currentColor = match?.turn ? (match.turn % 2 === 1 ? 1 : 2) : 1;
+  const currentPlayer = players.find(p => p.color === currentColor);
+  const userPlayer = players.find(p => p.profile_id === user?.id || p.profile_id === 'discord-player' || p.profile_id === 'local-player');
+  const isPlayer = !!userPlayer || isDiscordLocalMatch || isLocalMatch || isLocalAIMatch;
+  const isAIMatch = match?.ai_difficulty != null;
+  const isAITurn = isAIMatch && currentColor === 2;
+  const gameKey = (match?.game_key ?? 'hex') as string;
+
   // Trigger AI move when it's AI's turn (for server-backed matches)
   useEffect(() => {
-    if (!match || !engine || isDiscordLocalMatch || isLocalMatch) return;
+    if (!match || !engine || isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) return;
     if (match.status !== 'active') return;
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
     const isAIMatch = match.ai_difficulty != null;
@@ -69,17 +78,25 @@ export default function Match() {
       lastAITurnProcessed.current = match.turn;
       ai.makeAIMove(engine, match);
     }
-  }, [match, engine, isDiscordLocalMatch]);
+  }, [match, engine, isDiscordLocalMatch, isLocalMatch, isLocalAIMatch, lastAITurnProcessed, ai]);
 
-  /** Generic Discord local move handler for all games. */
-  const handleDiscordLocalMove = useCallback((move: any) => {
+  /** Browser-local AI move handler for all games. */
+  const handleLocalAIMove = useCallback((move: any) => {
     if (!engine || !match) return;
     if (actions.moveInProgress.current || ai.aiMoveInProgress.current) return;
     const gameKey = (match.game_key ?? 'hex') as string;
     const currentColor = match.turn % 2 === 1 ? 1 : 2;
+    const localPlayerId = isDiscordLocalMatch ? 'discord-player' : 'local-player';
+    const humanCanAct = currentPlayer?.profile_id === localPlayerId;
+
     if (currentColor !== 1) {
       actions.playErrorSound();
       toast.error('Wait for the computer to move');
+      return;
+    }
+    if (!humanCanAct) {
+      actions.playErrorSound();
+      toast.error('Not your turn');
       return;
     }
     if (!engine.isLegal(move)) {
@@ -123,40 +140,30 @@ export default function Match() {
     if (match.ai_difficulty && !newEngine.winner() && !ai.aiMoveInProgress.current) {
       setTimeout(() => {
         if (!ai.aiMoveInProgress.current) {
-          ai.makeDiscordLocalAIMove(newEngine, match.ai_difficulty!, gameKey);
+          ai.makeLocalAIMove(newEngine, match.ai_difficulty!, gameKey);
         }
       }, 100);
     }
-  }, [engine, match, actions, ai, setEngine, setLastMove, setMatch, setWinningPath, setShowConfetti]);
+  }, [engine, match, currentPlayer, isDiscordLocalMatch, actions, ai, setEngine, setLastMove, setMatch, setWinningPath, setShowConfetti]);
 
   const handleMove = useCallback((move: any) => {
-    if (isDiscordLocalMatch) {
-      handleDiscordLocalMove(move);
+    if (isDiscordLocalMatch || isLocalAIMatch) {
+      handleLocalAIMove(move);
       return;
     }
     actions.handleMove(move);
-  }, [isDiscordLocalMatch, actions, handleDiscordLocalMove]);
+  }, [isDiscordLocalMatch, isLocalAIMatch, actions, handleLocalAIMove]);
 
   // Loading / Waiting states
   if (!match || !engine) return <MatchLoading />;
   if (match.status === 'waiting') return <MatchWaiting onCancel={() => navigate('/lobby')} />;
-
-  const player1 = players.find(p => p.color === 1);
-  const player2 = players.find(p => p.color === 2);
-  const currentColor = match.turn % 2 === 1 ? 1 : 2;
-  const currentPlayer = players.find(p => p.color === currentColor);
-  const userPlayer = players.find(p => p.profile_id === user?.id || p.profile_id === 'discord-player');
-  const isPlayer = !!userPlayer || isDiscordLocalMatch || isLocalMatch;
-  const isAIMatch = match.ai_difficulty != null;
-  const isAITurn = isAIMatch && currentColor === 2;
-  const gameKey = (match.game_key ?? 'hex') as string;
 
   const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar
     ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=128`
     : undefined;
 
   // Local matches aren't associated with an authenticated profile; allow the current side-to-move to act.
-  const userIdForMoves = isLocalMatch ? currentPlayer?.profile_id : user?.id;
+  const userIdForMoves = (isLocalMatch || isLocalAIMatch) ? currentPlayer?.profile_id : user?.id;
 
   const handleToggleSpectate = async () => {
     if (!user) return;
@@ -188,7 +195,7 @@ export default function Match() {
           isAIMatch={isAIMatch}
           isPlayer={isPlayer}
           isSpectating={isSpectating}
-          isLocalMatch={isLocalMatch}
+          isLocalMatch={isLocalMatch || isLocalAIMatch}
           userPlayer={userPlayer}
           showAIReasoning={showAIReasoning}
           aiReasoning={ai.aiReasoning}
@@ -244,7 +251,7 @@ export default function Match() {
             isPlayer={isPlayer}
             isSpectating={isSpectating}
             isDiscordLocalMatch={isDiscordLocalMatch}
-            isLocalMatch={isLocalMatch}
+            isLocalMatch={isLocalMatch || isLocalAIMatch}
             aiThinking={ai.aiThinking}
             showAIReasoning={showAIReasoning}
             aiReasoning={ai.aiReasoning}

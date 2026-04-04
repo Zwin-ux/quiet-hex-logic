@@ -23,6 +23,7 @@ import { NavBar } from '@/components/NavBar';
 import { usePresence } from '@/hooks/usePresence';
 import { UserAvatar } from '@/components/UserAvatar';
 import { listGames, getGame } from '@/lib/engine/registry';
+import { createLocalAIMatch } from '@/lib/localAiMatch';
 
 type Match = {
   id: string;
@@ -86,7 +87,7 @@ export default function Lobby() {
       if (!hasSeenOnboarding) {
         setShowOnboarding(true);
       } else {
-        // Returning visitor, auto sign-in as guest
+        // Returning visitor: try guest auth for online features, but solo play should still work without it.
         signInAnonymously();
       }
     }
@@ -156,7 +157,14 @@ export default function Lobby() {
       // Standard Supabase flow for non-Discord users
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        toast.error('Please wait while we set up your session...');
+        const { id, payload } = createLocalAIMatch({
+          difficulty,
+          gameKey,
+          boardSize: size,
+          playerName: profile?.username ?? undefined,
+        });
+        toast.success(`Starting ${difficulty} practice match`);
+        navigate(`/match/${id}`, { state: payload });
         setCreatingMatch(false);
         return;
       }
@@ -311,9 +319,7 @@ export default function Lobby() {
         onComplete={handleOnboardingComplete}
         onCreateMatch={(difficulty, size, gameKey) => {
           handleOnboardingComplete();
-          signInAnonymously().then(() => {
-            setTimeout(() => createAIMatch(difficulty, size, gameKey || 'hex'), 500);
-          });
+          createAIMatch(difficulty, size, gameKey || 'hex');
         }}
         isCreating={creatingMatch}
       />

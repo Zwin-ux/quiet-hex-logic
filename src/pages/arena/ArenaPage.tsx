@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { guestAuthMessage } from '@/lib/authErrors';
 import type { BotRow, FeedRow, GameKey, RatingRow } from './arenaTypes';
 import { fetchActiveSeason, fetchBots, fetchFeed, fetchLadder } from './arenaApi';
 import { VARIANTS, variantLabel } from './variants';
@@ -47,7 +48,7 @@ export default function ArenaPage() {
     if (user) return true;
     const { error } = await signInAnonymously();
     if (error) {
-      toast.error('Failed to create guest session', { description: error.message });
+      toast.error('Sign in required', { description: guestAuthMessage(error, 'use the arena') });
       return false;
     }
     return true;

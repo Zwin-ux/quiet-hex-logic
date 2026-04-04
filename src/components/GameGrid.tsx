@@ -1,10 +1,12 @@
 import { memo, useState, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Target, ShieldCheck, Zap } from 'lucide-react';
+import type { AIDifficulty } from '@/lib/hex/simpleAI';
 import { listGames } from '@/lib/engine/registry';
 import { getGameMeta } from '@/lib/gameMetadata';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { createLocalAIMatch } from '@/lib/localAiMatch';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,20 +25,24 @@ export const GameGrid = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLEl
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const games = listGames();
 
-  const handleStart = async (gameKey: string, difficulty: string) => {
+  const handleStart = async (gameKey: string, difficulty: AIDifficulty) => {
     setLoadingDifficulty(difficulty);
     try {
       let currentUser = user;
-      if (!currentUser) {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) throw error;
-        currentUser = data.user;
-      }
-
-      if (!currentUser) throw new Error('Failed to create session');
 
       const gameDef = games.find((g) => g.key === gameKey);
       const size = gameDef?.defaultBoardSize ?? 11;
+
+      if (!currentUser) {
+        const { id, payload } = createLocalAIMatch({
+          difficulty,
+          gameKey,
+          boardSize: size,
+        });
+        navigate(`/match/${id}`, { state: payload });
+        return;
+      }
+
       const pieRule = gameDef?.supportsPieRule ?? false;
 
       const { data: newMatch, error: matchError } = await supabase

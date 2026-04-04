@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { guestAuthMessage } from '@/lib/authErrors';
 import { GAME_METADATA, getGameMeta } from '@/lib/gameMetadata';
 import { toast } from 'sonner';
 
@@ -58,7 +59,7 @@ export default function Arena() {
     if (user) return true;
     const { error } = await signInAnonymously();
     if (error) {
-      toast.error('Failed to create guest session', { description: error.message });
+      toast.error('Sign in required', { description: guestAuthMessage(error, 'use the arena') });
       return false;
     }
     return true;

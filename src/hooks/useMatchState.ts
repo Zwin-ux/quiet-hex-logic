@@ -8,7 +8,8 @@ import { useSpectators } from '@/hooks/useSpectators';
 import { AIDifficulty } from '@/lib/hex/simpleAI';
 import { BoardSkin, getSkinById } from '@/lib/boardSkins';
 import { loadLocalMatch } from '@/lib/localMatches/storage';
-import { getGame, createEngine } from '@/lib/engine/registry';
+import { loadLocalAIMatch } from '@/lib/localAiMatch';
+import { getGame } from '@/lib/engine/registry';
 import type { GameEngine } from '@/lib/engine/types';
 
 export type GameKey = string;
@@ -67,12 +68,20 @@ export function useMatchState(matchId: string | undefined) {
 
   const isDiscordLocalMatch = matchId?.startsWith('discord-');
   const isLocalMatch = matchId?.startsWith('local-');
+  const isLocalAIMatch = matchId?.startsWith('local-ai-');
   const discordLocalState = location.state as {
     isDiscordLocal?: boolean;
     aiDifficulty?: AIDifficulty;
     boardSize?: number;
     gameKey?: string;
     discordUser?: { id: string; username: string };
+  } | null;
+  const localAIState = location.state as {
+    isLocalAI?: boolean;
+    aiDifficulty?: AIDifficulty;
+    boardSize?: number;
+    gameKey?: string;
+    playerName?: string;
   } | null;
 
   const discordLocalInit = useMemo(() => {
@@ -93,10 +102,19 @@ export function useMatchState(matchId: string | undefined) {
     return null;
   }, [isDiscordLocalMatch, matchId, discordLocalState, isDiscordEnvironment, discordUser]);
 
-  usePresence((isDiscordLocalMatch || isLocalMatch) ? undefined : user?.id, (isDiscordLocalMatch || isLocalMatch) ? undefined : matchId);
+  const localAIInit = useMemo(() => {
+    if (!isLocalAIMatch || !matchId) return null;
+    if (localAIState?.isLocalAI) return localAIState;
+    return loadLocalAIMatch(matchId);
+  }, [isLocalAIMatch, matchId, localAIState]);
+
+  usePresence(
+    (isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) ? undefined : user?.id,
+    (isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) ? undefined : matchId,
+  );
 
   const { spectators, isSpectating, joinAsSpectator, leaveAsSpectator } = useSpectators(
-    (isDiscordLocalMatch || isLocalMatch) ? undefined : matchId
+    (isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) ? undefined : matchId
   );
 
   const loadBoardSkin = useCallback(async () => {
@@ -399,14 +417,26 @@ export function useMatchState(matchId: string | undefined) {
     }
   }, [matchId, navigate, replayMoves, setEngineFromAdapter, clearLastMoves]);
 
-  // Initialize Discord local match
+  // Initialize browser-local AI matches
   useEffect(() => {
-    if (!isDiscordLocalMatch || !discordLocalInit?.isDiscordLocal) return;
-    const gameKey = (discordLocalInit as any).gameKey || 'hex';
+    const init =
+      isDiscordLocalMatch && discordLocalInit?.isDiscordLocal
+        ? discordLocalInit
+        : isLocalAIMatch && localAIInit?.isLocalAI
+          ? localAIInit
+          : null;
+
+    if (!init) return;
+
+    const gameKey = (init as any).gameKey || 'hex';
     const gameDef = getGame(gameKey);
-    const boardSize = discordLocalInit.boardSize || gameDef.defaultBoardSize;
-    const difficulty = (discordLocalInit.aiDifficulty || 'easy') as AIDifficulty;
-    const discordUsername = discordLocalInit.discordUser?.username || discordUser?.username || 'Player';
+    const boardSize = init.boardSize || gameDef.defaultBoardSize;
+    const difficulty = (init.aiDifficulty || 'easy') as AIDifficulty;
+    const playerId = isDiscordLocalMatch ? 'discord-player' : 'local-player';
+    const playerName =
+      isDiscordLocalMatch
+        ? discordLocalInit?.discordUser?.username || discordUser?.username || 'Player'
+        : localAIInit?.playerName || (typeof user?.user_metadata?.username === 'string' ? user.user_metadata.username : null) || 'Player';
 
     setMatch({
       id: matchId!,
@@ -423,13 +453,13 @@ export function useMatchState(matchId: string | undefined) {
 
     const difficultyLabel = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
     setPlayers([
-      { profile_id: 'discord-player', color: 1, is_bot: false, username: discordUsername, avatar_color: 'indigo' },
+      { profile_id: playerId, color: 1, is_bot: false, username: playerName, avatar_color: 'indigo' },
       { profile_id: 'ai-player', color: 2, is_bot: true, username: `Computer (${difficultyLabel})`, avatar_color: 'slate' },
     ]);
 
     const adapter = gameDef.createEngine({ boardSize });
     setEngineFromAdapter(gameKey, adapter, null);
-  }, [isDiscordLocalMatch, discordLocalInit, matchId, discordUser]);
+  }, [isDiscordLocalMatch, isLocalAIMatch, discordLocalInit, localAIInit, matchId, discordUser, user, setEngineFromAdapter]);
 
   // Debounced load: coalesces multiple realtime events within 100ms into one loadMatch()
   const scheduleLoad = useCallback(() => {
@@ -442,7 +472,7 @@ export function useMatchState(matchId: string | undefined) {
 
   // Load match and subscribe to realtime for non-Discord matches
   useEffect(() => {
-    if (!matchId || isDiscordLocalMatch || isLocalMatch) return;
+    if (!matchId || isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) return;
     if (!isDiscordEnvironment && !loading && !user) {
       navigate('/auth');
       return;
@@ -463,7 +493,7 @@ export function useMatchState(matchId: string | undefined) {
       if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [matchId, user, loading, navigate, isDiscordEnvironment, isLocalMatch, isDiscordLocalMatch, loadBoardSkin, loadMatch, scheduleLoad]);
+  }, [matchId, user, loading, navigate, isDiscordEnvironment, isLocalMatch, isLocalAIMatch, isDiscordLocalMatch, loadBoardSkin, loadMatch, scheduleLoad]);
 
   return {
     match, setMatch,
@@ -477,7 +507,9 @@ export function useMatchState(matchId: string | undefined) {
     lastAITurnProcessed,
     isDiscordLocalMatch,
     isLocalMatch,
+    isLocalAIMatch,
     discordLocalInit,
+    localAIInit,
     spectators, isSpectating, joinAsSpectator, leaveAsSpectator,
     user, loading, discordUser, isDiscordEnvironment,
     loadMatch, loadBoardSkin,
