@@ -1,88 +1,144 @@
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { Trophy, Package, Target, LogOut, User, Users, Crown, Hexagon, Swords, BookOpen, Wrench, Medal } from 'lucide-react';
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { LogOut, User, Wrench } from "lucide-react";
+import { BoardLogo } from "@/components/BoardLogo";
+import { cn } from "@/lib/utils";
+
+const LANDING_LINKS = [
+  { label: "Worlds", path: "/lobby" },
+  { label: "Events", path: "/tournaments" },
+  { label: "Arena", path: "/arena" },
+  { label: "Docs", path: "/docs" },
+];
+
+const APP_LINKS = [
+  { label: "Lobby", path: "/lobby" },
+  { label: "Arena", path: "/arena" },
+  { label: "Events", path: "/tournaments" },
+  { label: "Docs", path: "/docs" },
+] as const;
 
 export function NavBar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
 
+  const isLanding = location.pathname === "/";
+  const links = isLanding ? LANDING_LINKS : APP_LINKS;
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl",
+        isLanding
+          ? "border-black/10 bg-[#f5f4ef]/90 text-[#0a0a0a]"
+          : "border-border/60 bg-background/85 text-foreground",
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 font-display text-xl font-bold hover:text-primary transition-colors"
+          onClick={() => navigate("/")}
+          className="transition-opacity hover:opacity-80"
+          aria-label="Go to home"
         >
-          <Hexagon className="h-5 w-5 text-game-hex" />
-          Hexology
+          <BoardLogo tone={isLanding ? "dark" : "light"} />
         </button>
 
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/lobby')} className="hidden sm:inline-flex text-sm">
-            Play
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/arena')} className="hidden sm:inline-flex text-sm">
-            Arena
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/docs')} className="hidden sm:inline-flex text-sm">
-            Docs
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/leaderboard')} className="hidden sm:inline-flex text-sm">
-            Leaderboard
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/tournaments')} className="hidden sm:inline-flex text-sm">
-            Tournaments
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/friends')} className="hidden sm:inline-flex text-sm">
-            Friends
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/mods')} className="hidden sm:inline-flex text-sm">
-            Mods
-          </Button>
-          {user && (
+        <div className="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
+            <Button
+              key={link.path}
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(link.path)}
+              className={cn(
+                "rounded-full px-4 text-sm font-semibold",
+                isLanding
+                  ? "text-[#222] hover:bg-black/5 hover:text-black"
+                  : "text-foreground/85 hover:bg-accent",
+              )}
+            >
+              {link.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {user ? (
             <>
-              {[
-                { icon: User, path: '/profile' },
-                { icon: Swords, path: '/arena', className: 'sm:hidden' },
-                { icon: BookOpen, path: '/docs', className: 'sm:hidden' },
-                { icon: Trophy, path: '/leaderboard', className: 'sm:hidden' },
-                { icon: Package, path: '/mods', className: 'sm:hidden' },
-                { icon: Medal, path: '/tournaments', className: 'sm:hidden' },
-                { icon: Users, path: '/friends', className: 'sm:hidden' },
-                { icon: Wrench, path: '/workbench' },
-                { icon: Target, path: '/puzzles' },
-                { icon: Crown, path: '/premium', className: 'text-amber-500' },
-              ].map(({ icon: Icon, path, className }) => (
+              {isLanding && (
                 <Button
-                  key={path}
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate(path)}
-                  className={`h-9 w-9 ${className || ''}`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/lobby")}
+                  className="hidden rounded-full border-black/10 bg-white px-4 font-semibold text-black hover:bg-black/5 md:inline-flex"
                 >
-                  <Icon className="h-4 w-4" />
+                  Open App
                 </Button>
-              ))}
+              )}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => { signOut(); navigate('/auth'); }}
-                className="h-9 w-9 text-muted-foreground"
+                onClick={() => navigate("/profile")}
+                className={cn(
+                  "h-10 w-10 rounded-full",
+                  isLanding ? "text-black hover:bg-black/5" : "text-foreground",
+                )}
+              >
+                <User className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/workbench")}
+                className={cn(
+                  "h-10 w-10 rounded-full",
+                  isLanding ? "text-black hover:bg-black/5" : "text-foreground",
+                )}
+              >
+                <Wrench className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  signOut();
+                  navigate("/auth");
+                }}
+                className={cn(
+                  "h-10 w-10 rounded-full",
+                  isLanding ? "text-black hover:bg-black/5" : "text-foreground",
+                )}
               >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
-          )}
-          {!user && (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/docs')} className="hidden sm:inline-flex text-sm">
-                Docs
-              </Button>
-              <Button onClick={() => navigate('/auth')} size="sm">
+          ) : (
+            <>
+              {!isLanding && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/")}
+                  className="hidden rounded-full px-4 font-semibold md:inline-flex"
+                >
+                  Home
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => navigate("/auth")}
+                className={cn(
+                  "rounded-full px-5 font-semibold shadow-none",
+                  isLanding
+                    ? "bg-[#0a0a0a] text-white hover:bg-[#1a1a1a]"
+                    : "",
+                )}
+              >
                 Sign In
               </Button>
-            </div>
+            </>
           )}
         </div>
       </div>

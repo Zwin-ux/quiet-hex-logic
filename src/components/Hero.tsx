@@ -1,79 +1,144 @@
 import { memo, forwardRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const Hero = memo(forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(({ className, ...props }, ref) => {
-  const scrollToGames = () => {
-    document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' });
-  };
+const Hero = memo(
+  forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(
+    ({ className, ...props }, ref) => {
+      const navigate = useNavigate();
 
-  return (
-    <section
-      ref={ref}
-      className={cn("relative min-h-[75vh] flex items-center justify-center overflow-hidden", className)}
-      {...props}
-    >
-      {/* Background decoration - per-game accent color blobs */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[140px] animate-float bg-game-hex/15" />
-        <div className="absolute bottom-[-15%] right-[-5%] w-[40%] h-[40%] rounded-full blur-[120px] animate-float bg-game-chess/10" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-[30%] right-[15%] w-[25%] h-[25%] rounded-full blur-[100px] animate-float bg-game-ttt/8" style={{ animationDelay: '4s' }} />
-        <div className="absolute bottom-[10%] left-[20%] w-[20%] h-[20%] rounded-full blur-[80px] animate-float bg-game-checkers/8" style={{ animationDelay: '3s' }} />
-      </div>
+      const scrollToGames = () => {
+        document.getElementById("games")?.scrollIntoView({ behavior: "smooth" });
+      };
 
-      {/* Subtle hex grid pattern */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="hex-grid" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(1.5)">
-              <path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-              <path d="M28 0L28 -34L0 -50L0 -16L28 0" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#hex-grid)" className="text-white" />
-        </svg>
-      </div>
+      return (
+        <section
+          ref={ref}
+          className={cn(
+            "relative overflow-hidden border-b border-black/8 bg-[#f5f4ef]",
+            className,
+          )}
+          {...props}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(10,10,10,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(10,10,10,0.04)_1px,transparent_1px)] bg-[size:56px_56px]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.65),transparent)]" />
 
-      {/* Hero content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
-        <div className="mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border-primary/20 text-primary text-xs font-mono mb-8 tracking-wider uppercase">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            Five Games, One Platform
+          <div className="relative mx-auto max-w-7xl px-6 pb-16 pt-28 md:pb-20 md:pt-32">
+            <div className="grid items-end gap-10 lg:grid-cols-[1.1fr_0.85fr]">
+              <div className="max-w-3xl">
+                <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.32em] text-[#6b6b6b]">
+                  BOARD / Quiet Hex Logic
+                </p>
+                <h1 className="max-w-4xl text-5xl font-black tracking-[-0.08em] text-[#0a0a0a] sm:text-6xl md:text-7xl lg:text-[5.5rem] lg:leading-[0.96]">
+                  Host your own board game world.
+                </h1>
+                <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-[#4a4a4a] md:text-2xl md:leading-10">
+                  BOARD gives clubs, local organizers, and creators their own live
+                  competition server: worlds, rulesets, rooms, and events under
+                  their control.
+                </p>
+                <p className="mt-4 max-w-xl text-sm font-semibold uppercase tracking-[0.22em] text-[#7b7b7b]">
+                  Chess first. Built to grow past chess.
+                </p>
+
+                <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    size="lg"
+                    className="h-14 rounded-full bg-[#0a0a0a] px-8 text-base font-bold text-white shadow-none hover:bg-[#1b1b1b]"
+                    onClick={() => navigate("/lobby")}
+                  >
+                    View Live Worlds
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 rounded-full border-black/10 bg-white px-8 text-base font-bold text-black shadow-none hover:bg-black/5"
+                    onClick={scrollToGames}
+                  >
+                    Start Practice
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-black/10 bg-[#0a0a0a] p-5 text-white shadow-[0_16px_50px_rgba(0,0,0,0.08)]">
+                <div className="mb-5 flex items-center justify-between rounded-[1.3rem] border border-white/10 px-4 py-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-white/50">
+                      Live world
+                    </p>
+                    <p className="mt-1 text-2xl font-black tracking-[-0.05em]">
+                      Northside Club Open
+                    </p>
+                  </div>
+                  <div className="rounded-full border border-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-white/72">
+                    online
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  {[
+                    {
+                      label: "Instance",
+                      value: "Final board / arbiter present / 16 spectating",
+                    },
+                    {
+                      label: "Ruleset",
+                      value: "Classical chess / 90+30 / verified seats",
+                    },
+                    {
+                      label: "Presence",
+                      value: "42 in venue / 14 spectating / 2 commentators",
+                    },
+                  ].map((row) => (
+                    <div
+                      key={row.label}
+                      className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4"
+                    >
+                      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/48">
+                        {row.label}
+                      </p>
+                      <p className="mt-2 text-base font-semibold leading-7 text-white/90">
+                        {row.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-14 grid gap-4 border-t border-black/8 pt-8 sm:grid-cols-3">
+              {[
+                [
+                  "World",
+                  "A host-owned space with members, branding, and recurring identity.",
+                ],
+                [
+                  "Instance",
+                  "A live room, not a page. Finals board, lesson room, challenge room, or analysis table.",
+                ],
+                [
+                  "Event",
+                  "Pairings, standings, rounds, and scheduling that orchestrate many live instances.",
+                ],
+              ].map(([title, body]) => (
+                <div key={title} className="max-w-sm">
+                  <p className="text-sm font-black uppercase tracking-[0.18em] text-[#0a0a0a]">
+                    {title}
+                  </p>
+                  <p className="mt-2 text-base font-medium leading-7 text-[#5a5a5a]">
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-          <h1 className="text-7xl md:text-8xl lg:text-9xl font-display-text font-extrabold tracking-tighter mb-6 bg-gradient-to-b from-primary via-primary/90 to-primary/40 bg-clip-text text-transparent drop-shadow-2xl">
-            Hexology
-          </h1>
-          <p className="text-muted-foreground text-lg md:text-2xl mt-4 max-w-2xl mx-auto leading-relaxed font-body">
-            Hex, Chess, Checkers, and more — play against AI, <br className="hidden md:block" />
-            challenge friends, or climb the ranked ladder.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-          <Button
-            size="lg"
-            className="h-16 px-10 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)] hover:shadow-[0_0_40px_-5px_hsl(var(--primary)/0.5)] hover:scale-[1.05] active:scale-[0.98] transition-all duration-300"
-            onClick={scrollToGames}
-          >
-            Start Playing
-          </Button>
-          <Button
-            size="lg"
-            variant="ghost"
-            className="h-16 px-10 rounded-2xl text-lg font-semibold glass hover:bg-white/5 border-white/5 hover:border-white/10 hover:scale-[1.05] active:scale-[0.98] transition-all duration-300"
-            onClick={() => window.location.href = '/lobby'}
-          >
-            Multiplayer Lobby
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-}));
+        </section>
+      );
+    },
+  ),
+);
 
 Hero.displayName = "Hero";
+
 export default Hero;
