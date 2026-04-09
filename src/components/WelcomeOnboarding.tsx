@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import {
-  ChevronRight,
-  Loader2,
-  Zap,
-  Hexagon,
-} from 'lucide-react';
+import { BoardLogo } from '@/components/BoardLogo';
+import { SiteFrame } from '@/components/board/SiteFrame';
+import { SectionRail } from '@/components/board/SectionRail';
+import { VenuePanel } from '@/components/board/VenuePanel';
+import { SkeletalBoardScene } from '@/components/board/SkeletalBoardScene';
+import { Loader2, ArrowUpRight } from 'lucide-react';
 import { listGames } from '@/lib/engine/registry';
 import { getGameMeta } from '@/lib/gameMetadata';
 
@@ -23,7 +23,6 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const games = listGames();
 
-  // Auto-advance from welcome after a brief moment
   useEffect(() => {
     const timer = setTimeout(() => {
       setStep('choice');
@@ -38,6 +37,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
       const gameDef = games.find((g) => g.key === gameKey);
       const size = gameDef?.defaultBoardSize ?? 7;
       onCreateMatch('easy', size, gameKey);
+      onComplete();
     } catch (error) {
       console.error('Failed to create guest session:', error);
       setIsSigningIn(false);
@@ -46,88 +46,116 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
   };
 
   const handleSignIn = () => {
+    onComplete();
     navigate('/auth');
   };
 
   if (step === 'welcome') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="text-center space-y-6 animate-in fade-in duration-700">
-          <div className="relative">
-            <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-game-hex to-game-hex/60 flex items-center justify-center shadow-xl">
-              <Hexagon className="w-12 h-12 text-white" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-game-connect4 flex items-center justify-center shadow-lg animate-bounce">
-              <Zap className="w-4 h-4 text-background" />
-            </div>
+      <SiteFrame showNav={false} contentClassName="flex min-h-screen items-center justify-center py-12">
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center animate-in fade-in duration-700">
+          <BoardLogo />
+          <div className="w-full max-w-2xl">
+            <SkeletalBoardScene className="min-h-[300px]" variant="compact" />
           </div>
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2">Hexology</h1>
-            <p className="text-muted-foreground">Five strategy games. One platform.</p>
+            <p className="board-rail-label">Entry gate</p>
+            <h1 className="mt-3 text-5xl font-black tracking-[-0.09em] text-foreground">
+              BOARD
+            </h1>
+            <p className="mt-4 text-lg leading-8 text-muted-foreground">
+              Future venue infrastructure for live board worlds, local practice, and recurring competition.
+            </p>
           </div>
-          <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-black/45" />
         </div>
-      </div>
+      </SiteFrame>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to Hexology</h1>
-          <p className="text-muted-foreground">Pick a game to start playing instantly</p>
-        </div>
+    <SiteFrame showNav={false} contentClassName="py-10 md:py-14">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <SectionRail
+          eyebrow="Instant practice"
+          title="Choose a board and start locally."
+          description="BOARD lets you step straight into play before you commit to an account. Worlds, rooms, and recurring events come later."
+          actions={
+            <Button variant="outline" onClick={handleSignIn}>
+              Enter with account
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          }
+        />
 
-        {/* Game picker grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {games.map((game) => {
-            const meta = getGameMeta(game.key);
-            const Icon = meta.icon;
-            const isLoading = selectedGame === game.key && (isSigningIn || isCreating);
+        <div className="mt-10 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <VenuePanel
+            eyebrow="Practice desk"
+            title="Pick a ruleset"
+            description="This is local practice only. Choose a system, seat yourself instantly, and let the board teach itself through play."
+            className="bg-white/94"
+          >
+            <div className="divide-y divide-black/10 border-t border-black/10">
+              {games.map((game, index) => {
+                const meta = getGameMeta(game.key);
+                const Icon = meta.icon;
+                const isLoading = selectedGame === game.key && (isSigningIn || isCreating);
 
-            return (
-              <button
-                key={game.key}
-                onClick={() => handleGamePick(game.key)}
-                disabled={!!selectedGame}
-                className={`group flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${meta.bgClass} ${meta.borderClass} hover:border-opacity-60 disabled:opacity-50`}
-              >
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${meta.bgClass} group-hover:scale-110 transition-transform`}>
-                  {isLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  ) : (
-                    <Icon className={`h-6 w-6 ${meta.accentClass}`} />
-                  )}
-                </div>
-                <span className="font-semibold text-sm text-foreground">{game.displayName}</span>
-                <span className="text-xs text-muted-foreground">{meta.tagline}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Sign In option */}
-        <div className="text-center space-y-3 pt-2">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
+                return (
+                  <button
+                    key={game.key}
+                    onClick={() => handleGamePick(game.key)}
+                    disabled={!!selectedGame}
+                    className="grid w-full gap-4 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[48px_minmax(0,1fr)_180px]"
+                  >
+                    <div className="board-rail-label pt-1 text-[10px] text-black/45">
+                      {String(index + 1).padStart(2, '0')}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-md border border-black/10 bg-[#f1efe8]">
+                          {isLoading ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-black/45" />
+                          ) : (
+                            <Icon className={`h-5 w-5 ${meta.accentClass}`} />
+                          )}
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold tracking-[-0.05em] text-foreground">
+                            {game.displayName}
+                          </h2>
+                          <p className="mt-1 text-sm text-muted-foreground">{meta.tagline}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between border-l border-black/10 pl-4">
+                      <span className="board-rail-label text-[10px] text-black/45">
+                        Local seat
+                      </span>
+                      <ArrowUpRight className="h-4 w-4 text-black/45" />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-2 text-muted-foreground">or</span>
-            </div>
-          </div>
-          <Button variant="ghost" onClick={handleSignIn} className="text-muted-foreground">
-            I have an account
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+          </VenuePanel>
 
-        <p className="text-center text-xs text-muted-foreground">
-          No account needed to start playing
-        </p>
+          <VenuePanel
+            eyebrow="Why this exists"
+            title="Start fast, commit later."
+            description="The first touch should feel physical and immediate. Accounts matter when you want worlds, recurring identity, room history, and host-run competition."
+          >
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
+              <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
+                No account is needed to test the systems. The product proves itself through board feel first, then asks you to step into a venue.
+              </div>
+              <div className="border-t border-black/10 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                <SkeletalBoardScene variant="compact" className="min-h-[220px]" />
+              </div>
+            </div>
+          </VenuePanel>
+        </div>
       </div>
-    </div>
+    </SiteFrame>
   );
 }

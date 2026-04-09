@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserAvatar } from '@/components/UserAvatar';
-import { BracketVisualization } from '@/components/BracketVisualization';
-import { Trophy, Users, ArrowLeft, Play, UserPlus, UserMinus, Award } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Award, Play, Trophy, UserMinus, UserPlus, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { SiteFrame } from "@/components/board/SiteFrame";
+import { SectionRail } from "@/components/board/SectionRail";
+import { VenuePanel } from "@/components/board/VenuePanel";
+import { MetricLine } from "@/components/board/MetricLine";
+import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/UserAvatar";
+import { BracketVisualization } from "@/components/BracketVisualization";
+import { toast } from "sonner";
 
 interface Tournament {
   id: string;
+  world_id?: string | null;
   name: string;
   description: string | null;
   format: string;
@@ -43,34 +46,87 @@ export default function TournamentView() {
   const { user } = useAuth();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [worldContext, setWorldContext] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const loadTournament = async () => {
+    if (!tournamentId) return;
+
+    try {
+      const { data: tournamentData, error: tournamentError } = await supabase
+        .from("tournaments")
+        .select("*")
+        .eq("id", tournamentId)
+        .single();
+
+      if (tournamentError) throw tournamentError;
+      setTournament(tournamentData);
+
+      if ((tournamentData as any)?.world_id) {
+        const { data: world } = await (supabase as any)
+          .from("worlds")
+          .select("id, name")
+          .eq("id", (tournamentData as any).world_id)
+          .maybeSingle();
+
+        if (world?.id) {
+          setWorldContext({ id: world.id, name: world.name });
+        } else {
+          setWorldContext(null);
+        }
+      } else {
+        setWorldContext(null);
+      }
+
+      const { data: participantsData, error: participantsError } = await supabase
+        .from("tournament_participants")
+        .select(
+          `
+          *,
+          profiles:player_id(username, avatar_color)
+        `,
+        )
+        .eq("tournament_id", tournamentId)
+        .order("seed", { ascending: true, nullsFirst: false });
+
+      if (participantsError) throw participantsError;
+      setParticipants(participantsData || []);
+    } catch (error) {
+      console.error("Failed to load tournament:", error);
+      toast.error("Failed to load event");
+      navigate("/events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!tournamentId) return;
+
     loadTournament();
 
     const channel = supabase
       .channel(`tournament:${tournamentId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'tournaments',
-          filter: `id=eq.${tournamentId}`
+          event: "*",
+          schema: "public",
+          table: "tournaments",
+          filter: `id=eq.${tournamentId}`,
         },
-        () => loadTournament()
+        () => loadTournament(),
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'tournament_participants',
-          filter: `tournament_id=eq.${tournamentId}`
+          event: "*",
+          schema: "public",
+          table: "tournament_participants",
+          filter: `tournament_id=eq.${tournamentId}`,
         },
-        () => loadTournament()
+        () => loadTournament(),
       )
       .subscribe();
 
@@ -79,56 +135,23 @@ export default function TournamentView() {
     };
   }, [tournamentId]);
 
-  const loadTournament = async () => {
-    if (!tournamentId) return;
-    
-    try {
-      const { data: tournamentData, error: tournamentError } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('id', tournamentId)
-        .single();
-
-      if (tournamentError) throw tournamentError;
-      setTournament(tournamentData);
-
-      const { data: participantsData, error: participantsError } = await supabase
-        .from('tournament_participants')
-        .select(`
-          *,
-          profiles:player_id(username, avatar_color)
-        `)
-        .eq('tournament_id', tournamentId)
-        .order('seed', { ascending: true, nullsFirst: false });
-
-      if (participantsError) throw participantsError;
-      setParticipants(participantsData || []);
-    } catch (error) {
-      console.error('Failed to load tournament:', error);
-      toast.error('Failed to load tournament');
-      navigate('/tournaments');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleJoin = async () => {
     if (!tournamentId) return;
     setActionLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('join-tournament', {
-        body: { tournamentId }
+      const { data, error } = await supabase.functions.invoke("join-tournament", {
+        body: { tournamentId },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Joined tournament!');
+      toast.success("Joined event");
       await loadTournament();
     } catch (error: any) {
-      toast.error('Failed to join tournament', {
-        description: error.message
+      toast.error("Failed to join event", {
+        description: error.message,
       });
     } finally {
       setActionLoading(false);
@@ -140,18 +163,18 @@ export default function TournamentView() {
     setActionLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('leave-tournament', {
-        body: { tournamentId }
+      const { data, error } = await supabase.functions.invoke("leave-tournament", {
+        body: { tournamentId },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Left tournament');
+      toast.success("Left event");
       await loadTournament();
     } catch (error: any) {
-      toast.error('Failed to leave tournament', {
-        description: error.message
+      toast.error("Failed to leave event", {
+        description: error.message,
       });
     } finally {
       setActionLoading(false);
@@ -163,20 +186,20 @@ export default function TournamentView() {
     setActionLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('start-tournament', {
-        body: { tournamentId }
+      const { data, error } = await supabase.functions.invoke("start-tournament", {
+        body: { tournamentId },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Tournament started!', {
-        description: 'Bracket has been generated'
+      toast.success("Event started", {
+        description: "Bracket generated.",
       });
       await loadTournament();
     } catch (error: any) {
-      toast.error('Failed to start tournament', {
-        description: error.message
+      toast.error("Failed to start event", {
+        description: error.message,
       });
     } finally {
       setActionLoading(false);
@@ -185,156 +208,157 @@ export default function TournamentView() {
 
   if (loading || !tournament) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Trophy className="h-12 w-12 mx-auto mb-4 text-primary animate-gentle-pulse" />
-          <p className="font-mono text-muted-foreground">Loading tournament...</p>
+      <SiteFrame>
+        <div className="flex min-h-[420px] items-center justify-center">
+          <Trophy className="h-10 w-10 animate-gentle-pulse text-muted-foreground" />
         </div>
-      </div>
+      </SiteFrame>
     );
   }
 
-  const isParticipant = participants.some(p => p.player_id === user?.id);
+  const isParticipant = participants.some((p) => p.player_id === user?.id);
   const isCreator = tournament.created_by === user?.id;
-  const canStart = isCreator && tournament.status === 'registration' && participants.length >= tournament.min_players;
-  const canJoin = user && !isParticipant && tournament.status === 'registration' && participants.length < tournament.max_players;
-  const canLeave = user && isParticipant && tournament.status === 'registration' && !isCreator;
+  const canStart =
+    isCreator &&
+    tournament.status === "registration" &&
+    participants.length >= tournament.min_players;
+  const canJoin =
+    user &&
+    !isParticipant &&
+    tournament.status === "registration" &&
+    participants.length < tournament.max_players;
+  const canLeave =
+    user &&
+    isParticipant &&
+    tournament.status === "registration" &&
+    !isCreator;
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/tournaments')}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Tournaments
-          </Button>
-
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="font-body text-4xl font-bold">{tournament.name}</h1>
-                <Badge variant="outline" className="capitalize">
-                  {tournament.status}
-                </Badge>
-              </div>
-              {tournament.description && (
-                <p className="text-muted-foreground mb-4">{tournament.description}</p>
-              )}
-              
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>{participants.length}/{tournament.max_players} Players</span>
-                </div>
-                <div>Board: {tournament.board_size}×{tournament.board_size}</div>
-                <div>Format: {tournament.format === 'single_elimination' ? 'Single Elimination' : 'Round Robin'}</div>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              {canJoin && (
-                <Button onClick={handleJoin} disabled={actionLoading}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Join Tournament
-                </Button>
-              )}
-              {canLeave && (
-                <Button variant="outline" onClick={handleLeave} disabled={actionLoading}>
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  Leave
-                </Button>
-              )}
-              {canStart && (
-                <Button onClick={handleStart} disabled={actionLoading}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Tournament
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-[300px_1fr] gap-8">
-          {/* Participants Sidebar */}
-          <div>
-            <Card className="p-6">
-              <h3 className="font-body text-lg font-semibold mb-4 flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Participants
-              </h3>
-              
-              {participants.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No participants yet
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {participants.map((participant, index) => (
-                    <div
-                      key={participant.player_id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      {participant.seed && (
-                        <span className="text-sm font-mono text-muted-foreground w-6">
-                          #{participant.seed}
-                        </span>
-                      )}
-                      <UserAvatar
-                        username={participant.profiles.username}
-                        color={participant.profiles.avatar_color}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {participant.profiles.username}
-                        </p>
-                        {participant.status !== 'active' && (
-                          <p className="text-xs text-muted-foreground">
-                            {participant.status}
-                          </p>
-                        )}
-                      </div>
-                      {participant.player_id === tournament.created_by && (
-                        <Badge variant="outline" className="text-xs">Host</Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div>
-            {tournament.status === 'registration' ? (
-              <Card className="p-12 text-center">
-                <Trophy className="h-16 w-16 mx-auto mb-4 text-primary" />
-                <h2 className="font-body text-2xl font-bold mb-2">
-                  Registration Open
-                </h2>
-                <p className="text-muted-foreground mb-4">
-                  Waiting for players to join...
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {participants.length < tournament.min_players ? (
-                    <>Need {tournament.min_players - participants.length} more player(s) to start</>
-                  ) : (
-                    <>Ready to start! ({participants.length}/{tournament.max_players} players)</>
-                  )}
-                </p>
-              </Card>
-            ) : (
-              <BracketVisualization tournamentId={tournamentId!} />
-            )}
-          </div>
-        </div>
+    <SiteFrame>
+      <div className="mb-5 flex flex-wrap items-center gap-4 text-sm font-semibold text-muted-foreground">
+        {worldContext ? (
+          <button onClick={() => navigate(`/worlds/${worldContext.id}`)} className="transition-colors hover:text-foreground">
+            Back to {worldContext.name}
+          </button>
+        ) : null}
+        <button onClick={() => navigate("/events")} className="transition-colors hover:text-foreground">
+          Back to events
+        </button>
       </div>
-    </div>
+
+      <SectionRail
+        eyebrow="Event"
+        title={
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{tournament.name}</span>
+            <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
+              {tournament.status}
+            </span>
+          </div>
+        }
+        description={
+          <>
+            {tournament.description || "No description yet."} Format:{" "}
+            {tournament.format === "single_elimination" ? "single elimination" : "round robin"}.
+          </>
+        }
+        actions={
+          <>
+            {canJoin ? (
+              <Button onClick={handleJoin} disabled={actionLoading}>
+                <UserPlus className="h-4 w-4" />
+                Join event
+              </Button>
+            ) : null}
+            {canLeave ? (
+              <Button variant="outline" onClick={handleLeave} disabled={actionLoading}>
+                <UserMinus className="h-4 w-4" />
+                Leave
+              </Button>
+            ) : null}
+            {canStart ? (
+              <Button onClick={handleStart} disabled={actionLoading}>
+                <Play className="h-4 w-4" />
+                Start
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <VenuePanel eyebrow="Participants" title={`${participants.length}/${tournament.max_players} seats`}>
+          {participants.length === 0 ? (
+            <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
+              No participants yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-black/10 border-t border-black/10">
+              {participants.map((participant) => (
+                <div key={participant.player_id} className="flex items-center gap-3 py-4">
+                  <div className="board-rail-label w-8 text-[10px] text-black/45">
+                    {participant.seed ? `#${participant.seed}` : "--"}
+                  </div>
+                  <UserAvatar
+                    username={participant.profiles.username}
+                    color={participant.profiles.avatar_color}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">{participant.profiles.username}</p>
+                    {participant.status !== "active" ? (
+                      <p className="text-xs text-muted-foreground">{participant.status}</p>
+                    ) : null}
+                  </div>
+                  {participant.player_id === tournament.created_by ? (
+                    <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
+                      Host
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </VenuePanel>
+
+        <VenuePanel
+          eyebrow="Competition state"
+          title={tournament.status === "registration" ? "Registration open" : "Bracket live"}
+          description={
+            tournament.status === "registration"
+              ? participants.length < tournament.min_players
+                ? `Need ${tournament.min_players - participants.length} more player(s) to start.`
+                : `Ready to start with ${participants.length} players.`
+              : "Rounds and pairings are now live."
+          }
+        >
+          <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="space-y-1 border-b border-black/10 pb-4 xl:border-b-0 xl:border-r xl:pb-0 xl:pr-5">
+              <MetricLine icon={Users} label="Players" value={`${participants.length}/${tournament.max_players}`} />
+              <MetricLine label="Board" value={`${tournament.board_size}x${tournament.board_size}`} />
+              <MetricLine label="Format" value={tournament.format === "single_elimination" ? "single elim" : "round robin"} />
+              <MetricLine icon={Award} label="Host control" value={isCreator ? "you" : "world owner"} />
+            </div>
+            <div>
+              {tournament.status === "registration" ? (
+                <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
+                  <Trophy className="h-14 w-14 text-black/25" />
+                  <div>
+                    <p className="text-2xl font-bold tracking-[-0.04em] text-foreground">
+                      Waiting for the field
+                    </p>
+                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
+                      Once the minimum player count is reached, the host can seed and launch the event.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <BracketVisualization tournamentId={tournamentId!} />
+              )}
+            </div>
+          </div>
+        </VenuePanel>
+      </div>
+    </SiteFrame>
   );
 }

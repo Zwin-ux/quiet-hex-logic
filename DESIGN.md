@@ -6,7 +6,9 @@
 - Engine lineage: `Quiet Hex Logic`
 - Current Figma workbench: `https://www.figma.com/design/JvFTSuiGPWJAefzY6hGEKZ`
 
-This file is the implementation-facing design source of truth for BOARD. It exists to keep the product visually disciplined while the brand shifts away from Hexology.
+This file is the implementation-facing design source of truth for BOARD. It exists to keep
+the product visually disciplined while the brand shifts away from Hexology and toward a
+future venue identity.
 
 ## North star
 
@@ -18,13 +20,15 @@ Not:
 - an old-school game portal
 - an esports brand
 - a fantasy chess product
+- a crypto clone with effects pasted on top
 
 It should feel like:
 
-- a premium venue system
+- a future venue system
 - a calm live-event surface
 - a durable product object
 - a host-first control layer
+- a live board world OS
 
 ## Quality bar
 
@@ -49,38 +53,37 @@ Every screen should be judged against:
 
 ### Palette
 
-Default to monochrome only:
+Default to a light-gallery monochrome system:
 
 - `#0A0A0A` primary black
-- `#111111` deep surface
-- `#1D1D1D` elevated dark surface
-- `#3E3E3E` graphite text/supporting UI
-- `#757575` muted copy
-- `#CFCFCF` soft dividers on dark
-- `#DDDDDD` light dividers
-- `#F3F3F1` soft page background
+- `#101114` deep surface
+- `#23252B` graphite structure
+- `#5D5D5D` muted copy
+- `#D5D0C5` soft dividers
+- `#EFECE3` bone support surface
+- `#F8F6EF` page canvas
 - `#FFFFFF` white surface
 
 Rules:
 
-- Use black, white, and neutrals as the full system by default.
+- Use black, white, bone, and restrained grays as the full system by default.
 - Do not rely on yellow or game-specific accent colors for primary identity.
-- If color returns later, it should be sparse and structural, not decorative.
+- If color appears, it should be sparse and functional, not decorative.
 
 ### Typography
 
-Use one family with disciplined scale.
+Use a tight editorial stack with clear role separation.
 
-- Display: dense, black weight, tight tracking
-- Heading: bold or black, short line lengths
-- Body: medium weight preferred over thin regular
-- Labels: uppercase mono or tight bold sans only when needed
+- Display: `Space Grotesk`, dense, black weight, tight tracking
+- Body: `Instrument Sans`, medium and readable
+- Labels: `IBM Plex Mono`, sparse and structural only
 
 Tone:
 
 - sharp
 - direct
 - restrained
+- infrastructural
 
 Avoid:
 
@@ -95,6 +98,7 @@ Avoid:
 - Avoid nested card mazes.
 - On desktop, use one dominant text block and one supporting object.
 - On mobile, reduce to a single clear column with strong vertical rhythm.
+- Primary surfaces should feel like rails, frames, and venue panels rather than card mosaics.
 
 Spacing scale:
 
@@ -104,16 +108,36 @@ Corner logic:
 
 - soft-square corners
 - avoid overly bubbly radii
-- use the same radius family across cards, buttons, and panels
+- use cut corners selectively on major venue panels and shells
+- use the same radius family across buttons, inputs, and utility panels
+
+### Signature motif
+
+The core object language is the **skeletal board frame**.
+
+It should suggest:
+
+- exposed structure
+- board geometry without literal tabletop cosplay
+- room rigging and seat positions
+- live playable objects inside a venue
+
+It should not become:
+
+- generic glassmorphism
+- neon blobs
+- noisy Web3 gradients
+- decorative 3D for its own sake
 
 ## Component direction
 
 ### Navigation
 
-- Landing nav should be minimal.
+- Navigation should be sparse and structural.
 - Keep only the links that matter.
 - Remove duplicate routes and icon clutter.
 - Brand should read `BOARD`, not `Hexology`.
+- The shell should feel like a rail + stage system, not a toolbar plus cards.
 
 ### Hero
 
@@ -125,20 +149,24 @@ The hero should communicate:
 4. what to do next
 
 The hero should not try to summarize the whole app.
+The first viewport should show a spatial object and live-system cues, not feature bullets.
 
-### Cards and panels
+### Panels and object surfaces
 
-- white cards on light backgrounds
-- black panels only when they create strong contrast and focus
-- thin borders
-- almost no shadows
-- no floating glow effects
+- Use venue panels, strips, rails, and stage frames instead of repeating generic cards.
+- White panels on light backgrounds should be structural and quiet.
+- Black panels only when they create strong contrast and focus.
+- Prefer thin borders and low-contrast depth over shadows.
+- No floating glow effects.
+- No pills as the default status/navigation shape.
 
-### Practice/game selection
+### Practice and directories
 
-- practice should feel instant
-- game cards should be calm and legible
-- difficulty selection should feel like a product sheet, not a game modal
+- Practice should feel instant.
+- Practice selection should feel like a room index or desk, not a game store.
+- Worlds should feel like venues.
+- Events should feel like orchestration layers.
+- Live rooms should feel attached to host identity.
 
 ## Product copy rules
 
@@ -165,10 +193,10 @@ Avoid:
 
 ## Motion
 
-- subtle only
-- use fades and light vertical movement
-- no glow pulses as identity
-- no decorative float blobs
+- Use hybrid depth: perspective drift, structural wipes, masked reveals, and quiet orbit motion.
+- No heavy always-on WebGL in phase 1.
+- Reduced-motion fallbacks are required.
+- No decorative float blobs.
 
 Motion should clarify state, not add personality by itself.
 
@@ -176,9 +204,9 @@ Motion should clarify state, not add personality by itself.
 
 The homepage should stay radically simple:
 
-1. Hero
-2. Host-first product primitives
-3. Instant practice/game selection
+1. Poster-stage hero
+2. Host-world thesis
+3. Instant practice desk
 4. Quiet footer
 
 Do not reintroduce:
@@ -187,10 +215,12 @@ Do not reintroduce:
 - feature bloat
 - mod showcases on the front page unless they serve the core pitch
 - random badges or decorative pills
+- three-column marketing card grids
 
 ## Implementation notes
 
-- Prefer explicit monochrome styles on the landing page over inherited legacy theme tokens.
+- Prefer explicit BOARD tokens and primitives over inherited legacy theme styles.
 - Preserve the existing stack.
 - Reuse components where possible, but do not preserve weak visuals for the sake of reuse.
 - If a section does not clearly improve understanding or action, cut it.
+- Public surfaces should bias toward `Worlds`, `Play`, `Events`, and `Live Instance` vocabulary.

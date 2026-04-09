@@ -1,14 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import {
+  buildSeedOrder,
+  nextPowerOfTwo,
+  roundNameFor,
+  syncTournamentBracket,
+  type TournamentParticipantRow,
+  type TournamentRow,
+} from '../_shared/tournamentEngine.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface Participant {
-  player_id: string;
-  seed: number | null;
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,184 +24,175 @@ Deno.serve(async (req) => {
       throw new Error('Missing authorization header');
     }
 
-    const supabase = createClient(
+    const service = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const {
+      data: { user },
+      error: authError,
+    } = await service.auth.getUser(token);
+
+    if (authError || !user) {
       throw new Error('Unauthorized');
     }
 
-    const { tournamentId } = await req.json();
+    if (user.is_anonymous) {
+      throw new Error('Permanent account required');
+    }
 
-    // Get tournament details
-    const { data: tournament, error: tournamentError } = await supabase
+    const { tournamentId } = await req.json();
+    if (!tournamentId) {
+      throw new Error('Tournament ID is required');
+    }
+
+    const { data: tournamentData, error: tournamentError } = await service
       .from('tournaments')
-      .select('*')
+      .select('id, created_by, status, min_players, max_players, board_size, pie_rule, turn_timer_seconds, world_id, game_key, format')
       .eq('id', tournamentId)
       .single();
 
-    if (tournamentError) throw tournamentError;
-    if (!tournament) throw new Error('Tournament not found');
-
-    // Only creator can start
-    if (tournament.created_by !== user.id) {
-      throw new Error('Only tournament creator can start the tournament');
+    if (tournamentError || !tournamentData) {
+      throw new Error('Tournament not found');
     }
 
-    // Check status
-    if (tournament.status !== 'registration') {
+    if (tournamentData.created_by !== user.id) {
+      throw new Error('Only the organizer can start this tournament');
+    }
+
+    if (tournamentData.status !== 'registration') {
       throw new Error('Tournament has already started or been completed');
     }
 
-    // Get participants
-    const { data: participants, error: participantsError } = await supabase
+    if (tournamentData.format !== 'single_elimination') {
+      throw new Error('Only single elimination tournaments can be started right now');
+    }
+
+    const { data: participantsData, error: participantsError } = await service
       .from('tournament_participants')
-      .select('player_id, seed')
+      .select('player_id, seed, joined_at')
       .eq('tournament_id', tournamentId)
       .eq('status', 'active');
 
-    if (participantsError) throw participantsError;
-    if (!participants || participants.length < tournament.min_players) {
-      throw new Error(`Need at least ${tournament.min_players} players to start`);
+    if (participantsError) {
+      throw participantsError;
     }
 
-    // Update tournament status to seeding
-    await supabase
-      .from('tournaments')
-      .update({ status: 'seeding' })
-      .eq('id', tournamentId);
-
-    // Assign seeds (random for now)
-    const shuffled = [...participants].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < shuffled.length; i++) {
-      await supabase
-        .from('tournament_participants')
-        .update({ seed: i + 1 })
-        .eq('tournament_id', tournamentId)
-        .eq('player_id', shuffled[i].player_id);
+    const participants = (participantsData ?? []) as TournamentParticipantRow[];
+    if (participants.length < tournamentData.min_players) {
+      throw new Error(`Need at least ${tournamentData.min_players} players to start`);
     }
 
-    // Generate bracket based on format
-    if (tournament.format === 'single_elimination') {
-      await generateSingleEliminationBracket(supabase, tournament, shuffled as Participant[]);
+    const sortedParticipants = [...participants]
+      .sort((a, b) => {
+        const seedA = a.seed ?? Number.MAX_SAFE_INTEGER;
+        const seedB = b.seed ?? Number.MAX_SAFE_INTEGER;
+        if (seedA !== seedB) return seedA - seedB;
+        const joinedA = a.joined_at ? new Date(a.joined_at).getTime() : 0;
+        const joinedB = b.joined_at ? new Date(b.joined_at).getTime() : 0;
+        if (joinedA !== joinedB) return joinedA - joinedB;
+        return a.player_id.localeCompare(b.player_id);
+      })
+      .map((participant, index) => ({
+        ...participant,
+        seed: index + 1,
+      }));
+
+    await Promise.all(
+      sortedParticipants.map((participant) =>
+        service
+          .from('tournament_participants')
+          .update({ seed: participant.seed })
+          .eq('tournament_id', tournamentId)
+          .eq('player_id', participant.player_id),
+      ),
+    );
+
+    await service.from('tournament_matches').delete().eq('tournament_id', tournamentId);
+    await service.from('tournament_rounds').delete().eq('tournament_id', tournamentId);
+
+    const bracketSize = nextPowerOfTwo(sortedParticipants.length);
+    const totalRounds = Math.log2(bracketSize);
+    const seedOrder = buildSeedOrder(bracketSize);
+    const slots = seedOrder.map((seed) => sortedParticipants[seed - 1]?.player_id ?? null);
+
+    const roundRows = Array.from({ length: totalRounds }, (_, roundIndex) => ({
+      id: crypto.randomUUID(),
+      tournament_id: tournamentId,
+      round_number: roundIndex + 1,
+      round_name: roundNameFor(roundIndex + 1, totalRounds),
+      status: 'pending',
+    }));
+
+    const matchIdsByRound = Array.from({ length: totalRounds }, (_, roundIndex) => {
+      const matchesInRound = bracketSize / 2 ** (roundIndex + 1);
+      return Array.from({ length: matchesInRound }, () => crypto.randomUUID());
+    });
+
+    const tournamentMatches = [];
+    for (let roundIndex = 0; roundIndex < totalRounds; roundIndex += 1) {
+      const roundId = roundRows[roundIndex].id;
+      const matchIds = matchIdsByRound[roundIndex];
+
+      for (let bracketPosition = 0; bracketPosition < matchIds.length; bracketPosition += 1) {
+        const player1 = roundIndex === 0 ? slots[bracketPosition * 2] ?? null : null;
+        const player2 = roundIndex === 0 ? slots[bracketPosition * 2 + 1] ?? null : null;
+        const soloWinner = player1 && !player2 ? player1 : player2 && !player1 ? player2 : null;
+
+        tournamentMatches.push({
+          id: matchIds[bracketPosition],
+          tournament_id: tournamentId,
+          round_id: roundId,
+          player1_id: player1,
+          player2_id: player2,
+          winner_id: soloWinner,
+          bracket_position: bracketPosition,
+          next_match_id:
+            roundIndex < totalRounds - 1
+              ? matchIdsByRound[roundIndex + 1][Math.floor(bracketPosition / 2)]
+              : null,
+          status: soloWinner ? 'completed' : 'pending',
+          completed_at: soloWinner ? new Date().toISOString() : null,
+        });
+      }
     }
 
-    // Update tournament status to active
-    await supabase
-      .from('tournaments')
-      .update({ status: 'active' })
-      .eq('id', tournamentId);
+    const { error: roundsInsertError } = await service
+      .from('tournament_rounds')
+      .insert(roundRows);
+
+    if (roundsInsertError) {
+      throw roundsInsertError;
+    }
+
+    const { error: matchesInsertError } = await service
+      .from('tournament_matches')
+      .insert(tournamentMatches);
+
+    if (matchesInsertError) {
+      throw matchesInsertError;
+    }
+
+    const syncResult = await syncTournamentBracket(service, tournamentData as TournamentRow);
 
     console.log(`Tournament ${tournamentId} started with ${participants.length} players`);
 
     return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        rounds: totalRounds,
+        tournamentCompleted: syncResult.tournamentCompleted,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error starting tournament:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
-
-async function generateSingleEliminationBracket(
-  supabase: any,
-  tournament: any,
-  participants: Participant[]
-) {
-  const playerCount = participants.length;
-  
-  // Calculate number of rounds (log2 of next power of 2)
-  const rounds = Math.ceil(Math.log2(playerCount));
-  
-  // Create rounds
-  const roundNames = ['Finals', 'Semifinals', 'Quarterfinals', 'Round of 16', 'Round of 32'];
-  const createdRounds = [];
-  
-  for (let i = 0; i < rounds; i++) {
-    const roundNumber = rounds - i;
-    const roundName = i < roundNames.length ? roundNames[i] : `Round ${roundNumber}`;
-    
-    const { data: round } = await supabase
-      .from('tournament_rounds')
-      .insert({
-        tournament_id: tournament.id,
-        round_number: roundNumber,
-        round_name: roundName,
-        status: roundNumber === 1 ? 'active' : 'pending'
-      })
-      .select()
-      .single();
-    
-    createdRounds.unshift(round);
-  }
-
-  // First round: pair players
-  const firstRound = createdRounds[0];
-  const matchesInFirstRound = Math.ceil(playerCount / 2);
-  const firstRoundMatches = [];
-  
-  for (let i = 0; i < matchesInFirstRound; i++) {
-    const player1 = participants[i * 2];
-    const player2 = participants[i * 2 + 1] || null; // May not exist if odd number
-    
-    const { data: match } = await supabase
-      .from('tournament_matches')
-      .insert({
-        tournament_id: tournament.id,
-        round_id: firstRound.id,
-        player1_id: player1.player_id,
-        player2_id: player2?.player_id || null,
-        bracket_position: i,
-        status: player2 ? 'ready' : 'completed', // Auto-complete if bye
-        winner_id: player2 ? null : player1.player_id // Auto-win if bye
-      })
-      .select()
-      .single();
-    
-    firstRoundMatches.push(match);
-  }
-
-  // Create subsequent rounds and link matches
-  for (let roundIdx = 1; roundIdx < rounds; roundIdx++) {
-    const round = createdRounds[roundIdx];
-    const prevRoundMatches = roundIdx === 1 ? firstRoundMatches : [];
-    const matchesInRound = Math.ceil(matchesInFirstRound / Math.pow(2, roundIdx));
-    
-    for (let i = 0; i < matchesInRound; i++) {
-      const { data: match } = await supabase
-        .from('tournament_matches')
-        .insert({
-          tournament_id: tournament.id,
-          round_id: round.id,
-          bracket_position: i,
-          status: 'pending'
-        })
-        .select()
-        .single();
-      
-      // Link previous round matches to this match
-      if (roundIdx === 1 && prevRoundMatches.length > i * 2) {
-        await supabase
-          .from('tournament_matches')
-          .update({ next_match_id: match.id })
-          .eq('id', prevRoundMatches[i * 2].id);
-        
-        if (prevRoundMatches[i * 2 + 1]) {
-          await supabase
-            .from('tournament_matches')
-            .update({ next_match_id: match.id })
-            .eq('id', prevRoundMatches[i * 2 + 1].id);
-        }
-      }
-    }
-  }
-}

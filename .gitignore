@@ -38,3 +38,6 @@ build_log.txt
 .vercel
 .vercel.env*
 .railway
+.gstack/
+.gstack/
+.gstack/

@@ -47,6 +47,16 @@ export interface RatingResult {
   loser: { old: number; new: number; change: number };
 }
 
+function shouldFallbackToLegacySnapshot(error: any) {
+  const message = typeof error?.message === 'string' ? error.message : '';
+  return (
+    error?.code === 'PGRST202' ||
+    error?.code === '42883' ||
+    message.includes('Could not find the function') ||
+    message.includes('function public.get_match_snapshot')
+  );
+}
+
 export function useMatchState(matchId: string | undefined) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -254,6 +264,91 @@ export function useMatchState(matchId: string | undefined) {
       }
 
       // ---- Online match ----
+      try {
+        const { data: snapshotData, error: snapshotError } = await (supabase as any).rpc(
+          'get_match_snapshot',
+          { p_match_id: matchId },
+        );
+
+        if (snapshotError) {
+          if (!shouldFallbackToLegacySnapshot(snapshotError)) {
+            throw snapshotError;
+          }
+        } else if (snapshotData?.match) {
+          const snapshot = snapshotData as any;
+          const matchData = snapshot.match as MatchData & { is_arena?: boolean };
+          const gameKey = (matchData as any)?.game_key ?? 'hex';
+
+          setMatch({ ...(matchData as any), game_key: gameKey });
+          setRatingResult(null);
+
+          if ((matchData as any)?.is_arena && snapshot.arena) {
+            setPlayers([
+              {
+                profile_id: snapshot.arena.p1BotId ?? 'arena-p1',
+                color: 1,
+                is_bot: true,
+                username: snapshot.arena.p1Name ?? 'Bot 1',
+                avatar_color: 'indigo',
+              },
+              {
+                profile_id: snapshot.arena.p2BotId ?? 'arena-p2',
+                color: 2,
+                is_bot: true,
+                username: snapshot.arena.p2Name ?? 'Bot 2',
+                avatar_color: 'ochre',
+              },
+            ]);
+          } else {
+            setPlayers((snapshot.players ?? []) as Player[]);
+          }
+
+          const { adapter, lastMoveTyped } = replayMoves(gameKey, snapshot.moves || [], {
+            boardSize: matchData.size,
+            pieRule: matchData.pie_rule,
+          });
+          setEngineFromAdapter(gameKey, adapter, lastMoveTyped);
+
+          const ratingHistory = (snapshot.ratingHistory ?? []) as Array<{
+            profile_id: string;
+            old_rating: number;
+            new_rating: number;
+            rating_change: number;
+          }>;
+          const snapshotPlayers = (snapshot.players ?? []) as Player[];
+
+          if (matchData.status === 'finished' && matchData.is_ranked && ratingHistory.length >= 2 && matchData.winner) {
+            const winnerHistory = ratingHistory.find((entry) => {
+              const playerData = snapshotPlayers.find((player) => player.profile_id === entry.profile_id);
+              return playerData?.color === matchData.winner;
+            });
+            const loserHistory = ratingHistory.find((entry) => {
+              const playerData = snapshotPlayers.find((player) => player.profile_id === entry.profile_id);
+              return playerData?.color !== matchData.winner;
+            });
+
+            if (winnerHistory && loserHistory) {
+              setRatingResult({
+                winner: {
+                  old: winnerHistory.old_rating,
+                  new: winnerHistory.new_rating,
+                  change: winnerHistory.rating_change,
+                },
+                loser: {
+                  old: loserHistory.old_rating,
+                  new: loserHistory.new_rating,
+                  change: loserHistory.rating_change,
+                },
+              });
+            }
+          }
+
+          return { matchData };
+        }
+      } catch (snapshotError) {
+        console.warn('[useMatchState] snapshot fallback:', snapshotError);
+      }
+
       const { data: matchData } = await supabase
         .from('matches')
         .select('id, size, pie_rule, status, turn, winner, game_key, result, ai_difficulty, turn_timer_seconds, turn_started_at, is_ranked, draw_offered_by, version, updated_at, is_arena')
@@ -267,6 +362,8 @@ export function useMatchState(matchId: string | undefined) {
 
       const gameKey = (matchData as any)?.game_key ?? 'hex';
       setMatch({ ...(matchData as any), game_key: gameKey });
+      setRatingResult(null);
+      let playersData: any[] | null = null;
 
       // Arena matches use bot metadata instead of match_players.
       if ((matchData as any)?.is_arena) {
@@ -304,7 +401,7 @@ export function useMatchState(matchId: string | undefined) {
           ]);
         }
       } else {
-        const { data: playersData } = await supabase
+        const { data } = await supabase
           .from('match_players')
           .select(`
             profile_id,
@@ -314,6 +411,8 @@ export function useMatchState(matchId: string | undefined) {
             profiles!inner(username, avatar_color, elo_rating)
           `)
           .eq('match_id', matchId);
+
+        playersData = data ?? null;
 
         if (playersData) {
           const ratingMap = new Map<string, number>();

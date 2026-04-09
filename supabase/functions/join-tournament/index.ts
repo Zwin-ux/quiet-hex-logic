@@ -50,58 +50,9 @@ Deno.serve(async (req) => {
     
     const { tournamentId } = validationResult.data;
 
-    // Get tournament details
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .single();
-
-    if (tournamentError) throw tournamentError;
-    if (!tournament) throw new Error('Tournament not found');
-
-    // Check tournament status
-    if (tournament.status !== 'registration') {
-      throw new Error('Tournament registration is closed');
-    }
-
-    // Check registration deadline
-    if (tournament.registration_deadline) {
-      const deadline = new Date(tournament.registration_deadline);
-      if (new Date() > deadline) {
-        throw new Error('Registration deadline has passed');
-      }
-    }
-
-    // Check if already joined
-    const { data: existing } = await supabase
-      .from('tournament_participants')
-      .select('*')
-      .eq('tournament_id', tournamentId)
-      .eq('player_id', user.id)
-      .single();
-
-    if (existing) {
-      throw new Error('You have already joined this tournament');
-    }
-
-    // Count current participants
-    const { count } = await supabase
-      .from('tournament_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('tournament_id', tournamentId);
-
-    if (count !== null && count >= tournament.max_players) {
-      throw new Error('Tournament is full');
-    }
-
-    // Join tournament
-    const { error: joinError } = await supabase
-      .from('tournament_participants')
-      .insert({
-        tournament_id: tournamentId,
-        player_id: user.id
-      });
+    const { error: joinError } = await supabase.rpc('join_tournament_atomic', {
+      p_tournament_id: tournamentId,
+    });
 
     if (joinError) throw joinError;
 

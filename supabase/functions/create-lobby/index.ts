@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
-import { defaultsForGame } from '../_shared/gameDefaults.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +9,7 @@ const corsHeaders = {
 // Comprehensive input validation schema
 const createLobbySchema = z.object({
   gameKey: z.string().optional().default('hex'),
+  worldId: z.string().uuid('Invalid world ID').optional(),
   boardSize: z.number()
     .int('Board size must be an integer')
     .min(5, 'Board size must be at least 5')
@@ -66,48 +66,28 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { gameKey, boardSize, pieRule, turnTimer } = validationResult.data;
-    const defaults = defaultsForGame(gameKey);
+    const { gameKey, worldId, boardSize, pieRule, turnTimer } = validationResult.data;
 
-    // Generate unique code
-    const { data: code, error: codeError } = await supabase.rpc('generate_lobby_code');
-    if (codeError) {
-      console.error('Code generation error:', codeError);
-      throw codeError;
-    }
-    // Create lobby
-    const { data: lobby, error: lobbyError } = await supabase
-      .from('lobbies')
-      .insert({
-        code,
-        host_id: user.id,
-        game_key: gameKey,
-        board_size: (gameKey === 'hex') ? (boardSize || defaults.boardSize) : defaults.boardSize,
-        pie_rule: defaults.pieRule ? (pieRule !== false) : false,
-        turn_timer_seconds: turnTimer || 45,
-        status: 'waiting'
-      })
-      .select()
-      .single();
+    const { data: lobbyResult, error: lobbyError } = await supabase.rpc('create_lobby_atomic', {
+      p_game_key: gameKey,
+      p_world_id: worldId ?? null,
+      p_board_size: boardSize,
+      p_pie_rule: pieRule,
+      p_turn_timer_seconds: turnTimer,
+    });
 
     if (lobbyError) {
       console.error('Lobby creation error:', lobbyError);
       throw lobbyError;
     }
-    // Add host as first player
-    const { error: playerError } = await supabase
-      .from('lobby_players')
-      .insert({
-        lobby_id: lobby.id,
-        player_id: user.id,
-        role: 'host',
-        is_ready: false
-      });
 
-    if (playerError) {
-      console.error('Player insertion error:', playerError);
-      throw playerError;
+    const lobby = (lobbyResult as any)?.lobby;
+    const code = (lobbyResult as any)?.code;
+
+    if (!lobby || !code) {
+      throw new Error('Failed to create lobby');
     }
+
     return new Response(
       JSON.stringify({ lobby, code }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

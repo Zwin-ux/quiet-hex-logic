@@ -1,55 +1,53 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Mail, Loader2, ArrowLeft, Lock, User, Trophy, Users, Swords, Crown, CheckCircle2, KeyRound, Shield } from 'lucide-react';
-import { z } from 'zod';
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { z } from "zod";
+import { ArrowLeft, KeyRound, Loader2, Lock, Mail, Shield, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { BoardLogo } from "@/components/BoardLogo";
+import { SiteFrame } from "@/components/board/SiteFrame";
+import { SkeletalBoardScene } from "@/components/board/SkeletalBoardScene";
+import { VenuePanel } from "@/components/board/VenuePanel";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
-const emailSchema = z.string().email('Invalid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
-const usernameSchema = z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be less than 20 characters');
+const emailSchema = z.string().email("Invalid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const usernameSchema = z
+  .string()
+  .min(3, "Username must be at least 3 characters")
+  .max(20, "Username must be less than 20 characters");
 
-type AuthMode = 'magic-link' | 'password';
-type AuthTab = 'signin' | 'signup';
-type AuthView = 'main' | 'forgot-password' | 'reset-password';
-
-const UNLOCK_FEATURES = [
-  { icon: Swords, label: 'Tactical Matches', description: 'Challenge Grandmasters worldwide' },
-  { icon: Trophy, label: 'Official Tournaments', description: 'Compete for prestige and ranking' },
-  { icon: Users, label: 'Strategy Hub', description: 'Connect with elite players' },
-  { icon: Crown, label: 'Boutique Status', description: 'Unlock premium board aesthetics' },
-];
+type AuthMode = "magic-link" | "password";
+type AuthTab = "signin" | "signup";
+type AuthView = "main" | "forgot-password" | "reset-password";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>('magic-link');
-  const [authTab, setAuthTab] = useState<AuthTab>('signup');
-  const [authView, setAuthView] = useState<AuthView>('main');
+  const [authMode, setAuthMode] = useState<AuthMode>("magic-link");
+  const [authTab, setAuthTab] = useState<AuthTab>("signup");
+  const [authView, setAuthView] = useState<AuthView>("main");
   const { user, signInWithMagicLink, signIn, signUp, resetPassword, updatePassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if this is a password reset redirect
   useEffect(() => {
-    if (searchParams.get('reset') === 'true') {
-      setAuthView('reset-password');
+    if (searchParams.get("reset") === "true") {
+      setAuthView("reset-password");
     }
   }, [searchParams]);
 
-  // Redirect if already authenticated (but allow anonymous/guest users to stay)
   useEffect(() => {
-    if (user && !user.is_anonymous && authView !== 'reset-password') {
-      navigate('/lobby');
+    if (user && !user.is_anonymous && authView !== "reset-password") {
+      navigate("/worlds");
     }
   }, [user, navigate, authView]);
 
@@ -63,23 +61,23 @@ export default function Auth() {
 
       if (error) {
         toast({
-          title: 'Failed to send reset link',
+          title: "Failed to send reset link",
           description: error.message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         setEmailSent(true);
         toast({
-          title: 'Check your email!',
-          description: 'We sent you a password reset link.',
+          title: "Check your email",
+          description: "We sent you a password reset link.",
         });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
-          title: 'Invalid email',
+          title: "Invalid email",
           description: error.issues[0].message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } finally {
@@ -93,12 +91,12 @@ export default function Auth() {
 
     try {
       passwordSchema.parse(newPassword);
-      
+
       if (newPassword !== confirmPassword) {
         toast({
-          title: 'Passwords do not match',
-          description: 'Please make sure both passwords are the same.',
-          variant: 'destructive',
+          title: "Passwords do not match",
+          description: "Please make sure both passwords are the same.",
+          variant: "destructive",
         });
         setIsSubmitting(false);
         return;
@@ -108,26 +106,26 @@ export default function Auth() {
 
       if (error) {
         toast({
-          title: 'Failed to reset password',
+          title: "Failed to reset password",
           description: error.message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         toast({
-          title: 'Password updated!',
-          description: 'You can now sign in with your new password.',
+          title: "Password updated",
+          description: "You can now sign in with your new password.",
         });
-        setAuthView('main');
-        setAuthMode('password');
-        setAuthTab('signin');
-        navigate('/auth', { replace: true });
+        setAuthView("main");
+        setAuthMode("password");
+        setAuthTab("signin");
+        navigate("/auth", { replace: true });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
-          title: 'Invalid password',
+          title: "Invalid password",
           description: error.issues[0].message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } finally {
@@ -146,23 +144,23 @@ export default function Auth() {
 
       if (error) {
         toast({
-          title: 'Failed to send link',
+          title: "Failed to send link",
           description: error.message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         setEmailSent(true);
         toast({
-          title: 'Check your email!',
-          description: 'We sent you a magic link to sign in.',
+          title: "Check your email",
+          description: "We sent you a magic link to sign in.",
         });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
-          title: 'Invalid email',
+          title: "Invalid email",
           description: error.issues[0].message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } finally {
@@ -177,43 +175,43 @@ export default function Auth() {
     try {
       emailSchema.parse(email);
       passwordSchema.parse(password);
-      
-      if (authTab === 'signup') {
+
+      if (authTab === "signup") {
         usernameSchema.parse(username);
         const { error } = await signUp(email, password, username);
-        
+
         if (error) {
           toast({
-            title: 'Signup failed',
+            title: "Signup failed",
             description: error.message,
-            variant: 'destructive',
+            variant: "destructive",
           });
         } else {
           toast({
-            title: 'Account created!',
-            description: 'Welcome to Hexology!',
+            title: "Account created",
+            description: "Your BOARD identity is ready.",
           });
-          navigate('/lobby');
+          navigate("/worlds");
         }
       } else {
         const { error } = await signIn(email, password);
-        
+
         if (error) {
           toast({
-            title: 'Sign in failed',
+            title: "Sign in failed",
             description: error.message,
-            variant: 'destructive',
+            variant: "destructive",
           });
         } else {
-          navigate('/lobby');
+          navigate("/worlds");
         }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
-          title: 'Validation error',
+          title: "Validation error",
           description: error.issues[0].message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } finally {
@@ -221,439 +219,433 @@ export default function Auth() {
     }
   };
 
-  // Forgot Password View
-  if (authView === 'forgot-password') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-card border-2 border-border rounded-xl p-8 shadow-lg">
-            <div className="text-center mb-6">
-              <h1 className="font-display text-4xl text-foreground mb-2">Reset Password</h1>
-              <p className="text-foreground/60 text-sm">
-                {emailSent ? 'Check your inbox' : "Enter your email to receive a reset link"}
-              </p>
-            </div>
-
-            {emailSent ? (
-              <div className="text-center space-y-6">
-                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-                  <Mail className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <p className="text-foreground mb-2">We sent a reset link to</p>
-                  <p className="font-semibold text-foreground">{email}</p>
-                </div>
-                <p className="text-foreground/60 text-sm">
-                  Click the link in your email to reset your password.
-                </p>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setEmailSent(false);
-                    setAuthView('main');
-                  }}
-                  className="text-foreground/60"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to sign in
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div>
-                  <Label htmlFor="reset-email" className="text-foreground">Email</Label>
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    className="mt-1 bg-background border-border"
-                    required
-                    autoFocus
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="hero"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Send Reset Link
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full text-foreground/60"
-                  onClick={() => setAuthView('main')}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to sign in
-                </Button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Reset Password View (after clicking email link)
-  if (authView === 'reset-password') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-card border-2 border-border rounded-xl p-8 shadow-lg">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <KeyRound className="h-8 w-8 text-primary" />
-              </div>
-              <h1 className="font-display text-4xl text-foreground mb-2">New Password</h1>
-              <p className="text-foreground/60 text-sm">Enter your new password below</p>
-            </div>
-
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <Label htmlFor="new-password" className="text-foreground">New Password</Label>
-                <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-10 bg-background border-border"
-                    required
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="confirm-password" className="text-foreground">Confirm Password</Label>
-                <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-10 bg-background border-border"
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                variant="hero"
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  'Update Password'
-                )}
-              </Button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-8">
-        {/* Features Unlock Preview - Desktop */}
-        <div className="hidden lg:flex flex-col justify-center flex-1 pr-8">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Unlock Full Access</h2>
-          <p className="text-foreground/60 mb-6">Create an account to access all features</p>
-          <div className="space-y-4">
-            {UNLOCK_FEATURES.map((feature, i) => (
-              <div 
-                key={feature.label}
-                className="flex items-center gap-4 p-4 rounded-lg bg-primary/5 border border-primary/20 animate-fade-in"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <feature.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{feature.label}</p>
-                  <p className="text-sm text-foreground/60">{feature.description}</p>
-                </div>
-                <CheckCircle2 className="h-5 w-5 text-primary/50" />
-              </div>
-            ))}
+    <SiteFrame contentClassName="pt-24">
+      <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-6">
+          <div className="max-w-3xl">
+            <p className="board-rail-label">Identity gate</p>
+            <h1 className="mt-4 text-balance text-5xl font-bold tracking-[-0.08em] text-foreground md:text-6xl">
+              Enter BOARD as a host, member, or returning player.
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+              Accounts unlock worlds, events, recurring venues, and any role that
+              depends on identity. Practice can still stay local when you just want
+              to think and play.
+            </p>
+          </div>
+
+          <SkeletalBoardScene variant="compact" className="max-w-3xl" />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <VenuePanel
+              eyebrow="Account use"
+              title="When identity matters"
+              description="Create or join worlds, enter host-run events, return to rooms, and keep your role inside recurring spaces."
+            />
+            <VenuePanel
+              eyebrow="Local practice"
+              title="When it does not"
+              description="If you only want a fast solo session, BOARD keeps that path light and immediate."
+            >
+              <Button variant="outline" onClick={() => navigate("/play")}>
+                Practice locally
+              </Button>
+            </VenuePanel>
           </div>
         </div>
 
-        {/* Auth Form */}
-        <div className="w-full lg:w-96">
-          {/* Mobile Features Preview */}
-          <div className="lg:hidden mb-6">
-            <div className="bg-gradient-to-r from-primary/10 to-violet/10 rounded-xl p-4 border border-primary/20">
-              <p className="text-sm font-medium text-foreground mb-3 text-center">Unlock with an account:</p>
-              <div className="flex justify-center gap-6">
-                {UNLOCK_FEATURES.map((feature) => (
-                  <div key={feature.label} className="flex flex-col items-center gap-1">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <feature.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <span className="text-xs text-foreground/70 text-center max-w-[60px]">{feature.label.split(' ')[0]}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card/40 backdrop-blur-xl border border-primary/20 rounded-3xl p-10 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-              <Shield className="h-20 w-20 text-primary" />
-            </div>
-            
-            <div className="text-center mb-10">
-              <h1 className="font-display-text text-5xl font-bold text-white mb-2 bg-gradient-to-b from-primary to-primary/60 bg-clip-text text-transparent">Hexology</h1>
-              <p className="text-muted-foreground/60 text-xs font-mono uppercase tracking-[0.2em]">
-                {emailSent ? 'Verify Identity' : authTab === 'signup' ? 'Join the Hub' : 'Elite Access'}
-              </p>
-            </div>
-
-            {emailSent ? (
-              <div className="text-center space-y-6">
-                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-                  <Mail className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <p className="text-foreground mb-2">We sent a magic link to</p>
-                  <p className="font-semibold text-foreground">{email}</p>
-                </div>
-                <p className="text-foreground/60 text-sm">
-                  Click the link in your email to sign in instantly.
-                </p>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setEmailSent(false);
-                    setEmail('');
-                  }}
-                  className="text-foreground/60"
+        <VenuePanel
+          eyebrow={
+            authView === "forgot-password"
+              ? "Password reset"
+              : authView === "reset-password"
+                ? "New password"
+                : "Entry"
+          }
+          title={getAuthTitle(authView, emailSent, authTab)}
+          description={getAuthDescription(authView, emailSent, authTab, email)}
+          className="bg-white/92"
+        >
+          {authView === "forgot-password" ? (
+            <ForgotPasswordForm
+              email={email}
+              setEmail={setEmail}
+              emailSent={emailSent}
+              isSubmitting={isSubmitting}
+              onSubmit={handleForgotPassword}
+              onBack={() => {
+                setEmailSent(false);
+                setAuthView("main");
+              }}
+            />
+          ) : authView === "reset-password" ? (
+            <ResetPasswordForm
+              newPassword={newPassword}
+              confirmPassword={confirmPassword}
+              setNewPassword={setNewPassword}
+              setConfirmPassword={setConfirmPassword}
+              isSubmitting={isSubmitting}
+              onSubmit={handleResetPassword}
+            />
+          ) : emailSent ? (
+            <MagicLinkSent email={email} onReset={() => { setEmailSent(false); setEmail(""); }} />
+          ) : (
+            <>
+              <div className="mb-6 flex items-center justify-between border-b border-black/10 pb-4">
+                <BoardLogo tone="dark" />
+                <button
+                  type="button"
+                  onClick={() => navigate("/play")}
+                  className="text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Use a different email
-                </Button>
+                  Practice locally
+                </button>
               </div>
-            ) : (
-              <>
-                {/* Auth Mode Toggle */}
-                <div className="flex rounded-lg bg-muted p-1 mb-6">
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('magic-link')}
-                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
-                      authMode === 'magic-link'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Magic Link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('password')}
-                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
-                      authMode === 'password'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Email & Password
-                  </button>
-                </div>
 
-                {authMode === 'magic-link' ? (
-                  <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="email" className="text-foreground">Email</Label>
+              <div className="mb-6 grid grid-cols-2 border border-black/10 bg-[#f7f5ef] p-1">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("magic-link")}
+                  className={authMode === "magic-link" ? "bg-black px-3 py-2 text-sm font-semibold text-white" : "px-3 py-2 text-sm font-semibold text-muted-foreground"}
+                >
+                  Magic Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("password")}
+                  className={authMode === "password" ? "bg-black px-3 py-2 text-sm font-semibold text-white" : "px-3 py-2 text-sm font-semibold text-muted-foreground"}
+                >
+                  Email + Password
+                </button>
+              </div>
+
+              {authMode === "magic-link" ? (
+                <form onSubmit={handleMagicLinkSubmit} className="space-y-5">
+                  <Field label="Email" htmlFor="email">
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="mt-1 bg-background border-border"
+                        placeholder="you@club.com"
+                        className="h-12 border-black/10 bg-[#faf9f4] pl-10"
                         required
                         autoFocus
                       />
                     </div>
+                  </Field>
 
-                    <Button
-                      type="submit"
-                      variant="hero"
-                      className="w-full"
-                      disabled={isSubmitting}
+                  <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        Send Magic Link
+                      </>
+                    )}
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <div className="mb-5 flex gap-6 border-b border-black/10">
+                    <button
+                      type="button"
+                      onClick={() => setAuthTab("signup")}
+                      className={authTab === "signup" ? "border-b border-black pb-3 text-sm font-semibold text-foreground" : "pb-3 text-sm font-semibold text-muted-foreground"}
                     >
+                      Create Account
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthTab("signin")}
+                      className={authTab === "signin" ? "border-b border-black pb-3 text-sm font-semibold text-foreground" : "pb-3 text-sm font-semibold text-muted-foreground"}
+                    >
+                      Sign In
+                    </button>
+                  </div>
+
+                  <form onSubmit={handlePasswordSubmit} className="space-y-5">
+                    {authTab === "signup" ? (
+                      <Field label="Username" htmlFor="username">
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            id="username"
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Choose a name"
+                            className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+                            required
+                            autoFocus
+                          />
+                        </div>
+                      </Field>
+                    ) : null}
+
+                    <Field label="Email" htmlFor="email-password">
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="email-password"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@club.com"
+                          className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+                          required
+                          autoFocus={authTab === "signin"}
+                        />
+                      </div>
+                    </Field>
+
+                    <Field label="Password" htmlFor="password">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Password</span>
+                        {authTab === "signin" ? (
+                          <button
+                            type="button"
+                            onClick={() => setAuthView("forgot-password")}
+                            className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                          >
+                            Forgot password?
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter your password"
+                          className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+                          required
+                        />
+                      </div>
+                    </Field>
+
+                    <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Sending...
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {authTab === "signup" ? "Creating account" : "Signing in"}
                         </>
+                      ) : authTab === "signup" ? (
+                        "Create Account"
                       ) : (
-                        <>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Magic Link
-                        </>
+                        "Sign In"
                       )}
                     </Button>
                   </form>
-                ) : (
-                  <>
-                    {/* Sign In / Sign Up Tabs */}
-                    <div className="flex gap-4 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => setAuthTab('signup')}
-                        className={`flex-1 pb-2 text-sm font-medium border-b-2 transition-all ${
-                          authTab === 'signup'
-                            ? 'border-primary text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Sign Up
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAuthTab('signin')}
-                        className={`flex-1 pb-2 text-sm font-medium border-b-2 transition-all ${
-                          authTab === 'signin'
-                            ? 'border-primary text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Sign In
-                      </button>
-                    </div>
-
-                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                      {authTab === 'signup' && (
-                        <div>
-                          <Label htmlFor="username" className="text-foreground">Username</Label>
-                          <div className="relative mt-1">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="username"
-                              type="text"
-                              value={username}
-                              onChange={(e) => setUsername(e.target.value)}
-                              placeholder="Choose a username"
-                              className="pl-10 bg-background border-border"
-                              required
-                              autoFocus
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div>
-                        <Label htmlFor="email-password" className="text-foreground">Email</Label>
-                        <div className="relative mt-1">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="email-password"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="your@email.com"
-                            className="pl-10 bg-background border-border"
-                            required
-                            autoFocus={authTab === 'signin'}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="password" className="text-foreground">Password</Label>
-                          {authTab === 'signin' && (
-                            <button
-                              type="button"
-                              onClick={() => setAuthView('forgot-password')}
-                              className="text-xs text-primary hover:underline"
-                            >
-                              Forgot password?
-                            </button>
-                          )}
-                        </div>
-                        <div className="relative mt-1">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="pl-10 bg-background border-border"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <Button
-                        type="submit"
-                        variant="hero"
-                        className="w-full"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {authTab === 'signup' ? 'Creating account...' : 'Signing in...'}
-                          </>
-                        ) : (
-                          authTab === 'signup' ? 'Create Account' : 'Sign In'
-                        )}
-                      </Button>
-                    </form>
-                  </>
-                )}
-              </>
-            )}
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/lobby')}
-                className="text-sm text-foreground/60 hover:text-foreground transition-gentle"
-              >
-                Continue as guest instead
-              </button>
-            </div>
-          </div>
-
-          <p className="text-center text-foreground/40 text-xs mt-8">
-            "Every move is a question. The board will answer."
-          </p>
-        </div>
+                </>
+              )}
+            </>
+          )}
+        </VenuePanel>
       </div>
+    </SiteFrame>
+  );
+}
+
+function getAuthTitle(authView: AuthView, emailSent: boolean, authTab: AuthTab) {
+  if (authView === "forgot-password") return emailSent ? "Check your inbox" : "Reset password";
+  if (authView === "reset-password") return "Set a new password";
+  if (emailSent) return "Magic link sent";
+  return authTab === "signup" ? "Create your BOARD identity" : "Return to BOARD";
+}
+
+function getAuthDescription(
+  authView: AuthView,
+  emailSent: boolean,
+  authTab: AuthTab,
+  email: string,
+) {
+  if (authView === "forgot-password") {
+    return emailSent
+      ? `A reset link was sent to ${email}.`
+      : "Enter your email and we will send you a reset link.";
+  }
+  if (authView === "reset-password") {
+    return "Choose a new password for this account.";
+  }
+  if (emailSent) {
+    return `Use the link we sent to ${email} to continue into BOARD.`;
+  }
+  return authTab === "signup"
+    ? "Use an email or magic link to create your host or member identity."
+    : "Sign in to re-enter your worlds, rooms, and events.";
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      {label === "Password" ? null : <Label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-foreground">{label}</Label>}
+      {children}
+    </div>
+  );
+}
+
+function ForgotPasswordForm({
+  email,
+  setEmail,
+  emailSent,
+  isSubmitting,
+  onSubmit,
+  onBack,
+}: {
+  email: string;
+  setEmail: (value: string) => void;
+  emailSent: boolean;
+  isSubmitting: boolean;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
+  onBack: () => void;
+}) {
+  return emailSent ? (
+    <div className="space-y-5">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] border border-black/10 bg-[#faf9f4]">
+        <Mail className="h-6 w-6 text-foreground" />
+      </div>
+      <p className="text-sm leading-7 text-muted-foreground">
+        Click the link in your email to reset your password, then return here to sign in.
+      </p>
+      <Button variant="outline" onClick={onBack} className="h-11 w-full">
+        <ArrowLeft className="h-4 w-4" />
+        Back to sign in
+      </Button>
+    </div>
+  ) : (
+    <form onSubmit={onSubmit} className="space-y-5">
+      <Field label="Email" htmlFor="reset-email">
+        <Input
+          id="reset-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@club.com"
+          className="h-12 border-black/10 bg-[#faf9f4]"
+          required
+          autoFocus
+        />
+      </Field>
+      <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Sending
+          </>
+        ) : (
+          <>
+            <Mail className="h-4 w-4" />
+            Send Reset Link
+          </>
+        )}
+      </Button>
+      <Button type="button" variant="outline" className="h-11 w-full" onClick={onBack}>
+        <ArrowLeft className="h-4 w-4" />
+        Back to sign in
+      </Button>
+    </form>
+  );
+}
+
+function ResetPasswordForm({
+  newPassword,
+  confirmPassword,
+  setNewPassword,
+  setConfirmPassword,
+  isSubmitting,
+  onSubmit,
+}: {
+  newPassword: string;
+  confirmPassword: string;
+  setNewPassword: (value: string) => void;
+  setConfirmPassword: (value: string) => void;
+  isSubmitting: boolean;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-5">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] border border-black/10 bg-[#faf9f4]">
+        <KeyRound className="h-6 w-6 text-foreground" />
+      </div>
+      <Field label="New Password" htmlFor="new-password">
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="new-password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="New password"
+            className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+            required
+            autoFocus
+          />
+        </div>
+      </Field>
+      <Field label="Confirm Password" htmlFor="confirm-password">
+        <div className="relative">
+          <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm password"
+            className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+            required
+          />
+        </div>
+      </Field>
+      <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Updating
+          </>
+        ) : (
+          "Update Password"
+        )}
+      </Button>
+    </form>
+  );
+}
+
+function MagicLinkSent({
+  email,
+  onReset,
+}: {
+  email: string;
+  onReset: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] border border-black/10 bg-[#faf9f4]">
+        <Mail className="h-6 w-6 text-foreground" />
+      </div>
+      <p className="text-sm leading-7 text-muted-foreground">
+        The sign-in link was sent to <span className="font-semibold text-foreground">{email}</span>.
+      </p>
+      <Button variant="outline" className="h-11 w-full" onClick={onReset}>
+        Use a different email
+      </Button>
     </div>
   );
 }

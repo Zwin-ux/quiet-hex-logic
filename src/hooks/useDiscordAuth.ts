@@ -31,55 +31,39 @@ export function useDiscordAuth(): DiscordAuthState {
         return;
       }
 
-      // Wait for Discord authentication
-      if (!isAuthenticated || !discordUser || !accessToken) {
-        setLoading(true);
-        return;
-      }
-
       try {
-        // Check if user already has a Supabase session
         const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          // Check if Discord is linked to this account
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('discord_id')
-            .eq('id', session.user.id)
-            .single();
-          
-          setIsDiscordLinked(profile?.discord_id === discordUser.id);
-          setUser(session.user);
+        setUser(session?.user ?? null);
+
+        if (!session?.user) {
+          setIsDiscordLinked(false);
           setLoading(false);
           return;
         }
 
-        // No session - sign in anonymously and link Discord
-        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-        
-        if (anonError) {
-          console.error('[Discord Auth] Anonymous sign-in failed:', anonError);
-          throw anonError;
+        if (!isAuthenticated || !discordUser || !accessToken) {
+          setIsDiscordLinked(false);
+          setLoading(false);
+          return;
         }
 
-        if (anonData.user) {
-          // Update the profile with Discord info
-          const username = discordUser.global_name || discordUser.username;
-          
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('discord_id')
+          .eq('id', session.user.id)
+          .single();
+
+        const linked = profile?.discord_id === discordUser.id;
+        setIsDiscordLinked(linked);
+
+        if (!session.user.is_anonymous) {
           await supabase
             .from('profiles')
             .update({
-              username: username,
               discord_id: discordUser.id,
               discord_username: discordUser.username,
-              avatar_color: 'discord', // Special indicator
-              is_guest: false, // Discord users are not guests
             })
-            .eq('id', anonData.user.id);
-
-          setIsDiscordLinked(true);
-          setUser(anonData.user);
+            .eq('id', session.user.id);
         }
 
       } catch (error) {
@@ -105,13 +89,16 @@ export function useDiscordAuth(): DiscordAuthState {
     if (!discordUser || !user) return;
 
     try {
-      await supabase
-        .from('profiles')
-        .update({
-          discord_id: discordUser.id,
-          discord_username: discordUser.username,
-        })
-        .eq('id', user.id);
+      const authWithLink = supabase.auth as typeof supabase.auth & {
+        linkIdentity?: (credentials: { provider: string }) => Promise<{ error: { message?: string } | null }>;
+      };
+
+      if (typeof authWithLink.linkIdentity !== 'function') {
+        throw new Error('Identity linking is not available in this client');
+      }
+
+      const { error } = await authWithLink.linkIdentity({ provider: 'discord' });
+      if (error) throw new Error(error.message || 'Failed to link Discord identity');
 
       setIsDiscordLinked(true);
     } catch (error) {

@@ -1,64 +1,59 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { LogIn } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 type JoinLobbyProps = {
   userId: string;
 };
 
 export function JoinLobby({ userId }: JoinLobbyProps) {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [joining, setJoining] = useState(false);
   const navigate = useNavigate();
 
   const joinLobby = async (retryCount = 0) => {
     if (!code || code.length < 4) {
-      toast.error('Please enter a valid lobby code');
+      toast.error("Please enter a valid lobby code");
       return;
     }
 
     setJoining(true);
     try {
-      const { data, error } = await supabase.functions.invoke('join-lobby', {
-        body: { code: code.toUpperCase() }
+      const { data, error } = await supabase.functions.invoke("join-lobby", {
+        body: { code: code.toUpperCase() },
       });
 
       if (error) throw error;
       if (data?.error) {
-        // Provide specific error messages for common failures
         const errorMsg = data.error.toLowerCase();
-        if (errorMsg.includes('not found') || errorMsg.includes('already started')) {
-          throw new Error('Invalid code or lobby already started');
-        } else if (errorMsg.includes('full')) {
-          throw new Error('This lobby already has 2 players');
+        if (errorMsg.includes("not found") || errorMsg.includes("already started")) {
+          throw new Error("Invalid code or lobby already started");
+        } else if (errorMsg.includes("full")) {
+          throw new Error("This lobby already has 2 players");
         } else {
           throw new Error(data.error);
         }
       }
 
       if (!data?.lobby?.id) {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
 
-      toast.success('Joined lobby!');
-      // Ensure navigation happens
+      toast.success("Joined room");
       navigate(`/lobby/${data.lobby.id}`);
     } catch (err: any) {
-      const errorMessage = err.message || 'Unknown error occurred';
+      const errorMessage = err.message || "Unknown error occurred";
 
-      // Check if it's a network error and retry
       if (
         retryCount < 2 &&
-        (errorMessage.includes('network') ||
-          errorMessage.includes('fetch') ||
-          errorMessage.includes('timeout'))
+        (errorMessage.includes("network") ||
+          errorMessage.includes("fetch") ||
+          errorMessage.includes("timeout"))
       ) {
-        // Exponential backoff: 500ms, 1000ms
         const delay = 500 * Math.pow(2, retryCount);
         toast.info(`Connection issue, retrying in ${delay}ms...`);
 
@@ -68,50 +63,41 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
         return;
       }
 
-      // Show user-friendly error
-      toast.error('Failed to join lobby', {
-        description: errorMessage
+      toast.error("Failed to join room", {
+        description: errorMessage,
       });
       setJoining(false);
     }
   };
 
   return (
-    <Card className="p-4 sm:p-6 shadow-soft border-2 border-border hover:border-ochre/30 transition-all duration-300">
-      <div className="flex items-center gap-3 mb-3">
-        <LogIn className="h-5 w-5 text-ochre" />
-        <h2 className="font-body text-lg sm:text-xl font-semibold text-foreground">
-          Join Lobby
-        </h2>
-      </div>
-      
-      <p className="text-muted-foreground mb-4 font-body text-xs sm:text-sm leading-relaxed">
-        Enter a code to join your friend
-      </p>
-
-      <div className="space-y-3">
+    <section className="board-panel board-panel-cut rounded-[1.6rem] bg-white/92 p-5 md:p-6">
+      <div className="flex items-center gap-3 border-b border-black/10 pb-4">
+        <LogIn className="h-4 w-4 text-foreground" />
         <div>
-          <label className="text-xs font-medium mb-1.5 block text-muted-foreground">
-            Lobby Code
-          </label>
+          <p className="board-rail-label text-[10px]">Direct access</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-[-0.05em] text-foreground">
+            Enter a room by code
+          </h2>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <div>
+          <p className="mb-2 text-sm font-medium text-foreground">Room code</p>
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="ABC123"
             maxLength={6}
-            className="font-mono text-base tracking-wider text-center uppercase h-10 sm:h-11"
+            className="h-12 border-black/10 bg-[#faf9f4] text-center font-mono text-base tracking-[0.3em] uppercase"
           />
         </div>
 
-        <Button 
-          onClick={() => joinLobby()} 
-          disabled={joining || code.length < 4}
-          className="w-full h-11 font-medium touch-manipulation"
-          variant="secondary"
-        >
-          {joining ? 'Joining...' : 'Join Lobby'}
+        <Button onClick={() => joinLobby()} disabled={joining || code.length < 4} className="clip-stage h-12 w-full">
+          {joining ? "Joining..." : "Join room"}
         </Button>
       </div>
-    </Card>
+    </section>
   );
 }

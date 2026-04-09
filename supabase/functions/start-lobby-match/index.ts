@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
       .from('matches')
       .insert({
         lobby_id: lobbyId,
+        world_id: (lobby as any).world_id ?? null,
         owner: lobby.host_id,
         game_key: (lobby as any).game_key ?? 'hex',
         size: ((lobby as any).game_key ?? 'hex') === 'chess'

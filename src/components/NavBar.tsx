@@ -1,23 +1,24 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, User, Wrench } from "lucide-react";
 import { BoardLogo } from "@/components/BoardLogo";
 import { cn } from "@/lib/utils";
 
-const LANDING_LINKS = [
-  { label: "Worlds", path: "/lobby" },
-  { label: "Events", path: "/tournaments" },
-  { label: "Arena", path: "/arena" },
+const PRIMARY_LINKS = [
+  { label: "Worlds", path: "/worlds" },
+  { label: "Play", path: "/play" },
+  { label: "Events", path: "/events" },
   { label: "Docs", path: "/docs" },
 ];
 
-const APP_LINKS = [
-  { label: "Lobby", path: "/lobby" },
-  { label: "Arena", path: "/arena" },
-  { label: "Events", path: "/tournaments" },
-  { label: "Docs", path: "/docs" },
-] as const;
+const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
+  { match: /^\/$/, label: "Future venue OS" },
+  { match: /^\/auth/, label: "Entry gate" },
+  { match: /^\/worlds/, label: "World directory" },
+  { match: /^\/play|^\/lobby/, label: "Play desk" },
+  { match: /^\/events|^\/tournaments|^\/tournament/, label: "Event directory" },
+  { match: /^\/match|^\/replay/, label: "Live instance" },
+];
 
 export function NavBar() {
   const navigate = useNavigate();
@@ -25,123 +26,116 @@ export function NavBar() {
   const { user, signOut } = useAuth();
 
   const isLanding = location.pathname === "/";
-  const links = isLanding ? LANDING_LINKS : APP_LINKS;
+  const currentLabel =
+    ROUTE_LABELS.find((route) => route.match.test(location.pathname))?.label ?? "BOARD";
+
+  const isActive = (path: string) =>
+    location.pathname === path ||
+    (path !== "/" && location.pathname.startsWith(path));
 
   return (
-    <div
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl",
-        isLanding
-          ? "border-black/10 bg-[#f5f4ef]/90 text-[#0a0a0a]"
-          : "border-border/60 bg-background/85 text-foreground",
-      )}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <button
-          onClick={() => navigate("/")}
-          className="transition-opacity hover:opacity-80"
-          aria-label="Go to home"
-        >
-          <BoardLogo tone={isLanding ? "dark" : "light"} />
-        </button>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-black/10 bg-background/86 text-foreground backdrop-blur-xl">
+      <div className="mx-auto max-w-[1440px] px-4 md:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <button
+              onClick={() => navigate("/")}
+              className="transition-opacity hover:opacity-75"
+              aria-label="Go to home"
+            >
+              <BoardLogo tone="dark" />
+            </button>
+            <div className="hidden min-w-0 border-l border-black/10 pl-4 lg:block">
+              <p className="board-rail-label text-[10px]">{currentLabel}</p>
+            </div>
+          </div>
 
-        <div className="hidden items-center gap-1 md:flex">
-          {links.map((link) => (
-            <Button
+          <nav className="hidden items-center gap-8 md:flex">
+            {PRIMARY_LINKS.map((link) => (
+              <button
+                key={link.path}
+                onClick={() => navigate(link.path)}
+                className={cn(
+                  "relative text-sm font-semibold tracking-[-0.02em] text-muted-foreground transition-colors hover:text-foreground",
+                  isActive(link.path) && "text-foreground",
+                )}
+              >
+                {link.label}
+                <span
+                  className={cn(
+                    "absolute -bottom-2 left-0 h-px bg-foreground transition-all duration-300",
+                    isActive(link.path) ? "w-full opacity-100" : "w-0 opacity-0",
+                  )}
+                />
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <IconRailButton onClick={() => navigate("/profile")} label="Profile">
+                  <User className="h-4 w-4" />
+                </IconRailButton>
+                <IconRailButton onClick={() => navigate("/workbench")} label="Workbench">
+                  <Wrench className="h-4 w-4" />
+                </IconRailButton>
+                <IconRailButton
+                  onClick={() => {
+                    signOut();
+                    navigate("/auth");
+                  }}
+                  label="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </IconRailButton>
+              </>
+            ) : (
+              <button
+                onClick={() => navigate("/auth")}
+                className="clip-stage border border-black bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1b1c20]"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+
+          <div className="scrollbar-hide flex gap-5 overflow-x-auto border-t border-black/10 pb-3 pt-2 md:hidden">
+          {PRIMARY_LINKS.map((link) => (
+            <button
               key={link.path}
-              variant="ghost"
-              size="sm"
               onClick={() => navigate(link.path)}
               className={cn(
-                "rounded-full px-4 text-sm font-semibold",
-                isLanding
-                  ? "text-[#222] hover:bg-black/5 hover:text-black"
-                  : "text-foreground/85 hover:bg-accent",
+                "whitespace-nowrap text-sm font-semibold text-muted-foreground transition-colors",
+                isActive(link.path) && "text-foreground",
               )}
             >
               {link.label}
-            </Button>
+            </button>
           ))}
         </div>
-
-        <div className="flex items-center gap-2">
-          {user ? (
-            <>
-              {isLanding && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/lobby")}
-                  className="hidden rounded-full border-black/10 bg-white px-4 font-semibold text-black hover:bg-black/5 md:inline-flex"
-                >
-                  Open App
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/profile")}
-                className={cn(
-                  "h-10 w-10 rounded-full",
-                  isLanding ? "text-black hover:bg-black/5" : "text-foreground",
-                )}
-              >
-                <User className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/workbench")}
-                className={cn(
-                  "h-10 w-10 rounded-full",
-                  isLanding ? "text-black hover:bg-black/5" : "text-foreground",
-                )}
-              >
-                <Wrench className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  signOut();
-                  navigate("/auth");
-                }}
-                className={cn(
-                  "h-10 w-10 rounded-full",
-                  isLanding ? "text-black hover:bg-black/5" : "text-foreground",
-                )}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </>
-          ) : (
-            <>
-              {!isLanding && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/")}
-                  className="hidden rounded-full px-4 font-semibold md:inline-flex"
-                >
-                  Home
-                </Button>
-              )}
-              <Button
-                size="sm"
-                onClick={() => navigate("/auth")}
-                className={cn(
-                  "rounded-full px-5 font-semibold shadow-none",
-                  isLanding
-                    ? "bg-[#0a0a0a] text-white hover:bg-[#1a1a1a]"
-                    : "",
-                )}
-              >
-                Sign In
-              </Button>
-            </>
-          )}
-        </div>
       </div>
-    </div>
+    </header>
+  );
+}
+
+function IconRailButton({
+  children,
+  label,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] border border-black/10 bg-white/80 text-foreground transition-colors hover:bg-black hover:text-white"
+    >
+      {children}
+    </button>
   );
 }

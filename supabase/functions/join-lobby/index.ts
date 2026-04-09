@@ -49,74 +49,15 @@ Deno.serve(async (req) => {
     
     const { code } = validationResult.data;
 
-    // Find lobby by code
-    const { data: lobbyId, error: findError } = await supabase.rpc('find_lobby_by_code', {
-      lobby_code: code
+    const { data: joinResult, error: joinError } = await supabase.rpc('join_lobby_by_code_atomic', {
+      p_code: code,
     });
-    if (findError) throw findError;
-    if (!lobbyId) {
-      throw new Error('Lobby not found or already started');
-    }
-
-    // Check if lobby is full
-    const { count, error: countError } = await supabase
-      .from('lobby_players')
-      .select('*', { count: 'exact', head: true })
-      .eq('lobby_id', lobbyId);
-
-    if (countError) throw countError;
-    if (count && count >= 2) {
-      throw new Error('Lobby is full');
-    }
-
-    // Check if already in lobby
-    const { data: existing } = await supabase
-      .from('lobby_players')
-      .select('*')
-      .eq('lobby_id', lobbyId)
-      .eq('player_id', user.id)
-      .single();
-
-    if (existing) {
-      // Already in lobby, just update last_seen
-      await supabase
-        .from('lobby_players')
-        .update({ last_seen: new Date().toISOString() })
-        .eq('lobby_id', lobbyId)
-        .eq('player_id', user.id);
-
-      const { data: lobby } = await supabase
-        .from('lobbies')
-        .select('*')
-        .eq('id', lobbyId)
-        .single();
-
-      return new Response(
-        JSON.stringify({ lobby }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Join lobby
-    const { error: joinError } = await supabase
-      .from('lobby_players')
-      .insert({
-        lobby_id: lobbyId,
-        player_id: user.id,
-        role: 'guest',
-        is_ready: false
-      });
-
     if (joinError) throw joinError;
 
-    // Get full lobby details
-    const { data: lobby, error: lobbyError } = await supabase
-      .from('lobbies')
-      .select('*')
-      .eq('id', lobbyId)
-      .single();
-
-    if (lobbyError) throw lobbyError;
+    const lobby = (joinResult as any)?.lobby;
+    if (!lobby) {
+      throw new Error('Lobby not found or already started');
+    }
 
     console.log(`User ${user.id} joined lobby ${code}`);
 

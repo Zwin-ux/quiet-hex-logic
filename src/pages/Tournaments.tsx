@@ -1,20 +1,22 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useGuestMode } from '@/hooks/useGuestMode';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreateTournamentDialog } from '@/components/CreateTournamentDialog';
-import { Trophy, Users, Clock, Calendar, Plus } from 'lucide-react';
-import { NavBar } from '@/components/NavBar';
-import { toast } from 'sonner';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Calendar, Clock, Plus, Trophy, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { SiteFrame } from "@/components/board/SiteFrame";
+import { SectionRail } from "@/components/board/SectionRail";
+import { VenuePanel } from "@/components/board/VenuePanel";
+import { MetricLine } from "@/components/board/MetricLine";
+import { Button } from "@/components/ui/button";
+import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
+import { toast } from "sonner";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { listWorlds } from "@/lib/worlds";
 
 interface Tournament {
   id: string;
+  world_id?: string | null;
   name: string;
   description: string | null;
   format: string;
@@ -29,210 +31,181 @@ interface Tournament {
 }
 
 export default function Tournaments() {
-  useDocumentTitle('Tournaments');
+  useDocumentTitle("Events");
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isGuest, guestUsername } = useGuestMode();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [worldNames, setWorldNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
+  const openTournaments = useMemo(
+    () => tournaments.filter((tournament) => ["registration"].includes(tournament.status)),
+    [tournaments],
+  );
+  const activeTournaments = useMemo(
+    () => tournaments.filter((tournament) => ["active", "seeding"].includes(tournament.status)),
+    [tournaments],
+  );
+  const completedTournaments = useMemo(
+    () => tournaments.filter((tournament) => ["completed"].includes(tournament.status)),
+    [tournaments],
+  );
+  const worldHostedCount = useMemo(
+    () => tournaments.filter((tournament) => Boolean(tournament.world_id)).length,
+    [tournaments],
+  );
+  const standaloneCount = tournaments.length - worldHostedCount;
+
+  const loadTournaments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("tournaments")
+        .select(
+          `
+          *,
+          tournament_participants(count)
+        `,
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const tournamentsWithCount =
+        data?.map((t) => ({
+          ...t,
+          participant_count: t.tournament_participants?.[0]?.count || 0,
+        })) || [];
+
+      setTournaments(tournamentsWithCount);
+    } catch (error) {
+      console.error("Failed to load tournaments:", error);
+      toast.error("Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWorldNames = async () => {
+    try {
+      const worlds = await listWorlds(user?.id);
+      setWorldNames(Object.fromEntries(worlds.map((world) => [world.id, world.name])));
+    } catch (error) {
+      console.error("Failed to load world directory:", error);
+    }
+  };
+
   useEffect(() => {
     loadTournaments();
+    loadWorldNames();
 
-    // Subscribe to tournament changes
     const channel = supabase
-      .channel('tournaments')
+      .channel("tournaments")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'tournaments'
+          event: "*",
+          schema: "public",
+          table: "tournaments",
         },
-        () => loadTournaments()
+        () => loadTournaments(),
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  const loadTournaments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select(`
-          *,
-          tournament_participants(count)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const tournamentsWithCount = data?.map(t => ({
-        ...t,
-        participant_count: t.tournament_participants?.[0]?.count || 0
-      })) || [];
-
-      setTournaments(tournamentsWithCount);
-    } catch (error) {
-      console.error('Failed to load tournaments:', error);
-      toast.error('Failed to load tournaments');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'registration': return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'active': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'completed': return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  const getFormatLabel = (format: string) => {
-    switch (format) {
-      case 'single_elimination': return 'Single Elimination';
-      case 'round_robin': return 'Round Robin';
-      default: return format;
-    }
-  };
-
-  const filterTournaments = (status: string[]) => {
-    return tournaments.filter(t => status.includes(t.status));
-  };
+  }, [user?.id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Trophy className="h-12 w-12 mx-auto mb-4 text-primary animate-gentle-pulse" />
-          <p className="font-mono text-muted-foreground">Loading tournaments...</p>
+      <SiteFrame>
+        <div className="flex min-h-[420px] items-center justify-center">
+          <Trophy className="h-10 w-10 animate-gentle-pulse text-muted-foreground" />
         </div>
-      </div>
+      </SiteFrame>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <NavBar />
-      <div className="p-4 md:p-8 pt-14">
-      <div className="max-w-6xl mx-auto">
-        {/* Guest Mode Banner */}
-        {isGuest && (
-          <Card className="mb-8 p-6 bg-gradient-to-r from-violet/10 to-indigo/10 border-2 border-violet/30">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-violet/20 flex items-center justify-center">
-                <Trophy className="h-8 w-8 text-violet" />
-              </div>
-              <div>
-                <h3 className="font-body text-xl font-bold text-foreground mb-2">
-                  Tournaments Locked
-                </h3>
-                <p className="text-muted-foreground mb-4 max-w-md">
-                  Playing as {guestUsername}. Create a free account to join tournaments and compete for glory!
-                </p>
-              </div>
-              <Button 
-                onClick={() => navigate('/auth')}
-                size="lg"
-                className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90"
-              >
-                Create Free Account
+    <SiteFrame>
+      <SectionRail
+        eyebrow="Event directory"
+        title="Cross-world competition, scheduled from real venues."
+        description={
+          <>
+            This is the network-wide event list. Recurring competitions should be
+            staged from a world, not from a floating one-off page.
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={() => navigate("/worlds")}>
+              Browse worlds
+            </Button>
+            {user && !isGuest ? (
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Create event
               </Button>
-            </div>
-          </Card>
+            ) : null}
+          </>
+        }
+      />
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <VenuePanel eyebrow="Network telemetry" title="Event system status">
+          <MetricLine label="World-hosted" value={worldHostedCount} />
+          <MetricLine label="Standalone" value={standaloneCount} />
+          <MetricLine label="Open now" value={openTournaments.length} />
+        </VenuePanel>
+
+        {isGuest ? (
+          <VenuePanel
+            eyebrow="Identity gate"
+            title="Events are account-bound."
+            description={`Playing as ${guestUsername}. Create an account to join host-run events and recurring competitions.`}
+          >
+            <Button onClick={() => navigate("/auth")}>Create account</Button>
+          </VenuePanel>
+        ) : (
+          <VenuePanel
+            eyebrow="Operator note"
+            title="Worlds should own recurring event identity."
+            description="The event directory remains useful, but the venue context is what makes competition feel durable instead of disposable."
+          >
+            <MetricLine label="BOARD stance" value="world first" />
+          </VenuePanel>
         )}
-        
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="font-body text-4xl font-bold mb-2">Tournaments</h1>
-              <p className="text-muted-foreground">Compete against players in organized brackets</p>
-            </div>
-            {user && !isGuest && (
-              <Button onClick={() => setShowCreateDialog(true)} size="lg">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Tournament
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <Tabs defaultValue="open" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="open">Open</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="open" className="space-y-4">
-            {filterTournaments(['registration']).length === 0 ? (
-              <Card className="p-12 text-center">
-                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">No open tournaments</p>
-                <p className="text-sm text-muted-foreground mt-2">Create one to get started!</p>
-              </Card>
-            ) : (
-              filterTournaments(['registration']).map(tournament => (
-                <TournamentCard
-                  key={tournament.id}
-                  tournament={tournament}
-                  onView={() => navigate(`/tournament/${tournament.id}`)}
-                  getStatusColor={getStatusColor}
-                  getFormatLabel={getFormatLabel}
-                />
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="active" className="space-y-4">
-            {filterTournaments(['active', 'seeding']).length === 0 ? (
-              <Card className="p-12 text-center">
-                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">No active tournaments</p>
-              </Card>
-            ) : (
-              filterTournaments(['active', 'seeding']).map(tournament => (
-                <TournamentCard
-                  key={tournament.id}
-                  tournament={tournament}
-                  onView={() => navigate(`/tournament/${tournament.id}`)}
-                  getStatusColor={getStatusColor}
-                  getFormatLabel={getFormatLabel}
-                />
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="completed" className="space-y-4">
-            {filterTournaments(['completed']).length === 0 ? (
-              <Card className="p-12 text-center">
-                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">No completed tournaments</p>
-              </Card>
-            ) : (
-              filterTournaments(['completed']).map(tournament => (
-                <TournamentCard
-                  key={tournament.id}
-                  tournament={tournament}
-                  onView={() => navigate(`/tournament/${tournament.id}`)}
-                  getStatusColor={getStatusColor}
-                  getFormatLabel={getFormatLabel}
-                />
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
       </div>
 
-      {showCreateDialog && (
+      <div className="mt-6 space-y-6">
+        <TournamentSection
+          title="Open events"
+          description="Registration is live and seats are still available."
+          tournaments={openTournaments}
+          worldNames={worldNames}
+          onView={(tournamentId) => navigate(`/tournament/${tournamentId}`)}
+        />
+        <TournamentSection
+          title="Active events"
+          description="Rounds are live or the bracket is being seeded."
+          tournaments={activeTournaments}
+          worldNames={worldNames}
+          onView={(tournamentId) => navigate(`/tournament/${tournamentId}`)}
+        />
+        <TournamentSection
+          title="Completed events"
+          description="Finished competitions with standings and history."
+          tournaments={completedTournaments}
+          worldNames={worldNames}
+          onView={(tournamentId) => navigate(`/tournament/${tournamentId}`)}
+        />
+      </div>
+
+      {showCreateDialog ? (
         <CreateTournamentDialog
           open={showCreateDialog}
           onClose={() => setShowCreateDialog(false)}
@@ -241,56 +214,72 @@ export default function Tournaments() {
             loadTournaments();
           }}
         />
-      )}
-      </div>
-    </div>
+      ) : null}
+    </SiteFrame>
   );
 }
 
-interface TournamentCardProps {
-  tournament: Tournament;
-  onView: () => void;
-  getStatusColor: (status: string) => string;
-  getFormatLabel: (format: string) => string;
-}
-
-function TournamentCard({ tournament, onView, getStatusColor, getFormatLabel }: TournamentCardProps) {
+function TournamentSection({
+  title,
+  description,
+  tournaments,
+  worldNames,
+  onView,
+}: {
+  title: string;
+  description: string;
+  tournaments: Tournament[];
+  worldNames: Record<string, string>;
+  onView: (tournamentId: string) => void;
+}) {
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={onView}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-body text-xl font-semibold">{tournament.name}</h3>
-            <Badge className={getStatusColor(tournament.status)}>
-              {tournament.status === 'registration' ? 'Open' : tournament.status}
-            </Badge>
-          </div>
-          {tournament.description && (
-            <p className="text-muted-foreground text-sm mb-3">{tournament.description}</p>
-          )}
+    <VenuePanel eyebrow={title} title={tournaments.length ? title : `No ${title.toLowerCase()}`} description={description}>
+      {tournaments.length === 0 ? (
+        <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
+          Nothing here yet.
         </div>
-        <Trophy className="h-6 w-6 text-primary ml-4" />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>{tournament.participant_count}/{tournament.max_players}</span>
+      ) : (
+        <div className="divide-y divide-black/10 border-t border-black/10">
+          {tournaments.map((tournament, index) => (
+            <button
+              key={tournament.id}
+              onClick={() => onView(tournament.id)}
+              className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[52px_minmax(0,1fr)_210px]"
+            >
+              <div className="board-rail-label pt-1 text-[10px] text-black/45">
+                {String(index + 1).padStart(2, "0")}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="text-2xl font-bold tracking-[-0.05em] text-foreground">{tournament.name}</h3>
+                  <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
+                    {tournament.status}
+                  </span>
+                  {tournament.world_id && worldNames[tournament.world_id] ? (
+                    <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
+                      {worldNames[tournament.world_id]}
+                    </span>
+                  ) : null}
+                </div>
+                {tournament.description ? (
+                  <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                    {tournament.description}
+                  </p>
+                ) : null}
+              </div>
+              <div className="space-y-1 border-l border-black/10 pl-4">
+                <MetricLine icon={Users} label="Players" value={`${tournament.participant_count}/${tournament.max_players}`} />
+                <MetricLine icon={Clock} label="Board" value={`${tournament.board_size}x${tournament.board_size}`} />
+                <MetricLine
+                  icon={Calendar}
+                  label="Start"
+                  value={tournament.start_time ? new Date(tournament.start_time).toLocaleDateString() : "TBD"}
+                />
+              </div>
+            </button>
+          ))}
         </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Clock className="h-4 w-4" />
-          <span>{tournament.board_size}×{tournament.board_size}</span>
-        </div>
-        <div className="text-muted-foreground">
-          {getFormatLabel(tournament.format)}
-        </div>
-        {tournament.start_time && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>{new Date(tournament.start_time).toLocaleDateString()}</span>
-          </div>
-        )}
-      </div>
-    </Card>
+      )}
+    </VenuePanel>
   );
 }

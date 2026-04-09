@@ -124,12 +124,7 @@ export function useAuth() {
 
   const signInWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/lobby`,
-        },
-      });
+      const { error } = await signInOrLinkIdentity('google');
       return { error };
     } catch (err) {
       return { error: normalizeError(err) as any };
@@ -138,12 +133,7 @@ export function useAuth() {
 
   const signInWithDiscord = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: {
-          redirectTo: `${window.location.origin}/lobby`,
-        },
-      });
+      const { error } = await signInOrLinkIdentity('discord');
       return { error };
     } catch (err) {
       return { error: normalizeError(err) as any };
@@ -152,16 +142,30 @@ export function useAuth() {
 
   const signInWithApple = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/lobby`,
-        },
-      });
+      const { error } = await signInOrLinkIdentity('apple');
       return { error };
     } catch (err) {
       return { error: normalizeError(err) as any };
     }
+  };
+
+  const signInOrLinkIdentity = async (provider: 'google' | 'discord' | 'apple') => {
+    const redirectTo = `${window.location.origin}/lobby`;
+    const currentSession = session ?? (await supabase.auth.getSession()).data.session;
+    const authWithLink = supabase.auth as typeof supabase.auth & {
+      linkIdentity?: (credentials: { provider: string }) => Promise<{ error: { message?: string } | null }>;
+    };
+
+    if (currentSession?.user?.is_anonymous && typeof authWithLink.linkIdentity === 'function') {
+      return authWithLink.linkIdentity({ provider });
+    }
+
+    return supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+      },
+    });
   };
 
   return {
