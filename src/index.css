@@ -4,70 +4,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    /* Hexology — Dark-first fintech palette */
-    --background: 228 16% 6%;
-    --foreground: 220 20% 98%;
+    --background: 40 24% 96%;
+    --foreground: 225 16% 8%;
 
-    --card: 228 15% 10%;
-    --card-foreground: 220 20% 98%;
+    --card: 40 16% 98%;
+    --card-foreground: 225 16% 8%;
 
-    --popover: 228 15% 10%;
-    --popover-foreground: 220 20% 98%;
+    --popover: 40 18% 98%;
+    --popover-foreground: 225 16% 8%;
 
-    /* Primary: Logo Yellow/Gold (#FFB800) */
-    --primary: 45 100% 50%;
-    --primary-foreground: 230 15% 4%;
+    --primary: 225 14% 8%;
+    --primary-foreground: 40 20% 97%;
 
-    /* Secondary: Deep Indigo */
-    --secondary: 223 60% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 40 18% 91%;
+    --secondary-foreground: 225 14% 16%;
 
-    /* Muted: Deep Graphite */
-    --muted: 228 12% 12%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 40 12% 90%;
+    --muted-foreground: 32 6% 38%;
 
-    /* Accent: Brand Yellow Glow */
-    --accent: 45 100% 6%;
-    --accent-foreground: 45 100% 50%;
+    --accent: 210 19% 92%;
+    --accent-foreground: 225 14% 12%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 74% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 228 10% 14%;
-    --input: 228 12% 12%;
-    --ring: 45 100% 50%;
+    --border: 38 12% 82%;
+    --input: 40 18% 94%;
+    --ring: 225 16% 18%;
 
-    --radius: 1.5rem;
+    --radius: 1rem;
 
-    /* Game Piece Constants */
     --indigo: 223 60% 50%;
     --ochre: 45 100% 50%;
 
-    --game-hex: 45 100% 50%;
-    --game-chess: 0 0% 90%;
-    --game-checkers: 0 72% 51%;
-    --game-ttt: 142 71% 45%;
-    --game-connect4: 25 95% 53%;
+    --game-hex: 225 14% 12%;
+    --game-chess: 0 0% 88%;
+    --game-checkers: 0 72% 48%;
+    --game-ttt: 145 62% 40%;
+    --game-connect4: 28 92% 52%;
 
-    /* Shadows */
-    --shadow-soft: 0 1px 6px hsl(0 0% 0% / 0.2);
-    --shadow-medium: 0 2px 12px hsl(0 0% 0% / 0.3);
-    --shadow-glow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+    --shadow-soft:
+      0 24px 80px -40px hsl(225 20% 8% / 0.24),
+      0 12px 32px -24px hsl(225 20% 8% / 0.18);
+    --shadow-medium:
+      0 32px 100px -42px hsl(225 20% 8% / 0.34),
+      0 18px 44px -26px hsl(225 20% 8% / 0.24);
+    --shadow-glow: 0 0 0 1px hsl(225 16% 8% / 0.06),
+      0 28px 80px -44px hsl(225 16% 8% / 0.32);
 
-    /* Transitions */
-    --transition-gentle: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-gentle: 420ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark {
-    /* Same as root — fixed dark theme */
-    --background: 228 16% 6%;
-    --foreground: 220 20% 98%;
+    --background: 225 16% 8%;
+    --foreground: 40 18% 95%;
+    --card: 225 12% 10%;
+    --card-foreground: 40 18% 95%;
+    --popover: 225 12% 10%;
+    --popover-foreground: 40 18% 95%;
+    --primary: 40 18% 95%;
+    --primary-foreground: 225 16% 8%;
+    --secondary: 225 10% 18%;
+    --secondary-foreground: 40 18% 95%;
+    --muted: 225 10% 14%;
+    --muted-foreground: 40 8% 72%;
+    --accent: 225 10% 18%;
+    --accent-foreground: 40 18% 95%;
+    --border: 225 8% 22%;
+    --input: 225 8% 16%;
+    --ring: 40 18% 95%;
   }
 }
 
@@ -76,54 +83,161 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    @apply bg-background;
+  }
+
   body {
-    @apply bg-background text-foreground font-body antialiased selection:bg-primary/30;
-    font-feature-settings: "kern" 1, "liga" 1;
+    @apply bg-background text-foreground font-body antialiased selection:bg-foreground/10;
+    font-feature-settings: "kern" 1, "liga" 1, "ss01" 1;
     min-height: 100vh;
+    background-image:
+      radial-gradient(circle at top left, hsl(40 20% 99%), transparent 24%),
+      radial-gradient(circle at 80% 12%, hsl(0 0% 100% / 0.7), transparent 18%),
+      linear-gradient(to bottom, hsl(var(--background)), hsl(40 18% 95%));
   }
 
-  h1, h2, h3, h4 {
-    @apply font-display tracking-tight;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+    font-feature-settings: "kern" 1, "liga" 1, "ss01" 1;
   }
 
-  @keyframes float {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-6px) scale(1.01); }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
   }
 
-  @keyframes gentle-pulse {
-    0%, 100% { opacity: 0.75; }
-    50% { opacity: 0.6; }
+  a {
+    color: inherit;
   }
 
-  @keyframes shimmer {
-    from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
+  @keyframes board-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
+    }
+    50% {
+      transform: translate3d(0, -12px, 0) rotateX(1.5deg) rotateY(-2deg);
+    }
   }
 
-  .animate-float {
-    animation: float 10s ease-in-out infinite;
+  @keyframes trace-shift {
+    0% {
+      transform: translate3d(-10%, 0, 0);
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: translate3d(10%, 0, 0);
+      opacity: 0.25;
+    }
   }
 
-  .animate-gentle-pulse {
-    animation: gentle-pulse 3s ease-in-out infinite;
+  @keyframes board-orbit {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0.45;
+    }
+    50% {
+      transform: translate3d(0, -8px, 0);
+      opacity: 0.8;
+    }
   }
 
-  .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255,184,0,0.05), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 3s infinite linear;
+  @keyframes route-sheen {
+    from {
+      transform: translateX(-120%);
+    }
+    to {
+      transform: translateX(120%);
+    }
+  }
+
+  .animate-board-float {
+    animation: board-float 8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .animate-trace-shift {
+    animation: trace-shift 8s linear infinite;
+  }
+
+  .animate-board-orbit {
+    animation: board-orbit 5.5s ease-in-out infinite;
+  }
+
+  .animate-route-sheen {
+    animation: route-sheen 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@layer components {
+  .board-shell {
+    @apply relative min-h-screen overflow-hidden bg-background text-foreground;
+  }
+
+  .board-grid {
+    background-image:
+      linear-gradient(to right, hsl(225 16% 8% / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(225 16% 8% / 0.045) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  .board-topography {
+    background-image:
+      radial-gradient(circle at center, hsl(225 16% 8% / 0.06) 0, transparent 56%),
+      radial-gradient(circle at center, hsl(225 16% 8% / 0.03) 0, transparent 80%);
+  }
+
+  .board-stage-border {
+    @apply border border-black/10;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .board-panel {
+    @apply board-stage-border relative overflow-hidden bg-card;
+  }
+
+  .board-panel::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-px bg-black/10;
+  }
+
+  .board-panel-cut {
+    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+  }
+
+  .board-rail-label {
+    @apply font-mono text-[11px] uppercase tracking-[0.34em] text-muted-foreground;
+  }
+
+  .board-metric-line {
+    @apply flex items-center justify-between gap-4 border-t border-black/10 py-3 text-sm;
+  }
+
+  .board-texture-fade {
+    background-image:
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.8), transparent),
+      linear-gradient(to top, hsl(225 16% 8% / 0.03), transparent);
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-card/40 backdrop-blur-lg border border-border/50;
-    box-shadow: var(--shadow-soft);
+    @apply border border-white/15 bg-white/70 backdrop-blur-xl;
   }
 
   .surface {
-    @apply bg-card border border-border/50 rounded-xl;
+    @apply board-panel;
   }
 
   .stat-value {
@@ -131,7 +245,7 @@ All colors MUST be HSL.
   }
 
   .section-heading {
-    @apply text-xs font-mono uppercase tracking-widest text-muted-foreground;
+    @apply board-rail-label;
   }
 
   .shadow-glow {
@@ -142,7 +256,21 @@ All colors MUST be HSL.
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .perspective-stage {
+    perspective: 1400px;
+    transform-style: preserve-3d;
+  }
+
+  .clip-stage {
+    clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 }

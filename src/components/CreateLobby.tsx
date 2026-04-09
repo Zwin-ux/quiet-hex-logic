@@ -1,29 +1,57 @@
-import { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, Copy, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { listGames, getGame } from '@/lib/engine/registry';
+import { useState, useMemo, useEffect } from "react";
+import { Check, Copy, RadioTower } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { getGame, listGames } from "@/lib/engine/registry";
+import { useManageableWorlds } from "@/hooks/useManageableWorlds";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+const STANDALONE_WORLD_VALUE = "__standalone__";
 
 type CreateLobbyProps = {
   userId: string;
+  worldId?: string;
 };
 
-export function CreateLobby({ userId }: CreateLobbyProps) {
+export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
   const games = useMemo(() => listGames(), []);
-  const [gameKey, setGameKey] = useState(games[0]?.key ?? 'hex');
+  const { worlds: manageableWorlds } = useManageableWorlds(worldId ? undefined : userId);
+  const [gameKey, setGameKey] = useState(games[0]?.key ?? "hex");
   const [boardSize, setBoardSize] = useState(games[0]?.defaultBoardSize ?? 7);
   const [pieRule, setPieRule] = useState(true);
+  const [selectedWorldValue, setSelectedWorldValue] = useState<string>("");
   const [creating, setCreating] = useState(false);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
   const gameDef = useMemo(() => getGame(gameKey), [gameKey]);
+  const resolvedWorldId =
+    worldId ||
+    (selectedWorldValue === STANDALONE_WORLD_VALUE ? undefined : selectedWorldValue);
+
+  useEffect(() => {
+    if (worldId) {
+      setSelectedWorldValue(worldId);
+      return;
+    }
+
+    if (!manageableWorlds.length) {
+      setSelectedWorldValue(STANDALONE_WORLD_VALUE);
+      return;
+    }
+
+    const stillValid =
+      selectedWorldValue === STANDALONE_WORLD_VALUE ||
+      manageableWorlds.some((world) => world.id === selectedWorldValue);
+
+    if (!selectedWorldValue || !stillValid) {
+      setSelectedWorldValue(manageableWorlds[0].id);
+    }
+  }, [worldId, manageableWorlds, selectedWorldValue]);
 
   const handleGameChange = (key: string) => {
     setGameKey(key);
@@ -35,10 +63,11 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
   const createLobby = async () => {
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-lobby', {
+      const { data, error } = await supabase.functions.invoke("create-lobby", {
         body: {
           gameKey,
           boardSize,
+          worldId: resolvedWorldId,
           pieRule: gameDef.supportsPieRule ? pieRule : false,
           turnTimer: 45,
         },
@@ -53,15 +82,15 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
 
-      toast.success('Lobby created!', {
-        description: `Code: ${data.code} - Navigating to lobby...`,
+      toast.success("Room created", {
+        description: `Code: ${data.code}`,
         duration: 4000,
       });
 
       navigate(`/lobby/${data.lobby.id}`);
     } catch (err: any) {
-      console.error('[CreateLobby] Error creating lobby:', err);
-      toast.error('Failed to create lobby', { description: err.message });
+      console.error("[CreateLobby] Error creating lobby:", err);
+      toast.error("Failed to create room", { description: err.message });
       setCreating(false);
     }
   };
@@ -71,85 +100,124 @@ export function CreateLobby({ userId }: CreateLobbyProps) {
     await navigator.clipboard.writeText(createdCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast.success('Code copied!');
+    toast.success("Code copied");
   };
 
-  const sizeOptions = gameDef.boardSizeOptions ?? [{ value: gameDef.defaultBoardSize, label: `${gameDef.defaultBoardSize}` }];
+  const sizeOptions =
+    gameDef.boardSizeOptions ?? [{ value: gameDef.defaultBoardSize, label: `${gameDef.defaultBoardSize}` }];
   const displayedSize = gameDef.configurableBoardSize ? boardSize : gameDef.defaultBoardSize;
 
   return (
-    <Card className="p-4 sm:p-6 shadow-soft border-2 border-border hover:border-indigo/30 transition-all duration-300">
-      <div className="flex items-center gap-3 mb-3">
-        <Users className="h-5 w-5 text-indigo" />
-        <h2 className="font-body text-lg sm:text-xl font-semibold text-foreground">Create Lobby</h2>
+    <section className="board-panel board-panel-cut rounded-[1.6rem] bg-white/92 p-5 md:p-6">
+      <div className="flex items-center gap-3 border-b border-black/10 pb-4">
+        <RadioTower className="h-4 w-4 text-foreground" />
+        <div>
+          <p className="board-rail-label text-[10px]">{worldId ? "World instance" : "Direct room"}</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-[-0.05em] text-foreground">
+            {worldId ? "Stage a live room" : "Create a live room"}
+          </h2>
+        </div>
       </div>
 
-      <p className="text-muted-foreground mb-4 font-body text-xs sm:text-sm leading-relaxed">
-        Start a private match and share the code
-      </p>
+      <div className="mt-5 space-y-5">
+        {!worldId && manageableWorlds.length > 0 ? (
+          <Field label="World">
+            <Select value={selectedWorldValue} onValueChange={setSelectedWorldValue}>
+              <SelectTrigger className="h-11 border-black/10 bg-[#faf9f4]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {manageableWorlds.map((world) => (
+                  <SelectItem key={world.id} value={world.id}>
+                    {world.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={STANDALONE_WORLD_VALUE}>Standalone room</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        ) : null}
 
-      <div className="space-y-3 mb-4">
-        <div>
-          <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Game</label>
+        <Field label="Game">
           <Select value={gameKey} onValueChange={handleGameChange}>
-            <SelectTrigger className="h-10 sm:h-11">
+            <SelectTrigger className="h-11 border-black/10 bg-[#faf9f4]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {games.map(g => (
-                <SelectItem key={g.key} value={g.key}>{g.displayName}</SelectItem>
+              {games.map((g) => (
+                <SelectItem key={g.key} value={g.key}>
+                  {g.displayName}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
 
-        <div>
-          <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Board Size</label>
-          <Select
-            value={displayedSize.toString()}
-            onValueChange={(v) => setBoardSize(parseInt(v))}
-            disabled={!gameDef.configurableBoardSize}
-          >
-            <SelectTrigger className="h-10 sm:h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sizeOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value.toString()}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+          <Field label="Board size">
+            <Select
+              value={displayedSize.toString()}
+              onValueChange={(v) => setBoardSize(parseInt(v, 10))}
+              disabled={!gameDef.configurableBoardSize}
+            >
+              <SelectTrigger className="h-11 border-black/10 bg-[#faf9f4]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sizeOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value.toString()}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
 
-        <div className="flex items-center justify-between p-3 border rounded-lg bg-card/50">
-          <div className="flex-1">
-            <p className="text-sm font-medium">Pie Rule</p>
-            <p className="text-xs text-muted-foreground">Player 2 can swap colors</p>
+          <div className="flex items-end justify-between gap-4 border border-black/10 bg-[#faf9f4] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Pie rule</p>
+              <p className="text-xs text-muted-foreground">Allow color swap</p>
+            </div>
+            <Switch
+              checked={gameDef.supportsPieRule ? pieRule : false}
+              onCheckedChange={setPieRule}
+              disabled={!gameDef.supportsPieRule}
+            />
           </div>
-          <Switch
-            checked={gameDef.supportsPieRule ? pieRule : false}
-            onCheckedChange={setPieRule}
-            disabled={!gameDef.supportsPieRule}
-          />
         </div>
-      </div>
 
-      {createdCode ? (
-        <div className="space-y-2">
-          <div className="p-3 bg-indigo/5 rounded-lg border-2 border-indigo/20 text-center">
-            <p className="text-xs text-muted-foreground mb-0.5">Lobby Code</p>
-            <p className="text-2xl font-mono font-bold tracking-wider text-indigo break-all">{createdCode}</p>
+        {createdCode ? (
+          <div className="border-t border-black/10 pt-5">
+            <p className="board-rail-label">Room code</p>
+            <div className="mt-3 flex items-center justify-between border border-black bg-black px-4 py-4 text-white">
+              <span className="font-mono text-2xl tracking-[0.28em]">{createdCode}</span>
+              <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15" onClick={copyCode}>
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
           </div>
-          <Button onClick={copyCode} className="w-full gap-2 h-11 touch-manipulation">
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Copied!' : 'Copy Code'}
+        ) : (
+          <Button onClick={createLobby} disabled={creating} className="clip-stage h-12 w-full">
+            {creating ? "Creating..." : "Create room"}
           </Button>
-        </div>
-      ) : (
-        <Button onClick={createLobby} disabled={creating} className="w-full h-11 font-medium touch-manipulation">
-          {creating ? 'Creating...' : 'Create & Share'}
-        </Button>
-      )}
-    </Card>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-foreground">{label}</p>
+      {children}
+    </div>
   );
 }

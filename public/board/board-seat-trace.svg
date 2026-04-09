@@ -1,0 +1,17 @@
+<svg width="960" height="320" viewBox="0 0 960 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M70 160H890" stroke="#111111" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M140 112V208" stroke="#111111" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M240 92V228" stroke="#111111" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M340 70V250" stroke="#111111" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M480 48V272" stroke="#111111" stroke-opacity="0.18" stroke-width="2"/>
+  <path d="M620 70V250" stroke="#111111" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M720 92V228" stroke="#111111" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M820 112V208" stroke="#111111" stroke-opacity="0.14" stroke-width="2"/>
+  <circle cx="140" cy="160" r="12" stroke="#111111" stroke-opacity="0.12" stroke-width="2"/>
+  <circle cx="240" cy="160" r="12" stroke="#111111" stroke-opacity="0.12" stroke-width="2"/>
+  <circle cx="340" cy="160" r="12" stroke="#111111" stroke-opacity="0.18" stroke-width="2"/>
+  <circle cx="480" cy="160" r="16" stroke="#111111" stroke-opacity="0.28" stroke-width="2"/>
+  <circle cx="620" cy="160" r="12" stroke="#111111" stroke-opacity="0.18" stroke-width="2"/>
+  <circle cx="720" cy="160" r="12" stroke="#111111" stroke-opacity="0.12" stroke-width="2"/>
+  <circle cx="820" cy="160" r="12" stroke="#111111" stroke-opacity="0.12" stroke-width="2"/>
+</svg>

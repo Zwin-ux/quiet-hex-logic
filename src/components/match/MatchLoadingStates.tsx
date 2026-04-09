@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button';
+import { SiteFrame } from '@/components/board/SiteFrame';
+import { SkeletalBoardScene } from '@/components/board/SkeletalBoardScene';
 import { Loader2 } from 'lucide-react';
 
 interface MatchLoadingProps {
@@ -7,32 +9,42 @@ interface MatchLoadingProps {
 
 export function MatchLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <div className="relative">
-          <div className="absolute inset-0 bg-indigo/20 blur-xl rounded-full animate-pulse" />
-          <Loader2 className="h-12 w-12 animate-spin text-indigo relative z-10 mx-auto" />
+    <SiteFrame showNav={false} contentClassName="flex min-h-screen items-center justify-center py-12">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center">
+        <div className="w-full max-w-2xl">
+          <SkeletalBoardScene variant="compact" className="min-h-[260px]" />
         </div>
-        <p className="font-mono text-muted-foreground">Loading match...</p>
+        <div>
+          <p className="board-rail-label">Instance loading</p>
+          <p className="mt-3 text-4xl font-black tracking-[-0.08em] text-foreground">Preparing board</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            Pulling the room state, seats, and board engine into place.
+          </p>
+        </div>
+        <Loader2 className="h-6 w-6 animate-spin text-black/45" />
       </div>
-    </div>
+    </SiteFrame>
   );
 }
 
 export function MatchWaiting({ onCancel }: MatchLoadingProps) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background space-y-6">
-      <div className="relative">
-        <div className="absolute inset-0 bg-ochre/20 blur-xl rounded-full animate-pulse" />
-        <Loader2 className="h-16 w-16 animate-spin text-ochre relative z-10" />
+    <SiteFrame showNav={false} contentClassName="flex min-h-screen items-center justify-center py-12">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center">
+        <div className="w-full max-w-2xl">
+          <SkeletalBoardScene variant="compact" className="min-h-[260px]" />
+        </div>
+        <div>
+          <p className="board-rail-label">Queue state</p>
+          <h2 className="mt-3 text-4xl font-black tracking-[-0.08em] text-foreground">Searching for an opponent</h2>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            The queue is active. BOARD will open the instance as soon as another seat locks in.
+          </p>
+        </div>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold font-display">Searching for opponent...</h2>
-        <p className="text-muted-foreground font-mono">Competitive &bull; ELO Rated</p>
-      </div>
-      <Button variant="outline" onClick={onCancel} className="mt-8">
-        Cancel
-      </Button>
-    </div>
+    </SiteFrame>
   );
 }

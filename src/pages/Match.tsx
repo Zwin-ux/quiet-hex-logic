@@ -6,6 +6,7 @@ import { useAIOpponent } from '@/hooks/useAIOpponent';
 import { useMatchTimer } from '@/hooks/useMatchTimer';
 import { useAmbientMusic } from '@/hooks/useAmbientMusic';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
+import { SiteFrame } from '@/components/board/SiteFrame';
 import { MatchHeader } from '@/components/match/MatchHeader';
 import { MatchBoard } from '@/components/match/MatchBoard';
 import { MatchSidebar } from '@/components/match/MatchSidebar';
@@ -156,7 +157,7 @@ export default function Match() {
 
   // Loading / Waiting states
   if (!match || !engine) return <MatchLoading />;
-  if (match.status === 'waiting') return <MatchWaiting onCancel={() => navigate('/lobby')} />;
+  if (match.status === 'waiting') return <MatchWaiting onCancel={() => navigate('/play')} />;
 
   const discordAvatarUrl = isDiscordLocalMatch && discordUser?.avatar
     ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=128`
@@ -186,10 +187,10 @@ export default function Match() {
   };
 
   return (
-    <div className="min-h-screen ios-safe-area">
+    <SiteFrame showNav={false} className="ios-safe-area" contentClassName="max-w-[1500px] pb-12 pt-6 md:pt-8">
       {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
 
-      <div className="max-w-7xl mx-auto px-3 py-4 md:p-8">
+      <div className="px-0 py-0">
         <MatchHeader
           match={match}
           isAIMatch={isAIMatch}
@@ -209,7 +210,7 @@ export default function Match() {
             toggleMute: music.toggleMute,
             updateVolume: music.updateVolume,
           }}
-          onBack={() => navigate('/lobby')}
+          onBack={() => navigate('/play')}
           onRematch={handleRematch}
           onForfeit={actions.handleForfeit}
           onOfferDraw={actions.handleOfferDraw}
@@ -220,7 +221,7 @@ export default function Match() {
           onToggleAIReasoning={() => setShowAIReasoning(!showAIReasoning)}
         />
 
-        <div className="flex flex-col lg:grid lg:grid-cols-[280px_1fr_280px] gap-4 lg:gap-6 items-start">
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_300px] lg:gap-6 items-start">
           <MatchSidebar
             match={match}
             player1={player1}
@@ -267,6 +268,6 @@ export default function Match() {
           />
         </div>
       </div>
-    </div>
+    </SiteFrame>
   );
 }

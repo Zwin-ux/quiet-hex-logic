@@ -1,29 +1,26 @@
 import { Link } from "react-router-dom";
-import Hero from "@/components/Hero";
-import { NavBar } from "@/components/NavBar";
-import { GameGrid } from "@/components/GameGrid";
+import { BoardLogo } from "@/components/BoardLogo";
+import { SiteFrame } from "@/components/board/SiteFrame";
 import { FeaturesShowcase } from "@/components/FeaturesShowcase";
+import { GameGrid } from "@/components/GameGrid";
+import Hero from "@/components/Hero";
 
 const Index = () => {
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#f5f4ef] text-[#0a0a0a]">
-      <NavBar />
-
-      <div className="flex-grow pt-14">
+    <SiteFrame contentClassName="pt-20 pb-0">
+      <div className="flex-grow">
         <Hero />
         <FeaturesShowcase />
         <GameGrid />
       </div>
 
-      <footer className="border-t border-black/8 px-6 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-2">
-            <p className="text-2xl font-black tracking-[-0.08em] text-[#0a0a0a]">
-              BOARD
-            </p>
-            <p className="max-w-xl text-sm font-medium leading-6 text-[#5f5f5f]">
-              Host-owned board game infrastructure built on Quiet Hex Logic.
-              Chess is the wedge. Worlds are the product.
+      <footer className="mt-10 border-t border-black/10 py-10">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-8 pb-10 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-4">
+            <BoardLogo tone="dark" />
+            <p className="max-w-xl text-sm leading-7 text-[#5f5f5f]">
+              BOARD is future venue infrastructure for tabletop and board
+              competition. Quiet Hex Logic remains the engine lineage.
             </p>
           </div>
 
@@ -39,11 +36,11 @@ const Index = () => {
               </svg>
               Join Discord
             </a>
-            <Link to="/arena" className="transition-colors hover:text-black">
-              Arena
+            <Link to="/worlds" className="transition-colors hover:text-black">
+              Worlds
             </Link>
-            <Link to="/terms" className="transition-colors hover:text-black">
-              Terms
+            <Link to="/events" className="transition-colors hover:text-black">
+              Events
             </Link>
             <Link to="/privacy" className="transition-colors hover:text-black">
               Privacy
@@ -54,7 +51,7 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </SiteFrame>
   );
 };
 

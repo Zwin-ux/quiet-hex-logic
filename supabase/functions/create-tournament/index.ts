@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
-import { defaultsForGame } from '../_shared/gameDefaults.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +16,7 @@ const createTournamentSchema = z.object({
     .max(1000, 'Description must be less than 1000 characters')
     .optional(),
   gameKey: z.string().optional(),
+  worldId: z.string().uuid('Invalid world ID').optional(),
   format: z.enum(['single_elimination', 'double_elimination', 'round_robin'], {
     errorMap: () => ({ message: 'Invalid tournament format' })
   }).optional(),
@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       name,
       description,
       gameKey,
+      worldId,
       format,
       maxPlayers,
       minPlayers,
@@ -103,41 +104,26 @@ Deno.serve(async (req) => {
       startTime
     } = validationResult.data;
 
-    const defaults = defaultsForGame(gameKey || 'hex');
-
-    // Create tournament (data already validated and trimmed by Zod)
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .insert({
-        name,
-        description: description || null,
-        format: format || 'single_elimination',
-        max_players: maxPlayers || 8,
-        min_players: minPlayers || 4,
-        board_size: boardSize ?? defaults.boardSize,
-        pie_rule: defaults.pieRule ? (pieRule ?? defaults.pieRule) : false,
-        turn_timer_seconds: turnTimerSeconds || 45,
-        registration_deadline: registrationDeadline || null,
-        start_time: startTime || null,
-        created_by: user.id,
-        status: 'registration'
-      })
-      .select()
-      .single();
+    const { data: tournamentResult, error: tournamentError } = await supabase.rpc('create_tournament_atomic', {
+      p_name: name,
+      p_description: description || null,
+      p_game_key: gameKey || 'hex',
+      p_world_id: worldId ?? null,
+      p_format: format || 'single_elimination',
+      p_max_players: maxPlayers,
+      p_min_players: minPlayers,
+      p_board_size: boardSize ?? null,
+      p_pie_rule: pieRule ?? null,
+      p_turn_timer_seconds: turnTimerSeconds || 45,
+      p_registration_deadline: registrationDeadline || null,
+      p_start_time: startTime || null,
+    });
 
     if (tournamentError) throw tournamentError;
 
-    // Automatically join creator as first participant
-    const { error: participantError } = await supabase
-      .from('tournament_participants')
-      .insert({
-        tournament_id: tournament.id,
-        player_id: user.id,
-        seed: 1
-      });
-
-    if (participantError) {
-      console.error('Failed to add creator as participant:', participantError);
+    const tournament = (tournamentResult as any)?.tournament;
+    if (!tournament) {
+      throw new Error('Failed to create tournament');
     }
 
     console.log(`Tournament ${tournament.id} created by ${user.id}`);

@@ -1,53 +1,90 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { useManageableWorlds } from "@/hooks/useManageableWorlds";
+
+const STANDALONE_WORLD_VALUE = "__standalone__";
 
 interface CreateTournamentDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  worldId?: string;
 }
 
-export function CreateTournamentDialog({ open, onClose, onSuccess }: CreateTournamentDialogProps) {
+export function CreateTournamentDialog({
+  open,
+  onClose,
+  onSuccess,
+  worldId,
+}: CreateTournamentDialogProps) {
+  const { user } = useAuth();
+  const { worlds: manageableWorlds } = useManageableWorlds(worldId ? undefined : user?.id);
   const [loading, setLoading] = useState(false);
+  const [selectedWorldValue, setSelectedWorldValue] = useState<string>("");
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    format: 'single_elimination',
+    name: "",
+    description: "",
+    format: "single_elimination",
     maxPlayers: 8,
     minPlayers: 4,
     boardSize: 11,
     pieRule: true,
-    turnTimerSeconds: 45
+    turnTimerSeconds: 45,
   });
+
+  useEffect(() => {
+    if (worldId) {
+      setSelectedWorldValue(worldId);
+      return;
+    }
+
+    if (!manageableWorlds.length) {
+      setSelectedWorldValue(STANDALONE_WORLD_VALUE);
+      return;
+    }
+
+    const stillValid =
+      selectedWorldValue === STANDALONE_WORLD_VALUE ||
+      manageableWorlds.some((world) => world.id === selectedWorldValue);
+
+    if (!selectedWorldValue || !stillValid) {
+      setSelectedWorldValue(manageableWorlds[0].id);
+    }
+  }, [worldId, manageableWorlds, selectedWorldValue]);
+
+  const resolvedWorldId =
+    worldId ||
+    (selectedWorldValue === STANDALONE_WORLD_VALUE ? undefined : selectedWorldValue);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-tournament', {
-        body: formData
+      const { data, error } = await supabase.functions.invoke("create-tournament", {
+        body: { ...formData, worldId: resolvedWorldId },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('Tournament created!', {
-        description: 'Players can now join your tournament'
+      toast.success("Event created", {
+        description: "Players can now join this competition.",
       });
       onSuccess();
     } catch (error: any) {
-      console.error('Failed to create tournament:', error);
-      toast.error('Failed to create tournament', {
-        description: error.message
+      console.error("Failed to create tournament:", error);
+      toast.error("Failed to create event", {
+        description: error.message,
       });
     } finally {
       setLoading(false);
@@ -56,138 +93,169 @@ export function CreateTournamentDialog({ open, onClose, onSuccess }: CreateTourn
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-body text-2xl">Create Tournament</DialogTitle>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-black/10 bg-[#fbfaf6] p-0">
+        <DialogHeader className="border-b border-black/10 px-6 py-5">
+          <DialogTitle className="text-2xl font-bold tracking-[-0.05em] text-foreground">
+            {worldId ? "Create world event" : "Create an event"}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Tournament Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Summer Championship 2024"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Optional description for your tournament"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          {/* Format */}
-          <div>
-            <Label htmlFor="format">Format</Label>
-            <Select
-              value={formData.format}
-              onValueChange={(value) => setFormData({ ...formData, format: value })}
-            >
-              <SelectTrigger id="format">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single_elimination">Single Elimination</SelectItem>
-                <SelectItem value="round_robin">Round Robin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Player Count */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="minPlayers">Minimum Players</Label>
-              <Input
-                id="minPlayers"
-                type="number"
-                min={2}
-                value={formData.minPlayers}
-                onChange={(e) => setFormData({ ...formData, minPlayers: parseInt(e.target.value) })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="maxPlayers">Maximum Players</Label>
-              <Input
-                id="maxPlayers"
-                type="number"
-                min={formData.minPlayers}
-                value={formData.maxPlayers}
-                onChange={(e) => setFormData({ ...formData, maxPlayers: parseInt(e.target.value) })}
-              />
-            </div>
-          </div>
-
-          {/* Game Settings */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="boardSize">Board Size</Label>
-              <Select
-                value={formData.boardSize.toString()}
-                onValueChange={(value) => setFormData({ ...formData, boardSize: parseInt(value) })}
-              >
-                <SelectTrigger id="boardSize">
+        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
+          {!worldId && manageableWorlds.length > 0 ? (
+            <Field label="World">
+              <Select value={selectedWorldValue} onValueChange={setSelectedWorldValue}>
+                <SelectTrigger className="h-11 border-black/10 bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7">7×7 (Quick)</SelectItem>
-                  <SelectItem value="9">9×9 (Fast)</SelectItem>
-                  <SelectItem value="11">11×11 (Standard)</SelectItem>
-                  <SelectItem value="13">13×13 (Long)</SelectItem>
-                  <SelectItem value="15">15×15 (Epic)</SelectItem>
+                  {manageableWorlds.map((world) => (
+                    <SelectItem key={world.id} value={world.id}>
+                      {world.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={STANDALONE_WORLD_VALUE}>Standalone event</SelectItem>
                 </SelectContent>
               </Select>
+            </Field>
+          ) : null}
+
+          <div className="grid gap-5 md:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-5">
+              <Field label="Event name">
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Northside spring open"
+                  className="h-11 border-black/10 bg-white"
+                  required
+                />
+              </Field>
+
+              <Field label="Description">
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Optional context for the event"
+                  rows={5}
+                  className="border-black/10 bg-white"
+                />
+              </Field>
+
+              <Field label="Format">
+                <Select
+                  value={formData.format}
+                  onValueChange={(value) => setFormData({ ...formData, format: value })}
+                >
+                  <SelectTrigger className="h-11 border-black/10 bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single_elimination">Single elimination</SelectItem>
+                    <SelectItem value="round_robin">Round robin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
 
-            <div>
-              <Label htmlFor="turnTimer">Turn Timer (seconds)</Label>
-              <Input
-                id="turnTimer"
-                type="number"
-                min={30}
-                max={300}
-                value={formData.turnTimerSeconds}
-                onChange={(e) => setFormData({ ...formData, turnTimerSeconds: parseInt(e.target.value) })}
-              />
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Min players">
+                  <Input
+                    type="number"
+                    min={2}
+                    value={formData.minPlayers}
+                    onChange={(e) => setFormData({ ...formData, minPlayers: parseInt(e.target.value, 10) })}
+                    className="h-11 border-black/10 bg-white"
+                  />
+                </Field>
+                <Field label="Max players">
+                  <Input
+                    type="number"
+                    min={formData.minPlayers}
+                    value={formData.maxPlayers}
+                    onChange={(e) => setFormData({ ...formData, maxPlayers: parseInt(e.target.value, 10) })}
+                    className="h-11 border-black/10 bg-white"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Board size">
+                <Select
+                  value={formData.boardSize.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, boardSize: parseInt(value, 10) })}
+                >
+                  <SelectTrigger className="h-11 border-black/10 bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7x7 quick</SelectItem>
+                    <SelectItem value="9">9x9 fast</SelectItem>
+                    <SelectItem value="11">11x11 standard</SelectItem>
+                    <SelectItem value="13">13x13 long</SelectItem>
+                    <SelectItem value="15">15x15 epic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field label="Turn timer">
+                <Input
+                  type="number"
+                  min={30}
+                  max={300}
+                  value={formData.turnTimerSeconds}
+                  onChange={(e) => setFormData({ ...formData, turnTimerSeconds: parseInt(e.target.value, 10) })}
+                  className="h-11 border-black/10 bg-white"
+                />
+              </Field>
+
+              <div className="flex items-center justify-between border border-black/10 bg-white px-4 py-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Pie rule</p>
+                  <p className="text-xs text-muted-foreground">Allow a color swap after the first move</p>
+                </div>
+                <Switch
+                  checked={formData.pieRule}
+                  onCheckedChange={(checked) => setFormData({ ...formData, pieRule: checked })}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Pie Rule */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <Label htmlFor="pieRule" className="cursor-pointer">Pie Rule</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow color swap after first move
+          <div className="border-t border-black/10 pt-5">
+            <div className="mb-5 border border-black/10 bg-white px-4 py-4">
+              <p className="board-rail-label">Event note</p>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                Events are orchestration layers. The venue identity should come from the
+                world, and the live experience should still feel grounded in rooms.
               </p>
             </div>
-            <Switch
-              id="pieRule"
-              checked={formData.pieRule}
-              onCheckedChange={(checked) => setFormData({ ...formData, pieRule: checked })}
-            />
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 justify-end pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Tournament'}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating..." : "Create event"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Label className="mb-2 block text-sm font-medium text-foreground">{label}</Label>
+      {children}
+    </div>
   );
 }
