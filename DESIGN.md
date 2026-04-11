@@ -151,6 +151,23 @@ The hero should communicate:
 The hero should not try to summarize the whole app.
 The first viewport should show a spatial object and live-system cues, not feature bullets.
 
+### Title system
+
+`BOARD` is not ordinary headline copy. It is a product object.
+
+Rules:
+
+- The wordmark should feel authored, dense, and slightly ambiguous.
+- A blocked or domino-like shape can interrupt the title if readability survives.
+- The title should carry more identity than any supporting panel or scene note.
+- Supporting 3D should sit behind or around the title, not replace it.
+
+Avoid:
+
+- plain bold text dropped into a hero
+- decorative outlines with no compositional role
+- turning the wordmark into a soft tech logo
+
 ### Panels and object surfaces
 
 - Use venue panels, strips, rails, and stage frames instead of repeating generic cards.
@@ -216,6 +233,19 @@ Do not reintroduce:
 - mod showcases on the front page unless they serve the core pitch
 - random badges or decorative pills
 - three-column marketing card grids
+- giant left headline + small gray paragraph + dual CTA + floating mockup
+- explanatory copy that talks about the design instead of the product
+
+## Anti-slop bans
+
+Permanent bans for BOARD public surfaces:
+
+- no template-first SaaS hero skeleton
+- no section-stitching from common landing-page libraries
+- no fake dashboard card floating next to the headline
+- no feature taxonomy pretending to be product design
+- no copy that says what the page is not instead of showing what BOARD is
+- no pages that could be mistaken for fintech, AI, productivity, or healthcare startup templates
 
 ## Implementation notes
 

@@ -216,6 +216,115 @@
     clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
   }
 
+  .board-domino-mark {
+    position: relative;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid currentColor;
+    border-radius: 0.95rem;
+    background:
+      linear-gradient(135deg, hsl(0 0% 100% / 0.12), transparent 58%),
+      currentColor;
+    overflow: hidden;
+  }
+
+  .board-domino-mark::before,
+  .board-domino-mark::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 0.34rem;
+    height: 0.34rem;
+    border-radius: 999px;
+    background: hsl(40 24% 96%);
+    transform: translateY(-50%);
+  }
+
+  .board-domino-mark::before {
+    left: 24%;
+  }
+
+  .board-domino-mark::after {
+    right: 24%;
+  }
+
+  .board-wordmark {
+    display: inline-flex;
+    align-items: flex-end;
+    line-height: 0.82;
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.12em;
+    text-transform: uppercase;
+  }
+
+  .board-wordmark--hero {
+    font-size: clamp(5.75rem, 18vw, 13rem);
+  }
+
+  .board-wordmark--compact {
+    font-size: 1.12rem;
+  }
+
+  .board-wordmark__glyph {
+    position: relative;
+    display: inline-block;
+  }
+
+  .board-wordmark__glyph + .board-wordmark__glyph,
+  .board-wordmark__tile + .board-wordmark__glyph {
+    margin-left: -0.12em;
+  }
+
+  .board-wordmark__glyph--lift {
+    transform: translateY(-0.08em);
+  }
+
+  .board-wordmark__glyph--drop {
+    transform: translateY(0.04em);
+  }
+
+  .board-wordmark__glyph--outline {
+    color: transparent;
+    -webkit-text-stroke: 1px currentColor;
+  }
+
+  .board-wordmark__tile {
+    position: relative;
+    display: inline-block;
+    width: 0.8em;
+    height: 0.74em;
+    margin-left: -0.06em;
+    margin-right: 0.01em;
+    border: 0.04em solid currentColor;
+    border-radius: 0.16em;
+    background:
+      linear-gradient(135deg, hsl(0 0% 100% / 0.12), transparent 58%),
+      currentColor;
+    transform: translateY(-0.06em);
+    overflow: hidden;
+  }
+
+  .board-wordmark__tile::before,
+  .board-wordmark__tile::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 0.12em;
+    height: 0.12em;
+    border-radius: 999px;
+    background: hsl(40 24% 96%);
+    transform: translateY(-50%);
+  }
+
+  .board-wordmark__tile::before {
+    left: 0.18em;
+  }
+
+  .board-wordmark__tile::after {
+    right: 0.18em;
+  }
+
   .board-rail-label {
     @apply font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground;
   }
@@ -342,5 +451,15 @@
   .board-hairline {
     height: 1px;
     background: hsl(225 16% 8% / 0.08);
+  }
+
+  @media (max-width: 767px) {
+    .board-wordmark--hero {
+      font-size: clamp(4.3rem, 24vw, 7rem);
+    }
+
+    .board-wordmark__glyph--outline {
+      -webkit-text-stroke: 0.8px currentColor;
+    }
   }
 }

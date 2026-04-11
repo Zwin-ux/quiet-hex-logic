@@ -11,7 +11,7 @@ const PRIMARY_LINKS = [
 ];
 
 const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
-  { match: /^\/$/, label: "Future venue OS" },
+  { match: /^\/$/, label: "Live board worlds" },
   { match: /^\/auth/, label: "Entry gate" },
   { match: /^\/worlds/, label: "World directory" },
   { match: /^\/play|^\/lobby/, label: "Play desk" },
@@ -50,7 +50,7 @@ export function NavBar() {
               <BoardLogo tone="dark" />
             </button>
             <div className="hidden min-w-0 border-l border-black/10 pl-4 lg:block">
-              <p className="board-rail-label text-[10px]">{isLanding ? "Future venue OS" : currentLabel}</p>
+              <p className="board-rail-label text-[10px]">{isLanding ? "Live board worlds" : currentLabel}</p>
             </div>
           </div>
 

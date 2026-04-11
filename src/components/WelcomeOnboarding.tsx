@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BoardLogo } from '@/components/BoardLogo';
+import { BoardWordmark } from '@/components/board/BoardWordmark';
 import { SiteFrame } from '@/components/board/SiteFrame';
 import { SectionRail } from '@/components/board/SectionRail';
 import { VenuePanel } from '@/components/board/VenuePanel';
@@ -60,11 +61,9 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
           </div>
           <div>
             <p className="board-rail-label">Entry gate</p>
-            <h1 className="mt-3 text-5xl font-black tracking-[-0.09em] text-foreground">
-              BOARD
-            </h1>
+            <BoardWordmark size="hero" className="mt-3 justify-center" />
             <p className="mt-4 text-lg leading-8 text-muted-foreground">
-              Future venue infrastructure for live board worlds, local practice, and recurring competition.
+              Worlds, rooms, local tables, and recurring competition in one live board system.
             </p>
           </div>
           <Loader2 className="h-5 w-5 animate-spin text-black/45" />
