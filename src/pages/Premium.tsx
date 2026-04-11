@@ -23,7 +23,7 @@ const features = [
 ];
 
 export default function Premium() {
-  useDocumentTitle('Premium');
+  useDocumentTitle('BOARD+');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium, subscription, loading } = usePremium(user?.id);
@@ -101,7 +101,7 @@ export default function Premium() {
           toast.success('Subscription restored successfully!');
           window.location.reload();
         } else {
-          toast.info('No active Hexology+ subscription found');
+          toast.info('No active BOARD+ subscription found');
         }
       } else {
         toast.info('No previous purchases found');
@@ -151,14 +151,14 @@ export default function Premium() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 px-5 py-2 rounded-full font-bold mb-6 shadow-xl animate-gentle-pulse">
             <Crown className="h-5 w-5" />
-            Hexology+
+            BOARD+
           </div>
           <h1 className="text-5xl md:text-6xl font-display font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-            Elevate Your Experience
+            Support The Venue
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Unlock the full potential of Hexology. Support independent development
-            and get exclusive features designed for true masters.
+            Support independent development, unlock extra analysis and aesthetics,
+            and help keep BOARD host-first instead of ad-first.
           </p>
         </div>
 
@@ -236,7 +236,7 @@ export default function Premium() {
                         disabled={purchasing || loading}
                         className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500 font-bold py-8 text-xl shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
                       >
-                        {purchasing ? 'Redirecting...' : 'Get Hexology+'}
+                        {purchasing ? 'Redirecting...' : 'Get BOARD+'}
                       </Button>
                     )}
                     {isIOS && (
@@ -342,7 +342,7 @@ export default function Premium() {
           <h3 className="text-xl font-semibold mb-2">Our Promise</h3>
           <p className="text-sm text-muted-foreground">
             We are committed to fair play and transparency. Subscribing helps us
-            keep Hexology independent and ad-free. No pay-to-win, ever.
+            keep BOARD independent and ad-free. No pay-to-win, ever.
           </p>
         </div>
 

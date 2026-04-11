@@ -8,7 +8,6 @@ const PRIMARY_LINKS = [
   { label: "Worlds", path: "/worlds" },
   { label: "Play", path: "/play" },
   { label: "Events", path: "/events" },
-  { label: "Docs", path: "/docs" },
 ];
 
 const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
@@ -18,6 +17,11 @@ const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
   { match: /^\/play|^\/lobby/, label: "Play desk" },
   { match: /^\/events|^\/tournaments|^\/tournament/, label: "Event directory" },
   { match: /^\/match|^\/replay/, label: "Live instance" },
+  { match: /^\/docs/, label: "Builder manual" },
+  { match: /^\/workbench/, label: "Runner lab" },
+  { match: /^\/arena/, label: "Bot arena" },
+  { match: /^\/tutorial/, label: "Learn Hex" },
+  { match: /^\/premium/, label: "Support BOARD" },
 ];
 
 export function NavBar() {
@@ -72,6 +76,12 @@ export function NavBar() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/docs")}
+              className="hidden text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground lg:inline-flex"
+            >
+              Manual
+            </button>
             {user ? (
               <>
                 <IconRailButton onClick={() => navigate("/profile")} label="Profile">

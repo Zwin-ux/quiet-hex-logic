@@ -182,7 +182,7 @@ export default function PuzzleRush({ puzzles, userId, isPremium, onBack }: Puzzl
             <Zap className="h-12 w-12 mx-auto mb-4 text-amber-500" />
             <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
             <p className="text-muted-foreground mb-4">
-              Puzzle Rush is a Hexology+ exclusive feature. Upgrade to compete on the leaderboards!
+              Puzzle Rush is part of BOARD+. Upgrade to compete on the leaderboards.
             </p>
             <Button onClick={onBack}>Back to Puzzles</Button>
           </CardContent>

@@ -29,7 +29,7 @@ interface TutorialStep {
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 1,
-    title: 'Welcome to Hexology — Learn Hex',
+    title: 'Welcome to BOARD - Learn Hex',
     description: 'Hex is a connection game played on a hexagonal grid. Two players compete to connect opposite sides of the board.',
     instruction: 'Click Next to learn the basics',
     showBoard: false,
@@ -117,8 +117,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 8,
     title: 'Advanced: Diagonal Breakthrough',
-    description: 'Watch how Indigo wins by cutting diagonally through Ochre\'s defenses. Ochre blocked two routes, but Indigo found the third path—a classic tactical breakthrough.',
-    instruction: 'Study the glowing winning path—notice how it bridges between Ochre\'s walls',
+    description: 'Watch how Indigo wins by cutting diagonally through Ochre\'s defenses. Ochre blocked two routes, but Indigo found the third path - a classic tactical breakthrough.',
+    instruction: 'Study the glowing winning path - notice how it bridges between Ochre\'s walls',
     boardSize: 7,
     showBoard: true,
     allowInteraction: false,
@@ -285,7 +285,7 @@ export default function Tutorial() {
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      navigate('/lobby');
+      navigate('/play');
     }
   };
 
@@ -360,7 +360,7 @@ export default function Tutorial() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="font-display text-2xl font-semibold text-foreground">
-              Hex Tutorial
+              Learn Hex
             </h1>
           </div>
           <Button variant="outline" onClick={() => navigate('/')} className="gap-2">
@@ -415,9 +415,9 @@ export default function Tutorial() {
                 : 'bg-accent/20 border-indigo'
             }`}>
               <p className="font-display text-foreground">
-                {hasFailed && '❌ '}
-                {hasWon && '✅ '}
-                {!hasFailed && !hasWon && '💡 '}
+                {hasFailed && 'Reset required: '}
+                {hasWon && 'Complete: '}
+                {!hasFailed && !hasWon && 'Tip: '}
                 {hasFailed ? 'Too many moves! Try a more direct path.' : step.instruction}
               </p>
               
@@ -469,7 +469,7 @@ export default function Tutorial() {
                     <ArrowRight className="h-4 w-4" />
                   </>
                 ) : (
-                  'Go to Lobby'
+                  'Go to Play Desk'
                 )}
               </Button>
             </div>
@@ -480,7 +480,7 @@ export default function Tutorial() {
                   <strong>Pie Rule Visualization:</strong>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Before: Indigo places center stone → After: Ochre swaps and takes that stone
+                  Before: Indigo places center stone, then Ochre swaps and takes that stone.
                 </p>
                 <p className="text-xs text-muted-foreground mt-2 italic">
                   Next step shows what the board looks like after swapping!
@@ -533,12 +533,12 @@ export default function Tutorial() {
                 <div className="mt-4 p-4 bg-accent/10 rounded-lg border border-border">
                   <p className="text-sm text-muted-foreground font-mono text-center">
                     {step.winCondition === 'connect' 
-                      ? '🎯 Click hexagons to place Indigo stones and connect West to East!' 
+                      ? 'Click hexagons to place Indigo stones and connect West to East.' 
                       : 'Interactive board - try clicking on hexagons!'}
                   </p>
                   {hasWon && (
                     <p className="text-sm text-indigo font-semibold text-center mt-2">
-                      ✅ Objective Complete!
+                      Objective complete.
                     </p>
                   )}
                 </div>
@@ -550,7 +550,7 @@ export default function Tutorial() {
           {!step.showBoard && (
             <Card className="p-8 shadow-lg border-2 border-border flex items-center justify-center bg-gradient-to-br from-indigo/5 via-accent/10 to-ochre/5">
               <div className="text-center">
-                <div className="text-8xl mb-6 opacity-10">⬡</div>
+                <div className="text-8xl mb-6 opacity-10">[]</div>
               </div>
             </Card>
           )}
@@ -559,7 +559,7 @@ export default function Tutorial() {
         {/* Keyboard Hint */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground font-mono">
-            Use ← → arrow keys or click buttons to navigate
+            Use left and right arrow keys or click buttons to navigate.
           </p>
         </div>
       </div>

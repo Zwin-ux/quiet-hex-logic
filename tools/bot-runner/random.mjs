@@ -3,17 +3,22 @@
  * Chooses a random move from server-provided `state.legal` for any game.
  *
  * Env:
- * - HEXLOGY_BOT_TOKEN (required)
- * - HEXLOGY_FUNCTIONS_URL (optional) e.g. https://<project>.supabase.co/functions/v1
+ * - BOARD_BOT_TOKEN (required, preferred)
+ * - BOARD_FUNCTIONS_URL (optional, preferred) e.g. https://<project>.supabase.co/functions/v1
+ *
+ * Legacy aliases still work:
+ * - HEXLOGY_BOT_TOKEN
+ * - HEXLOGY_FUNCTIONS_URL
  */
 
-const BOT_TOKEN = process.env.HEXLOGY_BOT_TOKEN;
+const BOT_TOKEN = process.env.BOARD_BOT_TOKEN || process.env.HEXLOGY_BOT_TOKEN;
 if (!BOT_TOKEN) {
-  console.error('Missing HEXLOGY_BOT_TOKEN');
+  console.error('Missing BOARD_BOT_TOKEN');
   process.exit(1);
 }
 
 const base =
+  process.env.BOARD_FUNCTIONS_URL ||
   process.env.HEXLOGY_FUNCTIONS_URL ||
   (process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL.replace(/\/+$/, '')}/functions/v1` : null) ||
   'http://localhost:54321/functions/v1';

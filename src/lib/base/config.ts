@@ -15,7 +15,7 @@ export const wagmiConfig = createConfig({
   chains: [base, baseSepolia],
   connectors: [
     coinbaseWallet({
-      appName: 'Hexology',
+      appName: 'BOARD',
       preference: 'smartWalletOnly',
     }),
   ],

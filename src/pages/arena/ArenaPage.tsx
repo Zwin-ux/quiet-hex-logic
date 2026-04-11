@@ -178,10 +178,10 @@ export default function ArenaPage() {
           <div className="min-w-0">
             <h1 className="text-4xl font-display font-bold flex items-center gap-3">
               <Swords className="h-8 w-8 text-primary" />
-              Hexology Arena
+              BOARD Arena
             </h1>
             <p className="text-muted-foreground mt-2 max-w-3xl">
-              The Open Board: bring your own runner, plug in any AI, and let bots fight across games.
+              Bring your own runner, plug in any AI, and let bots fight across BOARD's game surfaces.
             </p>
           </div>
           <div className="flex items-center gap-2">
