@@ -140,6 +140,13 @@ export default function Tournaments() {
             staged from a world, not from a floating one-off page.
           </>
         }
+        meta={
+          <>
+            <span className="board-meta-chip">Mode / event directory</span>
+            <span className="board-meta-chip">World-hosted / {worldHostedCount}</span>
+            <span className="board-meta-chip">Standalone / {standaloneCount}</span>
+          </>
+        }
         actions={
           <>
             <Button variant="outline" onClick={() => navigate("/worlds")}>
@@ -235,34 +242,32 @@ function TournamentSection({
   return (
     <VenuePanel eyebrow={title} title={tournaments.length ? title : `No ${title.toLowerCase()}`} description={description}>
       {tournaments.length === 0 ? (
-        <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
+        <div className="board-ledger pt-4 text-sm leading-7 text-muted-foreground">
           Nothing here yet.
         </div>
       ) : (
-        <div className="divide-y divide-black/10 border-t border-black/10">
+        <div className="board-ledger mt-2">
           {tournaments.map((tournament, index) => (
             <button
               key={tournament.id}
               onClick={() => onView(tournament.id)}
-              className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[52px_minmax(0,1fr)_210px]"
+              className="board-ledger-row w-full text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[56px_minmax(0,1fr)_210px]"
             >
               <div className="board-rail-label pt-1 text-[10px] text-black/45">
                 {String(index + 1).padStart(2, "0")}
               </div>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h3 className="text-2xl font-bold tracking-[-0.05em] text-foreground">{tournament.name}</h3>
-                  <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
-                    {tournament.status}
-                  </span>
+                <div className="board-meta-stack mb-3">
+                  <span className="board-meta-chip">status / {tournament.status}</span>
                   {tournament.world_id && worldNames[tournament.world_id] ? (
-                    <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
-                      {worldNames[tournament.world_id]}
-                    </span>
-                  ) : null}
+                    <span className="board-meta-chip">world / {worldNames[tournament.world_id]}</span>
+                  ) : (
+                    <span className="board-meta-chip">type / standalone</span>
+                  )}
                 </div>
+                <h3 className="board-section-title text-foreground">{tournament.name}</h3>
                 {tournament.description ? (
-                  <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                  <p className="board-copy mt-4 max-w-2xl">
                     {tournament.description}
                   </p>
                 ) : null}

@@ -15,10 +15,10 @@ const Index = () => {
       </div>
 
       <footer className="mt-10 border-t border-black/10 py-10">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-8 pb-10 md:flex-row md:items-end md:justify-between">
+        <div className="mx-auto flex board-page-width flex-col gap-8 pb-10 md:flex-row md:items-end md:justify-between">
           <div className="space-y-4">
             <BoardLogo tone="dark" />
-            <p className="max-w-xl text-sm leading-7 text-[#5f5f5f]">
+            <p className="board-copy max-w-xl">
               BOARD is future venue infrastructure for tabletop and board
               competition. Quiet Hex Logic remains the engine lineage.
             </p>

@@ -18,14 +18,14 @@ const Hero = memo(
 
       return (
         <section ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
-          <div className="relative mx-auto max-w-[1440px] pb-16 pt-8 md:pb-24">
-            <div className="grid items-center gap-8 xl:grid-cols-[1.02fr_0.98fr]">
-              <div className="max-w-4xl">
+          <div className="relative mx-auto board-page-width pb-14 pt-8 md:pb-20">
+            <div className="grid items-start gap-8 xl:grid-cols-[1.02fr_0.98fr]">
+              <div className="max-w-4xl pt-4">
                 <p className="mb-5 board-rail-label">BOARD / Quiet Hex Logic</p>
-                <h1 className="max-w-5xl text-balance text-5xl font-bold tracking-[-0.1em] text-[#0a0a0a] sm:text-6xl md:text-7xl lg:text-[6.5rem] lg:leading-[0.92]">
+                <h1 className="board-display-title max-w-[8.4ch] text-[#0a0a0a]">
                   Future venue infrastructure for board worlds.
                 </h1>
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-[#4e4d48] md:text-2xl md:leading-10">
+                <p className="board-copy-lg mt-6 max-w-2xl">
                   BOARD gives clubs, creators, and local organizers a live system
                   for rooms, events, spectatorship, and host-owned competition.
                 </p>
@@ -37,7 +37,7 @@ const Hero = memo(
                 <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                   <Button
                     size="lg"
-                    className="clip-stage h-14 bg-[#0a0a0a] px-8 text-base font-semibold text-white shadow-none hover:bg-[#1b1b1b]"
+                    className="h-14 px-8 text-base"
                     onClick={() => navigate("/worlds")}
                   >
                     View Live Worlds
@@ -45,31 +45,31 @@ const Hero = memo(
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-14 border-black/10 bg-white px-8 text-base font-semibold text-black shadow-none hover:bg-black/5"
+                    className="h-14 px-8 text-base text-black"
                     onClick={scrollToGames}
                   >
                     Start Practice
                   </Button>
                 </div>
 
-                <div className="mt-12 grid gap-4 border-t border-black/10 pt-6 md:grid-cols-3">
+                <div className="mt-12 grid gap-6 border-t border-black/10 pt-6 md:grid-cols-3">
                   <div>
                     <p className="board-rail-label">World</p>
-                    <p className="mt-2 max-w-sm text-base leading-7 text-[#5b5a54]">
+                    <p className="board-copy mt-3 max-w-sm">
                       A recurring venue with identity, members, moderation, and
                       host control.
                     </p>
                   </div>
                   <div>
                     <p className="board-rail-label">Instance</p>
-                    <p className="mt-2 max-w-sm text-base leading-7 text-[#5b5a54]">
+                    <p className="board-copy mt-3 max-w-sm">
                       Rooms feel like live objects: finals boards, challenges,
                       analysis spaces, and teaching tables.
                     </p>
                   </div>
                   <div>
                     <p className="board-rail-label">Event</p>
-                    <p className="mt-2 max-w-sm text-base leading-7 text-[#5b5a54]">
+                    <p className="board-copy mt-3 max-w-sm">
                       Pairings and standings sit on top of those spaces without
                       flattening the experience into bracket sludge.
                     </p>
@@ -77,13 +77,13 @@ const Hero = memo(
                 </div>
               </div>
 
-              <div className="relative">
+              <div className="relative pt-4 xl:pt-10">
                 <SkeletalBoardScene />
                 <VenuePanel
                   tone="dark"
                   eyebrow="Live system fragment"
                   title="Northside club open"
-                  className="absolute inset-x-4 bottom-4 md:inset-x-auto md:-bottom-8 md:right-6 md:w-[320px]"
+                  className="absolute inset-x-4 bottom-4 md:inset-x-auto md:bottom-6 md:right-6 md:w-[320px]"
                 >
                   <MetricLine icon={Users} label="Presence" value="42 in venue" />
                   <MetricLine icon={RadioTower} label="Instance" value="Final board live" />

@@ -23,7 +23,7 @@ export function VenuePanel({
   return (
     <section
       className={cn(
-        "board-panel board-panel-cut rounded-[1.6rem] p-5 md:p-6",
+        "board-panel board-panel-cut rounded-[1.15rem] p-5 md:p-7",
         isDark && "border-white/10 bg-[#101114] text-white before:bg-white/10",
         className,
       )}
@@ -32,12 +32,12 @@ export function VenuePanel({
         <p className={cn("board-rail-label", isDark && "text-white/45")}>{eyebrow}</p>
       ) : null}
       {title ? (
-        <div className={cn("mt-3 text-2xl font-bold tracking-[-0.05em]", isDark && "text-white")}>
+        <div className={cn("board-section-title mt-4", isDark && "text-white")}>
           {title}
         </div>
       ) : null}
       {description ? (
-        <div className={cn("mt-3 text-sm leading-7 text-muted-foreground", isDark && "text-white/70")}>
+        <div className={cn("board-copy mt-4", isDark && "text-white/70")}>
           {description}
         </div>
       ) : null}

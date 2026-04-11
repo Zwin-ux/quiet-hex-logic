@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, CalendarRange, Loader2, Plus, RadioTower, Users } from "lucide-react";
+import { ArrowUpRight, Building2, CalendarRange, Loader2, Plus, RadioTower, Users } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { SectionRail } from "@/components/board/SectionRail";
 import { VenuePanel } from "@/components/board/VenuePanel";
@@ -54,6 +54,13 @@ export default function Worlds() {
             inside BOARD.
           </>
         }
+        meta={
+          <>
+            <span className="board-meta-chip">Mode / venue directory</span>
+            <span className="board-meta-chip">Primary use / clubs, leagues, local opens</span>
+            <span className="board-meta-chip">System status / {worlds.length ? `${worlds.length} visible` : "ready for first venue"}</span>
+          </>
+        }
         actions={
           user && !isGuest ? (
             <Button onClick={() => setShowCreateDialog(true)}>
@@ -71,60 +78,73 @@ export default function Worlds() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="mt-10 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.18fr)_360px]">
           <VenuePanel
             eyebrow="Active directory"
-            title={worlds.length ? `${worlds.length} live venues` : "No worlds yet"}
+            title={worlds.length ? `${worlds.length} live venues` : "No worlds live yet"}
             description={
               worlds.length
                 ? "Joined worlds appear first, followed by public venues across the network."
-                : "This is where recurring host-owned venues will appear once the first organizer stages one."
+                : "BOARD is ready for the first serious recurring venue. The next step is turning one real organizer into an owned world."
             }
-            className="min-h-[520px] bg-white/92"
+            className="min-h-[460px] bg-white/92"
           >
             {worlds.length === 0 ? (
-              <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 text-center">
-                <Building2 className="h-10 w-10 text-black/30" />
-                <div>
-                  <p className="text-xl font-bold tracking-[-0.04em] text-foreground">
-                    No venues yet
-                  </p>
-                  <p className="mt-2 max-w-md text-sm leading-7 text-muted-foreground">
-                    The world slice is ready. The next move is turning the first
-                    recurring club or organizer into a real host-owned space.
-                  </p>
+              <div className="board-ledger mt-2">
+                <div className="grid gap-8 py-6 md:grid-cols-[minmax(0,1fr)_220px] md:items-start">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5 text-black/45" />
+                      <p className="board-rail-label">Empty directory</p>
+                    </div>
+                    <p className="board-section-title mt-4 text-foreground">
+                      No venues yet
+                    </p>
+                    <p className="board-copy mt-4 max-w-xl">
+                      Start with one recurring organizer, not a generic public hub.
+                      The strongest first worlds are clubs, creator leagues,
+                      school programs, and local opens with a cadence people
+                      already recognize.
+                    </p>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                      <Button onClick={() => navigate("/auth")}>
+                        Sign in to host
+                      </Button>
+                      <Button variant="outline" onClick={() => navigate("/events")}>
+                        Browse events
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="border-l border-black/10 pl-0 md:pl-5">
+                    <MetricLine label="Role" value="host first" />
+                    <MetricLine label="Pattern" value="recurring" />
+                    <MetricLine label="Scope" value="world owned" />
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-black/10">
+              <div className="board-ledger mt-2">
                 {worlds.map((world, index) => (
                   <button
                     key={world.id}
                     onClick={() => navigate(`/worlds/${world.id}`)}
-                    className="grid w-full gap-4 px-0 py-5 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[70px_minmax(0,1fr)_220px]"
+                    className="board-ledger-row w-full text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[72px_minmax(0,1fr)_220px]"
                   >
                     <div className="board-rail-label pt-1 text-[10px] text-black/45">
                       {String(index + 1).padStart(2, "0")}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-3xl font-bold tracking-[-0.06em] text-foreground">
-                          {world.name}
-                        </h2>
-                        <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
-                          {world.visibility}
-                        </span>
-                        {world.userRole ? (
-                          <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
-                            {world.userRole}
-                          </span>
-                        ) : null}
+                      <div className="board-meta-stack mb-3">
+                        <span className="board-meta-chip">visibility / {world.visibility}</span>
+                        <span className="board-meta-chip">host / {world.ownerName}</span>
+                        {world.userRole ? <span className="board-meta-chip">role / {world.userRole}</span> : null}
                       </div>
-                      <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+                      <h2 className="board-section-title text-foreground">
+                        {world.name}
+                      </h2>
+                      <p className="board-copy mt-4 max-w-2xl">
                         {world.description || "No description yet."}
-                      </p>
-                      <p className="mt-3 board-rail-label text-[10px] text-black/45">
-                        Hosted by {world.ownerName}
                       </p>
                     </div>
                     <div className="space-y-1 border-l border-black/10 pl-5">
@@ -140,9 +160,9 @@ export default function Worlds() {
 
           <div className="space-y-6">
             <VenuePanel
-              eyebrow="Why worlds exist"
+              eyebrow="Venue anatomy"
               title="BOARD is a venue system."
-              description="Worlds are the container that gives rooms, events, moderators, spectators, and recurring hosts one place to live together."
+              description="A world turns recurring host identity into something rooms, events, members, and moderation can all inherit."
             >
               <MetricLine label="Host-owned" value="identity first" />
               <MetricLine label="Not a portal" value="rooms under venue" />
@@ -152,10 +172,19 @@ export default function Worlds() {
             <VenuePanel
               eyebrow="Operator note"
               title="What to stage first"
-              description="The highest-value first worlds are recurring organizers: clubs, creator leagues, school programs, and local opens with a clear cadence."
+              description="The first world should belong to someone who already gathers people, not to an abstract product demo."
             >
-              <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
-                <p>Start with one serious venue. Give it a world, attach rooms and events, and let the product prove that recurring host identity is the real wedge.</p>
+              <div className="board-ledger pt-1">
+                <div className="board-ledger-row py-4">
+                  <div>
+                    <p className="board-rail-label">Best first fit</p>
+                    <p className="board-copy mt-3">
+                      A recurring club, league, school group, or local open with
+                      an obvious return rhythm.
+                    </p>
+                  </div>
+                  <ArrowUpRight className="mt-1 h-4 w-4 text-black/35" />
+                </div>
               </div>
             </VenuePanel>
           </div>

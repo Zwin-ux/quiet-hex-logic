@@ -35,7 +35,7 @@ export function NavBar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-black/10 bg-background/86 text-foreground backdrop-blur-xl">
-      <div className="mx-auto max-w-[1440px] px-4 md:px-6 lg:px-8">
+      <div className="board-page-width mx-auto px-5 md:px-8 lg:px-10">
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             <button
@@ -46,7 +46,7 @@ export function NavBar() {
               <BoardLogo tone="dark" />
             </button>
             <div className="hidden min-w-0 border-l border-black/10 pl-4 lg:block">
-              <p className="board-rail-label text-[10px]">{currentLabel}</p>
+              <p className="board-rail-label text-[10px]">{isLanding ? "Future venue OS" : currentLabel}</p>
             </div>
           </div>
 
@@ -101,7 +101,7 @@ export function NavBar() {
           </div>
         </div>
 
-          <div className="scrollbar-hide flex gap-5 overflow-x-auto border-t border-black/10 pb-3 pt-2 md:hidden">
+        <div className="scrollbar-hide flex gap-5 overflow-x-auto border-t border-black/10 pb-3 pt-2 md:hidden">
           {PRIMARY_LINKS.map((link) => (
             <button
               key={link.path}

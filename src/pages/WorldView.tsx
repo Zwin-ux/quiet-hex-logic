@@ -106,22 +106,17 @@ export default function WorldView() {
 
       <SectionRail
         eyebrow="World"
-        title={
-          <div className="flex flex-wrap items-center gap-3">
-            <span>{world.name}</span>
-            <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
-              {world.visibility}
-            </span>
-            {world.userRole ? (
-              <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
-                {world.userRole}
-              </span>
-            ) : null}
-          </div>
-        }
+        title={world.name}
         description={
           <>
             {world.description || "No description yet."} Hosted by {world.ownerName}.
+          </>
+        }
+        meta={
+          <>
+            <span className="board-meta-chip">visibility / {world.visibility}</span>
+            <span className="board-meta-chip">host / {world.ownerName}</span>
+            {world.userRole ? <span className="board-meta-chip">role / {world.userRole}</span> : null}
           </>
         }
         actions={
@@ -152,31 +147,30 @@ export default function WorldView() {
             description="Competitions staged under this world inherit its host identity instead of floating as disconnected pages."
           >
             {events.length === 0 ? (
-              <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
+              <div className="board-ledger pt-4 text-sm leading-7 text-muted-foreground">
                 No events yet. The next serious step is attaching the first recurring competition to this venue.
               </div>
             ) : (
-              <div className="divide-y divide-black/10">
+              <div className="board-ledger mt-2">
                 {events.map((event, index) => (
                   <button
                     key={event.id}
                     onClick={() => navigate(`/tournament/${event.id}`)}
-                    className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[52px_minmax(0,1fr)_170px]"
+                    className="board-ledger-row w-full text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[56px_minmax(0,1fr)_170px]"
                   >
                     <div className="board-rail-label pt-1 text-[10px] text-black/45">
                       {String(index + 1).padStart(2, "0")}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-2xl font-bold tracking-[-0.05em] text-foreground">
-                          {event.name}
-                        </h3>
-                        <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
-                          {event.status}
-                        </span>
+                      <div className="board-meta-stack mb-3">
+                        <span className="board-meta-chip">status / {event.status}</span>
+                        <span className="board-meta-chip">format / {event.format.replace(/_/g, " ")}</span>
                       </div>
+                      <h3 className="board-section-title text-foreground">
+                        {event.name}
+                      </h3>
                       {event.description ? (
-                        <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                        <p className="board-copy mt-4">
                           {event.description}
                         </p>
                       ) : null}
@@ -211,7 +205,7 @@ export default function WorldView() {
             description="Rooms and linked matches are the objects that make this world feel occupied."
           >
             {lobbies.length === 0 && matches.length === 0 ? (
-              <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
+              <div className="board-ledger pt-4 text-sm leading-7 text-muted-foreground">
                 No live instances yet. Create a room here or wait for a linked match to go live.
               </div>
             ) : null}
@@ -239,12 +233,12 @@ export default function WorldView() {
             ) : null}
 
             {matches.length > 0 ? (
-              <div className="mt-4 divide-y divide-black/10 border-t border-black/10">
+              <div className="board-ledger mt-4">
                 {matches.map((match) => (
                   <button
                     key={match.id}
                     onClick={() => navigate(`/match/${match.id}`)}
-                    className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[minmax(0,1fr)_160px]"
+                    className="board-ledger-row w-full text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[minmax(0,1fr)_160px]"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
@@ -253,7 +247,7 @@ export default function WorldView() {
                           {match.gameKey} match
                         </p>
                       </div>
-                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                      <p className="board-copy mt-3">
                         Active now. Board size {match.size}. {match.allowSpectators ? "Spectators allowed." : "Player access only."}
                       </p>
                     </div>

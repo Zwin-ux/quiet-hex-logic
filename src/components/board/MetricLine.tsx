@@ -15,7 +15,7 @@ export function MetricLine({ label, value, icon: Icon, className }: MetricLinePr
         {Icon ? <Icon className="h-4 w-4" /> : null}
         <span className="board-rail-label tracking-[0.2em]">{label}</span>
       </div>
-      <span className="text-lg font-bold tracking-[-0.03em] text-foreground">{value}</span>
+      <span className="text-base font-bold tracking-[-0.03em] text-foreground md:text-lg">{value}</span>
     </div>
   );
 }

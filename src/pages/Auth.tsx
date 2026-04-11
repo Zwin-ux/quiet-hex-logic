@@ -221,32 +221,31 @@ export default function Auth() {
 
   return (
     <SiteFrame contentClassName="pt-24">
-      <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-6">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px]">
+        <div className="order-2 space-y-6 xl:order-1">
           <div className="max-w-3xl">
             <p className="board-rail-label">Identity gate</p>
-            <h1 className="mt-4 text-balance text-5xl font-bold tracking-[-0.08em] text-foreground md:text-6xl">
-              Enter BOARD as a host, member, or returning player.
+            <h1 className="board-page-title mt-4 max-w-[10ch] text-foreground">
+              Enter worlds, events, and recurring rooms.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Accounts unlock worlds, events, recurring venues, and any role that
-              depends on identity. Practice can still stay local when you just want
-              to think and play.
+            <p className="board-copy-lg mt-5 max-w-xl">
+              One account handles host access, venue membership, and returning
+              roles. Local practice stays instant when you just want to think and play.
             </p>
           </div>
 
-          <SkeletalBoardScene variant="compact" className="max-w-3xl" />
+          <SkeletalBoardScene variant="compact" className="hidden max-w-3xl md:block" />
 
           <div className="grid gap-4 md:grid-cols-2">
             <VenuePanel
               eyebrow="Account use"
-              title="When identity matters"
-              description="Create or join worlds, enter host-run events, return to rooms, and keep your role inside recurring spaces."
+              title="Use identity when the room needs memory."
+              description="Create or join worlds, enter host-run events, return to rooms, and keep your role inside recurring venues."
             />
             <VenuePanel
               eyebrow="Local practice"
-              title="When it does not"
-              description="If you only want a fast solo session, BOARD keeps that path light and immediate."
+              title="Practice can stay light."
+              description="If you only want a fast solo session, BOARD keeps that path immediate and separate from venue identity."
             >
               <Button variant="outline" onClick={() => navigate("/play")}>
                 Practice locally
@@ -256,6 +255,7 @@ export default function Auth() {
         </div>
 
         <VenuePanel
+          className="order-1 bg-white/92 xl:order-2"
           eyebrow={
             authView === "forgot-password"
               ? "Password reset"
@@ -265,7 +265,6 @@ export default function Auth() {
           }
           title={getAuthTitle(authView, emailSent, authTab)}
           description={getAuthDescription(authView, emailSent, authTab, email)}
-          className="bg-white/92"
         >
           {authView === "forgot-password" ? (
             <ForgotPasswordForm

@@ -34,7 +34,7 @@
     --input: 40 18% 94%;
     --ring: 225 16% 18%;
 
-    --radius: 1rem;
+    --radius: 0.8rem;
 
     --indigo: 223 60% 50%;
     --ochre: 45 100% 50%;
@@ -46,13 +46,13 @@
     --game-connect4: 28 92% 52%;
 
     --shadow-soft:
-      0 24px 80px -40px hsl(225 20% 8% / 0.24),
-      0 12px 32px -24px hsl(225 20% 8% / 0.18);
+      0 18px 48px -36px hsl(225 20% 8% / 0.18),
+      0 10px 22px -18px hsl(225 20% 8% / 0.12);
     --shadow-medium:
-      0 32px 100px -42px hsl(225 20% 8% / 0.34),
-      0 18px 44px -26px hsl(225 20% 8% / 0.24);
+      0 26px 68px -38px hsl(225 20% 8% / 0.22),
+      0 14px 28px -22px hsl(225 20% 8% / 0.16);
     --shadow-glow: 0 0 0 1px hsl(225 16% 8% / 0.06),
-      0 28px 80px -44px hsl(225 16% 8% / 0.32);
+      0 20px 48px -36px hsl(225 16% 8% / 0.16);
 
     --transition-gentle: 420ms cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -92,9 +92,9 @@
     font-feature-settings: "kern" 1, "liga" 1, "ss01" 1;
     min-height: 100vh;
     background-image:
-      radial-gradient(circle at top left, hsl(40 20% 99%), transparent 24%),
-      radial-gradient(circle at 80% 12%, hsl(0 0% 100% / 0.7), transparent 18%),
-      linear-gradient(to bottom, hsl(var(--background)), hsl(40 18% 95%));
+      radial-gradient(circle at top left, hsl(40 20% 99%), transparent 22%),
+      radial-gradient(circle at 82% 10%, hsl(0 0% 100% / 0.5), transparent 18%),
+      linear-gradient(to bottom, hsl(var(--background)), hsl(42 18% 95%));
   }
 
   h1,
@@ -187,9 +187,9 @@
 
   .board-grid {
     background-image:
-      linear-gradient(to right, hsl(225 16% 8% / 0.045) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(225 16% 8% / 0.045) 1px, transparent 1px);
-    background-size: 72px 72px;
+      linear-gradient(to right, hsl(225 16% 8% / 0.032) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(225 16% 8% / 0.032) 1px, transparent 1px);
+    background-size: 88px 88px;
   }
 
   .board-topography {
@@ -204,7 +204,7 @@
   }
 
   .board-panel {
-    @apply board-stage-border relative overflow-hidden bg-card;
+    @apply relative overflow-hidden border border-black/10 bg-white/80 backdrop-blur-[2px];
   }
 
   .board-panel::before {
@@ -213,11 +213,11 @@
   }
 
   .board-panel-cut {
-    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
   }
 
   .board-rail-label {
-    @apply font-mono text-[11px] uppercase tracking-[0.34em] text-muted-foreground;
+    @apply font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground;
   }
 
   .board-metric-line {
@@ -272,5 +272,75 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  .board-page-width {
+    max-width: 1320px;
+  }
+
+  .board-display-title {
+    font-size: clamp(3.6rem, 8.4vw, 6.7rem);
+    line-height: 0.88;
+    letter-spacing: -0.1em;
+  }
+
+  .board-page-title {
+    font-size: clamp(2.6rem, 5.8vw, 4.6rem);
+    line-height: 0.92;
+    letter-spacing: -0.075em;
+  }
+
+  .board-section-title {
+    font-size: clamp(1.65rem, 2.3vw, 2.45rem);
+    line-height: 0.96;
+    letter-spacing: -0.06em;
+  }
+
+  .board-copy-lg {
+    font-size: clamp(1.05rem, 1.2vw, 1.28rem);
+    line-height: 1.68;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .board-copy {
+    font-size: 1rem;
+    line-height: 1.72;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .board-ledger {
+    border-top: 1px solid hsl(225 16% 8% / 0.08);
+  }
+
+  .board-ledger-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.9rem;
+    align-items: start;
+    padding-block: 0.95rem;
+    border-top: 1px solid hsl(225 16% 8% / 0.08);
+  }
+
+  .board-ledger-row:first-child {
+    border-top: 0;
+  }
+
+  .board-meta-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1.25rem;
+  }
+
+  .board-meta-chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.69rem;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    color: hsl(225 16% 8% / 0.5);
+  }
+
+  .board-hairline {
+    height: 1px;
+    background: hsl(225 16% 8% / 0.08);
   }
 }
