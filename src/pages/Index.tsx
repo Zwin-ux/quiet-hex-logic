@@ -19,8 +19,8 @@ const Index = () => {
           <div className="space-y-4">
             <BoardLogo tone="dark" />
             <p className="board-copy max-w-xl">
-              BOARD is future venue infrastructure for tabletop and board
-              competition. Quiet Hex Logic remains the engine lineage.
+              BOARD is venue infrastructure for live board competition. Quiet Hex Logic remains
+              the engine lineage underneath it.
             </p>
           </div>
 
@@ -42,11 +42,14 @@ const Index = () => {
             <Link to="/events" className="transition-colors hover:text-black">
               Events
             </Link>
+            <Link to="/docs" className="transition-colors hover:text-black">
+              Manual
+            </Link>
             <Link to="/privacy" className="transition-colors hover:text-black">
               Privacy
             </Link>
             <span className="font-mono text-xs uppercase tracking-[0.18em] text-[#7a7a7a]">
-              BOARD © 2026
+              BOARD / 2026
             </span>
           </div>
         </div>

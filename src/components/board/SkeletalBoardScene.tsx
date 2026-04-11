@@ -54,10 +54,41 @@ export function SkeletalBoardScene({
       </motion.div>
 
       <motion.img
+        src="/board/board-piece-cluster.svg"
+        alt=""
+        aria-hidden="true"
+        className={cn(
+          "absolute left-1/2 top-[16%] z-[2] -translate-x-1/2 object-contain",
+          isHero ? "w-[88%]" : "top-[20%] w-[82%]",
+        )}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 36, scale: 0.94 }}
+        animate={
+          prefersReducedMotion
+            ? { opacity: 1 }
+            : {
+                opacity: 1,
+                y: [0, -8, 0],
+                rotateZ: [0, -0.8, 0.6, 0],
+                scale: [1, 1.01, 1],
+              }
+        }
+        transition={
+          prefersReducedMotion
+            ? { duration: 0.6 }
+            : {
+                opacity: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
+                y: { duration: 9, repeat: Infinity, ease: "easeInOut" },
+                rotateZ: { duration: 11, repeat: Infinity, ease: "easeInOut" },
+                scale: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+              }
+        }
+      />
+
+      <motion.img
         src="/board/board-seat-trace.svg"
         alt=""
         aria-hidden="true"
-        className="absolute bottom-[7%] left-1/2 w-[72%] -translate-x-1/2 opacity-50"
+        className="absolute bottom-[7%] left-1/2 z-[1] w-[72%] -translate-x-1/2 opacity-50"
         animate={prefersReducedMotion ? undefined : { y: [0, -6, 0], opacity: [0.35, 0.72, 0.35] }}
         transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut" }}
       />

@@ -94,16 +94,15 @@ export const GameGrid = memo(
         <section id="games" ref={ref} className={cn("bg-transparent py-20", className)} {...props}>
           <div className="mx-auto max-w-[1440px]">
             <SectionRail
-              eyebrow="Practice instantly"
-              title="Enter BOARD in seconds, not through setup sludge."
+              eyebrow="Practice desk"
+              title="Local tables, live immediately."
               description={
                 <>
-                  Practice is the fast path into BOARD. Choose a game, pick the
-                  pressure level, and start without waiting on accounts, invites,
-                  or event scaffolding.
+                  Practice is the quick-entry surface. Pick a ruleset, choose the
+                  pressure level, and start a table without waiting on world setup.
                 </>
               }
-              actions={<div className="text-sm font-semibold text-[#4f4f4f]">Guest practice supported</div>}
+              actions={<div className="text-sm font-semibold text-[#4f4f4f]">Guest practice stays available</div>}
             />
 
             <div className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

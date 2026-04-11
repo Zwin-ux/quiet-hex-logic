@@ -1,30 +1,46 @@
 import { memo, forwardRef } from "react";
+import { Eye, Gavel, LayoutGrid, RadioTower, UserCog, Waves } from "lucide-react";
+import { VenuePanel } from "@/components/board/VenuePanel";
+import { MetricLine } from "@/components/board/MetricLine";
 import { cn } from "@/lib/utils";
 
-const features = [
+const worldBlueprint = [
+  { label: "Identity", value: "name, members, recurrence" },
+  { label: "Host control", value: "roles, moderation, room rules" },
+  { label: "Event rail", value: "rounds, standings, schedules" },
+  { label: "Live objects", value: "boards, lesson tables, analysis rooms" },
+] as const;
+
+const liveSurfaces = [
   {
-    id: "01",
-    label: "Worlds",
-    description:
-      "A recurring host-owned space with branding, roles, moderation, and room identity.",
+    title: "Final board",
+    note: "Clock, broadcast, spectatorship, and host override all in one place.",
   },
   {
-    id: "02",
-    label: "Instances",
-    description:
-      "Games are live rooms. Finals boards, analysis tables, and lessons should all feel like venue objects.",
+    title: "Analysis room",
+    note: "Replay, side lines, and teaching flow without breaking the main event rail.",
   },
   {
-    id: "03",
-    label: "Events",
-    description:
-      "Pairings, standings, rounds, and scheduling should sit on top of those rooms without turning the product into bracket sludge.",
+    title: "Qualifier table",
+    note: "Fast seat turnover, direct invites, and recurring world context.",
+  },
+] as const;
+
+const hostActions = [
+  {
+    icon: LayoutGrid,
+    title: "Spawn room",
+    description: "Create a live instance with rules, seats, visibility, and clock settings.",
   },
   {
-    id: "04",
-    label: "Presence",
-    description:
-      "Hosts, players, spectators, and commentators should feel visibly present in the same live environment.",
+    icon: Gavel,
+    title: "Run round",
+    description: "Advance the event without disconnecting it from the rooms people are already in.",
+  },
+  {
+    icon: Eye,
+    title: "Open spectate",
+    description: "Make the board legible to viewers instead of hiding the live object behind a static bracket.",
   },
 ] as const;
 
@@ -33,40 +49,75 @@ export const FeaturesShowcase = memo(
     ({ className, ...props }, ref) => {
       return (
         <section ref={ref} className={cn("border-y border-black/10 bg-transparent py-14 md:py-16", className)} {...props}>
-          <div className="mx-auto board-page-width">
-            <div className="mb-10 max-w-3xl">
-              <p className="board-rail-label">Built around live primitives</p>
-              <h2 className="board-page-title mt-4 max-w-[12ch] text-[#0a0a0a]">
-                BOARD communicates through rooms, rails, and live systems.
-              </h2>
-              <p className="board-copy-lg mt-4 max-w-2xl">
-                The product advantage is not more pages. It is stronger primitives,
-                calmer event surfaces, and host-owned places that feel real.
-              </p>
+          <div className="mx-auto board-page-width space-y-6">
+            <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+              <VenuePanel
+                eyebrow="World blueprint"
+                title="A world holds the recurring competition identity."
+                description="This is the core object. Events and live boards inherit context from the world instead of pretending every match is its own isolated page."
+                className="bg-white/92"
+              >
+                <div className="board-ledger mt-2">
+                  {worldBlueprint.map((item) => (
+                    <div key={item.label} className="board-ledger-row md:grid-cols-[140px_minmax(0,1fr)]">
+                      <p className="board-rail-label text-[10px] text-black/45">{item.label}</p>
+                      <p className="text-sm leading-7 text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </VenuePanel>
+
+              <VenuePanel
+                eyebrow="Presence rail"
+                title="People should feel present around the object."
+                description="Hosts, players, commentators, and spectators are part of the live surface. Presence is not a leftover status badge."
+                className="bg-[#fbfaf6]"
+              >
+                <MetricLine icon={UserCog} label="Host mode" value="seat control + moderation" />
+                <MetricLine icon={RadioTower} label="Broadcast" value="event rail + room audio path" />
+                <MetricLine icon={Waves} label="Spectatorship" value="entry, watch state, replay" />
+              </VenuePanel>
             </div>
 
-            <div className="grid gap-0 border-y border-black/10 xl:grid-cols-4">
-              {features.map((feature) => (
-                <div
-                  key={feature.label}
-                  className="relative border-b border-black/10 px-0 py-0 md:grid md:grid-cols-[72px_minmax(0,1fr)] md:gap-0 xl:block xl:min-h-[220px] xl:border-b-0 xl:border-r xl:border-black/10 xl:last:border-r-0"
-                >
-                  <div className="h-full px-6 py-6 md:px-7 xl:flex xl:h-full xl:flex-col xl:justify-between">
-                    <div className="flex items-center justify-between border-b border-black/10 pb-4">
-                      <p className="board-rail-label text-[10px]">{feature.id}</p>
-                      <div className="h-px w-14 bg-black/10" />
+            <div className="grid gap-6 xl:grid-cols-[0.96fr_1.04fr]">
+              <VenuePanel
+                eyebrow="Live surfaces"
+                title="What people actually enter."
+                description="BOARD should feel like adjacent live spaces inside one venue system, not detached pages with different moods."
+              >
+                <div className="board-ledger mt-2">
+                  {liveSurfaces.map((surface, index) => (
+                    <div key={surface.title} className="board-ledger-row md:grid-cols-[56px_minmax(0,1fr)]">
+                      <div className="board-rail-label text-[10px] text-black/45">
+                        {String(index + 1).padStart(2, "0")}
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold tracking-[-0.05em] text-foreground">{surface.title}</h3>
+                        <p className="mt-3 text-sm leading-7 text-muted-foreground">{surface.note}</p>
+                      </div>
                     </div>
-                    <div className="pt-5 xl:pt-8">
-                      <p className="board-section-title text-[#0a0a0a]">
-                        {feature.label}
-                      </p>
-                      <p className="board-copy mt-4 max-w-sm">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </VenuePanel>
+
+              <VenuePanel
+                eyebrow="Host action rail"
+                title="The venue changes because the host changes it."
+                description="If a surface cannot be tied back to a real operation, it does not belong on the page."
+                className="bg-white/92"
+              >
+                <div className="grid gap-4 md:grid-cols-3">
+                  {hostActions.map((action) => (
+                    <div key={action.title} className="border-t border-black/10 pt-4">
+                      <div className="flex h-11 w-11 items-center justify-center border border-black/10 bg-[#faf9f4] text-foreground">
+                        <action.icon className="h-4 w-4" />
+                      </div>
+                      <h3 className="mt-4 text-lg font-bold tracking-[-0.04em] text-foreground">{action.title}</h3>
+                      <p className="mt-3 text-sm leading-7 text-muted-foreground">{action.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </VenuePanel>
             </div>
           </div>
         </section>
