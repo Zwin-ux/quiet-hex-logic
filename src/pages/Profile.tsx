@@ -29,6 +29,7 @@ import { BaseWalletSectionLazy } from '@/components/Base';
 import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
 import { NavBar } from '@/components/NavBar';
 import { AuthConnectionsSection } from '@/components/AuthConnectionsSection';
+import { useAuthConnections } from '@/hooks/useAuthConnections';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface ProfileData {
@@ -48,10 +49,12 @@ const Profile = () => {
   const { achievements, loading: achievementsLoading } = useAchievements(user?.id);
   const { history: ratingHistory, loading: ratingHistoryLoading } = useRatingHistory(user?.id, 30);
   const { discordUser, isDiscordEnvironment } = useDiscord();
+  const { connections } = useAuthConnections();
   const navigate = useNavigate();
   const [selectedSkin, setSelectedSkin] = useState('classic');
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const googleConnection = connections.find((connection) => connection.provider === 'google');
 
   useEffect(() => {
     if (user) {
@@ -118,6 +121,7 @@ const Profile = () => {
                   color={profile?.discord_id ? 'discord' : (profile?.avatar_color || 'indigo')}
                   size="xl"
                   className="relative"
+                  imageUrl={profile?.discord_id || discordUser?.id ? null : (googleConnection?.avatarUrl ?? null)}
                   discordId={profile?.discord_id || discordUser?.id}
                   discordAvatar={discordUser?.avatar}
                 />

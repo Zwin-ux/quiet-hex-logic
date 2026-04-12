@@ -36,8 +36,12 @@ Set these in Railway for the web service:
   - Set it when your web bundle needs to call a separate Railway API domain.
 - Optional: `VITE_DISCORD_CLIENT_ID`
 - Optional: `VITE_WORLD_ID_APP_ID`
+- Optional: `VITE_WORLD_ID_ACTION`
 - Optional: `VITE_ENABLE_BASE_WALLET`
 - Optional: `VITE_ONCHAINKIT_API_KEY`
+- Optional: `WORLD_ID_APP_ID`
+- Optional: `WORLD_ID_ACTION`
+  - Keep `WORLD_ID_ACTION` and `VITE_WORLD_ID_ACTION` aligned with the action configured in the World ID dashboard.
 
 For AI chat, set one provider path:
 

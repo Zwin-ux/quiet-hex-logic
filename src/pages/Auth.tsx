@@ -505,6 +505,12 @@ export default function Auth() {
         </Button>
       </div>
 
+      <p className="mt-4 max-w-[430px] text-[13px] leading-6 text-[#525257]">
+        If this person already has a BOARD account, add Google or Discord later from{" "}
+        <span className="font-semibold text-[#0e0e0f]">Profile / Account Connections</span> to avoid
+        splitting identity across multiple accounts.
+      </p>
+
       <p className="mt-8 text-[14px] leading-7 text-[#525257]">
         Hosted actions require identity. Practice does not.
       </p>

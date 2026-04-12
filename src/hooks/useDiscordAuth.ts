@@ -56,16 +56,6 @@ export function useDiscordAuth(): DiscordAuthState {
         const linked = profile?.discord_id === discordUser.id;
         setIsDiscordLinked(linked);
 
-        if (!session.user.is_anonymous) {
-          await supabase
-            .from('profiles')
-            .update({
-              discord_id: discordUser.id,
-              discord_username: discordUser.username,
-            })
-            .eq('id', session.user.id);
-        }
-
       } catch (error) {
         console.error('[Discord Auth] Error:', error);
       } finally {

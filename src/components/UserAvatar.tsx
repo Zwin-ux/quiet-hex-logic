@@ -6,6 +6,7 @@ interface UserAvatarProps {
   color?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  imageUrl?: string | null;
   discordId?: string | null;
   discordAvatar?: string | null;
 }
@@ -43,6 +44,7 @@ export function UserAvatar({
   color = 'indigo', 
   size = 'md', 
   className = '',
+  imageUrl,
   discordId,
   discordAvatar,
 }: UserAvatarProps) {
@@ -53,12 +55,13 @@ export function UserAvatar({
   const discordAvatarUrl = discordId && discordAvatar 
     ? `https://cdn.discordapp.com/avatars/${discordId}/${discordAvatar}.png?size=128`
     : null;
+  const avatarSrc = imageUrl || discordAvatarUrl;
 
   return (
     <Avatar className={`${sizeClass} border-2 border-border ${className}`}>
-      {discordAvatarUrl && (
+      {avatarSrc && (
         <AvatarImage 
-          src={discordAvatarUrl} 
+          src={avatarSrc} 
           alt={username || 'User avatar'}
           className="object-cover"
         />

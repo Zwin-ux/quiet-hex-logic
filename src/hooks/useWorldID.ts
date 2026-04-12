@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { supabase } from '@/integrations/supabase/client';
-import { getPublicEnv } from '@/lib/runtimeEnv';
+import { getWorldIdAppId, isWorldIdConfigured } from '@/lib/worldIdConfig';
 
 export type VerificationLevel = 'orb' | 'device';
 
@@ -55,11 +55,11 @@ export function useWorldID() {
       platform = 'discord';
     }
 
-    // Web and native can verify
-    const canVerify = platform !== 'discord';
+    // Web and native can verify when the deployment is configured.
+    const canVerify = platform !== 'discord' && isWorldIdConfigured() && Boolean(user?.id);
 
     setState(prev => ({ ...prev, platform, canVerify }));
-  }, [isDiscordEnvironment]);
+  }, [isDiscordEnvironment, user?.id]);
 
   // Load verification status from database
   useEffect(() => {
@@ -110,6 +110,10 @@ export function useWorldID() {
   const verifyProof = useCallback(async (proof: WorldIDProof): Promise<{ success: boolean; error?: string }> => {
     if (!user?.id) {
       return { success: false, error: 'Not authenticated' };
+    }
+
+    if (!getWorldIdAppId()) {
+      return { success: false, error: 'World ID is not configured for this deployment.' };
     }
 
     setState(prev => ({ ...prev, isVerifying: true, error: null }));
@@ -170,10 +174,3 @@ export function useWorldID() {
     clearError,
   };
 }
-
-// App ID for World ID (from environment or fallback)
-export const WORLD_ID_APP_ID =
-  getPublicEnv('VITE_WORLD_ID_APP_ID') ||
-  'app_8d9cada1f2ced37b03654cf63e62d540';
-
-export const WORLD_ID_ACTION = 'verify-openboard-player';

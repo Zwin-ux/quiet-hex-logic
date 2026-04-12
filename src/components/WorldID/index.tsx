@@ -1,14 +1,22 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { IDKitWidget, VerificationLevel, ISuccessResult } from '@worldcoin/idkit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Scan, CheckCircle2, Loader2, AlertCircle, Globe, ExternalLink } from 'lucide-react';
-import { useWorldID, WORLD_ID_APP_ID, WORLD_ID_ACTION } from '@/hooks/useWorldID';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorldID } from '@/hooks/useWorldID';
 import { useDiscord } from '@/lib/discord/DiscordContext';
+import { buildAppUrl } from '@/lib/authRedirect';
+import {
+  getWorldIdAction,
+  getWorldIdAppId,
+  getWorldIdConfigurationIssue,
+} from '@/lib/worldIdConfig';
 import { toast } from 'sonner';
 
 export default function WorldIDWidget() {
+  const { user } = useAuth();
   const {
     isVerified,
     isVerifying,
@@ -22,7 +30,9 @@ export default function WorldIDWidget() {
   } = useWorldID();
 
   const { isDiscordEnvironment } = useDiscord();
-  const [widgetOpen, setWidgetOpen] = useState(false);
+  const worldIdAppId = getWorldIdAppId();
+  const worldIdAction = getWorldIdAction();
+  const configurationIssue = getWorldIdConfigurationIssue();
 
   const handleSuccess = useCallback(async (result: ISuccessResult) => {
     const { success, error } = await verifyProof({
@@ -33,7 +43,9 @@ export default function WorldIDWidget() {
     });
 
     if (success) {
-      toast.success('Humanity verified! You now have the Verified Human badge.');
+      toast.success('World ID connected.', {
+        description: 'This BOARD account is now marked as human-verified.',
+      });
     } else {
       toast.error(error || 'Verification failed. Please try again.');
     }
@@ -95,7 +107,7 @@ export default function WorldIDWidget() {
               World ID verification requires the World App on your phone and is not available directly in Discord.
             </p>
             <a
-              href="https://hexology.me/profile"
+              href={buildAppUrl('/profile')}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
@@ -118,10 +130,22 @@ export default function WorldIDWidget() {
           <CardTitle className="text-lg">World ID</CardTitle>
         </div>
         <CardDescription>
-          Verify your humanity to earn the "Verified Human" badge and access exclusive features.
+          Verify this BOARD account once so hosts and event tools can trust it as human.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {configurationIssue ? (
+          <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 border border-border text-sm text-muted-foreground">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p>{configurationIssue}</p>
+              <p className="mt-1 text-xs">
+                Set <code>WORLD_ID_APP_ID</code> and <code>VITE_WORLD_ID_APP_ID</code> on Railway, then redeploy.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {error && (
           <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -138,21 +162,27 @@ export default function WorldIDWidget() {
         )}
 
         <IDKitWidget
-          app_id={WORLD_ID_APP_ID as `app_${string}`}
-          action={WORLD_ID_ACTION}
+          app_id={worldIdAppId as `app_${string}`}
+          action={worldIdAction}
+          signal={user?.id || ''}
           onSuccess={handleSuccess}
           verification_level={VerificationLevel.Device}
         >
           {({ open }) => (
             <Button
               onClick={open}
-              disabled={isVerifying}
+              disabled={isVerifying || !canVerify}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
             >
               {isVerifying ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Verifying...
+                </>
+              ) : !canVerify ? (
+                <>
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  World ID unavailable
                 </>
               ) : (
                 <>
@@ -165,7 +195,7 @@ export default function WorldIDWidget() {
         </IDKitWidget>
 
         <p className="text-xs text-muted-foreground text-center">
-          World ID verifies you're a unique human without revealing your identity.
+          World ID proves uniqueness without exposing personal identity.
         </p>
       </CardContent>
     </Card>

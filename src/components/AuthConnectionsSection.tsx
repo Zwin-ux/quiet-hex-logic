@@ -20,12 +20,12 @@ const PROVIDER_META: Record<
   google: {
     label: "Google",
     icon: Chrome,
-    description: "Fast sign-in and recovery for web onboarding.",
+    description: "Primary sign-in and recovery for this account.",
   },
   discord: {
     label: "Discord",
     icon: Disc3,
-    description: "Community identity and easier event-side entry.",
+    description: "Optional community entry. Link it from this same account later.",
   },
 };
 
@@ -33,6 +33,7 @@ export function AuthConnectionsSection() {
   const { user } = useAuth();
   const {
     identities,
+    connections,
     loading,
     error,
     pendingProvider,
@@ -47,6 +48,8 @@ export function AuthConnectionsSection() {
   }
 
   const emailIdentity = identities.find((identity) => identity.provider === "email");
+  const getConnection = (provider: ConnectionProvider) =>
+    connections.find((connection) => connection.provider === provider) ?? null;
 
   const handleConnect = async (provider: ConnectionProvider) => {
     const { error } = await connectProvider(provider);
@@ -94,8 +97,9 @@ export function AuthConnectionsSection() {
               </h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-              One BOARD account should own your progress. Connect Google and Discord here so worlds,
-              rooms, ratings, and tournament history stay attached to the same identity.
+              Keep one BOARD account as the source of truth. Add Google first for sign-in and recovery,
+              then attach any extra providers from this page so worlds, rooms, ratings, and events stay
+              on the same profile.
             </p>
           </div>
 
@@ -118,6 +122,7 @@ export function AuthConnectionsSection() {
           {(["google", "discord"] as const).map((provider) => {
             const meta = PROVIDER_META[provider];
             const connected = hasIdentity(provider);
+            const connection = getConnection(provider);
             const Icon = meta.icon;
             const isPending = pendingProvider === provider;
 
@@ -146,6 +151,18 @@ export function AuthConnectionsSection() {
                     >
                       {connected ? "Connected" : "Available"}
                     </Badge>
+
+                    {connection ? (
+                      <div className="mt-3 space-y-1 text-xs leading-6 text-muted-foreground">
+                        {connection.displayName ? (
+                          <p className="text-foreground font-medium">{connection.displayName}</p>
+                        ) : null}
+                        {connection.handle && connection.handle !== connection.displayName ? (
+                          <p>@{connection.handle}</p>
+                        ) : null}
+                        {connection.email ? <p className="break-all">{connection.email}</p> : null}
+                      </div>
+                    ) : null}
                   </div>
 
                   <Button
@@ -187,7 +204,7 @@ export function AuthConnectionsSection() {
         <div className="mt-5 space-y-2">
           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Connection rule</p>
           <p className="text-sm leading-7 text-muted-foreground">
-            Enable Supabase manual identity linking so Google and Discord attach to the current user
+            Enable Supabase manual identity linking so extra providers attach to the current user
             instead of creating separate accounts.
           </p>
           {error ? (

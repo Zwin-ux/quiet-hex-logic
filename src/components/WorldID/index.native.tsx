@@ -2,10 +2,20 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { IDKitWidget, VerificationLevel, ISuccessResult } from '@worldcoin/idkit-react-native';
 import { Scan, CheckCircle2 } from 'lucide-react-native';
-import { useWorldID, WORLD_ID_APP_ID, WORLD_ID_ACTION } from '@/hooks/useWorldID';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorldID } from '@/hooks/useWorldID';
+import {
+  getWorldIdAction,
+  getWorldIdAppId,
+  getWorldIdConfigurationIssue,
+} from '@/lib/worldIdConfig';
 
 export default function WorldIDWidget() {
-  const { isVerified, isVerifying, isLoading, verifiedAt, error, verifyProof, clearError } = useWorldID();
+  const { user } = useAuth();
+  const { isVerified, isVerifying, isLoading, verifiedAt, error, verifyProof, clearError, canVerify } = useWorldID();
+  const worldIdAppId = getWorldIdAppId();
+  const worldIdAction = getWorldIdAction();
+  const configurationIssue = getWorldIdConfigurationIssue();
 
   const handleVerify = async (result: ISuccessResult) => {
     const { success, error: verifyError } = await verifyProof({
@@ -63,6 +73,12 @@ export default function WorldIDWidget() {
         Verify your humanity to earn the "Verified Human" badge.
       </Text>
 
+      {configurationIssue && (
+        <View style={styles.infoBox}>
+          <Text style={styles.footerText}>{configurationIssue}</Text>
+        </View>
+      )}
+
       {error && (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
@@ -74,8 +90,9 @@ export default function WorldIDWidget() {
 
       <View style={styles.content}>
         <IDKitWidget
-          app_id={WORLD_ID_APP_ID}
-          action={WORLD_ID_ACTION}
+          app_id={worldIdAppId}
+          action={worldIdAction}
+          signal={user?.id || ''}
           onSuccess={handleVerify}
           handleVerify={async () => {
             return Promise.resolve();
@@ -86,12 +103,14 @@ export default function WorldIDWidget() {
             <TouchableOpacity
               onPress={open}
               style={[styles.button, isVerifying && styles.buttonDisabled]}
-              disabled={isVerifying}
+              disabled={isVerifying || !canVerify}
             >
               {isVerifying ? (
                 <ActivityIndicator color="#000000" />
               ) : (
-                <Text style={styles.buttonText}>Verify with World ID</Text>
+                <Text style={styles.buttonText}>
+                  {canVerify ? 'Verify with World ID' : 'World ID unavailable'}
+                </Text>
               )}
             </TouchableOpacity>
           )}
@@ -190,5 +209,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  infoBox: {
+    backgroundColor: 'rgba(113, 113, 122, 0.1)',
+    borderColor: 'rgba(113, 113, 122, 0.3)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
   },
 });

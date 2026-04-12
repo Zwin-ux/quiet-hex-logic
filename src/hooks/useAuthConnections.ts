@@ -5,6 +5,15 @@ import { buildAppUrl } from "@/lib/authRedirect";
 import { useAuth } from "@/hooks/useAuth";
 
 export type ConnectionProvider = "google" | "discord";
+export type ProviderConnection = {
+  provider: ConnectionProvider;
+  identity: UserIdentity;
+  email: string | null;
+  handle: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  providerUserId: string | null;
+};
 
 type ConnectionState = {
   identities: UserIdentity[];
@@ -37,15 +46,20 @@ export function useAuthConnections() {
 
     setState((current) => ({ ...current, loading: true, error: null }));
     const { data, error } = await supabase.auth.getUserIdentities();
+    const identities = data?.identities ?? [];
+
+    if (!error) {
+      await syncProfileIdentityFields(user.id, identities);
+    }
 
     setState((current) => ({
       ...current,
-      identities: data?.identities ?? [],
+      identities,
       loading: false,
       error: error?.message ?? null,
     }));
 
-    return { data: data?.identities ?? [], error };
+    return { data: identities, error };
   }, [user]);
 
   useEffect(() => {
@@ -61,6 +75,14 @@ export function useAuthConnections() {
         .map((identity) => [identity.provider as ConnectionProvider, identity]),
     );
   }, [state.identities]);
+
+  const connections = useMemo(() => {
+    return CONNECTABLE_PROVIDERS.flatMap((provider) => {
+      const identity = providerMap.get(provider);
+      if (!identity) return [];
+      return [mapIdentityToConnection(provider, identity)];
+    });
+  }, [providerMap]);
 
   const hasIdentity = useCallback(
     (provider: ConnectionProvider) => providerMap.has(provider),
@@ -144,6 +166,7 @@ export function useAuthConnections() {
 
   return {
     identities: state.identities,
+    connections,
     loading: state.loading,
     error: state.error,
     pendingProvider: state.pendingProvider,
@@ -153,4 +176,70 @@ export function useAuthConnections() {
     hasIdentity,
     canDisconnectProvider: state.identities.length > 1,
   };
+}
+
+function mapIdentityToConnection(
+  provider: ConnectionProvider,
+  identity: UserIdentity,
+): ProviderConnection {
+  const identityData = readIdentityData(identity);
+
+  return {
+    provider,
+    identity,
+    email: readFirstString(identityData, ["email", "email_address"]),
+    handle: readFirstString(identityData, [
+      "preferred_username",
+      "user_name",
+      "username",
+      "name",
+    ]),
+    displayName: readFirstString(identityData, [
+      "full_name",
+      "name",
+      "preferred_username",
+      "email",
+    ]),
+    avatarUrl: readFirstString(identityData, ["avatar_url", "picture"]),
+    providerUserId: readFirstString(identityData, ["sub", "id", "user_id"]),
+  };
+}
+
+function readIdentityData(identity: UserIdentity): Record<string, unknown> {
+  if (identity.identity_data && typeof identity.identity_data === "object") {
+    return identity.identity_data as Record<string, unknown>;
+  }
+  return {};
+}
+
+function readFirstString(
+  source: Record<string, unknown>,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+async function syncProfileIdentityFields(userId: string, identities: UserIdentity[]) {
+  const discordIdentity = identities.find((identity) => identity.provider === "discord");
+  const discordData = discordIdentity ? readIdentityData(discordIdentity) : {};
+
+  await supabase
+    .from("profiles")
+    .update({
+      discord_id: readFirstString(discordData, ["sub", "id", "user_id"]),
+      discord_username: readFirstString(discordData, [
+        "preferred_username",
+        "user_name",
+        "username",
+        "name",
+      ]),
+    })
+    .eq("id", userId);
 }

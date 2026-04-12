@@ -73,6 +73,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    const action = Deno.env.get('WORLD_ID_ACTION')?.trim() || 'verify-account';
+
     // Create service role client for database operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -124,7 +126,7 @@ Deno.serve(async (req) => {
           nullifier_hash,
           proof,
           // NOTE: This action string must match the one configured in the World ID developer dashboard
-          action: 'verify-hexology-player',
+          action,
           signal: user.id, // Bind proof to this user
         }),
       }
