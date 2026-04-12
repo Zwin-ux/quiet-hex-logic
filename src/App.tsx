@@ -27,6 +27,7 @@ const Replay = lazy(() => import("./pages/Replay"));
 const Profile = lazy(() => import("./pages/Profile"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
 const Tutorial = lazy(() => import("./pages/Tutorial"));
+const Welcome = lazy(() => import("./pages/Welcome"));
 const Worlds = lazy(() => import("./pages/Worlds.tsx"));
 const WorldView = lazy(() => import("./pages/WorldView.tsx"));
 const LobbyView = lazy(() => import("./pages/LobbyView"));
@@ -89,6 +90,7 @@ const App = () => {
                       <Routes>
                         <Route path="/" element={<Index />} />
                         <Route path="/auth" element={<Auth />} />
+                        <Route path="/welcome" element={<Welcome />} />
                         <Route path="/tutorial" element={<Tutorial />} />
                         <Route
                           path="/worlds"

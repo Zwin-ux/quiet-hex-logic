@@ -9,6 +9,7 @@ import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { LobbyCard } from "@/components/LobbyCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { supabase } from "@/integrations/supabase/client";
 import { canManageWorld, joinWorld, loadWorldOverview, type WorldOverview } from "@/lib/worlds";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { buildAuthRoute } from "@/lib/authRedirect";
@@ -27,6 +28,7 @@ export default function WorldView() {
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [overview, setOverview] = useState<WorldOverview | null>(null);
+  const [viewerIsVerifiedHuman, setViewerIsVerifiedHuman] = useState(false);
 
   const load = async () => {
     if (!worldId) return;
@@ -50,6 +52,33 @@ export default function WorldView() {
     load();
   }, [worldId, user?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadVerificationState = async () => {
+      if (!user?.id) {
+        setViewerIsVerifiedHuman(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_verified_human")
+        .eq("id", user.id)
+        .single();
+
+      if (!cancelled) {
+        setViewerIsVerifiedHuman(Boolean(data?.is_verified_human));
+      }
+    };
+
+    void loadVerificationState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   if (loading || !overview) {
     return (
       <SiteFrame>
@@ -64,6 +93,18 @@ export default function WorldView() {
   const canManage = canManageWorld(world);
   const setupMode = searchParams.get("setup") === "1";
   const hasLiveSurfaces = lobbies.length > 0 || matches.length > 0 || events.length > 0;
+  const hasCompetitiveEvent = events.some((event) => event.competitiveMode);
+  const competitiveReady = !hasCompetitiveEvent || viewerIsVerifiedHuman;
+  const shouldShowSetupRail =
+    canManage &&
+    setupMode &&
+    (lobbies.length === 0 || events.length === 0 || (hasCompetitiveEvent && !competitiveReady));
+  const setupSteps = [
+    { label: "Create the first room", done: lobbies.length > 0 },
+    { label: "Copy the invite link", done: inviteCopied },
+    { label: "Queue the first event", done: events.length > 0 },
+    { label: "Competitive-ready", done: competitiveReady, optional: true },
+  ];
 
   const copyInviteLink = async () => {
     if (typeof window === "undefined") return;
@@ -135,7 +176,7 @@ export default function WorldView() {
         <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_318px]">
           <div>
             <div className="space-y-4">
-              {canManage && !hasLiveSurfaces ? (
+              {shouldShowSetupRail ? (
                 <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
                   <div className="flex flex-wrap items-center gap-2">
                     <StateTag tone="warning">{setupMode ? "setup mode" : "first world"}</StateTag>
@@ -148,20 +189,27 @@ export default function WorldView() {
                     A strong first hosted flow is: open one room, copy the world link, then queue the first event once the room is working.
                   </p>
 
-                  <div className="mt-6 grid gap-3 md:grid-cols-3">
-                    <div className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
-                      <p className="board-rail-label text-[11px] text-[#525257]">01</p>
-                      <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">Create the first room</p>
-                    </div>
-                    <div className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
-                      <p className="board-rail-label text-[11px] text-[#525257]">02</p>
-                      <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">Copy the invite link</p>
-                    </div>
-                    <div className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
-                      <p className="board-rail-label text-[11px] text-[#525257]">03</p>
-                      <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">Queue the first event</p>
-                    </div>
+                  <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {setupSteps.map((step, index) => (
+                      <div key={step.label} className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="board-rail-label text-[11px] text-[#525257]">
+                            {String(index + 1).padStart(2, "0")}
+                          </p>
+                          <StateTag tone={step.done ? "success" : step.optional ? "warning" : "normal"}>
+                            {step.done ? "done" : step.optional ? "optional" : "open"}
+                          </StateTag>
+                        </div>
+                        <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">{step.label}</p>
+                      </div>
+                    ))}
                   </div>
+
+                  {hasCompetitiveEvent && !competitiveReady ? (
+                    <div className="mt-6 retro-warning-strip">
+                      The first event is competitive. Verify this account before sending people into that bracket.
+                    </div>
+                  ) : null}
 
                   <div className="mt-8">
                     <CreateLobby userId={user!.id} worldId={world.id} />
@@ -220,6 +268,11 @@ export default function WorldView() {
                     <h2 className="text-[1.6rem] font-black leading-[0.96] tracking-[-0.05em] text-[#0e0e0f]">
                       {event.name}
                     </h2>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <StateTag tone={event.competitiveMode ? "warning" : "normal"}>
+                        {event.competitiveMode ? "competitive" : "casual"}
+                      </StateTag>
+                    </div>
                     <p className="mt-2 text-[15px] leading-7 text-[#525257]">
                       {event.description || `Starts in ${event.status === "active" ? "now" : "18 minutes"} — seeded from the active bracket.`}
                     </p>
@@ -260,6 +313,7 @@ export default function WorldView() {
               <div className="retro-status-strip">
                 <span>members {world.memberCount}</span>
                 <span>hosts {world.hostCount ?? 1}</span>
+                <span>{competitiveReady ? "competitive ready" : "verify for competitive"}</span>
               </div>
             </div>
 

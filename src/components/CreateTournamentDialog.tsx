@@ -34,6 +34,7 @@ export function CreateTournamentDialog({
     name: "",
     description: "",
     format: "single_elimination",
+    competitiveMode: false,
     maxPlayers: 8,
     minPlayers: 4,
     boardSize: 11,
@@ -155,6 +156,42 @@ export function CreateTournamentDialog({
                   </SelectContent>
                 </Select>
               </Field>
+
+              <div className="border border-black/10 bg-white px-4 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Mode</p>
+                    <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                      Competitive events require human verification to enter. Casual events do not.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.competitiveMode}
+                    onCheckedChange={(checked) => setFormData({ ...formData, competitiveMode: checked })}
+                  />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, competitiveMode: false })}
+                    className={`border px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] ${
+                      !formData.competitiveMode ? "border-black bg-[#efebe3]" : "border-black/10 bg-[#fbfaf6]"
+                    }`}
+                  >
+                    Casual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, competitiveMode: true })}
+                    className={`border px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] ${
+                      formData.competitiveMode ? "border-black bg-[#efebe3]" : "border-black/10 bg-[#fbfaf6]"
+                    }`}
+                  >
+                    Competitive
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-5">
@@ -225,8 +262,7 @@ export function CreateTournamentDialog({
             <div className="mb-5 border border-black/10 bg-white px-4 py-4">
               <p className="board-rail-label">Event note</p>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Events are orchestration layers. The venue identity should come from the
-                world, and the live experience should still feel grounded in rooms.
+                Events are orchestration layers. Competitive mode is a trust contract, not just a badge.
               </p>
             </div>
 

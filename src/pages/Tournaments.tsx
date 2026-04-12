@@ -23,6 +23,7 @@ interface Tournament {
   name: string;
   description: string | null;
   format: string;
+  competitive_mode: boolean;
   status: string;
   max_players: number;
   min_players: number;
@@ -65,6 +66,11 @@ function EventRow({
     >
       <div className="min-w-0">
         <h3 className="board-section-title">{tournament.name}</h3>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
+            {tournament.competitive_mode ? "competitive" : "casual"}
+          </StateTag>
+        </div>
         <p className="mt-3 text-sm leading-7 text-black/68">
           {tournament.description ||
             `${worldName ? `${worldName} - ` : ""}${
@@ -257,7 +263,7 @@ export default function Tournaments() {
                 {primaryEvent ? `room ${primaryEvent.board_size}` : "event rail"}
               </span>
               <span className="border border-black px-3 py-2 text-[11px] uppercase tracking-[0.16em]">
-                {primaryEvent ? primaryEvent.format : "round queue"}
+                {primaryEvent ? (primaryEvent.competitive_mode ? "competitive" : "casual") : "round queue"}
               </span>
               <span className="border border-black px-3 py-2 text-[11px] uppercase tracking-[0.16em]">
                 {primaryEvent ? "host ready" : "host first"}
@@ -317,6 +323,9 @@ export default function Tournaments() {
                   <div className="min-w-0">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                       <StateTag>{tournament.status}</StateTag>
+                      <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
+                        {tournament.competitive_mode ? "competitive" : "casual"}
+                      </StateTag>
                       {tournament.world_id && worldNames[tournament.world_id] ? (
                         <StateTag>{worldNames[tournament.world_id]}</StateTag>
                       ) : null}

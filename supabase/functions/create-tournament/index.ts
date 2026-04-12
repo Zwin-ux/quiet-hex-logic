@@ -20,6 +20,7 @@ const createTournamentSchema = z.object({
   format: z.enum(['single_elimination', 'double_elimination', 'round_robin'], {
     errorMap: () => ({ message: 'Invalid tournament format' })
   }).optional(),
+  competitiveMode: z.boolean().optional(),
   maxPlayers: z.number()
     .int('Max players must be an integer')
     .min(2, 'Max players must be at least 2')
@@ -95,6 +96,7 @@ Deno.serve(async (req) => {
       gameKey,
       worldId,
       format,
+      competitiveMode,
       maxPlayers,
       minPlayers,
       boardSize,
@@ -110,6 +112,7 @@ Deno.serve(async (req) => {
       p_game_key: gameKey || 'hex',
       p_world_id: worldId ?? null,
       p_format: format || 'single_elimination',
+      p_competitive_mode: competitiveMode ?? false,
       p_max_players: maxPlayers,
       p_min_players: minPlayers,
       p_board_size: boardSize ?? null,

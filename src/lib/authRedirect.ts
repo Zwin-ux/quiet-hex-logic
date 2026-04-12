@@ -1,6 +1,8 @@
 import { getPublicEnv } from "@/lib/runtimeEnv";
 
-const DEFAULT_POST_AUTH_PATH = "/worlds";
+export const DEFAULT_POST_AUTH_PATH = "/worlds";
+export const POST_AUTH_WELCOME_PATH = "/welcome";
+export const POST_AUTH_WELCOME_STORAGE_KEY = "board_welcome_seen_v1";
 const AUTH_TRANSIENT_KEYS = ["code", "type", "error", "error_code", "error_description"] as const;
 
 export type AuthCallbackNotice = {
@@ -11,6 +13,7 @@ export type AuthCallbackNotice = {
 
 export type ParsedAuthUrlState = {
   returnTo: string;
+  hasExplicitNext: boolean;
   isResetFlow: boolean;
   authError: string | null;
   authType: string | null;
@@ -91,6 +94,37 @@ export function resolvePostAuthPath(returnTo?: string | null): string {
   return sanitizeReturnPath(returnTo) ?? DEFAULT_POST_AUTH_PATH;
 }
 
+export function hasSeenPostAuthWelcome(): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    return window.localStorage.getItem(POST_AUTH_WELCOME_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function markPostAuthWelcomeSeen(): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(POST_AUTH_WELCOME_STORAGE_KEY, "true");
+  } catch {
+    // Ignore storage errors; onboarding should still function.
+  }
+}
+
+export function resolveAuthCompletionPath(options: {
+  returnTo?: string | null;
+  hasExplicitNext?: boolean;
+} = {}): string {
+  if (options.hasExplicitNext) {
+    return resolvePostAuthPath(options.returnTo);
+  }
+
+  return hasSeenPostAuthWelcome() ? DEFAULT_POST_AUTH_PATH : POST_AUTH_WELCOME_PATH;
+}
+
 function createParams(input: string | null | undefined): URLSearchParams {
   const raw = typeof input === "string" ? input.trim() : "";
   if (!raw) return new URLSearchParams();
@@ -154,6 +188,7 @@ function buildAuthNotice(
 export function parseAuthUrlState(search?: string | null, hash?: string | null): ParsedAuthUrlState {
   const searchParams = createParams(search);
   const hashParams = createParams(hash);
+  const hasExplicitNext = searchParams.has("next") || hashParams.has("next");
   const returnTo = resolvePostAuthPath(pickParam(searchParams, hashParams, "next"));
   const authError = pickParam(searchParams, hashParams, "error_description")
     ?? pickParam(searchParams, hashParams, "error");
@@ -170,6 +205,7 @@ export function parseAuthUrlState(search?: string | null, hash?: string | null):
 
   return {
     returnTo,
+    hasExplicitNext,
     isResetFlow,
     authError,
     authType,

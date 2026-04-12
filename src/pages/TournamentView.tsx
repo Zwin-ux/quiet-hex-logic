@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Award, Play, Trophy, UserMinus, UserPlus, Users } from "lucide-react";
+import { AlertCircle, Award, Play, Trophy, UserMinus, UserPlus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { SectionRail } from "@/components/board/SectionRail";
+import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { MetricLine } from "@/components/board/MetricLine";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface Tournament {
   name: string;
   description: string | null;
   format: string;
+  competitive_mode: boolean;
   status: string;
   max_players: number;
   min_players: number;
@@ -47,6 +49,8 @@ export default function TournamentView() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [worldContext, setWorldContext] = useState<{ id: string; name: string } | null>(null);
+  const [viewerIsVerifiedHuman, setViewerIsVerifiedHuman] = useState(false);
+  const [competitiveJoinBlocked, setCompetitiveJoinBlocked] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -62,6 +66,7 @@ export default function TournamentView() {
 
       if (tournamentError) throw tournamentError;
       setTournament(tournamentData);
+      setCompetitiveJoinBlocked(null);
 
       if ((tournamentData as any)?.world_id) {
         const { data: world } = await (supabase as any)
@@ -135,6 +140,33 @@ export default function TournamentView() {
     };
   }, [tournamentId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadVerificationState = async () => {
+      if (!user?.id) {
+        setViewerIsVerifiedHuman(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_verified_human")
+        .eq("id", user.id)
+        .single();
+
+      if (!cancelled) {
+        setViewerIsVerifiedHuman(Boolean(data?.is_verified_human));
+      }
+    };
+
+    void loadVerificationState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const handleJoin = async () => {
     if (!tournamentId) return;
     setActionLoading(true);
@@ -150,6 +182,11 @@ export default function TournamentView() {
       toast.success("Joined event");
       await loadTournament();
     } catch (error: any) {
+      if (/human verification/i.test(error.message || "")) {
+        setCompetitiveJoinBlocked(error.message);
+        return;
+      }
+
       toast.error("Failed to join event", {
         description: error.message,
       });
@@ -226,12 +263,15 @@ export default function TournamentView() {
     user &&
     !isParticipant &&
     tournament.status === "registration" &&
-    participants.length < tournament.max_players;
+    participants.length < tournament.max_players &&
+    !(tournament.competitive_mode && !viewerIsVerifiedHuman);
   const canLeave =
     user &&
     isParticipant &&
     tournament.status === "registration" &&
     !isCreator;
+  const shouldShowCompetitiveGate =
+    tournament.competitive_mode && Boolean(user) && !viewerIsVerifiedHuman;
 
   return (
     <SiteFrame>
@@ -254,12 +294,18 @@ export default function TournamentView() {
             <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
               {tournament.status}
             </span>
+            <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
+              {tournament.competitive_mode ? "competitive" : "casual"}
+            </StateTag>
           </div>
         }
         description={
           <>
             {tournament.description || "No description yet."} Format:{" "}
             {tournament.format === "single_elimination" ? "single elimination" : "round robin"}.
+            {tournament.competitive_mode
+              ? " Human verification is required to enter."
+              : " Verification is optional for entry."}
           </>
         }
         actions={
@@ -285,6 +331,27 @@ export default function TournamentView() {
           </>
         }
       />
+
+      {shouldShowCompetitiveGate ? (
+        <VenuePanel
+          className="mt-6"
+          eyebrow="Competitive gate"
+          title="Verify this account before joining."
+          description={competitiveJoinBlocked || "Competitive events and ranked queues require World ID. Casual events do not."}
+          state="warning"
+          titleBarEnd={<StateTag tone="warning">verification required</StateTag>}
+        >
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => navigate("/profile#identity")}>
+              <AlertCircle className="h-4 w-4" />
+              Open trust settings
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/events")}>
+              Back to events
+            </Button>
+          </div>
+        </VenuePanel>
+      ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <VenuePanel eyebrow="Participants" title={`${participants.length}/${tournament.max_players} seats`}>
@@ -337,6 +404,7 @@ export default function TournamentView() {
               <MetricLine icon={Users} label="Players" value={`${participants.length}/${tournament.max_players}`} />
               <MetricLine label="Board" value={`${tournament.board_size}x${tournament.board_size}`} />
               <MetricLine label="Format" value={tournament.format === "single_elimination" ? "single elim" : "round robin"} />
+              <MetricLine label="Mode" value={tournament.competitive_mode ? "competitive" : "casual"} />
               <MetricLine icon={Award} label="Host control" value={isCreator ? "you" : "world owner"} />
             </div>
             <div>

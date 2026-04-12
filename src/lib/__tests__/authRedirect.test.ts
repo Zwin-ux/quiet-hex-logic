@@ -6,14 +6,23 @@ import {
   buildAuthRoute,
   buildPasswordResetRedirectUrl,
   getCurrentAppPath,
+  markPostAuthWelcomeSeen,
   parseAuthUrlState,
+  resolveAuthCompletionPath,
   resolvePostAuthPath,
 } from '../authRedirect';
 
 function setLocation(url: string) {
   const parsed = new URL(url);
+  const storage = new Map<string, string>();
   vi.stubGlobal('window', {
     __HEXLOGY_RUNTIME_ENV__: {},
+    localStorage: {
+      getItem: vi.fn((key: string) => storage.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => {
+        storage.set(key, value);
+      }),
+    },
     location: {
       origin: parsed.origin,
       pathname: parsed.pathname,
@@ -83,6 +92,7 @@ describe('auth redirect helpers', () => {
     const state = parseAuthUrlState('?next=%2Fplay&error_description=Access%20denied&code=abc', '');
 
     expect(state.returnTo).toBe('/play');
+    expect(state.hasExplicitNext).toBe(true);
     expect(state.authError).toBe('Access denied');
     expect(state.hasCode).toBe(true);
     expect(state.cleanedSearch).toBe('?next=%2Fplay');
@@ -93,8 +103,33 @@ describe('auth redirect helpers', () => {
     const state = parseAuthUrlState('?next=%2Fworlds%2Fdemo-world', '#type=recovery&access_token=test-token');
 
     expect(state.returnTo).toBe('/worlds/demo-world');
+    expect(state.hasExplicitNext).toBe(true);
     expect(state.isResetFlow).toBe(true);
     expect(state.shouldClearHash).toBe(false);
     expect(state.notice?.title).toBe('Reset your password');
+  });
+
+  it('sends first-run auth completions to the welcome desk when there is no explicit target', () => {
+    setLocation('https://board.test/auth');
+
+    expect(resolveAuthCompletionPath()).toBe('/welcome');
+  });
+
+  it('prefers the explicit next target over the welcome desk', () => {
+    setLocation('https://board.test/auth?next=%2Fworlds%2Ffoundry');
+
+    expect(
+      resolveAuthCompletionPath({
+        returnTo: '/worlds/foundry',
+        hasExplicitNext: true,
+      }),
+    ).toBe('/worlds/foundry');
+  });
+
+  it('uses the default post-auth path after the welcome desk has already been seen', () => {
+    setLocation('https://board.test/auth');
+    markPostAuthWelcomeSeen();
+
+    expect(resolveAuthCompletionPath()).toBe('/worlds');
   });
 });

@@ -10,7 +10,13 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthStorageIssue } from "@/integrations/supabase/client";
-import { buildAuthRoute, parseAuthUrlState, resolvePostAuthPath } from "@/lib/authRedirect";
+import {
+  buildAuthRoute,
+  parseAuthUrlState,
+  resolveAuthCompletionPath,
+  resolvePostAuthPath,
+} from "@/lib/authRedirect";
+import { getPublicEnv } from "@/lib/runtimeEnv";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -33,10 +39,16 @@ export default function Auth() {
     [location.hash, location.search],
   );
   const returnTo = resolvePostAuthPath(authUrlState.returnTo);
-  const shouldShowReturnTarget = returnTo !== "/worlds";
+  const authCompletionPath = resolveAuthCompletionPath({
+    returnTo: authUrlState.returnTo,
+    hasExplicitNext: authUrlState.hasExplicitNext,
+  });
+  const authReturnTo = authUrlState.hasExplicitNext ? returnTo : null;
+  const shouldShowReturnTarget = authUrlState.hasExplicitNext;
   const authStorageIssue = getAuthStorageIssue();
   const defaultAuthTab: AuthTab = shouldShowReturnTarget ? "signin" : "signup";
   const handledCallbackState = useRef<string | null>(null);
+  const discordReady = Boolean(getPublicEnv("VITE_DISCORD_CLIENT_ID"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -103,9 +115,9 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && !user.is_anonymous && authView !== "reset-password") {
-      navigate(returnTo, { replace: true });
+      navigate(authCompletionPath, { replace: true });
     }
-  }, [authView, navigate, returnTo, user]);
+  }, [authCompletionPath, authView, navigate, user]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +133,7 @@ export default function Auth() {
 
     try {
       emailSchema.parse(email);
-      const { error } = await resetPassword(email, returnTo);
+      const { error } = await resetPassword(email, authReturnTo);
 
       if (error) {
         toast({
@@ -189,7 +201,7 @@ export default function Auth() {
         setAuthView("main");
         setAuthMode("password");
         setAuthTab("signin");
-        navigate(buildAuthRoute(returnTo), { replace: true });
+        navigate(buildAuthRoute(authReturnTo), { replace: true });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -218,7 +230,7 @@ export default function Auth() {
 
     try {
       emailSchema.parse(email);
-      const { error } = await signInWithMagicLink(email, returnTo);
+      const { error } = await signInWithMagicLink(email, authReturnTo);
 
       if (error) {
         toast({
@@ -264,7 +276,7 @@ export default function Auth() {
 
       if (authTab === "signup") {
         usernameSchema.parse(username);
-        const { data, error } = await signUp(email, password, username, "indigo", returnTo);
+        const { data, error } = await signUp(email, password, username, "indigo", authReturnTo);
 
         if (error) {
           toast({
@@ -282,7 +294,7 @@ export default function Auth() {
           });
 
           if (hasSession) {
-            navigate(returnTo);
+            navigate(authCompletionPath);
           } else {
             setEmailSent(true);
           }
@@ -297,7 +309,7 @@ export default function Auth() {
             variant: "destructive",
           });
         } else {
-          navigate(returnTo);
+          navigate(authCompletionPath);
         }
       }
     } catch (error) {
@@ -327,8 +339,8 @@ export default function Auth() {
     try {
       const { error } =
         provider === "google"
-          ? await signInWithGoogle(returnTo)
-          : await signInWithDiscord(returnTo);
+          ? await signInWithGoogle(authReturnTo)
+          : await signInWithDiscord(authReturnTo);
 
       if (error) {
         toast({
@@ -344,29 +356,59 @@ export default function Auth() {
 
   const renderMainForm = () => (
     <>
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Button
-          type="button"
-          variant={authMode === "password" && authTab === "signup" ? "secondary" : "outline"}
-          onClick={() => {
-            setAuthMode("password");
-            setAuthTab("signup");
-          }}
-          disabled={Boolean(authStorageIssue)}
-        >
-          Create Account
-        </Button>
-        <Button
-          type="button"
-          variant={authMode === "password" && authTab === "signin" ? "secondary" : "outline"}
-          onClick={() => {
-            setAuthMode("password");
-            setAuthTab("signin");
-          }}
-          disabled={Boolean(authStorageIssue)}
-        >
-          Sign In
-        </Button>
+      <div className="mt-8 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px]">
+        <AuthProviderButton
+          label="Continue with Google"
+          detail="Fastest onboarding path for BOARD"
+          icon={Chrome}
+          disabled={isSubmitting || Boolean(authStorageIssue)}
+          onClick={() => handleProviderSignIn("google")}
+          variant="hero"
+        />
+        <AuthProviderButton
+          label="Discord"
+          detail={discordReady ? "Secondary sign-in" : "Connect later from Profile"}
+          icon={Disc3}
+          disabled={isSubmitting || Boolean(authStorageIssue) || !discordReady}
+          onClick={() => handleProviderSignIn("discord")}
+          variant="outline"
+        />
+      </div>
+
+      <div className="mt-6 border-t border-[#0e0e0f]/14 pt-6">
+        <p className="board-rail-label text-[11px] text-[#525257]">Email Entry</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant={authMode === "password" && authTab === "signup" ? "secondary" : "outline"}
+            onClick={() => {
+              setAuthMode("password");
+              setAuthTab("signup");
+            }}
+            disabled={Boolean(authStorageIssue)}
+          >
+            Create Account
+          </Button>
+          <Button
+            type="button"
+            variant={authMode === "password" && authTab === "signin" ? "secondary" : "outline"}
+            onClick={() => {
+              setAuthMode("password");
+              setAuthTab("signin");
+            }}
+            disabled={Boolean(authStorageIssue)}
+          >
+            Sign In
+          </Button>
+          <Button
+            type="button"
+            variant={authMode === "magic-link" ? "secondary" : "outline"}
+            onClick={() => setAuthMode("magic-link")}
+            disabled={Boolean(authStorageIssue)}
+          >
+            Magic Link
+          </Button>
+        </div>
       </div>
 
       <form
@@ -467,46 +509,15 @@ export default function Auth() {
                     ? "Creating"
                     : "Signing in"}
               </>
-            ) : (
-              "Continue"
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant={authMode === "magic-link" ? "secondary" : "outline"}
-            onClick={() => setAuthMode("magic-link")}
-            disabled={Boolean(authStorageIssue)}
-          >
-            Magic Link
+          ) : (
+            "Continue"
+          )}
           </Button>
         </div>
       </form>
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          className="min-w-[92px]"
-          disabled={isSubmitting || Boolean(authStorageIssue)}
-          onClick={() => handleProviderSignIn("google")}
-        >
-          <Chrome className="h-4 w-4" />
-          Google
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="min-w-[92px]"
-          disabled={isSubmitting || Boolean(authStorageIssue)}
-          onClick={() => handleProviderSignIn("discord")}
-        >
-          <Disc3 className="h-4 w-4" />
-          Discord
-        </Button>
-      </div>
-
       <p className="mt-4 max-w-[430px] text-[13px] leading-6 text-[#525257]">
-        If this person already has a BOARD account, add Google or Discord later from{" "}
+        BOARD uses one durable account. Get in with Google or email, then add more providers later from{" "}
         <span className="font-semibold text-[#0e0e0f]">Profile / Account Connections</span> to avoid
         splitting identity across multiple accounts.
       </p>
@@ -625,23 +636,59 @@ export default function Auth() {
 
             <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6 md:p-7">
               <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-                Local Practice
+                Account Rule
               </h2>
               <p className="mt-5 max-w-[420px] text-[18px] leading-8 text-[#525257]">
-                No account required. Use this when the player just wants to open a board and start immediately.
+                Sign in once. Connect more providers later from Profile. Competitive play gets the World ID upgrade after entry, not before.
               </p>
               <Button type="button" variant="outline" className="mt-8" onClick={() => navigate("/play")}>
-                Start Local Practice
+                Local Practice
               </Button>
             </section>
 
             <p className="max-w-[520px] text-[16px] leading-8 text-[#525257]">
-              This page must answer one question fast: do I need identity for what I am about to do?
+              This page must answer one question fast: what is the cleanest way into BOARD right now?
             </p>
           </div>
         </div>
       </div>
     </SiteFrame>
+  );
+}
+
+function AuthProviderButton({
+  label,
+  detail,
+  icon: Icon,
+  disabled,
+  onClick,
+  variant,
+}: {
+  label: string;
+  detail: string;
+  icon: typeof Chrome;
+  disabled: boolean;
+  onClick: () => void;
+  variant: "hero" | "outline";
+}) {
+  return (
+    <Button
+      type="button"
+      variant={variant}
+      className="h-auto min-h-[72px] justify-between whitespace-normal px-4 py-4 text-left"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span className="flex items-center gap-3">
+        <Icon className="h-4 w-4" />
+        <span className="min-w-0">
+          <span className="block font-semibold">{label}</span>
+          <span className="block text-[12px] font-medium uppercase tracking-[0.12em] opacity-72">
+            {detail}
+          </span>
+        </span>
+      </span>
+    </Button>
   );
 }
 

@@ -306,6 +306,14 @@ export default function Lobby() {
         navigate(`/match/${matchId}`);
       } catch (error: any) {
         console.error("Competitive matchmaking error:", error);
+        if (/human verification/i.test(error.message || "")) {
+          toast.error("Ranked play requires human verification", {
+            description: "Open your profile and complete World ID before entering the competitive queue.",
+          });
+          navigate("/profile#identity");
+          return;
+        }
+
         toast.error(error.message || "Failed to find match");
       } finally {
         setCreatingMatch(false);

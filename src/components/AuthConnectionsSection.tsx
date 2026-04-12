@@ -1,7 +1,6 @@
-import { Chrome, Disc3, Link2, Loader2, ShieldCheck, Unplug } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Chrome, Disc3, Link2, Loader2, Mail, Unplug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   type ConnectionProvider,
@@ -20,12 +19,12 @@ const PROVIDER_META: Record<
   google: {
     label: "Google",
     icon: Chrome,
-    description: "Primary sign-in and recovery for this account.",
+    description: "Primary sign-in and recovery path.",
   },
   discord: {
     label: "Discord",
     icon: Disc3,
-    description: "Optional community entry. Link it from this same account later.",
+    description: "Community-facing secondary sign-in.",
   },
 };
 
@@ -77,142 +76,132 @@ export function AuthConnectionsSection() {
     }
 
     toast.success(`${PROVIDER_META[provider].label} disconnected`, {
-      description: "Your BOARD account still keeps the remaining sign-in methods.",
+      description: "The remaining sign-in methods still keep this BOARD account recoverable.",
     });
   };
 
   return (
-    <Card className="relative p-8 mb-12 bg-gradient-to-br from-background via-background to-indigo/5 border-indigo/20 hover:border-indigo/40 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 delay-[520ms] overflow-hidden">
-      <div className="absolute top-4 right-4 text-8xl opacity-5 pointer-events-none">↔</div>
-
-      <div className="relative">
-        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
+    <div className="space-y-4">
+      <div className="border border-black bg-white px-4 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 rounded-xl bg-indigo/10">
-                <ShieldCheck className="h-7 w-7 text-indigo" />
+            <p className="board-rail-label text-black/55">Recovery anchor</p>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="rounded-full border border-black/14 p-2">
+                <Mail className="h-4 w-4" />
               </div>
-              <h2 className="font-body text-3xl font-bold bg-gradient-to-br from-indigo to-ochre bg-clip-text text-transparent">
-                Account Connections
-              </h2>
+              <div>
+                <p className="font-semibold text-black">{user.email || "No email on file"}</p>
+                <p className="text-sm leading-6 text-black/62">
+                  {emailIdentity
+                    ? "Email recovery is attached to this account."
+                    : "This account was created through OAuth. Add a backup method before removing providers."}
+                </p>
+              </div>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-              Keep one BOARD account as the source of truth. Add Google first for sign-in and recovery,
-              then attach any extra providers from this page so worlds, rooms, ratings, and events stay
-              on the same profile.
-            </p>
           </div>
-
-          <Badge variant="outline" className="font-mono px-3 py-1.5">
+          <Badge variant="outline" className="px-3 py-1 text-[11px] uppercase tracking-[0.16em]">
             {identities.length} linked
           </Badge>
         </div>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-5">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground mb-2">Recovery Email</p>
-            <p className="text-base font-semibold break-all">{user.email || "No email on file"}</p>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {emailIdentity
-                ? "Email/password recovery is attached to this account."
-                : "OAuth accounts can add password recovery later through account update flows."}
-            </p>
-          </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {(["google", "discord"] as const).map((provider) => {
+          const meta = PROVIDER_META[provider];
+          const connected = hasIdentity(provider);
+          const connection = getConnection(provider);
+          const Icon = meta.icon;
+          const isPending = pendingProvider === provider;
 
-          {(["google", "discord"] as const).map((provider) => {
-            const meta = PROVIDER_META[provider];
-            const connected = hasIdentity(provider);
-            const connection = getConnection(provider);
-            const Icon = meta.icon;
-            const isPending = pendingProvider === provider;
-
-            return (
-              <div
-                key={provider}
-                className="rounded-xl border border-border/60 bg-card/70 p-5 transition-all duration-300 hover:border-foreground/20"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2.5 rounded-lg bg-muted">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{meta.label}</p>
-                        <p className="text-xs text-muted-foreground">{meta.description}</p>
-                      </div>
+          return (
+            <div key={provider} className="border border-black bg-[#fbfaf8] px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full border border-black/14 p-2">
+                      <Icon className="h-4 w-4" />
                     </div>
+                    <div>
+                      <p className="font-semibold text-black">{meta.label}</p>
+                      <p className="text-sm leading-6 text-black/62">{meta.description}</p>
+                    </div>
+                  </div>
 
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Badge
                       variant="outline"
                       className={connected
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
-                        : "text-muted-foreground"}
+                        ? "border-emerald-600/30 bg-emerald-600/10 text-emerald-700"
+                        : "text-black/62"}
                     >
                       {connected ? "Connected" : "Available"}
                     </Badge>
-
-                    {connection ? (
-                      <div className="mt-3 space-y-1 text-xs leading-6 text-muted-foreground">
-                        {connection.displayName ? (
-                          <p className="text-foreground font-medium">{connection.displayName}</p>
-                        ) : null}
-                        {connection.handle && connection.handle !== connection.displayName ? (
-                          <p>@{connection.handle}</p>
-                        ) : null}
-                        {connection.email ? <p className="break-all">{connection.email}</p> : null}
-                      </div>
-                    ) : null}
                   </div>
 
-                  <Button
-                    type="button"
-                    variant={connected ? "outline" : "default"}
-                    className="shrink-0"
-                    onClick={() => (connected ? handleDisconnect(provider) : handleConnect(provider))}
-                    disabled={loading || isPending || (connected && !canDisconnectProvider)}
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Working
-                      </>
-                    ) : connected ? (
-                      <>
-                        <Unplug className="h-4 w-4" />
-                        Disconnect
-                      </>
-                    ) : (
-                      <>
-                        <Link2 className="h-4 w-4" />
-                        Connect
-                      </>
-                    )}
-                  </Button>
+                  {connection ? (
+                    <div className="mt-4 space-y-1 text-sm leading-6 text-black/62">
+                      {connection.displayName ? (
+                        <p className="font-medium text-black">{connection.displayName}</p>
+                      ) : null}
+                      {connection.handle && connection.handle !== connection.displayName ? (
+                        <p>@{connection.handle}</p>
+                      ) : null}
+                      {connection.email ? <p className="break-all">{connection.email}</p> : null}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-6 text-black/62">
+                      Connect this after first sign-in so worlds, ratings, and moderation state stay on one BOARD identity.
+                    </p>
+                  )}
                 </div>
 
-                {connected && !canDisconnectProvider ? (
-                  <p className="mt-3 text-xs leading-6 text-muted-foreground">
-                    Keep at least one other sign-in method connected before removing this one.
-                  </p>
-                ) : null}
+                <Button
+                  type="button"
+                  variant={connected ? "outline" : "secondary"}
+                  className="shrink-0"
+                  onClick={() => (connected ? handleDisconnect(provider) : handleConnect(provider))}
+                  disabled={loading || isPending || (connected && !canDisconnectProvider)}
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Working
+                    </>
+                  ) : connected ? (
+                    <>
+                      <Unplug className="h-4 w-4" />
+                      Disconnect
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4" />
+                      Connect
+                    </>
+                  )}
+                </Button>
               </div>
-            );
-          })}
-        </div>
 
-        <div className="mt-5 space-y-2">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Connection rule</p>
-          <p className="text-sm leading-7 text-muted-foreground">
-            Enable Supabase manual identity linking so extra providers attach to the current user
-            instead of creating separate accounts.
-          </p>
-          {error ? (
-            <p className="text-sm leading-7 text-red-500">{normalizeConnectionError(error)}</p>
-          ) : null}
-        </div>
+              {connected && !canDisconnectProvider ? (
+                <p className="mt-4 text-xs leading-6 text-black/55">
+                  Add another usable sign-in method before removing this one.
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
-    </Card>
+
+      <div className="border border-dashed border-black/20 bg-white px-4 py-4">
+        <p className="board-rail-label text-black/55">Connection rule</p>
+        <p className="mt-3 text-sm leading-7 text-black/62">
+          Enable Supabase manual identity linking so added providers attach to the current user instead of creating separate accounts.
+        </p>
+        {error ? (
+          <p className="mt-3 text-sm leading-7 text-red-600">{normalizeConnectionError(error)}</p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

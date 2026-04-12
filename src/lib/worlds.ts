@@ -26,6 +26,7 @@ export type WorldEventSummary = {
   description: string | null;
   status: string;
   format: string;
+  competitiveMode: boolean;
   maxPlayers: number;
   participantCount: number;
   createdAt: string;
@@ -96,6 +97,7 @@ type TournamentRow = {
   description: string | null;
   status: string;
   format: string;
+  competitive_mode: boolean;
   max_players: number;
   created_at: string;
   start_time: string | null;
@@ -266,7 +268,7 @@ export async function listWorlds(currentUserId?: string) {
       worldIds.length
         ? db()
             .from('tournaments')
-            .select('id, world_id, name, description, status, format, max_players, created_at, start_time')
+            .select('id, world_id, name, description, status, format, competitive_mode, max_players, created_at, start_time')
             .in('world_id', worldIds)
         : Promise.resolve({ data: [], error: null }),
       worldIds.length
@@ -333,7 +335,7 @@ export async function loadWorldOverview(worldId: string, currentUserId?: string)
       .eq('world_id', worldId),
     db()
       .from('tournaments')
-      .select('id, world_id, name, description, status, format, max_players, created_at, start_time')
+      .select('id, world_id, name, description, status, format, competitive_mode, max_players, created_at, start_time')
       .eq('world_id', worldId)
       .order('created_at', { ascending: false }),
     db()
@@ -408,6 +410,7 @@ export async function loadWorldOverview(worldId: string, currentUserId?: string)
       description: tournament.description,
       status: tournament.status,
       format: tournament.format,
+      competitiveMode: tournament.competitive_mode,
       maxPlayers: tournament.max_players,
       participantCount: participants.filter(
         (participant) => participant.tournament_id === tournament.id,
