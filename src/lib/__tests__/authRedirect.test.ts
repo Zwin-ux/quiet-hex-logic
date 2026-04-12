@@ -12,6 +12,7 @@ import {
 function setLocation(url: string) {
   const parsed = new URL(url);
   vi.stubGlobal('window', {
+    __HEXLOGY_RUNTIME_ENV__: {},
     location: {
       origin: parsed.origin,
       pathname: parsed.pathname,
@@ -60,6 +61,18 @@ describe('auth redirect helpers', () => {
       'https://board.test/auth?reset=true&next=%2Fworlds%2Fdemo-world',
     );
     expect(resolvePostAuthPath('/worlds/demo-world')).toBe('/worlds/demo-world');
+  });
+
+  it('prefers the canonical app origin when runtime env provides it', () => {
+    setLocation('https://preview.board.test/play');
+    window.__HEXLOGY_RUNTIME_ENV__ = {
+      VITE_PUBLIC_APP_URL: 'https://board.example.com',
+    };
+
+    expect(buildAuthRedirectUrl('/events')).toBe('https://board.example.com/auth?next=%2Fevents');
+    expect(buildPasswordResetRedirectUrl('/events')).toBe(
+      'https://board.example.com/auth?reset=true&next=%2Fevents',
+    );
   });
 
   it('parses auth callback errors and strips transient params', () => {

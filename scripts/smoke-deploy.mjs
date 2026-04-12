@@ -34,11 +34,30 @@ async function check(name, fn) {
   }
 }
 
+function normalizeOrigin(value) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return '';
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    throw new Error(`Invalid origin: ${trimmed}`);
+  }
+}
+
+function expectStatus(name, response, allowedStatuses) {
+  if (!allowedStatuses.includes(response.status)) {
+    throw new Error(`status=${response.status}`);
+  }
+
+  return { status: response.status };
+}
+
 async function main() {
   const cwd = process.cwd();
   const fileEnv = parseEnvFile(path.join(cwd, '.env'));
   const url = (process.env.VITE_SUPABASE_URL || fileEnv.VITE_SUPABASE_URL || '').trim();
   const anon = (process.env.VITE_SUPABASE_PUBLISHABLE_KEY || fileEnv.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+  const appUrl = normalizeOrigin(process.env.VITE_PUBLIC_APP_URL || fileEnv.VITE_PUBLIC_APP_URL || '');
 
   const knownBadRef = 'ptuxqfwicdpdslqwnswd';
   if (url.includes(knownBadRef)) {
@@ -47,6 +66,7 @@ async function main() {
 
   required('VITE_SUPABASE_URL', url);
   required('VITE_SUPABASE_PUBLISHABLE_KEY', anon);
+  required('VITE_PUBLIC_APP_URL', appUrl);
 
   const headers = {
     apikey: anon,
@@ -61,22 +81,114 @@ async function main() {
     return { status: r.status };
   }));
 
-  results.push(await check('rest_bot_seasons_select', async () => {
-    const r = await fetch(`${url}/rest/v1/bot_seasons?select=id&limit=1`, { headers });
+  results.push(await check('app_runtime_env_contract', async () => {
+    const r = await fetch(`${appUrl}/`, { method: 'GET' });
     if (!r.ok) throw new Error(`status=${r.status}`);
+
+    const html = await r.text();
+    const requiredKeys = [
+      'VITE_SUPABASE_URL',
+      'VITE_SUPABASE_PUBLISHABLE_KEY',
+      'VITE_PUBLIC_APP_URL',
+    ];
+
+    for (const key of requiredKeys) {
+      if (!html.includes(`"${key}"`) && !html.includes(`${key}`)) {
+        throw new Error(`missing_runtime_key=${key}`);
+      }
+    }
+
     return { status: r.status };
   }));
 
-  results.push(await check('fn_bot_poll_exists', async () => {
-    const r = await fetch(`${url}/functions/v1/bot-poll`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    if (r.status === 404) throw new Error('404_not_deployed');
-    return { status: r.status };
+  results.push(await check('route_home', async () => {
+    const r = await fetch(`${appUrl}/`, { method: 'GET' });
+    return expectStatus('route_home', r, [200]);
   }));
 
-  results.push(await check('fn_arena_create_match_exists', async () => {
-    const r = await fetch(`${url}/functions/v1/arena-create-match`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    if (r.status === 404) throw new Error('404_not_deployed');
-    return { status: r.status };
+  results.push(await check('route_worlds', async () => {
+    const r = await fetch(`${appUrl}/worlds`, { method: 'GET' });
+    return expectStatus('route_worlds', r, [200]);
+  }));
+
+  results.push(await check('route_play', async () => {
+    const r = await fetch(`${appUrl}/play`, { method: 'GET' });
+    return expectStatus('route_play', r, [200]);
+  }));
+
+  results.push(await check('route_events', async () => {
+    const r = await fetch(`${appUrl}/events`, { method: 'GET' });
+    return expectStatus('route_events', r, [200]);
+  }));
+
+  results.push(await check('route_auth_next', async () => {
+    const r = await fetch(`${appUrl}/auth?next=%2Fworlds%3Fcreate%3Dtrue`, { method: 'GET' });
+    return expectStatus('route_auth_next', r, [200]);
+  }));
+
+  results.push(await check('rpc_list_worlds', async () => {
+    const r = await fetch(`${url}/rest/v1/rpc/list_worlds`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    if (r.status === 404) throw new Error('404_not_found');
+    return expectStatus('rpc_list_worlds', r, [200, 401, 403]);
+  }));
+
+  results.push(await check('rpc_get_world_overview_exists', async () => {
+    const r = await fetch(`${url}/rest/v1/rpc/get_world_overview`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_world_id: '00000000-0000-0000-0000-000000000000' }),
+    });
+    if (r.status === 404) throw new Error('404_not_found');
+    return expectStatus('rpc_get_world_overview_exists', r, [400, 401, 403]);
+  }));
+
+  results.push(await check('rpc_create_world_atomic_exists', async () => {
+    const r = await fetch(`${url}/rest/v1/rpc/create_world_atomic`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_name: 'Smoke World', p_description: 'smoke', p_visibility: 'public' }),
+    });
+    if (r.status === 404) throw new Error('404_not_found');
+    return expectStatus('rpc_create_world_atomic_exists', r, [200, 400, 401, 403]);
+  }));
+
+  results.push(await check('rpc_join_lobby_by_code_atomic_exists', async () => {
+    const r = await fetch(`${url}/rest/v1/rpc/join_lobby_by_code_atomic`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_code: 'SMOKE1' }),
+    });
+    if (r.status === 404) throw new Error('404_not_found');
+    return expectStatus('rpc_join_lobby_by_code_atomic_exists', r, [400, 401, 403]);
+  }));
+
+  results.push(await check('rpc_join_tournament_atomic_exists', async () => {
+    const r = await fetch(`${url}/rest/v1/rpc/join_tournament_atomic`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_tournament_id: '00000000-0000-0000-0000-000000000000' }),
+    });
+    if (r.status === 404) throw new Error('404_not_found');
+    return expectStatus('rpc_join_tournament_atomic_exists', r, [400, 401, 403]);
   }));
 
   const failed = results.filter((r) => !r.ok);

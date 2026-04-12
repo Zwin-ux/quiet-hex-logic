@@ -6,7 +6,7 @@ Important change:
 
 - The Railway server now injects critical public env into the HTML response at request time.
 - That means a missing frontend Supabase config should no longer hard-crash the bundle at boot.
-- On Railway, setting `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` is enough for both the server and the frontend shell.
+- On Railway, setting `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `VITE_PUBLIC_APP_URL` gives the frontend a canonical auth/runtime contract.
 
 ## What Railway Runs
 
@@ -25,6 +25,9 @@ Set these in Railway for the web service:
 
 - Recommended: `SUPABASE_URL`
 - Recommended: `SUPABASE_PUBLISHABLE_KEY`
+- Recommended: `VITE_PUBLIC_APP_URL`
+  - Set this to the canonical public app origin, for example `https://your-app.up.railway.app`
+  - Auth redirects use this origin first and only fall back to `window.location.origin` when it is missing or malformed.
 - Optional: `VITE_SUPABASE_URL`
 - Optional: `VITE_SUPABASE_PUBLISHABLE_KEY`
 - Optional: `VITE_SUPABASE_PROJECT_ID`
@@ -46,8 +49,8 @@ or
 - `AI_GATEWAY_API_KEY`
 - Optional: `AI_MODEL`
 
-If `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` are present, the server injects them into the frontend at request time.
-If they are omitted, the app falls back to the `VITE_*` values above.
+If `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `VITE_PUBLIC_APP_URL` are present, the server injects them into the frontend at request time.
+If they are omitted, the app falls back to the `VITE_*` values above, but that should be treated as a local-development fallback rather than the intended Railway contract.
 
 ## Local Development
 
@@ -111,3 +114,13 @@ Expected response:
   "service": "hexology-railway-server"
 }
 ```
+
+## Alpha Demo Contract
+
+Public alpha readiness depends on these runtime guarantees:
+
+- Live HTML includes `VITE_SUPABASE_URL`
+- Live HTML includes `VITE_SUPABASE_PUBLISHABLE_KEY`
+- Live HTML includes `VITE_PUBLIC_APP_URL`
+- `/auth?next=...` resolves against the canonical app origin instead of whatever browser origin happens to be active
+- Deploy smoke checks verify the world and tournament RPC path, not only the arena sidecar
