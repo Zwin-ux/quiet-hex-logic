@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Check, Copy, Loader2 } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,13 @@ export default function WorldView() {
   useDocumentTitle("World");
 
   const { worldId } = useParams<{ worldId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [overview, setOverview] = useState<WorldOverview | null>(null);
 
@@ -60,6 +62,25 @@ export default function WorldView() {
 
   const { world, events, lobbies, matches } = overview;
   const canManage = canManageWorld(world);
+  const setupMode = searchParams.get("setup") === "1";
+  const hasLiveSurfaces = lobbies.length > 0 || matches.length > 0 || events.length > 0;
+
+  const copyInviteLink = async () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/worlds/${world.id}`);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+      toast.success("Invite link copied", {
+        description: "Send this world link to members and spectators.",
+      });
+    } catch (error: any) {
+      toast.error("Failed to copy invite link", {
+        description: error?.message ?? "Clipboard access was unavailable.",
+      });
+    }
+  };
 
   const handleJoin = async () => {
     if (!worldId) return;
@@ -114,6 +135,40 @@ export default function WorldView() {
         <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_318px]">
           <div>
             <div className="space-y-4">
+              {canManage && !hasLiveSurfaces ? (
+                <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StateTag tone="warning">{setupMode ? "setup mode" : "first world"}</StateTag>
+                    <StateTag>no live surfaces yet</StateTag>
+                  </div>
+                  <h2 className="mt-5 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
+                    Stage the first room before inviting people in.
+                  </h2>
+                  <p className="mt-4 max-w-[620px] text-[16px] leading-8 text-[#525257]">
+                    A strong first hosted flow is: open one room, copy the world link, then queue the first event once the room is working.
+                  </p>
+
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <div className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
+                      <p className="board-rail-label text-[11px] text-[#525257]">01</p>
+                      <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">Create the first room</p>
+                    </div>
+                    <div className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
+                      <p className="board-rail-label text-[11px] text-[#525257]">02</p>
+                      <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">Copy the invite link</p>
+                    </div>
+                    <div className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
+                      <p className="board-rail-label text-[11px] text-[#525257]">03</p>
+                      <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">Queue the first event</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <CreateLobby userId={user!.id} worldId={world.id} />
+                  </div>
+                </section>
+              ) : null}
+
               {lobbies.map((lobby) => (
                 <LobbyCard
                   key={lobby.id}
@@ -180,9 +235,11 @@ export default function WorldView() {
                 </button>
               ))}
 
-              {lobbies.length === 0 && matches.length === 0 && events.length === 0 ? (
+              {!canManage && !hasLiveSurfaces ? (
                 <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
-                  <p className="text-[16px] leading-7 text-[#525257]">No live surfaces yet.</p>
+                  <p className="text-[16px] leading-7 text-[#525257]">
+                    No live rooms or events are open yet. This world exists, but the host has not staged the first surface.
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -209,11 +266,14 @@ export default function WorldView() {
             <div className="mt-8 flex flex-col gap-3">
               {canManage ? (
                 <>
-                  <CreateLobby userId={user!.id} worldId={world.id} />
+                  {!hasLiveSurfaces ? null : <CreateLobby userId={user!.id} worldId={world.id} />}
                   <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
                     Create event
                   </Button>
-                  <Button variant="outline">Invite members</Button>
+                  <Button variant="outline" onClick={copyInviteLink}>
+                    {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {inviteCopied ? "Invite link copied" : "Copy invite link"}
+                  </Button>
                 </>
               ) : (
                 <Button

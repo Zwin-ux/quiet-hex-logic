@@ -218,7 +218,7 @@ export default function Worlds() {
             userId={user.id}
             onSuccess={(worldId) => {
               setShowCreateDialog(false);
-              navigate(`/worlds/${worldId}`);
+              navigate(`/worlds/${worldId}?setup=1`);
             }}
           />
         ) : null}
