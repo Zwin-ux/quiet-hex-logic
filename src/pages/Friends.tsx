@@ -12,6 +12,7 @@ import { UserPlus, UserCheck, UserX, Check, X, Swords, AlertCircle, Eye } from '
 import { NavBar } from '@/components/NavBar';
 import { usePresence } from '@/hooks/usePresence';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 type FriendRow = {
   a: string;
@@ -53,7 +54,7 @@ export default function Friends() {
   usePresence(user?.id);
 
   useEffect(() => {
-    if (!loading && !user) navigate('/auth');
+    if (!loading && !user) navigate(buildAuthRoute());
   }, [user, loading, navigate]);
 
   useEffect(() => {

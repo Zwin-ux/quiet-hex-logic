@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
-import { ArrowLeft, KeyRound, Loader2, Lock, Mail, Shield, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Chrome,
+  Disc3,
+  KeyRound,
+  Loader2,
+  Lock,
+  Mail,
+  Shield,
+  User,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { BoardLogo } from "@/components/BoardLogo";
 import { SiteFrame } from "@/components/board/SiteFrame";
@@ -11,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { buildAuthRoute, resolvePostAuthPath } from "@/lib/authRedirect";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -25,6 +36,8 @@ type AuthView = "main" | "forgot-password" | "reset-password";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
+  const returnTo = resolvePostAuthPath(searchParams.get("next"));
+  const shouldShowReturnTarget = returnTo !== "/worlds";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,7 +48,16 @@ export default function Auth() {
   const [authMode, setAuthMode] = useState<AuthMode>("magic-link");
   const [authTab, setAuthTab] = useState<AuthTab>("signup");
   const [authView, setAuthView] = useState<AuthView>("main");
-  const { user, signInWithMagicLink, signIn, signUp, resetPassword, updatePassword } = useAuth();
+  const {
+    user,
+    signInWithMagicLink,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signInWithDiscord,
+    resetPassword,
+    updatePassword,
+  } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -47,9 +69,9 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && !user.is_anonymous && authView !== "reset-password") {
-      navigate("/worlds");
+      navigate(returnTo, { replace: true });
     }
-  }, [user, navigate, authView]);
+  }, [user, navigate, authView, returnTo]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +79,7 @@ export default function Auth() {
 
     try {
       emailSchema.parse(email);
-      const { error } = await resetPassword(email);
+      const { error } = await resetPassword(email, returnTo);
 
       if (error) {
         toast({
@@ -118,7 +140,7 @@ export default function Auth() {
         setAuthView("main");
         setAuthMode("password");
         setAuthTab("signin");
-        navigate("/auth", { replace: true });
+        navigate(buildAuthRoute(returnTo), { replace: true });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -140,7 +162,7 @@ export default function Auth() {
     try {
       emailSchema.parse(email);
 
-      const { error } = await signInWithMagicLink(email);
+      const { error } = await signInWithMagicLink(email, returnTo);
 
       if (error) {
         toast({
@@ -178,7 +200,7 @@ export default function Auth() {
 
       if (authTab === "signup") {
         usernameSchema.parse(username);
-        const { error } = await signUp(email, password, username);
+        const { data, error } = await signUp(email, password, username, "indigo", returnTo);
 
         if (error) {
           toast({
@@ -187,11 +209,19 @@ export default function Auth() {
             variant: "destructive",
           });
         } else {
+          const hasSession = Boolean(data?.session);
           toast({
-            title: "Account created",
-            description: "Your BOARD identity is ready.",
+            title: hasSession ? "Account created" : "Check your email",
+            description: hasSession
+              ? "Your BOARD identity is ready."
+              : "Use the link in your inbox to finish entering BOARD.",
           });
-          navigate("/worlds");
+
+          if (hasSession) {
+            navigate(returnTo);
+          } else {
+            setEmailSent(true);
+          }
         }
       } else {
         const { error } = await signIn(email, password);
@@ -203,7 +233,7 @@ export default function Auth() {
             variant: "destructive",
           });
         } else {
-          navigate("/worlds");
+          navigate(returnTo);
         }
       }
     } catch (error) {
@@ -211,6 +241,27 @@ export default function Auth() {
         toast({
           title: "Validation error",
           description: error.issues[0].message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleProviderSignIn = async (provider: "google" | "discord") => {
+    setIsSubmitting(true);
+
+    try {
+      const { error } =
+        provider === "google"
+          ? await signInWithGoogle(returnTo)
+          : await signInWithDiscord(returnTo);
+
+      if (error) {
+        toast({
+          title: `${provider === "google" ? "Google" : "Discord"} sign in failed`,
+          description: error.message,
           variant: "destructive",
         });
       }
@@ -302,6 +353,13 @@ export default function Auth() {
                 </button>
               </div>
 
+              {shouldShowReturnTarget ? (
+                <div className="mb-6 border border-black/10 bg-[#faf9f4] px-4 py-3">
+                  <p className="board-rail-label text-[10px]">Return target</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{returnTo}</p>
+                </div>
+              ) : null}
+
               <div className="mb-6 grid grid-cols-2 border border-black/10 bg-[#f7f5ef] p-1">
                 <button
                   type="button"
@@ -353,6 +411,35 @@ export default function Auth() {
                 </form>
               ) : (
                 <>
+                  <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 justify-start"
+                      disabled={isSubmitting}
+                      onClick={() => handleProviderSignIn("google")}
+                    >
+                      <Chrome className="h-4 w-4" />
+                      Continue with Google
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 justify-start"
+                      disabled={isSubmitting}
+                      onClick={() => handleProviderSignIn("discord")}
+                    >
+                      <Disc3 className="h-4 w-4" />
+                      Continue with Discord
+                    </Button>
+                  </div>
+
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="h-px flex-1 bg-black/10" />
+                    <span className="board-rail-label text-[10px]">or use email</span>
+                    <div className="h-px flex-1 bg-black/10" />
+                  </div>
+
                   <div className="mb-5 flex gap-6 border-b border-black/10">
                     <button
                       type="button"

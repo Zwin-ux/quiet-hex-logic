@@ -1,38 +1,31 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  ArrowUpRight,
-  BookOpen,
-  Cpu,
-  Loader2,
-  Play,
-  RadioTower,
-  Trophy,
-  Users,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { BookOpen, Cpu, Loader2, Play, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CounterBlock } from "@/components/board/CounterBlock";
+import { SectionRail } from "@/components/board/SectionRail";
+import { StateTag } from "@/components/board/StateTag";
+import { VenuePanel } from "@/components/board/VenuePanel";
+import { SiteFrame } from "@/components/board/SiteFrame";
+import { Button } from "@/components/ui/button";
+import { ConvertAccountModal } from "@/components/ConvertAccountModal";
+import { CreateLobby } from "@/components/CreateLobby";
+import { GuestModeBanner } from "@/components/GuestModeBanner";
+import { JoinLobby } from "@/components/JoinLobby";
+import { LobbyCard } from "@/components/LobbyCard";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { SpectateButton } from "@/components/SpectateButton";
+import { WelcomeOnboarding } from "@/components/WelcomeOnboarding";
 import { useAuth } from "@/hooks/useAuth";
-import { useGuestMode } from "@/hooks/useGuestMode";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useGuestConversion } from "@/hooks/useGuestConversion";
-import { useDiscord } from "@/lib/discord/DiscordContext";
+import { useGuestMode } from "@/hooks/useGuestMode";
 import { usePresence } from "@/hooks/usePresence";
+import { buildAuthRoute } from "@/lib/authRedirect";
 import { listGames, getGame } from "@/lib/engine/registry";
 import { createLocalAIMatch } from "@/lib/localAiMatch";
 import { listWorlds, type WorldSummary } from "@/lib/worlds";
-import { SiteFrame } from "@/components/board/SiteFrame";
-import { SectionRail } from "@/components/board/SectionRail";
-import { VenuePanel } from "@/components/board/VenuePanel";
-import { MetricLine } from "@/components/board/MetricLine";
-import { Button } from "@/components/ui/button";
-import { SpectateButton } from "@/components/SpectateButton";
-import { CreateLobby } from "@/components/CreateLobby";
-import { JoinLobby } from "@/components/JoinLobby";
-import { LobbyCard } from "@/components/LobbyCard";
-import { GuestModeBanner } from "@/components/GuestModeBanner";
-import { ConvertAccountModal } from "@/components/ConvertAccountModal";
-import { WelcomeOnboarding } from "@/components/WelcomeOnboarding";
-import { PullToRefresh } from "@/components/PullToRefresh";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDiscord } from "@/lib/discord/DiscordContext";
 import { toast } from "sonner";
 
 type Match = {
@@ -63,7 +56,7 @@ type LobbyWithDetails = {
 export default function Lobby() {
   useDocumentTitle("Play");
 
-  const { user, loading, signInAnonymously } = useAuth();
+  const { user, loading } = useAuth();
   const [activeMatches, setActiveMatches] = useState<Match[]>([]);
   const [lobbies, setLobbies] = useState<LobbyWithDetails[]>([]);
   const [worlds, setWorlds] = useState<WorldSummary[]>([]);
@@ -72,6 +65,7 @@ export default function Lobby() {
   const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard" | "expert">("medium");
   const [selectedAIGame, setSelectedAIGame] = useState<string>("hex");
   const [loadingLobbies, setLoadingLobbies] = useState(true);
+  const [networkIssue, setNetworkIssue] = useState<string | null>(null);
   const { isGuest, guestUsername, loading: guestLoading } = useGuestMode();
   const { showConversionModal, setShowConversionModal, matchesCompleted } = useGuestConversion();
   const { isDiscordEnvironment, isAuthenticated: isDiscordAuth, discordUser } = useDiscord();
@@ -84,13 +78,6 @@ export default function Lobby() {
     () => new Map(worlds.map((world) => [world.id, world.name])),
     [worlds],
   );
-
-  const featuredWorlds = useMemo(() => {
-    if (!worlds.length) return [];
-    const joined = worlds.filter((world) => Boolean(world.userRole));
-    const publicOnly = worlds.filter((world) => !world.userRole);
-    return [...joined, ...publicOnly].slice(0, 4);
-  }, [worlds]);
 
   const worldHostedLobbies = useMemo(
     () => lobbies.filter((lobby) => Boolean(lobby.world_id)),
@@ -121,11 +108,9 @@ export default function Lobby() {
         localStorage.getItem("board_onboarded") || localStorage.getItem("openboard_onboarded");
       if (!hasSeenOnboarding) {
         setShowOnboarding(true);
-      } else {
-        signInAnonymously();
       }
     }
-  }, [loading, user, signInAnonymously, isDiscordEnvironment]);
+  }, [isDiscordEnvironment, loading, user]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("board_onboarded", "true");
@@ -135,7 +120,8 @@ export default function Lobby() {
 
   usePresence(user?.id);
 
-  const isReadyToPlay = isDiscordEnvironment ? isDiscordAuth : !!user;
+  const isReadyForLocalPlay = isDiscordEnvironment ? isDiscordAuth : !loading;
+  const isReadyForLiveDirectory = isDiscordEnvironment ? isDiscordAuth : !loading;
   const isLoading = isDiscordEnvironment ? !isDiscordAuth : loading;
 
   const createAIMatch = useCallback(
@@ -186,7 +172,7 @@ export default function Lobby() {
 
         let pieRule = gameKey === "hex";
         try {
-          const gameDef = listGames().find((g) => g.key === gameKey);
+          const gameDef = listGames().find((game) => game.key === gameKey);
           if (gameDef) pieRule = gameDef.supportsPieRule;
         } catch {}
 
@@ -225,7 +211,7 @@ export default function Lobby() {
         setCreatingMatch(false);
       }
     },
-    [isDiscordEnvironment, discordUser, navigate, profile?.username],
+    [discordUser, isDiscordEnvironment, navigate, profile?.username],
   );
 
   const findOrCreateCompetitiveMatch = useCallback(
@@ -265,49 +251,69 @@ export default function Lobby() {
         setCreatingMatch(false);
       }
     },
-    [user, isGuest, navigate],
+    [isGuest, navigate, user],
   );
 
   const fetchActiveMatches = useCallback(async () => {
-    const { data } = await supabase
-      .from("matches")
-      .select("*")
-      .eq("status", "active")
-      .eq("allow_spectators", true)
-      .order("created_at", { ascending: false })
-      .limit(5);
-    setActiveMatches(data || []);
+    try {
+      const { data, error } = await supabase
+        .from("matches")
+        .select("*")
+        .eq("status", "active")
+        .eq("allow_spectators", true)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      setActiveMatches(data || []);
+      setNetworkIssue(null);
+    } catch (error: any) {
+      setNetworkIssue(error?.message ?? "Live boards unavailable");
+      setActiveMatches([]);
+    }
   }, []);
 
   const fetchWaitingLobbies = useCallback(async () => {
     setLoadingLobbies(true);
-    const { data: lobbyData } = await supabase
-      .from("lobbies")
-      .select("id, code, host_id, world_id, game_key, board_size, pie_rule, status, created_at, profiles!lobbies_host_id_fkey(username)")
-      .eq("status", "waiting")
-      .order("created_at", { ascending: false })
-      .limit(10);
+    try {
+      const { data: lobbyData, error } = await supabase
+        .from("lobbies")
+        .select("id, code, host_id, world_id, game_key, board_size, pie_rule, status, created_at, profiles!lobbies_host_id_fkey(username)")
+        .eq("status", "waiting")
+        .order("created_at", { ascending: false })
+        .limit(10);
 
-    const lobbiesWithCounts = await Promise.all(
-      (lobbyData || []).map(async (lobby) => {
-        const { count } = await supabase
-          .from("lobby_players")
-          .select("*", { count: "exact", head: true })
-          .eq("lobby_id", lobby.id);
-        return { ...lobby, player_count: count || 0 } as LobbyWithDetails;
-      }),
-    );
+      if (error) throw error;
 
-    setLobbies(lobbiesWithCounts);
-    setLoadingLobbies(false);
+      const lobbiesWithCounts = await Promise.all(
+        (lobbyData || []).map(async (lobby) => {
+          const { count } = await supabase
+            .from("lobby_players")
+            .select("*", { count: "exact", head: true })
+            .eq("lobby_id", lobby.id);
+          return { ...lobby, player_count: count || 0 } as LobbyWithDetails;
+        }),
+      );
+
+      setLobbies(lobbiesWithCounts);
+      setNetworkIssue(null);
+    } catch (error: any) {
+      setNetworkIssue(error?.message ?? "Room directory unavailable");
+      setLobbies([]);
+    } finally {
+      setLoadingLobbies(false);
+    }
   }, []);
 
   const fetchWorldDirectory = useCallback(async () => {
     try {
       const nextWorlds = await listWorlds(user?.id);
       setWorlds(nextWorlds);
+      setNetworkIssue(null);
     } catch (error) {
       console.error("Failed to load worlds:", error);
+      setNetworkIssue("World directory unavailable");
     }
   }, [user?.id]);
 
@@ -321,7 +327,7 @@ export default function Lobby() {
   }, [fetchWorldDirectory]);
 
   useEffect(() => {
-    if (isLoading || !isReadyToPlay) return;
+    if (isLoading) return;
 
     const state = location.state as
       | {
@@ -333,6 +339,7 @@ export default function Lobby() {
       | null;
 
     if (state?.createAI && state?.difficulty && !handledAutoCreate) {
+      if (!isReadyForLocalPlay) return;
       setHandledAutoCreate(true);
       const difficulty = state.difficulty as "easy" | "medium" | "hard" | "expert";
       const boardSize = state.boardSize || 7;
@@ -342,24 +349,26 @@ export default function Lobby() {
     }
 
     if (state?.competitive && !handledAutoCreate && !isGuest) {
+      if (!user) return;
       setHandledAutoCreate(true);
       navigate(location.pathname, { replace: true, state: {} });
       findOrCreateCompetitiveMatch();
     }
   }, [
-    isLoading,
-    isReadyToPlay,
-    location.state,
-    location.pathname,
-    handledAutoCreate,
-    isGuest,
-    navigate,
     createAIMatch,
     findOrCreateCompetitiveMatch,
+    handledAutoCreate,
+    isGuest,
+    isLoading,
+    isReadyForLocalPlay,
+    location.pathname,
+    location.state,
+    navigate,
+    user,
   ]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!isReadyForLiveDirectory) return;
 
     fetchActiveMatches();
     fetchWaitingLobbies();
@@ -386,7 +395,7 @@ export default function Lobby() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, fetchActiveMatches, fetchWaitingLobbies]);
+  }, [fetchActiveMatches, fetchWaitingLobbies, isReadyForLiveDirectory]);
 
   if (showOnboarding) {
     return (
@@ -454,65 +463,98 @@ export default function Lobby() {
 
           <SectionRail
             eyebrow="Play desk"
-            title="Practice, rooms, and live boards across BOARD."
+            title="Start, join, or watch without hunting."
             description={
               <>
-                Use this surface for quick play and live room discovery. If you are
-                running a recurring club, creator league, or local tournament, start
-                from worlds.
+                Practice starts here. Live room join and board watch stay visible. If you
+                are running a recurring venue, move into worlds when the room needs memory.
               </>
+            }
+            status={
+              <StateTag tone={networkIssue ? "critical" : isGuest ? "warning" : "success"}>
+                {networkIssue ? "directory issue" : isGuest ? "guest mode" : "desk ready"}
+              </StateTag>
             }
             actions={
               <>
                 <Button variant="outline" onClick={() => navigate("/worlds")}>
                   Open worlds
                 </Button>
-                <Button onClick={() => navigate("/events")}>Browse events</Button>
+                <Button variant="hero" onClick={() => navigate("/events")}>
+                  Browse events
+                </Button>
               </>
             }
           />
 
-          {user && !isGuest ? (
-            <VenuePanel eyebrow="Identity" title={profile?.username || user.email?.split("@")[0] || "Player"}>
-              <MetricLine label="ELO" value={profile?.elo_rating ?? 1200} />
-            </VenuePanel>
-          ) : null}
-
           <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <VenuePanel
-              eyebrow="Practice rail"
-              title="Choose a game, then choose the pressure."
-              description="Solo practice stays fast. Competitive search stays available when your identity is active."
-              className="bg-white/92"
+              eyebrow="Game ledger"
+              title="Select the board system"
+              description="Choose one ruleset, then move to the command window. The list stays dense on purpose so you can scan and act fast."
+              titleBarEnd={<StateTag>{selectedAIGame}</StateTag>}
             >
-              <div className="divide-y divide-black/10 border-t border-black/10">
+              <div className="board-ledger">
                 {listGames().map((game, index) => (
                   <button
                     key={game.key}
                     onClick={() => setSelectedAIGame(game.key)}
-                    className={`grid w-full gap-3 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[52px_minmax(0,1fr)_170px] ${
-                      selectedAIGame === game.key ? "bg-black text-white hover:bg-black" : ""
+                    className={`board-ledger-row w-full text-left md:grid-cols-[52px_minmax(0,1fr)_160px] ${
+                      selectedAIGame === game.key ? "bg-[#000080] text-white" : ""
                     }`}
                   >
-                    <div className="board-rail-label pt-1 text-[10px] text-current/45">
+                    <div className="board-rail-label pt-1 text-[10px] text-current/60">
                       {String(index + 1).padStart(2, "0")}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-2xl font-bold tracking-[-0.05em]">{game.displayName}</h3>
-                      <p className={`mt-2 text-sm leading-7 ${selectedAIGame === game.key ? "text-white/65" : "text-muted-foreground"}`}>
-                        {getGame(game.key).supportsRanked ? "Supports ranked and local repetition." : "Fast local repetition path."}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="board-section-title">{game.displayName}</h3>
+                        {getGame(game.key).supportsRanked ? (
+                          <StateTag tone={selectedAIGame === game.key ? "warning" : "normal"}>
+                            ranked ready
+                          </StateTag>
+                        ) : null}
+                      </div>
+                      <p className={`mt-3 text-sm leading-6 ${selectedAIGame === game.key ? "text-white" : "text-black"}`}>
+                        {getGame(game.key).supportsRanked
+                          ? "Supports ranked queue and local repetition."
+                          : "Local repetition path only."}
                       </p>
                     </div>
                     <div className="flex items-center justify-start gap-2 md:justify-end">
-                      <span className="board-rail-label text-[10px] text-current/45">
+                      <span className="board-meta-chip text-current">
                         {game.defaultBoardSize}x{game.defaultBoardSize}
                       </span>
                     </div>
                   </button>
                 ))}
               </div>
+            </VenuePanel>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
+            <VenuePanel
+              eyebrow="Command window"
+              title={getGame(selectedAIGame).displayName}
+              description="Pick the pressure and start. Queue stays secondary so the first action remains obvious."
+              state={networkIssue ? "critical" : isGuest ? "warning" : "normal"}
+              titleBarEnd={
+                <StateTag tone={creatingMatch ? "warning" : "success"}>
+                  {creatingMatch ? "starting" : "ready"}
+                </StateTag>
+              }
+            >
+              {networkIssue ? <div className="retro-critical-strip mb-4">{networkIssue}</div> : null}
+              {isGuest ? (
+                <div className="retro-warning-strip mb-4">
+                  Guest mode allows practice but blocks live queue and room hosting.
+                </div>
+              ) : null}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <CounterBlock label="User" value={profile?.username || guestUsername || "local"} />
+                <CounterBlock label="Room index" value={lobbies.length} />
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {[
                   { diff: "easy" as const, label: "Starter" },
                   { diff: "medium" as const, label: "Club" },
@@ -521,19 +563,20 @@ export default function Lobby() {
                 ].map(({ diff, label }) => (
                   <Button
                     key={diff}
-                    variant={aiDifficulty === diff ? "default" : "outline"}
+                    variant={aiDifficulty === diff ? "hero" : "outline"}
                     className="justify-between"
                     onClick={() => setAiDifficulty(diff)}
                   >
                     <span>{label}</span>
-                    <span className="board-rail-label text-[10px] text-current/55">{diff}</span>
+                    <span className="board-meta-chip text-current">{diff}</span>
                   </Button>
                 ))}
               </div>
 
-              <div className="mt-6 flex flex-col gap-3 md:flex-row">
+              <div className="retro-command-rail mt-5">
                 <Button
-                  className="clip-stage flex-1"
+                  className="h-12 flex-1"
+                  variant="hero"
                   onClick={() =>
                     createAIMatch(aiDifficulty, getGame(selectedAIGame).defaultBoardSize, selectedAIGame)
                   }
@@ -552,94 +595,73 @@ export default function Lobby() {
                   )}
                 </Button>
                 {user && !isGuest ? (
-                  <Button variant="outline" className="flex-1" onClick={() => findOrCreateCompetitiveMatch(selectedAIGame)}>
+                  <Button
+                    variant="outline"
+                    className="h-12 flex-1"
+                    onClick={() => findOrCreateCompetitiveMatch(selectedAIGame)}
+                  >
                     <Trophy className="h-4 w-4" />
                     Competitive queue
                   </Button>
                 ) : (
-                  <Button variant="outline" className="flex-1" onClick={() => navigate("/tutorial")}>
+                  <Button
+                    variant="outline"
+                    className="h-12 flex-1"
+                    onClick={() => navigate("/tutorial")}
+                  >
                     <BookOpen className="h-4 w-4" />
                     Learn the rules
                   </Button>
                 )}
               </div>
             </VenuePanel>
-
-            {user && !isGuest ? (
-              <div className="grid gap-6">
-                <CreateLobby userId={user.id} />
-                <JoinLobby userId={user.id} />
-              </div>
-            ) : (
-              <VenuePanel
-                eyebrow="Identity gate"
-                title="Live rooms and events need an account."
-                description={`${
-                  isGuest ? `Playing as ${guestUsername}. ` : ""
-                }Create an account to join worlds, return to rooms, and take seats inside host-run competition.`}
-              >
-                <Button onClick={() => navigate("/auth")}>Create account</Button>
-              </VenuePanel>
-            )}
           </div>
 
-          {featuredWorlds.length > 0 ? (
+          {user && !isGuest ? (
+            <div className="grid gap-6 xl:grid-cols-2">
+              <CreateLobby userId={user.id} />
+              <JoinLobby userId={user.id} />
+            </div>
+          ) : (
             <VenuePanel
-              eyebrow="World directory"
-              title="Host-owned venues"
-              description="Worlds are the recurring places behind the rooms and events you see here."
+              eyebrow="Identity gate"
+              title="Live rooms and events need an account."
+              description={`${
+                isGuest ? `Playing as ${guestUsername}. ` : ""
+              }Create an account to join worlds, return to rooms, and take seats inside host-run competition.`}
+              titleBarEnd={<StateTag tone="warning">account required</StateTag>}
+              state="warning"
             >
-              <div className="divide-y divide-black/10 border-t border-black/10">
-                {featuredWorlds.map((world, index) => (
-                  <button
-                    key={world.id}
-                    onClick={() => navigate(`/worlds/${world.id}`)}
-                    className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[52px_minmax(0,1fr)_180px]"
-                  >
-                    <div className="board-rail-label pt-1 text-[10px] text-black/45">
-                      {String(index + 1).padStart(2, "0")}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-2xl font-bold tracking-[-0.05em] text-foreground">{world.name}</h3>
-                        {world.userRole ? (
-                          <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
-                            {world.userRole}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                        {world.description || "No description yet."}
-                      </p>
-                    </div>
-                    <div className="space-y-1 border-l border-black/10 pl-4">
-                      <MetricLine label="Events" value={world.eventCount} />
-                      <MetricLine label="Instances" value={world.instanceCount} />
-                    </div>
-                  </button>
-                ))}
+              <div className="retro-command-rail">
+                <Button variant="hero" onClick={() => navigate(buildAuthRoute())}>
+                  Create account
+                </Button>
               </div>
             </VenuePanel>
-          ) : null}
+          )}
 
-          {user && !isGuest && lobbies.length > 0 ? (
-            <VenuePanel
-              eyebrow="Open room directory"
-              title={`${lobbies.length} waiting rooms`}
-              description="Cross-world room discovery for quick joins and direct codes."
-            >
-              {loadingLobbies ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  {worldHostedLobbies.length > 0 ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-black/10 pb-3">
-                        <p className="board-rail-label">World-hosted rooms</p>
-                        <span className="board-rail-label text-[10px] text-black/45">{worldHostedLobbies.length}</span>
-                      </div>
+          <VenuePanel
+            eyebrow="Open room directory"
+            title={lobbies.length ? `${lobbies.length} waiting rooms` : "No waiting rooms"}
+            description="Room join stays separate from venue browsing. Full rooms are flagged before you waste a click."
+            titleBarEnd={<StateTag tone={lobbies.length ? "success" : "warning"}>{lobbies.length || "none"}</StateTag>}
+            state={lobbies.length ? "normal" : "warning"}
+          >
+            {loadingLobbies ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : lobbies.length === 0 ? (
+              <div className="retro-warning-strip">No rooms waiting right now.</div>
+            ) : (
+              <div className="space-y-5">
+                {worldHostedLobbies.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="retro-status-strip justify-between bg-[#e8e8e8]">
+                      <span>World-hosted rooms</span>
+                      <span>{worldHostedLobbies.length}</span>
+                    </div>
+                    <div className="board-ledger">
                       {worldHostedLobbies.map((lobby) => (
                         <LobbyCard
                           key={lobby.id}
@@ -648,18 +670,20 @@ export default function Lobby() {
                             world_name: lobby.world_id ? worldNameById.get(lobby.world_id) ?? null : null,
                           }}
                           playerCount={lobby.player_count || 0}
-                          currentUserId={user.id}
+                          currentUserId={user?.id}
                         />
                       ))}
                     </div>
-                  ) : null}
+                  </div>
+                ) : null}
 
-                  {standaloneLobbies.length > 0 ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-black/10 pb-3">
-                        <p className="board-rail-label">Standalone rooms</p>
-                        <span className="board-rail-label text-[10px] text-black/45">{standaloneLobbies.length}</span>
-                      </div>
+                {standaloneLobbies.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="retro-status-strip justify-between bg-[#e8e8e8]">
+                      <span>Standalone rooms</span>
+                      <span>{standaloneLobbies.length}</span>
+                    </div>
+                    <div className="board-ledger">
                       {standaloneLobbies.map((lobby) => (
                         <LobbyCard
                           key={lobby.id}
@@ -668,27 +692,31 @@ export default function Lobby() {
                             world_name: null,
                           }}
                           playerCount={lobby.player_count || 0}
-                          currentUserId={user.id}
+                          currentUserId={user?.id}
                         />
                       ))}
                     </div>
-                  ) : null}
-                </div>
-              )}
-            </VenuePanel>
-          ) : null}
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </VenuePanel>
 
-          {activeMatches.length > 0 ? (
-            <VenuePanel
-              eyebrow="Live board directory"
-              title={`${activeMatches.length} active boards`}
-              description="Spectate current boards across worlds and direct rooms."
-            >
-              <div className="divide-y divide-black/10 border-t border-black/10">
+          <VenuePanel
+            eyebrow="Live board directory"
+            title={activeMatches.length ? `${activeMatches.length} active boards` : "No boards live"}
+            description="Watch lanes stay visible so you can drop into the right room without opening a world first."
+            titleBarEnd={<StateTag tone={activeMatches.length ? "success" : "warning"}>{activeMatches.length || "none"}</StateTag>}
+            state={activeMatches.length ? "normal" : "warning"}
+          >
+            {activeMatches.length === 0 ? (
+              <div className="retro-warning-strip">No spectator boards are live right now.</div>
+            ) : (
+              <div className="board-ledger">
                 {activeMatches.map((match, index) => (
                   <div
                     key={match.id}
-                    className="grid gap-3 py-4 md:grid-cols-[52px_minmax(0,1fr)_150px] md:items-center"
+                    className="board-ledger-row md:grid-cols-[52px_minmax(0,1fr)_160px] md:items-center"
                   >
                     <div className="board-rail-label pt-1 text-[10px] text-black/45">
                       {String(index + 1).padStart(2, "0")}
@@ -696,11 +724,11 @@ export default function Lobby() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
                         <Play className="h-4 w-4 text-foreground" />
-                        <p className="text-lg font-bold tracking-[-0.04em] text-foreground">
+                        <p className="board-section-title">
                           {match.size}x{match.size} live board
                         </p>
                       </div>
-                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                      <p className="mt-3 text-sm leading-6 text-black">
                         {match.world_id && worldNameById.get(match.world_id)
                           ? `${worldNameById.get(match.world_id)}`
                           : "Standalone room"}{" "}
@@ -713,8 +741,20 @@ export default function Lobby() {
                   </div>
                 ))}
               </div>
-            </VenuePanel>
-          ) : null}
+            )}
+          </VenuePanel>
+
+          <div className="retro-status-strip justify-between gap-3 bg-[#e8e8e8]">
+            <div className="flex flex-wrap items-center gap-3">
+              <StateTag tone={isGuest ? "warning" : "success"}>
+                {isGuest ? `guest ${guestUsername}` : profile?.username || "local account"}
+              </StateTag>
+              <span>rooms {lobbies.length}</span>
+              <span>boards {activeMatches.length}</span>
+              <span>worlds {worlds.length}</span>
+            </div>
+            <span>{networkIssue ? "retry suggested" : "desk synced"}</span>
+          </div>
         </div>
       </PullToRefresh>
 

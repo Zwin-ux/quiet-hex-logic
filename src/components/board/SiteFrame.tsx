@@ -28,7 +28,7 @@ export function SiteFrame({
 
       <main
         className={cn(
-          "board-page-width relative z-10 mx-auto px-5 pb-20 pt-24 md:px-8 lg:px-10",
+          "board-page-width relative z-10 mx-auto px-4 pb-20 pt-32 md:px-6 lg:px-8",
           contentClassName,
         )}
       >

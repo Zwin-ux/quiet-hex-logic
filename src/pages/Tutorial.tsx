@@ -8,6 +8,7 @@ import { HexBoard } from '@/components/HexBoard';
 import { Hex } from '@/lib/hex/engine';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 interface TutorialStep {
   id: number;
@@ -504,7 +505,7 @@ export default function Tutorial() {
                     Play as Guest (vs Easy AI)
                   </Button>
                   <Button
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate(buildAuthRoute())}
                     variant="outline"
                     className="w-full"
                   >

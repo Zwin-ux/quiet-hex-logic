@@ -11,6 +11,7 @@ import { Check } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
 import { toast } from 'sonner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 const avatarColors = [
   'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose',
@@ -29,7 +30,7 @@ export default function EditProfile() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/auth');
+      navigate(buildAuthRoute());
       return;
     }
 

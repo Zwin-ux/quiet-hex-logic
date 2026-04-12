@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { buildAuthRedirectUrl, buildPasswordResetRedirectUrl } from '@/lib/authRedirect';
 
 function normalizeError(err: unknown): { message: string } {
   if (err && typeof err === 'object') {
@@ -36,33 +37,37 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, username: string, avatarColor: string = 'indigo') => {
+  const signUp = async (
+    email: string,
+    password: string,
+    username: string,
+    avatarColor: string = 'indigo',
+    returnTo?: string | null,
+  ) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: buildAuthRedirectUrl(returnTo),
           data: {
             username,
             avatar_color: avatarColor,
           },
         },
       });
-      return { error };
+      return { data, error };
     } catch (err) {
-      return { error: normalizeError(err) as any };
+      return { data: null, error: normalizeError(err) as any };
     }
   };
 
-  const signInWithMagicLink = async (email: string) => {
+  const signInWithMagicLink = async (email: string, returnTo?: string | null) => {
     try {
-      const redirectUrl = `${window.location.origin}/lobby`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: buildAuthRedirectUrl(returnTo),
         },
       });
       return { error };
@@ -101,11 +106,10 @@ export function useAuth() {
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = async (email: string, returnTo?: string | null) => {
     try {
-      const redirectUrl = `${window.location.origin}/auth?reset=true`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+        redirectTo: buildPasswordResetRedirectUrl(returnTo),
       });
       return { error };
     } catch (err) {
@@ -122,35 +126,38 @@ export function useAuth() {
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (returnTo?: string | null) => {
     try {
-      const { error } = await signInOrLinkIdentity('google');
+      const { error } = await signInOrLinkIdentity('google', returnTo);
       return { error };
     } catch (err) {
       return { error: normalizeError(err) as any };
     }
   };
 
-  const signInWithDiscord = async () => {
+  const signInWithDiscord = async (returnTo?: string | null) => {
     try {
-      const { error } = await signInOrLinkIdentity('discord');
+      const { error } = await signInOrLinkIdentity('discord', returnTo);
       return { error };
     } catch (err) {
       return { error: normalizeError(err) as any };
     }
   };
 
-  const signInWithApple = async () => {
+  const signInWithApple = async (returnTo?: string | null) => {
     try {
-      const { error } = await signInOrLinkIdentity('apple');
+      const { error } = await signInOrLinkIdentity('apple', returnTo);
       return { error };
     } catch (err) {
       return { error: normalizeError(err) as any };
     }
   };
 
-  const signInOrLinkIdentity = async (provider: 'google' | 'discord' | 'apple') => {
-    const redirectTo = `${window.location.origin}/lobby`;
+  const signInOrLinkIdentity = async (
+    provider: 'google' | 'discord' | 'apple',
+    returnTo?: string | null,
+  ) => {
+    const redirectTo = buildAuthRedirectUrl(returnTo);
     const currentSession = session ?? (await supabase.auth.getSession()).data.session;
     const authWithLink = supabase.auth as typeof supabase.auth & {
       linkIdentity?: (credentials: { provider: string }) => Promise<{ error: { message?: string } | null }>;

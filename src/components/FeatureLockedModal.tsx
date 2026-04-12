@@ -8,7 +8,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { StateTag } from '@/components/board/StateTag';
 import { Lock, Sparkles, Users, Trophy } from 'lucide-react';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 interface FeatureLockedModalProps {
   open: boolean;
@@ -21,60 +23,65 @@ export function FeatureLockedModal({ open, onOpenChange, featureName }: FeatureL
 
   const handleCreateAccount = () => {
     onOpenChange(false);
-    navigate('/auth');
+    navigate(buildAuthRoute());
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-violet/20 flex items-center justify-center">
-            <Lock className="h-6 w-6 text-violet" />
+        <DialogHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="retro-inset flex h-12 w-12 items-center justify-center bg-[#ffffcc]">
+              <Lock className="h-5 w-5 text-black" />
+            </div>
+            <StateTag tone="warning">account required</StateTag>
           </div>
-          <DialogTitle className="text-center">Create Account to Unlock {featureName}</DialogTitle>
-          <DialogDescription className="text-center">
-            You're currently playing as a guest. Create a free account to access all features!
+          <DialogTitle className="font-display text-left text-xl uppercase tracking-[0.06em]">
+            Create an account to unlock {featureName}
+          </DialogTitle>
+          <DialogDescription className="text-left text-sm leading-6 text-black/70">
+            Guest mode is for immediate local play. Live rooms, events, and saved identity stay attached to a real account.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-3 py-4">
-          <div className="flex items-start gap-3 p-3 bg-card rounded-lg border border-border/50">
-            <div className="h-8 w-8 shrink-0 rounded-full bg-violet/20 flex items-center justify-center">
-              <Users className="h-4 w-4 text-violet" />
+
+        <div className="board-ledger py-1">
+          <div className="board-ledger-row md:grid-cols-[44px_minmax(0,1fr)]">
+            <div className="retro-inset flex h-10 w-10 items-center justify-center bg-white">
+              <Users className="h-4 w-4 text-black" />
             </div>
             <div>
-              <p className="font-medium text-sm">Multiplayer Matches</p>
-              <p className="text-xs text-muted-foreground">Challenge friends and join lobbies</p>
+              <p className="board-section-title text-base text-foreground">Live rooms</p>
+              <p className="board-copy mt-2 text-sm">Challenge friends, join hosted lobbies, and keep your seat across venues.</p>
             </div>
           </div>
-          
-          <div className="flex items-start gap-3 p-3 bg-card rounded-lg border border-border/50">
-            <div className="h-8 w-8 shrink-0 rounded-full bg-indigo/20 flex items-center justify-center">
-              <Trophy className="h-4 w-4 text-indigo" />
+
+          <div className="board-ledger-row md:grid-cols-[44px_minmax(0,1fr)]">
+            <div className="retro-inset flex h-10 w-10 items-center justify-center bg-white">
+              <Trophy className="h-4 w-4 text-black" />
             </div>
             <div>
-              <p className="font-medium text-sm">Tournaments</p>
-              <p className="text-xs text-muted-foreground">Compete in organized tournaments</p>
+              <p className="board-section-title text-base text-foreground">Events</p>
+              <p className="board-copy mt-2 text-sm">Compete in organized brackets that belong to actual worlds instead of disposable one-offs.</p>
             </div>
           </div>
-          
-          <div className="flex items-start gap-3 p-3 bg-card rounded-lg border border-border/50">
-            <div className="h-8 w-8 shrink-0 rounded-full bg-ochre/20 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-ochre" />
+
+          <div className="board-ledger-row md:grid-cols-[44px_minmax(0,1fr)]">
+            <div className="retro-inset flex h-10 w-10 items-center justify-center bg-white">
+              <Sparkles className="h-4 w-4 text-black" />
             </div>
             <div>
-              <p className="font-medium text-sm">Save Progress</p>
-              <p className="text-xs text-muted-foreground">Track stats, history, and achievements</p>
+              <p className="board-section-title text-base text-foreground">Saved identity</p>
+              <p className="board-copy mt-2 text-sm">Track history, stats, and returning roles without losing your place.</p>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-center gap-2">
+        <DialogFooter className="gap-2 sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Maybe Later
+            Stay guest
           </Button>
-          <Button onClick={handleCreateAccount} className="bg-gradient-to-r from-violet to-indigo hover:from-violet/90 hover:to-indigo/90">
-            Create Free Account
+          <Button onClick={handleCreateAccount} variant="hero">
+            Create account
           </Button>
         </DialogFooter>
       </DialogContent>

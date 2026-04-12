@@ -2,6 +2,7 @@ import { useState } from "react";
 import { LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -32,11 +33,11 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
         const errorMsg = data.error.toLowerCase();
         if (errorMsg.includes("not found") || errorMsg.includes("already started")) {
           throw new Error("Invalid code or lobby already started");
-        } else if (errorMsg.includes("full")) {
-          throw new Error("This lobby already has 2 players");
-        } else {
-          throw new Error(data.error);
         }
+        if (errorMsg.includes("full")) {
+          throw new Error("This lobby already has 2 players");
+        }
+        throw new Error(data.error);
       }
 
       if (!data?.lobby?.id) {
@@ -54,7 +55,7 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
           errorMessage.includes("fetch") ||
           errorMessage.includes("timeout"))
       ) {
-        const delay = 500 * Math.pow(2, retryCount);
+        const delay = 500 * 2 ** retryCount;
         toast.info(`Connection issue, retrying in ${delay}ms...`);
 
         setTimeout(() => {
@@ -71,32 +72,42 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
   };
 
   return (
-    <section className="board-panel board-panel-cut rounded-[1.6rem] bg-white/92 p-5 md:p-6">
-      <div className="flex items-center gap-3 border-b border-black/10 pb-4">
-        <LogIn className="h-4 w-4 text-foreground" />
+    <section className="retro-window">
+      <div className="retro-window__titlebar">
         <div>
-          <p className="board-rail-label text-[10px]">Direct access</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-[-0.05em] text-foreground">
-            Enter a room by code
-          </h2>
+          <p className="retro-window__eyebrow">Direct access</p>
+          <h2 className="retro-window__title mt-1">Enter room by code</h2>
         </div>
+        <StateTag tone={code.length >= 4 ? "success" : "warning"}>
+          {code.length >= 4 ? "ready" : "await code"}
+        </StateTag>
       </div>
 
-      <div className="mt-5 space-y-4">
-        <div>
-          <p className="mb-2 text-sm font-medium text-foreground">Room code</p>
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="ABC123"
-            maxLength={6}
-            className="h-12 border-black/10 bg-[#faf9f4] text-center font-mono text-base tracking-[0.3em] uppercase"
-          />
-        </div>
+      <div className="retro-window__body">
+        <div className="space-y-4">
+          <div>
+            <p className="mb-2 board-rail-label">Room code</p>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="ABC123"
+              maxLength={6}
+              className="h-12 text-center font-mono text-base tracking-[0.32em] uppercase"
+            />
+          </div>
 
-        <Button onClick={() => joinLobby()} disabled={joining || code.length < 4} className="clip-stage h-12 w-full">
-          {joining ? "Joining..." : "Join room"}
-        </Button>
+          <div className="retro-status-strip justify-between bg-[#ffffcc]">
+            <div className="flex items-center gap-2">
+              <LogIn className="h-4 w-4" />
+              <span>Identity</span>
+            </div>
+            <span>{userId ? "operator ready" : "sign in required"}</span>
+          </div>
+
+          <Button onClick={() => joinLobby()} disabled={joining || code.length < 4} variant="hero" className="h-12 w-full">
+            {joining ? "Joining..." : "Join room"}
+          </Button>
+        </div>
       </div>
     </section>
   );

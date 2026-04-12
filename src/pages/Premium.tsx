@@ -12,6 +12,7 @@ import { premiumSkins } from '@/lib/boardSkins';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 const features = [
   { icon: Palette, title: 'Exclusive Board Skins', description: 'Access premium themes like Galaxy, Royal, Retro & Aurora' },
@@ -33,7 +34,7 @@ export default function Premium() {
   const handleSubscribe = async () => {
     if (!user) {
       toast.error('Please sign in to subscribe');
-      navigate('/auth');
+      navigate(buildAuthRoute());
       return;
     }
 

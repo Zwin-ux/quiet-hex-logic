@@ -10,6 +10,7 @@ type SectionRailProps = {
   className?: string;
   titleClassName?: string;
   descriptionClassName?: string;
+  status?: ReactNode;
 };
 
 export function SectionRail({
@@ -21,28 +22,38 @@ export function SectionRail({
   className,
   titleClassName,
   descriptionClassName,
+  status,
 }: SectionRailProps) {
   return (
-    <div
-      className={cn(
-        "grid gap-6 border-b border-black/10 pb-7 lg:grid-cols-[minmax(0,1fr)_auto]",
-        className,
-      )}
-    >
-      <div className="min-w-0 max-w-4xl">
-        <p className="board-rail-label">{eyebrow}</p>
-        <div className={cn("board-page-title mt-4 max-w-[11ch] text-foreground", titleClassName)}>
-          {title}
+    <section className={cn("retro-window", className)}>
+      <div className="retro-window__titlebar">
+        <div className="min-w-0">
+          <p className="retro-window__eyebrow">{eyebrow}</p>
+          <div className={cn("retro-window__title mt-1", titleClassName)}>{title}</div>
         </div>
-        {description ? (
-          <div className={cn("board-copy mt-5 max-w-2xl md:board-copy-lg", descriptionClassName)}>
-            {description}
-          </div>
-        ) : null}
-        {meta ? <div className="board-meta-stack mt-6 border-t border-black/10 pt-4">{meta}</div> : null}
+        {status ? <div className="shrink-0">{status}</div> : null}
       </div>
 
-      {actions ? <div className="flex flex-wrap items-start gap-3 lg:justify-end">{actions}</div> : null}
-    </div>
+      <div className="retro-window__body retro-window__body--soft">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+          <div className="min-w-0">
+            {description ? (
+              <div className={cn("board-copy max-w-4xl", descriptionClassName)}>{description}</div>
+            ) : null}
+            {meta ? (
+              <div className="board-meta-stack mt-5 border-t border-black pt-4">
+                {meta}
+              </div>
+            ) : null}
+          </div>
+
+          {actions ? (
+            <div className="retro-command-rail border-t-0 pt-0 lg:min-w-[220px] lg:justify-end">
+              {actions}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }

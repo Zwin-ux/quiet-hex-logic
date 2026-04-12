@@ -1,8 +1,9 @@
-import { PlayerPanel } from '@/components/PlayerPanel';
-import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
-import { VenuePanel } from '@/components/board/VenuePanel';
-import { Eye } from 'lucide-react';
-import type { MatchData, Player } from '@/hooks/useMatchState';
+import { Eye } from "lucide-react";
+import { AIThinkingIndicator } from "@/components/AIThinkingIndicator";
+import { StateTag } from "@/components/board/StateTag";
+import { VenuePanel } from "@/components/board/VenuePanel";
+import { PlayerPanel } from "@/components/PlayerPanel";
+import type { MatchData, Player } from "@/hooks/useMatchState";
 
 interface MatchSidebarProps {
   match: MatchData;
@@ -27,19 +28,27 @@ export function MatchSidebar({
   discordAvatarUrl,
   spectators,
 }: MatchSidebarProps) {
+  const seatAState = currentColor === 1 && match.status === "active" ? "success" : "normal";
+  const seatBState = currentColor === 2 && match.status === "active" ? "success" : "normal";
+
   return (
     <>
       <div className="order-1 space-y-4 lg:block">
         {player1 ? (
-          <VenuePanel eyebrow="Seat A" title="Player">
+          <VenuePanel
+            eyebrow="Seat A"
+            title="Player"
+            state={seatAState}
+            titleBarEnd={<StateTag tone={seatAState}>{currentColor === 1 && match.status === "active" ? "to move" : "waiting"}</StateTag>}
+          >
             <PlayerPanel
               username={player1.username}
               color={1}
-              isCurrentTurn={currentColor === 1 && match.status === 'active'}
-              timeRemaining={currentColor === 1 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+              isCurrentTurn={currentColor === 1 && match.status === "active"}
+              timeRemaining={currentColor === 1 && match.status === "active" ? timeRemaining ?? undefined : undefined}
               isAI={player1.is_bot}
               avatarColor={player1.avatar_color}
-              discordAvatarUrl={player1.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+              discordAvatarUrl={player1.profile_id === "discord-player" ? discordAvatarUrl : undefined}
               elo={player1.elo}
               compact={false}
             />
@@ -48,19 +57,24 @@ export function MatchSidebar({
 
         <div className="lg:hidden">
           {player2 ? (
-            <VenuePanel eyebrow="Seat B" title="Opponent">
+            <VenuePanel
+              eyebrow="Seat B"
+              title="Opponent"
+              state={seatBState}
+              titleBarEnd={<StateTag tone={seatBState}>{currentColor === 2 && match.status === "active" ? "to move" : "holding"}</StateTag>}
+            >
               <PlayerPanel
                 username={player2.username}
                 color={2}
-                isCurrentTurn={currentColor === 2 && match.status === 'active'}
-                timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+                isCurrentTurn={currentColor === 2 && match.status === "active"}
+                timeRemaining={currentColor === 2 && match.status === "active" ? timeRemaining ?? undefined : undefined}
                 isAI={player2.is_bot}
                 avatarColor={player2.avatar_color}
-                discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+                discordAvatarUrl={player2.profile_id === "discord-player" ? discordAvatarUrl : undefined}
                 elo={player2.elo}
                 compact={false}
               />
-              {isAIMatch && currentColor === 2 && match.status === 'active' ? (
+              {isAIMatch && currentColor === 2 && match.status === "active" ? (
                 <div className="mt-4">
                   <AIThinkingIndicator isThinking={aiThinking} difficulty={match.ai_difficulty} />
                 </div>
@@ -70,21 +84,26 @@ export function MatchSidebar({
         </div>
       </div>
 
-      <div className="hidden lg:block order-3 space-y-4">
+      <div className="order-3 hidden space-y-4 lg:block">
         {player2 ? (
-          <VenuePanel eyebrow="Seat B" title="Opponent">
+          <VenuePanel
+            eyebrow="Seat B"
+            title="Opponent"
+            state={seatBState}
+            titleBarEnd={<StateTag tone={seatBState}>{currentColor === 2 && match.status === "active" ? "to move" : "holding"}</StateTag>}
+          >
             <PlayerPanel
               username={player2.username}
               color={2}
-              isCurrentTurn={currentColor === 2 && match.status === 'active'}
-              timeRemaining={currentColor === 2 && match.status === 'active' ? timeRemaining ?? undefined : undefined}
+              isCurrentTurn={currentColor === 2 && match.status === "active"}
+              timeRemaining={currentColor === 2 && match.status === "active" ? timeRemaining ?? undefined : undefined}
               isAI={player2.is_bot}
               avatarColor={player2.avatar_color}
-              discordAvatarUrl={player2.profile_id === 'discord-player' ? discordAvatarUrl : undefined}
+              discordAvatarUrl={player2.profile_id === "discord-player" ? discordAvatarUrl : undefined}
               elo={player2.elo}
               compact={false}
             />
-            {isAIMatch && currentColor === 2 && match.status === 'active' ? (
+            {isAIMatch && currentColor === 2 && match.status === "active" ? (
               <div className="mt-4">
                 <AIThinkingIndicator isThinking={aiThinking} difficulty={match.ai_difficulty} />
               </div>
@@ -93,20 +112,27 @@ export function MatchSidebar({
         ) : null}
 
         {!isAIMatch && spectators.length > 0 ? (
-          <VenuePanel eyebrow="Presence" title={`${spectators.length} watching`}>
-            <div className="flex items-center gap-2 border-t border-black/10 pt-4">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Spectators attached to this room</span>
+          <VenuePanel
+            eyebrow="Presence"
+            title={`${spectators.length} watching`}
+            titleBarEnd={<StateTag>{spectators.length} attached</StateTag>}
+          >
+            <div className="retro-status-strip justify-between bg-white">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                <span>Watch lane</span>
+              </div>
+              <span>live</span>
             </div>
-            <div className="mt-4 space-y-2 border-t border-black/10 pt-4">
+            <div className="mt-4 space-y-2 border-t border-black pt-4">
               {spectators.slice(0, 5).map((spectator) => (
-                <div key={spectator.profile_id} className="board-rail-label flex items-center justify-between text-[10px] text-black/45">
-                  <span>{spectator.profiles?.username || 'Anonymous'}</span>
+                <div key={spectator.profile_id} className="retro-status-strip justify-between bg-[#e8e8e8] px-3 py-2">
+                  <span>{spectator.profiles?.username || "Anonymous"}</span>
                   <span>watching</span>
                 </div>
               ))}
               {spectators.length > 5 ? (
-                <div className="text-xs text-muted-foreground">+{spectators.length - 5} more</div>
+                <div className="board-meta-chip">+{spectators.length - 5} more watching</div>
               ) : null}
             </div>
           </VenuePanel>

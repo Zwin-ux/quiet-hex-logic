@@ -1,7 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, RadioTower } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { StateTag } from "@/components/board/StateTag";
 import { getGame, listGames } from "@/lib/engine/registry";
 import { useManageableWorlds } from "@/hooks/useManageableWorlds";
 import { Button } from "@/components/ui/button";
@@ -30,8 +32,7 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
 
   const gameDef = useMemo(() => getGame(gameKey), [gameKey]);
   const resolvedWorldId =
-    worldId ||
-    (selectedWorldValue === STANDALONE_WORLD_VALUE ? undefined : selectedWorldValue);
+    worldId || (selectedWorldValue === STANDALONE_WORLD_VALUE ? undefined : selectedWorldValue);
 
   useEffect(() => {
     if (worldId) {
@@ -51,7 +52,7 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
     if (!selectedWorldValue || !stillValid) {
       setSelectedWorldValue(manageableWorlds[0].id);
     }
-  }, [worldId, manageableWorlds, selectedWorldValue]);
+  }, [manageableWorlds, selectedWorldValue, worldId]);
 
   const handleGameChange = (key: string) => {
     setGameKey(key);
@@ -77,7 +78,6 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
       if (data.error) throw new Error(data.error);
 
       setCreatedCode(data.code);
-
       await navigator.clipboard.writeText(data.code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -89,7 +89,6 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
 
       navigate(`/lobby/${data.lobby.id}`);
     } catch (err: any) {
-      console.error("[CreateLobby] Error creating lobby:", err);
       toast.error("Failed to create room", { description: err.message });
       setCreating(false);
     }
@@ -106,102 +105,111 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
   const sizeOptions =
     gameDef.boardSizeOptions ?? [{ value: gameDef.defaultBoardSize, label: `${gameDef.defaultBoardSize}` }];
   const displayedSize = gameDef.configurableBoardSize ? boardSize : gameDef.defaultBoardSize;
+  const headerState = worldId ? "world-hosted" : resolvedWorldId ? "world-linked" : "standalone";
 
   return (
-    <section className="board-panel board-panel-cut rounded-[1.6rem] bg-white/92 p-5 md:p-6">
-      <div className="flex items-center gap-3 border-b border-black/10 pb-4">
-        <RadioTower className="h-4 w-4 text-foreground" />
+    <section className="retro-window">
+      <div className="retro-window__titlebar">
         <div>
-          <p className="board-rail-label text-[10px]">{worldId ? "World instance" : "Direct room"}</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-[-0.05em] text-foreground">
-            {worldId ? "Stage a live room" : "Create a live room"}
-          </h2>
+          <p className="retro-window__eyebrow">{worldId ? "World instance" : "Command window"}</p>
+          <h2 className="retro-window__title mt-1">{worldId ? "Stage live room" : "Create live room"}</h2>
         </div>
+        <StateTag tone="success">{headerState}</StateTag>
       </div>
 
-      <div className="mt-5 space-y-5">
-        {!worldId && manageableWorlds.length > 0 ? (
-          <Field label="World">
-            <Select value={selectedWorldValue} onValueChange={setSelectedWorldValue}>
-              <SelectTrigger className="h-11 border-black/10 bg-[#faf9f4]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {manageableWorlds.map((world) => (
-                  <SelectItem key={world.id} value={world.id}>
-                    {world.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value={STANDALONE_WORLD_VALUE}>Standalone room</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        ) : null}
-
-        <Field label="Game">
-          <Select value={gameKey} onValueChange={handleGameChange}>
-            <SelectTrigger className="h-11 border-black/10 bg-[#faf9f4]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {games.map((g) => (
-                <SelectItem key={g.key} value={g.key}>
-                  {g.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-          <Field label="Board size">
-            <Select
-              value={displayedSize.toString()}
-              onValueChange={(v) => setBoardSize(parseInt(v, 10))}
-              disabled={!gameDef.configurableBoardSize}
-            >
-              <SelectTrigger className="h-11 border-black/10 bg-[#faf9f4]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sizeOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value.toString()}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <div className="flex items-end justify-between gap-4 border border-black/10 bg-[#faf9f4] px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">Pie rule</p>
-              <p className="text-xs text-muted-foreground">Allow color swap</p>
-            </div>
-            <Switch
-              checked={gameDef.supportsPieRule ? pieRule : false}
-              onCheckedChange={setPieRule}
-              disabled={!gameDef.supportsPieRule}
-            />
-          </div>
+      <div className="retro-window__body retro-window__body--soft">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <StateTag>{gameDef.displayName}</StateTag>
+          <StateTag>{displayedSize} desk</StateTag>
+          <StateTag tone={gameDef.supportsPieRule && pieRule ? "warning" : "normal"}>
+            {gameDef.supportsPieRule && pieRule ? "swap on" : "swap off"}
+          </StateTag>
         </div>
 
-        {createdCode ? (
-          <div className="border-t border-black/10 pt-5">
-            <p className="board-rail-label">Room code</p>
-            <div className="mt-3 flex items-center justify-between border border-black bg-black px-4 py-4 text-white">
-              <span className="font-mono text-2xl tracking-[0.28em]">{createdCode}</span>
-              <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15" onClick={copyCode}>
+        <div className="grid gap-4">
+          {!worldId && manageableWorlds.length > 0 ? (
+            <Field label="Venue target">
+              <Select value={selectedWorldValue} onValueChange={setSelectedWorldValue}>
+                <SelectTrigger className="h-11 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {manageableWorlds.map((world) => (
+                    <SelectItem key={world.id} value={world.id}>
+                      {world.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={STANDALONE_WORLD_VALUE}>Standalone room</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <Field label="Game">
+              <Select value={gameKey} onValueChange={handleGameChange}>
+                <SelectTrigger className="h-11 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {games.map((g) => (
+                    <SelectItem key={g.key} value={g.key}>
+                      {g.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field label="Board size">
+              <Select
+                value={displayedSize.toString()}
+                onValueChange={(value) => setBoardSize(parseInt(value, 10))}
+                disabled={!gameDef.configurableBoardSize}
+              >
+                <SelectTrigger className="h-11 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="retro-status-strip justify-between gap-4 bg-[#ffffcc]">
+            <div className="flex items-center gap-2">
+              <RadioTower className="h-4 w-4" />
+              <span>Swap rule</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span>{gameDef.supportsPieRule ? "allow color swap" : "not used here"}</span>
+              <Switch
+                checked={gameDef.supportsPieRule ? pieRule : false}
+                onCheckedChange={setPieRule}
+                disabled={!gameDef.supportsPieRule}
+              />
+            </div>
+          </div>
+
+          {createdCode ? (
+            <div className="retro-critical-strip flex items-center justify-between gap-4">
+              <span className="font-mono text-base tracking-[0.24em]">{createdCode}</span>
+              <Button variant="outline" onClick={copyCode}>
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied" : "Copy"}
               </Button>
             </div>
-          </div>
-        ) : (
-          <Button onClick={createLobby} disabled={creating} className="clip-stage h-12 w-full">
-            {creating ? "Creating..." : "Create room"}
-          </Button>
-        )}
+          ) : (
+            <Button onClick={createLobby} disabled={creating} variant="hero" className="h-12 w-full">
+              {creating ? "Creating..." : "Create room"}
+            </Button>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -212,11 +220,11 @@ function Field({
   children,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-medium text-foreground">{label}</p>
+      <p className="mb-2 board-rail-label">{label}</p>
       {children}
     </div>
   );

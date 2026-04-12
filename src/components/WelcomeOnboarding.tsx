@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BoardLogo } from '@/components/BoardLogo';
 import { BoardWordmark } from '@/components/board/BoardWordmark';
+import { CounterBlock } from '@/components/board/CounterBlock';
 import { SiteFrame } from '@/components/board/SiteFrame';
 import { SectionRail } from '@/components/board/SectionRail';
+import { StateTag } from '@/components/board/StateTag';
 import { VenuePanel } from '@/components/board/VenuePanel';
 import { SkeletalBoardScene } from '@/components/board/SkeletalBoardScene';
 import { Loader2, ArrowUpRight } from 'lucide-react';
 import { listGames } from '@/lib/engine/registry';
 import { getGameMeta } from '@/lib/gameMetadata';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 interface WelcomeOnboardingProps {
   onComplete: () => void;
@@ -48,7 +51,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
 
   const handleSignIn = () => {
     onComplete();
-    navigate('/auth');
+    navigate(buildAuthRoute());
   };
 
   if (step === 'welcome') {
@@ -66,7 +69,10 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
               Worlds, rooms, local tables, and recurring competition in one live board system.
             </p>
           </div>
-          <Loader2 className="h-5 w-5 animate-spin text-black/45" />
+          <div className="retro-status-strip">
+            <Loader2 className="h-4 w-4 animate-spin text-black" />
+            <span>loading practice desk</span>
+          </div>
         </div>
       </SiteFrame>
     );
@@ -79,6 +85,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
           eyebrow="Instant practice"
           title="Choose a board and start locally."
           description="BOARD lets you step straight into play before you commit to an account. Worlds, rooms, and recurring events come later."
+          status={<StateTag tone="success">local seat ready</StateTag>}
           actions={
             <Button variant="outline" onClick={handleSignIn}>
               Enter with account
@@ -92,9 +99,9 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
             eyebrow="Practice desk"
             title="Pick a ruleset"
             description="This is local practice only. Choose a system, seat yourself instantly, and let the board teach itself through play."
-            className="bg-white/94"
+            titleBarEnd={<StateTag tone="normal">one click start</StateTag>}
           >
-            <div className="divide-y divide-black/10 border-t border-black/10">
+            <div className="board-ledger">
               {games.map((game, index) => {
                 const meta = getGameMeta(game.key);
                 const Icon = meta.icon;
@@ -105,14 +112,14 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
                     key={game.key}
                     onClick={() => handleGamePick(game.key)}
                     disabled={!!selectedGame}
-                    className="grid w-full gap-4 py-4 text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[48px_minmax(0,1fr)_180px]"
+                    className="board-ledger-row w-full text-left transition-none hover:bg-black/[0.025] md:grid-cols-[48px_minmax(0,1fr)_180px]"
                   >
                     <div className="board-rail-label pt-1 text-[10px] text-black/45">
                       {String(index + 1).padStart(2, '0')}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-md border border-black/10 bg-[#f1efe8]">
+                        <div className="retro-inset flex h-11 w-11 items-center justify-center bg-white">
                           {isLoading ? (
                             <Loader2 className="h-5 w-5 animate-spin text-black/45" />
                           ) : (
@@ -127,7 +134,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between border-l border-black/10 pl-4">
+                    <div className="flex items-center justify-between border-l border-black pl-4">
                       <span className="board-rail-label text-[10px] text-black/45">
                         Local seat
                       </span>
@@ -143,12 +150,20 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
             eyebrow="Why this exists"
             title="Start fast, commit later."
             description="The first touch should feel physical and immediate. Accounts matter when you want worlds, recurring identity, room history, and host-run competition."
+            titleBarEnd={<StateTag tone="warning">identity later</StateTag>}
           >
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
-              <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
-                No account is needed to test the systems. The product proves itself through board feel first, then asks you to step into a venue.
+              <div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <CounterBlock label="account" value="optional" />
+                  <CounterBlock label="speed" value="instant" />
+                  <CounterBlock label="venue" value="later" />
+                </div>
+                <div className="retro-warning-strip mt-5 text-sm">
+                  No account is needed to test the systems. The product proves itself through board feel first, then asks you to step into a venue.
+                </div>
               </div>
-              <div className="border-t border-black/10 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+              <div className="retro-inset bg-white p-3">
                 <SkeletalBoardScene variant="compact" className="min-h-[220px]" />
               </div>
             </div>

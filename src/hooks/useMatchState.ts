@@ -11,6 +11,7 @@ import { loadLocalMatch } from '@/lib/localMatches/storage';
 import { loadLocalAIMatch } from '@/lib/localAiMatch';
 import { getGame } from '@/lib/engine/registry';
 import type { GameEngine } from '@/lib/engine/types';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 export type GameKey = string;
 
@@ -573,7 +574,7 @@ export function useMatchState(matchId: string | undefined) {
   useEffect(() => {
     if (!matchId || isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) return;
     if (!isDiscordEnvironment && !loading && !user) {
-      navigate('/auth');
+      navigate(buildAuthRoute());
       return;
     }
     if (!isDiscordEnvironment && !user) return;

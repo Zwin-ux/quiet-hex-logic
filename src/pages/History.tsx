@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Trophy, TrendingDown, Play, Sparkles } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 type MatchHistory = {
   id: string;
@@ -38,7 +39,7 @@ export default function History() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate(buildAuthRoute());
     }
   }, [user, authLoading, navigate]);
 

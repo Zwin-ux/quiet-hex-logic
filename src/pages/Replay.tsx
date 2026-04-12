@@ -37,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { buildAuthRoute } from '@/lib/authRedirect';
 
 type MoveRecord = {
   ply: number;
@@ -97,7 +98,7 @@ export default function Replay() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate(buildAuthRoute());
     }
   }, [user, authLoading, navigate]);
 

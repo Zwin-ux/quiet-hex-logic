@@ -11,7 +11,9 @@ import {
   Users,
 } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
+import { CounterBlock } from "@/components/board/CounterBlock";
 import { SectionRail } from "@/components/board/SectionRail";
+import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { MetricLine } from "@/components/board/MetricLine";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { canManageWorld, joinWorld, loadWorldOverview, type WorldOverview } from "@/lib/worlds";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { buildAuthRoute } from "@/lib/authRedirect";
 import { toast } from "sonner";
 
 export default function WorldView() {
@@ -75,7 +78,7 @@ export default function WorldView() {
     if (!worldId) return;
 
     if (!user || isGuest) {
-      navigate("/auth");
+      navigate(buildAuthRoute());
       return;
     }
 
@@ -96,13 +99,15 @@ export default function WorldView() {
 
   return (
     <SiteFrame>
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => navigate("/worlds")}
-        className="mb-5 flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+        className="mb-5"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to worlds
-      </button>
+      </Button>
 
       <SectionRail
         eyebrow="World"
@@ -118,6 +123,11 @@ export default function WorldView() {
             <span className="board-meta-chip">host / {world.ownerName}</span>
             {world.userRole ? <span className="board-meta-chip">role / {world.userRole}</span> : null}
           </>
+        }
+        status={
+          <StateTag tone={world.userRole ? "success" : world.visibility === "public" ? "normal" : "warning"}>
+            {world.userRole ? `inside as ${world.userRole}` : world.visibility}
+          </StateTag>
         }
         actions={
           canManage ? (
@@ -135,19 +145,23 @@ export default function WorldView() {
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-6">
-          <VenuePanel eyebrow="World telemetry" title="Venue status">
-            <MetricLine icon={Users} label="Members" value={world.memberCount} />
-            <MetricLine icon={CalendarRange} label="Events" value={world.eventCount} />
-            <MetricLine icon={RadioTower} label="Instances" value={world.instanceCount} />
+          <VenuePanel eyebrow="World telemetry" title="Venue status" titleBarEnd={<StateTag tone="normal">live readout</StateTag>}>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <CounterBlock label="members" value={world.memberCount} />
+              <CounterBlock label="events" value={world.eventCount} />
+              <CounterBlock label="instances" value={world.instanceCount} />
+            </div>
           </VenuePanel>
 
           <VenuePanel
             eyebrow="Events"
             title="Organizer layer"
             description="Competitions staged under this world inherit its host identity instead of floating as disconnected pages."
+            state={events.length === 0 ? "warning" : "normal"}
+            titleBarEnd={<StateTag tone={events.length === 0 ? "warning" : "success"}>{events.length === 0 ? "empty" : `${events.length} listed`}</StateTag>}
           >
             {events.length === 0 ? (
-              <div className="board-ledger pt-4 text-sm leading-7 text-muted-foreground">
+              <div className="retro-warning-strip mt-4 text-sm">
                 No events yet. The next serious step is attaching the first recurring competition to this venue.
               </div>
             ) : (
@@ -194,6 +208,7 @@ export default function WorldView() {
               eyebrow="Organizer controls"
               title="World admins stage the live system."
               description="Room and event creation stay tied to the world owner or admins so recurring venues do not dissolve into global clutter."
+              titleBarEnd={<StateTag tone="warning">restricted</StateTag>}
             >
               <MetricLine icon={ShieldCheck} label="Host control" value="world scoped" />
             </VenuePanel>
@@ -203,9 +218,15 @@ export default function WorldView() {
             eyebrow="Instances"
             title="Live rooms"
             description="Rooms and linked matches are the objects that make this world feel occupied."
+            state={lobbies.length === 0 && matches.length === 0 ? "warning" : "normal"}
+            titleBarEnd={
+              <StateTag tone={lobbies.length === 0 && matches.length === 0 ? "warning" : "success"}>
+                {lobbies.length + matches.length} active
+              </StateTag>
+            }
           >
             {lobbies.length === 0 && matches.length === 0 ? (
-              <div className="board-ledger pt-4 text-sm leading-7 text-muted-foreground">
+              <div className="retro-warning-strip mt-4 text-sm">
                 No live instances yet. Create a room here or wait for a linked match to go live.
               </div>
             ) : null}

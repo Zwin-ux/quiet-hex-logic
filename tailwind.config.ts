@@ -14,9 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Instrument Sans', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
-        mono: ['IBM Plex Mono', 'monospace'],
+        body: ['"MS Sans Serif"', '"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
+        display: ['"Arial Black"', 'Impact', 'Haettenschweiler', 'sans-serif'],
+        mono: ['"Courier New"', 'Courier', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

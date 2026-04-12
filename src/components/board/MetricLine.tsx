@@ -11,11 +11,13 @@ type MetricLineProps = {
 export function MetricLine({ label, value, icon: Icon, className }: MetricLineProps) {
   return (
     <div className={cn("board-metric-line", className)}>
-      <div className="flex items-center gap-2 text-muted-foreground">
-        {Icon ? <Icon className="h-4 w-4" /> : null}
-        <span className="board-rail-label tracking-[0.2em]">{label}</span>
+      <div className="flex items-center gap-2 text-black/70">
+        {Icon ? <Icon className="h-4 w-4 text-black" /> : null}
+        <span className="board-rail-label font-mono uppercase tracking-[0.16em]">{label}</span>
       </div>
-      <span className="text-base font-bold tracking-[-0.03em] text-foreground md:text-lg">{value}</span>
+      <span className="font-mono text-[13px] font-bold uppercase tracking-[0.1em] text-foreground md:text-[15px]">
+        {value}
+      </span>
     </div>
   );
 }

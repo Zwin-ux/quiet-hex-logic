@@ -8,6 +8,10 @@ type VenuePanelProps = {
   children?: ReactNode;
   className?: string;
   tone?: "light" | "dark";
+  state?: "normal" | "warning" | "critical";
+  titleBarEnd?: ReactNode;
+  bodyClassName?: string;
+  footer?: ReactNode;
 };
 
 export function VenuePanel({
@@ -17,31 +21,42 @@ export function VenuePanel({
   children,
   className,
   tone = "light",
+  state = "normal",
+  titleBarEnd,
+  bodyClassName,
+  footer,
 }: VenuePanelProps) {
-  const isDark = tone === "dark";
+  const titleBarTone =
+    state === "critical"
+      ? "retro-window__titlebar--critical"
+      : state === "warning"
+        ? "retro-window__titlebar--warning"
+        : "";
 
   return (
-    <section
-      className={cn(
-        "board-panel board-panel-cut rounded-[1.15rem] p-5 md:p-7",
-        isDark && "border-white/10 bg-[#101114] text-white before:bg-white/10",
-        className,
-      )}
-    >
-      {eyebrow ? (
-        <p className={cn("board-rail-label", isDark && "text-white/45")}>{eyebrow}</p>
-      ) : null}
-      {title ? (
-        <div className={cn("board-section-title mt-4", isDark && "text-white")}>
-          {title}
+    <section className={cn("retro-window", className)}>
+      {(eyebrow || title || titleBarEnd) ? (
+        <div className={cn("retro-window__titlebar", titleBarTone)}>
+          <div className="min-w-0">
+            {eyebrow ? <p className="retro-window__eyebrow">{eyebrow}</p> : null}
+            {title ? <div className="retro-window__title mt-1">{title}</div> : null}
+          </div>
+          {titleBarEnd ? <div className="shrink-0">{titleBarEnd}</div> : null}
         </div>
       ) : null}
-      {description ? (
-        <div className={cn("board-copy mt-4", isDark && "text-white/70")}>
-          {description}
-        </div>
-      ) : null}
-      {children ? <div className={cn((title || description || eyebrow) && "mt-6")}>{children}</div> : null}
+
+      <div
+        className={cn(
+          "retro-window__body",
+          tone === "dark" ? "retro-window__body--shell" : "retro-window__body--soft",
+          bodyClassName,
+        )}
+      >
+        {description ? <div className="board-copy">{description}</div> : null}
+        {children ? <div className={cn(description && "mt-5")}>{children}</div> : null}
+      </div>
+
+      {footer ? <div className="retro-window__footer">{footer}</div> : null}
     </section>
   );
 }

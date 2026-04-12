@@ -4,8 +4,10 @@ import { Calendar, Clock, Plus, Trophy, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { CounterBlock } from "@/components/board/CounterBlock";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { SectionRail } from "@/components/board/SectionRail";
+import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { MetricLine } from "@/components/board/MetricLine";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { listWorlds } from "@/lib/worlds";
+import { buildAuthRoute } from "@/lib/authRedirect";
 
 interface Tournament {
   id: string;
@@ -40,6 +43,7 @@ export default function Tournaments() {
   const [worldNames, setWorldNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const openTournaments = useMemo(
     () => tournaments.filter((tournament) => ["registration"].includes(tournament.status)),
@@ -80,8 +84,10 @@ export default function Tournaments() {
         })) || [];
 
       setTournaments(tournamentsWithCount);
+      setLoadError(null);
     } catch (error) {
       console.error("Failed to load tournaments:", error);
+      setLoadError("Directory offline");
       toast.error("Failed to load events");
     } finally {
       setLoading(false);
@@ -160,13 +166,21 @@ export default function Tournaments() {
             ) : null}
           </>
         }
+        status={
+          <StateTag tone={loadError ? "critical" : activeTournaments.length ? "success" : "warning"}>
+            {loadError ? loadError : activeTournaments.length ? "active brackets" : "quiet schedule"}
+          </StateTag>
+        }
       />
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <VenuePanel eyebrow="Network telemetry" title="Event system status">
-          <MetricLine label="World-hosted" value={worldHostedCount} />
-          <MetricLine label="Standalone" value={standaloneCount} />
-          <MetricLine label="Open now" value={openTournaments.length} />
+        <VenuePanel eyebrow="Network telemetry" title="Event system status" titleBarEnd={<StateTag tone={loadError ? "critical" : "normal"}>{loadError ? "warning" : "readout"}</StateTag>}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <CounterBlock label="world-hosted" value={worldHostedCount} />
+            <CounterBlock label="standalone" value={standaloneCount} />
+            <CounterBlock label="open now" value={openTournaments.length} />
+          </div>
+          {loadError ? <div className="retro-critical-strip mt-5 text-sm">{loadError}. Refresh the page or try again in a moment.</div> : null}
         </VenuePanel>
 
         {isGuest ? (
@@ -174,14 +188,17 @@ export default function Tournaments() {
             eyebrow="Identity gate"
             title="Events are account-bound."
             description={`Playing as ${guestUsername}. Create an account to join host-run events and recurring competitions.`}
+            state="warning"
+            titleBarEnd={<StateTag tone="warning">guest blocked</StateTag>}
           >
-            <Button onClick={() => navigate("/auth")}>Create account</Button>
+            <Button onClick={() => navigate(buildAuthRoute())}>Create account</Button>
           </VenuePanel>
         ) : (
           <VenuePanel
             eyebrow="Operator note"
             title="Worlds should own recurring event identity."
             description="The event directory remains useful, but the venue context is what makes competition feel durable instead of disposable."
+            titleBarEnd={<StateTag tone="normal">world first</StateTag>}
           >
             <MetricLine label="BOARD stance" value="world first" />
           </VenuePanel>
@@ -240,9 +257,19 @@ function TournamentSection({
   onView: (tournamentId: string) => void;
 }) {
   return (
-    <VenuePanel eyebrow={title} title={tournaments.length ? title : `No ${title.toLowerCase()}`} description={description}>
+    <VenuePanel
+      eyebrow={title}
+      title={tournaments.length ? title : `No ${title.toLowerCase()}`}
+      description={description}
+      state={tournaments.length ? "normal" : "warning"}
+      titleBarEnd={
+        <StateTag tone={tournaments.length ? "normal" : "warning"}>
+          {tournaments.length ? `${tournaments.length} listed` : "empty"}
+        </StateTag>
+      }
+    >
       {tournaments.length === 0 ? (
-        <div className="board-ledger pt-4 text-sm leading-7 text-muted-foreground">
+        <div className="retro-warning-strip mt-4 text-sm">
           Nothing here yet.
         </div>
       ) : (
