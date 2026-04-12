@@ -505,11 +505,11 @@ export default function Tutorial() {
                     Play as Guest (vs Easy AI)
                   </Button>
                   <Button
-                    onClick={() => navigate(buildAuthRoute())}
+                    onClick={() => navigate(buildAuthRoute("/play"))}
                     variant="outline"
                     className="w-full"
                   >
-                    Sign In to Track Progress
+                    Sign In for Hosted Play
                   </Button>
                 </div>
               </div>

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { guestAuthMessage } from '@/lib/authErrors';
+import { buildAuthRoute } from '@/lib/authRedirect';
 import { GAME_METADATA, getGameMeta } from '@/lib/gameMetadata';
 import { toast } from 'sonner';
 
@@ -43,7 +43,7 @@ const GAME_KEYS = Object.keys(GAME_METADATA);
 
 export default function Arena() {
   const navigate = useNavigate();
-  const { user, signInAnonymously } = useAuth();
+  const { user } = useAuth();
 
   const [gameKey, setGameKey] = useState('hex');
   const [loading, setLoading] = useState(false);
@@ -57,12 +57,9 @@ export default function Arena() {
 
   const ensureSession = async () => {
     if (user) return true;
-    const { error } = await signInAnonymously();
-    if (error) {
-      toast.error('Sign in required', { description: guestAuthMessage(error, 'use the arena') });
-      return false;
-    }
-    return true;
+    toast.error('Sign in required', { description: 'Use an account to use the arena.' });
+    navigate(buildAuthRoute('/arena'));
+    return false;
   };
 
   const load = async () => {

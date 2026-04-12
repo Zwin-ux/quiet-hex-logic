@@ -45,15 +45,15 @@ function createMemoryStorage(): Storage {
   } as Storage;
 }
 
-function safeAuthStorage(): Storage {
+function safeAuthStorage(): { storage: Storage; persistent: boolean } {
   try {
     const testKey = '__hexology_storage_test__';
     localStorage.setItem(testKey, '1');
     localStorage.removeItem(testKey);
-    return localStorage;
+    return { storage: localStorage, persistent: true };
   } catch {
     // Some environments (privacy mode, embedded contexts) block storage access.
-    return createMemoryStorage();
+    return { storage: createMemoryStorage(), persistent: false };
   }
 }
 
@@ -81,9 +81,17 @@ function getSupabaseConfigErrorInternal(): string | null {
 
 const resolvedSupabaseUrl = safeSupabaseUrl();
 const supabaseConfigError = getSupabaseConfigErrorInternal();
+const authStorageConfig = safeAuthStorage();
+const authStorageIssue = authStorageConfig.persistent
+  ? null
+  : 'Persistent browser storage is unavailable. Use a normal browser window to sign in or recover your account.';
 
 export function getSupabaseConfigError(): string | null {
   return supabaseConfigError;
+}
+
+export function getAuthStorageIssue(): string | null {
+  return authStorageIssue;
 }
 
 export function getSupabaseConfigSnapshot() {
@@ -92,6 +100,7 @@ export function getSupabaseConfigSnapshot() {
     resolvedUrl: resolvedSupabaseUrl,
     projectId: SUPABASE_PROJECT_ID,
     publishableKeyPresent: Boolean(SUPABASE_PUBLISHABLE_KEY),
+    authStoragePersistent: authStorageConfig.persistent,
   };
 }
 
@@ -100,7 +109,7 @@ export const supabase = createClient<Database>(
   SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY,
   {
   auth: {
-    storage: safeAuthStorage(),
+    storage: authStorageConfig.storage,
     persistSession: true,
     autoRefreshToken: true,
   }

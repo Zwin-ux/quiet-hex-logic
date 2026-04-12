@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { guestAuthMessage } from '@/lib/authErrors';
+import { buildAuthRoute } from '@/lib/authRedirect';
 import type { BotRow, FeedRow, GameKey, RatingRow } from './arenaTypes';
 import { fetchActiveSeason, fetchBots, fetchFeed, fetchLadder } from './arenaApi';
 import { VARIANTS, variantLabel } from './variants';
 
 export default function ArenaPage() {
   const navigate = useNavigate();
-  const { user, signInAnonymously } = useAuth();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'live' | 'ladder' | 'create' | 'bots'>('live');
@@ -46,12 +46,9 @@ export default function ArenaPage() {
 
   const ensureSession = async () => {
     if (user) return true;
-    const { error } = await signInAnonymously();
-    if (error) {
-      toast.error('Sign in required', { description: guestAuthMessage(error, 'use the arena') });
-      return false;
-    }
-    return true;
+    toast.error('Sign in required', { description: 'Use an account to create bots and arena matches.' });
+    navigate(buildAuthRoute('/arena'));
+    return false;
   };
 
   const allGameBots = useMemo(() => myBots.filter((b) => (b.game_key ?? 'hex') === gameKey), [myBots, gameKey]);

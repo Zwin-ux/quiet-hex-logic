@@ -14,17 +14,17 @@ const PRIMARY_LINKS = [
 ];
 
 const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
-  { match: /^\/$/, label: "Live board worlds" },
-  { match: /^\/auth/, label: "Entry gate" },
-  { match: /^\/worlds/, label: "World directory" },
-  { match: /^\/play|^\/lobby/, label: "Play desk" },
-  { match: /^\/events|^\/tournaments|^\/tournament/, label: "Event directory" },
-  { match: /^\/match|^\/replay/, label: "Live instance" },
-  { match: /^\/docs/, label: "Builder manual" },
-  { match: /^\/workbench/, label: "Runner lab" },
-  { match: /^\/arena/, label: "Bot arena" },
-  { match: /^\/tutorial/, label: "Learn Hex" },
-  { match: /^\/premium/, label: "Support BOARD" },
+  { match: /^\/$/, label: "Home" },
+  { match: /^\/auth/, label: "Enter" },
+  { match: /^\/worlds/, label: "World Directory" },
+  { match: /^\/play|^\/lobby/, label: "Play Network" },
+  { match: /^\/events|^\/tournaments|^\/tournament/, label: "Event Rail" },
+  { match: /^\/match|^\/replay/, label: "Live Surface" },
+  { match: /^\/docs/, label: "Manual" },
+  { match: /^\/workbench/, label: "Workbench" },
+  { match: /^\/arena/, label: "Arena" },
+  { match: /^\/tutorial/, label: "Learn" },
+  { match: /^\/premium/, label: "Support" },
 ];
 
 export function NavBar() {
@@ -32,7 +32,6 @@ export function NavBar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
 
-  const isLanding = location.pathname === "/";
   const currentLabel =
     ROUTE_LABELS.find((route) => route.match.test(location.pathname))?.label ?? "BOARD";
 
@@ -40,104 +39,86 @@ export function NavBar() {
     location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 text-foreground md:px-5">
-      <div className="board-page-width mx-auto retro-window">
-        <div className="retro-window__titlebar">
-          <div className="flex min-w-0 items-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="text-white no-underline transition-none hover:text-[#ffff00]"
-              aria-label="Go to home"
-            >
-              <BoardLogo tone="dark" />
-            </button>
-            <div className="hidden min-w-0 border-l border-white/30 pl-4 lg:block">
-              <p className="retro-window__eyebrow">
-                {isLanding ? "Live board worlds" : currentLabel}
-              </p>
-            </div>
-          </div>
+    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6">
+      <div className="board-page-width mx-auto border border-[#0e0e0f] bg-[#f6f4f0]/90 backdrop-blur-[8px]">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-5">
+          <button
+            onClick={() => navigate("/")}
+            className="shrink-0 text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257]"
+            aria-label="Go to home"
+          >
+            <BoardLogo tone="dark" />
+          </button>
 
-          <div className="hidden items-center gap-2 md:flex">
-            <StateTag tone="success">Network live</StateTag>
-            <StateTag>{currentLabel}</StateTag>
-          </div>
-        </div>
-
-        <div className="retro-window__body m-[6px] !bg-white px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <nav className="hidden items-center gap-2 md:flex">
-              {PRIMARY_LINKS.map((link) => (
-                <button
-                  key={link.path}
-                  onClick={() => navigate(link.path)}
-                  className={cn(
-                    "border border-transparent px-2 py-1 font-mono text-[12px] font-bold uppercase tracking-[0.12em] text-black no-underline transition-none hover:bg-[#000080] hover:text-white",
-                    isActive(link.path) && "border-black bg-[#000080] text-white",
-                  )}
-                >
-                  {link.label}
-                </button>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate("/docs")}
-                className="hidden px-2 py-1 font-mono text-[12px] font-bold uppercase tracking-[0.12em] text-black no-underline hover:bg-[#ffff00] lg:inline-flex"
-              >
-                Manual
-              </button>
-              {user ? (
-                <>
-                  <IconRailButton onClick={() => navigate("/profile")} label="Profile">
-                    <User className="h-4 w-4" />
-                  </IconRailButton>
-                  <IconRailButton onClick={() => navigate("/workbench")} label="Workbench">
-                    <Wrench className="h-4 w-4" />
-                  </IconRailButton>
-                  <IconRailButton
-                    onClick={() => {
-                      signOut();
-                      navigate(buildAuthRoute());
-                    }}
-                    label="Sign out"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </IconRailButton>
-                </>
-              ) : (
-                <button
-                  onClick={() => navigate(buildAuthRoute())}
-                  className="border-2 border-black bg-[#00aa00] px-4 py-2 font-mono text-[12px] font-bold uppercase tracking-[0.12em] text-white no-underline [border-color:#00ff00_#006600_#006600_#00ff00] [box-shadow:inset_-1px_-1px_0_#404040,inset_1px_1px_0_#dfdfdf] hover:bg-[#00c000] active:translate-x-px active:translate-y-px active:[border-color:#006600_#00ff00_#00ff00_#006600] active:[box-shadow:inset_1px_1px_0_#404040,inset_-1px_-1px_0_#dfdfdf]"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="scrollbar-hide mt-3 flex gap-2 overflow-x-auto border-t-2 border-black pt-3 md:hidden">
+          <nav className="hidden items-center gap-6 md:flex">
             {PRIMARY_LINKS.map((link) => (
               <button
                 key={link.path}
                 onClick={() => navigate(link.path)}
                 className={cn(
-                  "whitespace-nowrap border border-transparent px-2 py-1 font-mono text-[12px] font-bold uppercase tracking-[0.12em] text-black",
-                  isActive(link.path) && "border-black bg-[#000080] text-white",
+                  "board-rail-label text-[11px] tracking-[0.14em] text-[#525257] transition-colors duration-150 hover:text-[#0e0e0f]",
+                  isActive(link.path) && "text-[#0e0e0f]",
                 )}
               >
                 {link.label}
               </button>
             ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <StateTag className="hidden md:inline-flex">{currentLabel}</StateTag>
+            {user ? (
+              <>
+                <UtilityButton onClick={() => navigate("/profile")} label="Profile">
+                  <User className="h-4 w-4" />
+                </UtilityButton>
+                <UtilityButton onClick={() => navigate("/workbench")} label="Workbench">
+                  <Wrench className="h-4 w-4" />
+                </UtilityButton>
+                <UtilityButton
+                  onClick={() => {
+                    signOut();
+                    navigate(buildAuthRoute());
+                  }}
+                  label="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </UtilityButton>
+              </>
+            ) : (
+              <button
+                onClick={() => navigate(buildAuthRoute())}
+                className="inline-flex h-10 items-center justify-center border border-[#0e0e0f] bg-[#0e0e0f] px-4 text-[14px] font-medium text-[#f6f4f0] transition-colors duration-150 hover:bg-[#202124]"
+              >
+                Enter
+              </button>
+            )}
           </div>
+        </div>
+
+        <div className="flex items-center gap-4 overflow-x-auto border-t border-[#0e0e0f]/12 px-4 py-3 md:hidden">
+          {PRIMARY_LINKS.map((link) => (
+            <button
+              key={link.path}
+              onClick={() => navigate(link.path)}
+              className={cn(
+                "board-rail-label whitespace-nowrap text-[11px] tracking-[0.14em] text-[#525257]",
+                isActive(link.path) && "text-[#0e0e0f]",
+              )}
+            >
+              {link.label}
+            </button>
+          ))}
+          <span className="board-rail-label ml-auto whitespace-nowrap text-[11px] tracking-[0.14em] text-[#0e0e0f]">
+            {currentLabel}
+          </span>
         </div>
       </div>
     </header>
   );
 }
 
-function IconRailButton({
+function UtilityButton({
   children,
   label,
   onClick,
@@ -150,7 +131,7 @@ function IconRailButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#c0c0c0] text-foreground transition-none [border-color:#ffffff_#808080_#808080_#ffffff] [box-shadow:inset_-1px_-1px_0_#404040,inset_1px_1px_0_#dfdfdf] hover:bg-[#d0d0d0] active:translate-x-px active:translate-y-px active:[border-color:#808080_#ffffff_#ffffff_#808080] active:[box-shadow:inset_1px_1px_0_#404040,inset_-1px_-1px_0_#dfdfdf]"
+      className="inline-flex h-10 w-10 items-center justify-center border border-[#0e0e0f] bg-[#fbfaf8] text-[#0e0e0f] transition-colors duration-150 hover:bg-[#efebe3]"
     >
       {children}
     </button>

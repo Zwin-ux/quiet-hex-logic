@@ -11,46 +11,20 @@ export function BoardWordmark({
   size = "compact",
   tone = "dark",
 }: BoardWordmarkProps) {
-  const hero = size === "hero";
-  const light = tone === "light";
-
   return (
     <div
       aria-label="BOARD"
       className={cn(
         "board-wordmark",
-        hero ? "board-wordmark--hero" : "board-wordmark--compact",
-        light ? "text-white" : "text-[#0a0a0a]",
+        size === "hero" ? "board-wordmark--hero" : "board-wordmark--compact",
+        tone === "light" ? "board-wordmark--light text-white" : "text-[#0e0e0f]",
         className,
       )}
     >
-      <span aria-hidden="true" className="board-wordmark__glyph">
-        B
-      </span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "board-wordmark__glyph",
-          hero && "board-wordmark__glyph--outline",
-        )}
-      >
-        O
-      </span>
-      <span aria-hidden="true" className="board-wordmark__tile" />
-      <span aria-hidden="true" className="board-wordmark__glyph board-wordmark__glyph--lift">
-        A
-      </span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "board-wordmark__glyph board-wordmark__glyph--drop",
-          hero && "board-wordmark__glyph--outline",
-        )}
-      >
-        R
-      </span>
-      <span aria-hidden="true" className="board-wordmark__glyph">
-        D
+      <span aria-hidden="true" className="board-wordmark__cluster">
+        <span className="board-wordmark__text">BOAR</span>
+        <span className="board-wordmark__tile" />
+        <span className="board-wordmark__text board-wordmark__text--last">D</span>
       </span>
     </div>
   );

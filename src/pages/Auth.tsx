@@ -1,27 +1,16 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
-import {
-  ArrowLeft,
-  Chrome,
-  Disc3,
-  KeyRound,
-  Loader2,
-  Lock,
-  Mail,
-  Shield,
-  User,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { BoardLogo } from "@/components/BoardLogo";
+import { ArrowLeft, Chrome, Disc3, KeyRound, Loader2, Lock, Mail, User } from "lucide-react";
+import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { SkeletalBoardScene } from "@/components/board/SkeletalBoardScene";
-import { VenuePanel } from "@/components/board/VenuePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { buildAuthRoute, resolvePostAuthPath } from "@/lib/authRedirect";
+import { getAuthStorageIssue } from "@/integrations/supabase/client";
+import { buildAuthRoute, parseAuthUrlState, resolvePostAuthPath } from "@/lib/authRedirect";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -36,8 +25,19 @@ type AuthView = "main" | "forgot-password" | "reset-password";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
-  const returnTo = resolvePostAuthPath(searchParams.get("next"));
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const authUrlState = useMemo(
+    () => parseAuthUrlState(location.search, location.hash),
+    [location.hash, location.search],
+  );
+  const returnTo = resolvePostAuthPath(authUrlState.returnTo);
   const shouldShowReturnTarget = returnTo !== "/worlds";
+  const authStorageIssue = getAuthStorageIssue();
+  const defaultAuthTab: AuthTab = shouldShowReturnTarget ? "signin" : "signup";
+  const handledCallbackState = useRef<string | null>(null);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -46,10 +46,13 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("magic-link");
-  const [authTab, setAuthTab] = useState<AuthTab>("signup");
+  const [authTab, setAuthTab] = useState<AuthTab>(defaultAuthTab);
   const [authView, setAuthView] = useState<AuthView>("main");
+  const [authNotice, setAuthNotice] = useState(authUrlState.notice);
+
   const {
     user,
+    loading,
     signInWithMagicLink,
     signIn,
     signUp,
@@ -58,23 +61,62 @@ export default function Auth() {
     resetPassword,
     updatePassword,
   } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
-    if (searchParams.get("reset") === "true") {
+    if (authUrlState.isResetFlow || searchParams.get("reset") === "true") {
       setAuthView("reset-password");
     }
-  }, [searchParams]);
+  }, [authUrlState.isResetFlow, searchParams]);
+
+  useEffect(() => {
+    const signature = `${location.search}|${location.hash}`;
+    if (handledCallbackState.current === signature) return;
+    handledCallbackState.current = signature;
+
+    if (authUrlState.notice) {
+      setAuthNotice(authUrlState.notice);
+      if (authUrlState.notice.tone === "critical") {
+        toast({
+          title: authUrlState.notice.title,
+          description: authUrlState.notice.description,
+          variant: "destructive",
+        });
+      }
+    }
+
+    const canCleanSearch =
+      authUrlState.cleanedSearch !== location.search && (Boolean(authUrlState.authError) || !loading);
+    const canCleanHash =
+      Boolean(location.hash) && authUrlState.shouldClearHash && (Boolean(authUrlState.authError) || !loading);
+
+    if (canCleanSearch || canCleanHash) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: canCleanSearch ? authUrlState.cleanedSearch : location.search,
+          hash: "",
+        },
+        { replace: true },
+      );
+    }
+  }, [authUrlState, loading, location.hash, location.pathname, location.search, navigate, toast]);
 
   useEffect(() => {
     if (user && !user.is_anonymous && authView !== "reset-password") {
       navigate(returnTo, { replace: true });
     }
-  }, [user, navigate, authView, returnTo]);
+  }, [authView, navigate, returnTo, user]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authStorageIssue) {
+      toast({
+        title: "Browser storage required",
+        description: authStorageIssue,
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -109,6 +151,14 @@ export default function Auth() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authStorageIssue) {
+      toast({
+        title: "Browser storage required",
+        description: authStorageIssue,
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -120,7 +170,6 @@ export default function Auth() {
           description: "Please make sure both passwords are the same.",
           variant: "destructive",
         });
-        setIsSubmitting(false);
         return;
       }
 
@@ -157,11 +206,18 @@ export default function Auth() {
 
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authStorageIssue) {
+      toast({
+        title: "Browser storage required",
+        description: authStorageIssue,
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       emailSchema.parse(email);
-
       const { error } = await signInWithMagicLink(email, returnTo);
 
       if (error) {
@@ -192,6 +248,14 @@ export default function Auth() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authStorageIssue) {
+      toast({
+        title: "Browser storage required",
+        description: authStorageIssue,
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -250,6 +314,14 @@ export default function Auth() {
   };
 
   const handleProviderSignIn = async (provider: "google" | "discord") => {
+    if (authStorageIssue) {
+      toast({
+        title: "Browser storage required",
+        description: authStorageIssue,
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -270,273 +342,298 @@ export default function Auth() {
     }
   };
 
-  return (
-    <SiteFrame contentClassName="pt-24">
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px]">
-        <div className="order-2 space-y-6 xl:order-1">
-          <div className="max-w-3xl">
-            <p className="board-rail-label">Identity gate</p>
-            <h1 className="board-page-title mt-4 max-w-[10ch] text-foreground">
-              Enter worlds, events, and recurring rooms.
-            </h1>
-            <p className="board-copy-lg mt-5 max-w-xl">
-              One account handles host access, venue membership, and returning
-              roles. Local practice stays instant when you just want to think and play.
-            </p>
-          </div>
+  const renderMainForm = () => (
+    <>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Button
+          type="button"
+          variant={authMode === "password" && authTab === "signup" ? "secondary" : "outline"}
+          onClick={() => {
+            setAuthMode("password");
+            setAuthTab("signup");
+          }}
+          disabled={Boolean(authStorageIssue)}
+        >
+          Create Account
+        </Button>
+        <Button
+          type="button"
+          variant={authMode === "password" && authTab === "signin" ? "secondary" : "outline"}
+          onClick={() => {
+            setAuthMode("password");
+            setAuthTab("signin");
+          }}
+          disabled={Boolean(authStorageIssue)}
+        >
+          Sign In
+        </Button>
+      </div>
 
-          <SkeletalBoardScene variant="compact" className="hidden max-w-3xl md:block" />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <VenuePanel
-              eyebrow="Account use"
-              title="Use identity when the room needs memory."
-              description="Create or join worlds, enter host-run events, return to rooms, and keep your role inside recurring venues."
+      <form
+        onSubmit={authMode === "magic-link" ? handleMagicLinkSubmit : handlePasswordSubmit}
+        className="mt-8 grid gap-6"
+      >
+        <div>
+          <Label
+            htmlFor="entry-email"
+            className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+          >
+            Email
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d7a74]" />
+            <Input
+              id="entry-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="pl-11"
+              autoFocus
+              required
+              disabled={Boolean(authStorageIssue)}
             />
-            <VenuePanel
-              eyebrow="Local practice"
-              title="Practice can stay light."
-              description="If you only want a fast solo session, BOARD keeps that path immediate and separate from venue identity."
-            >
-              <Button variant="outline" onClick={() => navigate("/play")}>
-                Practice locally
-              </Button>
-            </VenuePanel>
           </div>
         </div>
 
-        <VenuePanel
-          className="order-1 bg-white/92 xl:order-2"
-          eyebrow={
-            authView === "forgot-password"
-              ? "Password reset"
-              : authView === "reset-password"
-                ? "New password"
-                : "Entry"
-          }
-          title={getAuthTitle(authView, emailSent, authTab)}
-          description={getAuthDescription(authView, emailSent, authTab, email)}
-        >
-          {authView === "forgot-password" ? (
-            <ForgotPasswordForm
-              email={email}
-              setEmail={setEmail}
-              emailSent={emailSent}
-              isSubmitting={isSubmitting}
-              onSubmit={handleForgotPassword}
-              onBack={() => {
-                setEmailSent(false);
-                setAuthView("main");
-              }}
-            />
-          ) : authView === "reset-password" ? (
-            <ResetPasswordForm
-              newPassword={newPassword}
-              confirmPassword={confirmPassword}
-              setNewPassword={setNewPassword}
-              setConfirmPassword={setConfirmPassword}
-              isSubmitting={isSubmitting}
-              onSubmit={handleResetPassword}
-            />
-          ) : emailSent ? (
-            <MagicLinkSent email={email} onReset={() => { setEmailSent(false); setEmail(""); }} />
-          ) : (
-            <>
-              <div className="mb-6 flex items-center justify-between border-b border-black/10 pb-4">
-                <BoardLogo tone="dark" />
-                <button
-                  type="button"
-                  onClick={() => navigate("/play")}
-                  className="text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Practice locally
-                </button>
-              </div>
+        {authMode === "password" && authTab === "signup" ? (
+          <div>
+            <Label
+              htmlFor="entry-username"
+              className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+            >
+              Username
+            </Label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d7a74]" />
+              <Input
+                id="entry-username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Choose a name"
+                className="pl-11"
+                required
+                disabled={Boolean(authStorageIssue)}
+              />
+            </div>
+          </div>
+        ) : null}
 
-              {shouldShowReturnTarget ? (
-                <div className="mb-6 border border-black/10 bg-[#faf9f4] px-4 py-3">
-                  <p className="board-rail-label text-[10px]">Return target</p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">{returnTo}</p>
-                </div>
+        {authMode === "password" ? (
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <Label
+                htmlFor="entry-password"
+                className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+              >
+                Password
+              </Label>
+              {authTab === "signin" ? (
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0 text-[12px]"
+                  onClick={() => setAuthView("forgot-password")}
+                >
+                  Forgot password?
+                </Button>
               ) : null}
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d7a74]" />
+              <Input
+                id="entry-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••"
+                className="pl-11"
+                required
+                disabled={Boolean(authStorageIssue)}
+              />
+            </div>
+          </div>
+        ) : null}
 
-              <div className="mb-6 grid grid-cols-2 border border-black/10 bg-[#f7f5ef] p-1">
-                <button
-                  type="button"
-                  onClick={() => setAuthMode("magic-link")}
-                  className={authMode === "magic-link" ? "bg-black px-3 py-2 text-sm font-semibold text-white" : "px-3 py-2 text-sm font-semibold text-muted-foreground"}
-                >
-                  Magic Link
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode("password")}
-                  className={authMode === "password" ? "bg-black px-3 py-2 text-sm font-semibold text-white" : "px-3 py-2 text-sm font-semibold text-muted-foreground"}
-                >
-                  Email + Password
-                </button>
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" variant="hero" disabled={isSubmitting || Boolean(authStorageIssue)}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {authMode === "magic-link"
+                  ? "Sending"
+                  : authTab === "signup"
+                    ? "Creating"
+                    : "Signing in"}
+              </>
+            ) : (
+              "Continue"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant={authMode === "magic-link" ? "secondary" : "outline"}
+            onClick={() => setAuthMode("magic-link")}
+            disabled={Boolean(authStorageIssue)}
+          >
+            Magic Link
+          </Button>
+        </div>
+      </form>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          className="min-w-[92px]"
+          disabled={isSubmitting || Boolean(authStorageIssue)}
+          onClick={() => handleProviderSignIn("google")}
+        >
+          <Chrome className="h-4 w-4" />
+          Google
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-w-[92px]"
+          disabled={isSubmitting || Boolean(authStorageIssue)}
+          onClick={() => handleProviderSignIn("discord")}
+        >
+          <Disc3 className="h-4 w-4" />
+          Discord
+        </Button>
+      </div>
+
+      <p className="mt-8 text-[14px] leading-7 text-[#525257]">
+        Hosted actions require identity. Practice does not.
+      </p>
+
+      {shouldShowReturnTarget ? (
+        <div className="mt-6 border border-[#0e0e0f] p-4">
+          <p className="board-rail-label text-[11px] text-[#525257]">Return target</p>
+          <p className="mt-2 text-[15px] leading-7 text-[#0e0e0f]">{returnTo}</p>
+        </div>
+      ) : null}
+
+      {authStorageIssue ? (
+        <div className="mt-6 border border-[#8a4b08] bg-[#fff4e8] p-4">
+          <p className="board-rail-label text-[11px] text-[#8a4b08]">Compatibility issue</p>
+          <p className="mt-2 text-[15px] leading-7 text-[#0e0e0f]">{authStorageIssue}</p>
+        </div>
+      ) : null}
+    </>
+  );
+
+  return (
+    <SiteFrame contentClassName="pt-24">
+      <div className="board-page-width mx-auto">
+        <div className="flex items-start justify-between gap-4 pb-8">
+          <BoardWordmark className="text-[#0e0e0f]" />
+          {shouldShowReturnTarget ? (
+            <div className="hidden border border-[#0e0e0f] px-3 py-2 md:block">
+              <p className="board-rail-label text-[11px] text-[#0e0e0f]">
+                Next / {returnTo.replace(/^\//, "")}
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-8 xl:grid-cols-[520px_minmax(0,1fr)]">
+          <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6 md:p-7">
+            <h1 className="text-[clamp(2.25rem,4vw,3.5rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#0e0e0f]">
+              {getAuthTitle(authView, emailSent, authTab)}
+            </h1>
+            <p className="mt-5 max-w-[430px] text-[18px] leading-8 text-[#525257]">
+              {getAuthDescription(authView, emailSent, authTab, email)}
+            </p>
+
+            {authNotice ? (
+              <div
+                className={`mt-6 border p-4 ${
+                  authNotice.tone === "critical"
+                    ? "border-[#a80000] bg-[#fff3f3]"
+                    : authNotice.tone === "warning"
+                      ? "border-[#8a4b08] bg-[#fff4e8]"
+                      : "border-[#0e0e0f] bg-white"
+                }`}
+              >
+                <p className="board-rail-label text-[11px] text-[#525257]">{authNotice.title}</p>
+                <p className="mt-2 text-[15px] leading-7 text-[#0e0e0f]">{authNotice.description}</p>
               </div>
+            ) : null}
 
-              {authMode === "magic-link" ? (
-                <form onSubmit={handleMagicLinkSubmit} className="space-y-5">
-                  <Field label="Email" htmlFor="email">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@club.com"
-                        className="h-12 border-black/10 bg-[#faf9f4] pl-10"
-                        required
-                        autoFocus
-                      />
-                    </div>
-                  </Field>
+            {authView === "forgot-password" ? (
+              <div className="mt-8">
+                <ForgotPasswordForm
+                  email={email}
+                  setEmail={setEmail}
+                  emailSent={emailSent}
+                  isSubmitting={isSubmitting}
+                  isBlocked={Boolean(authStorageIssue)}
+                  onSubmit={handleForgotPassword}
+                  onBack={() => {
+                    setEmailSent(false);
+                    setAuthView("main");
+                  }}
+                />
+              </div>
+            ) : authView === "reset-password" ? (
+              <div className="mt-8">
+                <ResetPasswordForm
+                  newPassword={newPassword}
+                  confirmPassword={confirmPassword}
+                  setNewPassword={setNewPassword}
+                  setConfirmPassword={setConfirmPassword}
+                  isSubmitting={isSubmitting}
+                  isBlocked={Boolean(authStorageIssue)}
+                  onSubmit={handleResetPassword}
+                />
+              </div>
+            ) : emailSent ? (
+              <div className="mt-8">
+                <MagicLinkSent
+                  email={email}
+                  onReset={() => {
+                    setEmailSent(false);
+                    setEmail("");
+                  }}
+                />
+              </div>
+            ) : (
+              renderMainForm()
+            )}
+          </section>
 
-                  <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Sending
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4" />
-                        Send Magic Link
-                      </>
-                    )}
-                  </Button>
-                </form>
-              ) : (
-                <>
-                  <div className="mb-5 grid gap-3 sm:grid-cols-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-11 justify-start"
-                      disabled={isSubmitting}
-                      onClick={() => handleProviderSignIn("google")}
-                    >
-                      <Chrome className="h-4 w-4" />
-                      Continue with Google
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-11 justify-start"
-                      disabled={isSubmitting}
-                      onClick={() => handleProviderSignIn("discord")}
-                    >
-                      <Disc3 className="h-4 w-4" />
-                      Continue with Discord
-                    </Button>
-                  </div>
+          <div className="space-y-8">
+            <section className="border border-[#0e0e0f] bg-[#0e0e0f] p-6 md:p-7">
+              <p className="board-rail-label text-[11px] text-white/72">Hosted Access</p>
+              <div className="mt-6 font-['League_Spartan'] text-[clamp(2.2rem,4vw,3.3rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#f6f4f0]">
+                <p>12 live tables</p>
+                <p>2 finals queued</p>
+              </div>
+              <p className="mt-6 max-w-[380px] text-[18px] leading-8 text-white/82">
+                Identity unlocks join, spectate, host controls, and world membership.
+              </p>
+            </section>
 
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="h-px flex-1 bg-black/10" />
-                    <span className="board-rail-label text-[10px]">or use email</span>
-                    <div className="h-px flex-1 bg-black/10" />
-                  </div>
+            <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6 md:p-7">
+              <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
+                Local Practice
+              </h2>
+              <p className="mt-5 max-w-[420px] text-[18px] leading-8 text-[#525257]">
+                No account required. Use this when the player just wants to open a board and start immediately.
+              </p>
+              <Button type="button" variant="outline" className="mt-8" onClick={() => navigate("/play")}>
+                Start Local Practice
+              </Button>
+            </section>
 
-                  <div className="mb-5 flex gap-6 border-b border-black/10">
-                    <button
-                      type="button"
-                      onClick={() => setAuthTab("signup")}
-                      className={authTab === "signup" ? "border-b border-black pb-3 text-sm font-semibold text-foreground" : "pb-3 text-sm font-semibold text-muted-foreground"}
-                    >
-                      Create Account
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthTab("signin")}
-                      className={authTab === "signin" ? "border-b border-black pb-3 text-sm font-semibold text-foreground" : "pb-3 text-sm font-semibold text-muted-foreground"}
-                    >
-                      Sign In
-                    </button>
-                  </div>
-
-                  <form onSubmit={handlePasswordSubmit} className="space-y-5">
-                    {authTab === "signup" ? (
-                      <Field label="Username" htmlFor="username">
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            id="username"
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Choose a name"
-                            className="h-12 border-black/10 bg-[#faf9f4] pl-10"
-                            required
-                            autoFocus
-                          />
-                        </div>
-                      </Field>
-                    ) : null}
-
-                    <Field label="Email" htmlFor="email-password">
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="email-password"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="you@club.com"
-                          className="h-12 border-black/10 bg-[#faf9f4] pl-10"
-                          required
-                          autoFocus={authTab === "signin"}
-                        />
-                      </div>
-                    </Field>
-
-                    <Field label="Password" htmlFor="password">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">Password</span>
-                        {authTab === "signin" ? (
-                          <button
-                            type="button"
-                            onClick={() => setAuthView("forgot-password")}
-                            className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                          >
-                            Forgot password?
-                          </button>
-                        ) : null}
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter your password"
-                          className="h-12 border-black/10 bg-[#faf9f4] pl-10"
-                          required
-                        />
-                      </div>
-                    </Field>
-
-                    <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          {authTab === "signup" ? "Creating account" : "Signing in"}
-                        </>
-                      ) : authTab === "signup" ? (
-                        "Create Account"
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-                  </form>
-                </>
-              )}
-            </>
-          )}
-        </VenuePanel>
+            <p className="max-w-[520px] text-[16px] leading-8 text-[#525257]">
+              This page must answer one question fast: do I need identity for what I am about to do?
+            </p>
+          </div>
+        </div>
       </div>
     </SiteFrame>
   );
@@ -546,7 +643,7 @@ function getAuthTitle(authView: AuthView, emailSent: boolean, authTab: AuthTab) 
   if (authView === "forgot-password") return emailSent ? "Check your inbox" : "Reset password";
   if (authView === "reset-password") return "Set a new password";
   if (emailSent) return "Magic link sent";
-  return authTab === "signup" ? "Create your BOARD identity" : "Return to BOARD";
+  return authTab === "signup" ? "Enter BOARD" : "Return to BOARD";
 }
 
 function getAuthDescription(
@@ -557,35 +654,18 @@ function getAuthDescription(
 ) {
   if (authView === "forgot-password") {
     return emailSent
-      ? `A reset link was sent to ${email}.`
-      : "Enter your email and we will send you a reset link.";
+      ? `Reset link sent to ${email}.`
+      : "Enter your email and we will send a reset link.";
   }
   if (authView === "reset-password") {
-    return "Choose a new password for this account.";
+    return "Set a new password for your BOARD identity.";
   }
   if (emailSent) {
-    return `Use the link we sent to ${email} to continue into BOARD.`;
+    return `Use the sign-in link sent to ${email}.`;
   }
   return authTab === "signup"
-    ? "Use an email or magic link to create your host or member identity."
-    : "Sign in to re-enter your worlds, rooms, and events.";
-}
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      {label === "Password" ? null : <Label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-foreground">{label}</Label>}
-      {children}
-    </div>
-  );
+    ? "Use account access for worlds, rooms, and events. Local practice stays outside the auth wall."
+    : "Use account access for hosted worlds, rooms, and events. Local practice stays outside the auth wall.";
 }
 
 function ForgotPasswordForm({
@@ -593,6 +673,7 @@ function ForgotPasswordForm({
   setEmail,
   emailSent,
   isSubmitting,
+  isBlocked,
   onSubmit,
   onBack,
 }: {
@@ -600,47 +681,51 @@ function ForgotPasswordForm({
   setEmail: (value: string) => void;
   emailSent: boolean;
   isSubmitting: boolean;
+  isBlocked: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onBack: () => void;
 }) {
   return emailSent ? (
-    <div className="space-y-5">
-      <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] border border-black/10 bg-[#faf9f4]">
-        <Mail className="h-6 w-6 text-foreground" />
+    <div className="space-y-6">
+      <div className="border border-[#0e0e0f] p-4">
+        <p className="board-rail-label text-[11px] text-[#525257]">Reset Link Sent</p>
+        <p className="mt-3 text-[16px] leading-7 text-[#0e0e0f]">
+          Use the reset link from your inbox, then return here.
+        </p>
       </div>
-      <p className="text-sm leading-7 text-muted-foreground">
-        Click the link in your email to reset your password, then return here to sign in.
-      </p>
       <Button variant="outline" onClick={onBack} className="h-11 w-full">
         <ArrowLeft className="h-4 w-4" />
         Back to sign in
       </Button>
     </div>
   ) : (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <Field label="Email" htmlFor="reset-email">
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div>
+        <Label
+          htmlFor="reset-email"
+          className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+        >
+          Email
+        </Label>
         <Input
           id="reset-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@club.com"
-          className="h-12 border-black/10 bg-[#faf9f4]"
+          placeholder="you@example.com"
           required
           autoFocus
+          disabled={isBlocked}
         />
-      </Field>
-      <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
+      </div>
+      <Button type="submit" variant="hero" className="h-11 w-full" disabled={isSubmitting || isBlocked}>
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Sending
           </>
         ) : (
-          <>
-            <Mail className="h-4 w-4" />
-            Send Reset Link
-          </>
+          "Send Reset Link"
         )}
       </Button>
       <Button type="button" variant="outline" className="h-11 w-full" onClick={onBack}>
@@ -657,6 +742,7 @@ function ResetPasswordForm({
   setNewPassword,
   setConfirmPassword,
   isSubmitting,
+  isBlocked,
   onSubmit,
 }: {
   newPassword: string;
@@ -664,43 +750,55 @@ function ResetPasswordForm({
   setNewPassword: (value: string) => void;
   setConfirmPassword: (value: string) => void;
   isSubmitting: boolean;
+  isBlocked: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
 }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] border border-black/10 bg-[#faf9f4]">
-        <KeyRound className="h-6 w-6 text-foreground" />
-      </div>
-      <Field label="New Password" htmlFor="new-password">
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div>
+        <Label
+          htmlFor="new-password"
+          className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+        >
+          New Password
+        </Label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d7a74]" />
           <Input
             id="new-password"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password"
-            className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+            className="pl-11"
             required
             autoFocus
+            disabled={isBlocked}
           />
         </div>
-      </Field>
-      <Field label="Confirm Password" htmlFor="confirm-password">
+      </div>
+      <div>
+        <Label
+          htmlFor="confirm-password"
+          className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+        >
+          Confirm Password
+        </Label>
         <div className="relative">
-          <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <KeyRound className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d7a74]" />
           <Input
             id="confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm password"
-            className="h-12 border-black/10 bg-[#faf9f4] pl-10"
+            className="pl-11"
             required
+            disabled={isBlocked}
           />
         </div>
-      </Field>
-      <Button type="submit" variant="hero" className="clip-stage h-12 w-full" disabled={isSubmitting}>
+      </div>
+      <Button type="submit" variant="hero" className="h-11 w-full" disabled={isSubmitting || isBlocked}>
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -722,13 +820,13 @@ function MagicLinkSent({
   onReset: () => void;
 }) {
   return (
-    <div className="space-y-5">
-      <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] border border-black/10 bg-[#faf9f4]">
-        <Mail className="h-6 w-6 text-foreground" />
+    <div className="space-y-6">
+      <div className="border border-[#0e0e0f] p-4">
+        <p className="board-rail-label text-[11px] text-[#525257]">Magic Link Sent</p>
+        <p className="mt-3 text-[16px] leading-7 text-[#0e0e0f]">
+          Sign-in link sent to <span className="font-semibold">{email}</span>.
+        </p>
       </div>
-      <p className="text-sm leading-7 text-muted-foreground">
-        The sign-in link was sent to <span className="font-semibold text-foreground">{email}</span>.
-      </p>
       <Button variant="outline" className="h-11 w-full" onClick={onReset}>
         Use a different email
       </Button>

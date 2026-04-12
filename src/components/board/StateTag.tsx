@@ -17,6 +17,7 @@ export function StateTag({ tone = "normal", children, className }: StateTagProps
         tone === "critical" && "retro-state-tag--critical",
         className,
       )}
+      data-tone={tone}
     >
       {children}
     </span>

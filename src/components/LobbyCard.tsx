@@ -77,63 +77,42 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
   };
 
   return (
-    <div
-      className={`board-ledger-row md:grid-cols-[92px_minmax(0,1fr)_220px] ${
-        isFull ? "bg-[#fff0f0]" : ""
-      }`}
-    >
-      <div className="space-y-3">
-        <div className="retro-counter justify-center text-[0.68rem]">
-          {lobby.code}
-        </div>
-        <button
-          type="button"
-          onClick={copyCode}
-          className="flex h-9 w-full items-center justify-center border-2 border-black bg-[#c0c0c0] text-black transition-none [border-color:#ffffff_#808080_#808080_#ffffff] [box-shadow:inset_-1px_-1px_0_#404040,inset_1px_1px_0_#dfdfdf] hover:bg-[#d0d0d0] active:translate-x-px active:translate-y-px active:[border-color:#808080_#ffffff_#ffffff_#808080] active:[box-shadow:inset_1px_1px_0_#404040,inset_-1px_-1px_0_#dfdfdf]"
-        >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        </button>
-      </div>
-
+    <div className="border border-black bg-[#fbfaf8] px-4 py-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6">
       <div className="min-w-0">
-        <div className="board-meta-stack mb-3">
-          <StateTag tone={isFull ? "warning" : "success"}>
-            {isFull ? "Full" : "Open"}
-          </StateTag>
-          {isHost ? <StateTag>Host</StateTag> : null}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <StateTag tone={isFull ? "warning" : "success"}>{isFull ? "full" : "open"}</StateTag>
+          {isHost ? <StateTag>host</StateTag> : null}
           {lobby.world_name ? <StateTag>{lobby.world_name}</StateTag> : null}
           <StateTag>{gameKey}</StateTag>
         </div>
 
-        <h3 className="board-section-title text-foreground">
-          {lobby.code} room
-        </h3>
-        <p className="mt-3 text-sm leading-6 text-black">
-          Hosted by <span className="font-bold">{hostUsername}</span>. {playerCount}/2 seats taken.{" "}
-          {timeText}.
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="board-section-title">{lobby.code} room</h3>
+          <span className="text-[11px] uppercase tracking-[0.16em] text-black/55">{timeText}</span>
+        </div>
+
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-black/68">
+          Hosted by <span className="font-semibold text-black">{hostUsername}</span>. {playerCount}/2 seats taken.
         </p>
 
-        <div className="mt-3 board-meta-stack">
-          <span className="board-meta-chip">{lobby.board_size}x{lobby.board_size}</span>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="board-meta-chip">
+            {lobby.board_size}x{lobby.board_size}
+          </span>
           {gameKey !== "chess" && gameKey !== "checkers" && gameKey !== "ttt" && lobby.pie_rule ? (
             <span className="board-meta-chip">swap allowed</span>
           ) : null}
         </div>
       </div>
 
-      <div className="flex flex-col items-stretch gap-3 border-l border-black pl-4">
-        <div className="retro-status-strip justify-between gap-3 bg-[#e8e8e8] px-3 py-2">
-          <span>Join state</span>
-          <span>{isFull ? "hold" : "ready"}</span>
-        </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-0 md:justify-end">
+        <Button type="button" variant="quiet" size="icon" onClick={copyCode} className="h-11 w-11">
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        </Button>
         {isHost ? (
           <Button onClick={enterLobby}>Enter room</Button>
         ) : (
-          <Button
-            onClick={joinLobby}
-            disabled={joining || isFull}
-            variant={isFull ? "destructive" : "hero"}
-          >
+          <Button onClick={joinLobby} disabled={joining || isFull} variant={isFull ? "destructive" : "hero"}>
             {isFull ? "Room full" : joining ? "Joining..." : "Join room"}
           </Button>
         )}

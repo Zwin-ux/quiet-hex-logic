@@ -1,21 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  CalendarRange,
-  Loader2,
-  Plus,
-  RadioTower,
-  ShieldCheck,
-  Swords,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { CounterBlock } from "@/components/board/CounterBlock";
-import { SectionRail } from "@/components/board/SectionRail";
 import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
-import { MetricLine } from "@/components/board/MetricLine";
 import { Button } from "@/components/ui/button";
 import { CreateLobby } from "@/components/CreateLobby";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
@@ -78,7 +65,7 @@ export default function WorldView() {
     if (!worldId) return;
 
     if (!user || isGuest) {
-      navigate(buildAuthRoute());
+      navigate(buildAuthRoute(`/worlds/${worldId}`));
       return;
     }
 
@@ -99,188 +86,155 @@ export default function WorldView() {
 
   return (
     <SiteFrame>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate("/worlds")}
-        className="mb-5"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to worlds
-      </Button>
+      <div className="board-page-width mx-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/worlds")}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to worlds
+        </Button>
 
-      <SectionRail
-        eyebrow="World"
-        title={world.name}
-        description={
-          <>
-            {world.description || "No description yet."} Hosted by {world.ownerName}.
-          </>
-        }
-        meta={
-          <>
-            <span className="board-meta-chip">visibility / {world.visibility}</span>
-            <span className="board-meta-chip">host / {world.ownerName}</span>
-            {world.userRole ? <span className="board-meta-chip">role / {world.userRole}</span> : null}
-          </>
-        }
-        status={
-          <StateTag tone={world.userRole ? "success" : world.visibility === "public" ? "normal" : "warning"}>
-            {world.userRole ? `inside as ${world.userRole}` : world.visibility}
-          </StateTag>
-        }
-        actions={
-          canManage ? (
-            <Button onClick={() => setShowCreateTournament(true)}>
-              <Plus className="h-4 w-4" />
-              Create event
-            </Button>
-          ) : (
-            <Button onClick={handleJoin} disabled={joining || Boolean(world.userRole)}>
-              {joining ? "Joining..." : world.userRole ? "Already inside" : "Join world"}
-            </Button>
-          )
-        }
-      />
-
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-6">
-          <VenuePanel eyebrow="World telemetry" title="Venue status" titleBarEnd={<StateTag tone="normal">live readout</StateTag>}>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <CounterBlock label="members" value={world.memberCount} />
-              <CounterBlock label="events" value={world.eventCount} />
-              <CounterBlock label="instances" value={world.instanceCount} />
-            </div>
-          </VenuePanel>
-
-          <VenuePanel
-            eyebrow="Events"
-            title="Organizer layer"
-            description="Competitions staged under this world inherit its host identity instead of floating as disconnected pages."
-            state={events.length === 0 ? "warning" : "normal"}
-            titleBarEnd={<StateTag tone={events.length === 0 ? "warning" : "success"}>{events.length === 0 ? "empty" : `${events.length} listed`}</StateTag>}
-          >
-            {events.length === 0 ? (
-              <div className="retro-warning-strip mt-4 text-sm">
-                No events yet. The next serious step is attaching the first recurring competition to this venue.
-              </div>
-            ) : (
-              <div className="board-ledger mt-2">
-                {events.map((event, index) => (
-                  <button
-                    key={event.id}
-                    onClick={() => navigate(`/tournament/${event.id}`)}
-                    className="board-ledger-row w-full text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[56px_minmax(0,1fr)_170px]"
-                  >
-                    <div className="board-rail-label pt-1 text-[10px] text-black/45">
-                      {String(index + 1).padStart(2, "0")}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="board-meta-stack mb-3">
-                        <span className="board-meta-chip">status / {event.status}</span>
-                        <span className="board-meta-chip">format / {event.format.replace(/_/g, " ")}</span>
-                      </div>
-                      <h3 className="board-section-title text-foreground">
-                        {event.name}
-                      </h3>
-                      {event.description ? (
-                        <p className="board-copy mt-4">
-                          {event.description}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="space-y-1 border-l border-black/10 pl-4">
-                      <MetricLine label="Players" value={`${event.participantCount}/${event.maxPlayers}`} />
-                      <MetricLine label="Format" value={event.format.replace(/_/g, " ")} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </VenuePanel>
+        <div className="flex flex-wrap items-center gap-2">
+          <StateTag>{world.visibility}</StateTag>
+          <StateTag tone="success">Host online</StateTag>
+          <StateTag>{world.instanceCount} live tables</StateTag>
+          <StateTag>{world.eventCount} events queued</StateTag>
         </div>
 
-        <div className="space-y-6">
-          {canManage ? (
-            <CreateLobby userId={user!.id} worldId={world.id} />
-          ) : (
-            <VenuePanel
-              eyebrow="Organizer controls"
-              title="World admins stage the live system."
-              description="Room and event creation stay tied to the world owner or admins so recurring venues do not dissolve into global clutter."
-              titleBarEnd={<StateTag tone="warning">restricted</StateTag>}
-            >
-              <MetricLine icon={ShieldCheck} label="Host control" value="world scoped" />
-            </VenuePanel>
-          )}
+        <h1 className="mt-8 max-w-[620px] text-[clamp(3rem,5vw,4.6rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#0e0e0f]">
+          {world.name}
+        </h1>
+        <p className="mt-5 max-w-[620px] text-[18px] leading-8 text-[#525257]">
+          {world.description || "Public host-run venue with active rooms, queued events, and live spectator traffic."}
+        </p>
 
-          <VenuePanel
-            eyebrow="Instances"
-            title="Live rooms"
-            description="Rooms and linked matches are the objects that make this world feel occupied."
-            state={lobbies.length === 0 && matches.length === 0 ? "warning" : "normal"}
-            titleBarEnd={
-              <StateTag tone={lobbies.length === 0 && matches.length === 0 ? "warning" : "success"}>
-                {lobbies.length + matches.length} active
-              </StateTag>
-            }
-          >
-            {lobbies.length === 0 && matches.length === 0 ? (
-              <div className="retro-warning-strip mt-4 text-sm">
-                No live instances yet. Create a room here or wait for a linked match to go live.
-              </div>
-            ) : null}
+        <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_318px]">
+          <div>
+            <div className="space-y-4">
+              {lobbies.map((lobby) => (
+                <LobbyCard
+                  key={lobby.id}
+                  lobby={{
+                    id: lobby.id,
+                    code: lobby.code,
+                    host_id: lobby.hostId,
+                    game_key: lobby.gameKey,
+                    board_size: lobby.boardSize,
+                    pie_rule: lobby.pieRule,
+                    created_at: lobby.createdAt,
+                    profiles: { username: lobby.hostUsername },
+                  }}
+                  playerCount={lobby.playerCount}
+                  currentUserId={user?.id}
+                />
+              ))}
 
-            {lobbies.length > 0 ? (
-              <div className="mt-2 space-y-3">
-                {lobbies.map((lobby) => (
-                  <LobbyCard
-                    key={lobby.id}
-                    lobby={{
-                      id: lobby.id,
-                      code: lobby.code,
-                      host_id: lobby.hostId,
-                      game_key: lobby.gameKey,
-                      board_size: lobby.boardSize,
-                      pie_rule: lobby.pieRule,
-                      created_at: lobby.createdAt,
-                      profiles: { username: lobby.hostUsername },
-                    }}
-                    playerCount={lobby.playerCount}
-                    currentUserId={user?.id}
-                  />
-                ))}
-              </div>
-            ) : null}
+              {matches.map((match) => (
+                <button
+                  key={match.id}
+                  onClick={() => navigate(`/match/${match.id}`)}
+                  className="grid w-full gap-4 border border-[#0e0e0f]/16 bg-[#fbfaf8] px-4 py-4 text-left transition-colors duration-150 hover:bg-[#efebe3] md:grid-cols-[minmax(0,1fr)_72px]"
+                >
+                  <div>
+                    <h2 className="text-[1.6rem] font-black leading-[0.96] tracking-[-0.05em] text-[#0e0e0f]">
+                      {match.label ?? `${match.gameKey} match`}
+                    </h2>
+                    <p className="mt-2 text-[15px] leading-7 text-[#525257]">
+                      Live now. {match.size}x{match.size}. {match.allowSpectators ? "8 watching" : "players only"}.
+                    </p>
+                  </div>
+                  <div className="border-l border-[#0e0e0f]/12 pl-4">
+                    <p className="board-rail-label text-[11px] text-[#525257]">LIVE</p>
+                    <p className="mt-2 font-['League_Spartan'] text-[2.1rem] font-black leading-none tracking-[-0.05em] text-[#0e0e0f]">
+                      {match.allowSpectators ? "08" : "03"}
+                    </p>
+                  </div>
+                </button>
+              ))}
 
-            {matches.length > 0 ? (
-              <div className="board-ledger mt-4">
-                {matches.map((match) => (
-                  <button
-                    key={match.id}
-                    onClick={() => navigate(`/match/${match.id}`)}
-                    className="board-ledger-row w-full text-left transition-colors hover:bg-black/[0.025] md:grid-cols-[minmax(0,1fr)_160px]"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-3">
-                        <Swords className="h-4 w-4 text-foreground" />
-                        <p className="text-lg font-bold tracking-[-0.04em] text-foreground">
-                          {match.gameKey} match
-                        </p>
-                      </div>
-                      <p className="board-copy mt-3">
-                        Active now. Board size {match.size}. {match.allowSpectators ? "Spectators allowed." : "Player access only."}
-                      </p>
-                    </div>
-                    <div className="space-y-1 border-l border-black/10 pl-4">
-                      <MetricLine label="Status" value="active" />
-                      <MetricLine label="Access" value={match.allowSpectators ? "watch" : "open"} />
-                    </div>
-                  </button>
-                ))}
+              {events.map((event) => (
+                <button
+                  key={event.id}
+                  onClick={() => navigate(`/tournament/${event.id}`)}
+                  className="grid w-full gap-4 border border-[#0e0e0f]/16 bg-[#fbfaf8] px-4 py-4 text-left transition-colors duration-150 hover:bg-[#efebe3] md:grid-cols-[minmax(0,1fr)_72px]"
+                >
+                  <div>
+                    <h2 className="text-[1.6rem] font-black leading-[0.96] tracking-[-0.05em] text-[#0e0e0f]">
+                      {event.name}
+                    </h2>
+                    <p className="mt-2 text-[15px] leading-7 text-[#525257]">
+                      {event.description || `Starts in ${event.status === "active" ? "now" : "18 minutes"} — seeded from the active bracket.`}
+                    </p>
+                  </div>
+                  <div className="border-l border-[#0e0e0f]/12 pl-4">
+                    <p className="board-rail-label text-[11px] text-[#525257]">
+                      {event.status.toUpperCase()}
+                    </p>
+                    <p className="mt-2 font-['League_Spartan'] text-[2.1rem] font-black leading-none tracking-[-0.05em] text-[#0e0e0f]">
+                      {String(event.participantCount).padStart(2, "0")}
+                    </p>
+                  </div>
+                </button>
+              ))}
+
+              {lobbies.length === 0 && matches.length === 0 && events.length === 0 ? (
+                <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
+                  <p className="text-[16px] leading-7 text-[#525257]">No live surfaces yet.</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <aside className="border border-[#0e0e0f] bg-[#fbfaf8] p-5 md:p-6">
+            <p className="board-rail-label text-[11px] text-[#525257]">Operator Rail</p>
+            <h2 className="mt-4 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
+              {canManage ? "Host verified" : "World access"}
+            </h2>
+            <p className="mt-4 text-[16px] leading-8 text-[#525257]">
+              {canManage
+                ? "Use this rail for occupancy, moderation state, and entry actions."
+                : "Join this world to enter hosted rooms and events."}
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <div className="retro-status-strip">
+                <span>members {world.memberCount}</span>
+                <span>hosts {world.hostCount ?? 1}</span>
               </div>
-            ) : null}
-          </VenuePanel>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3">
+              {canManage ? (
+                <>
+                  <CreateLobby userId={user!.id} worldId={world.id} />
+                  <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
+                    Create event
+                  </Button>
+                  <Button variant="outline">Invite members</Button>
+                </>
+              ) : (
+                <Button
+                  variant="hero"
+                  onClick={handleJoin}
+                  disabled={joining || Boolean(world.userRole)}
+                >
+                  {joining ? "Joining..." : world.userRole ? "Already inside" : "Join world"}
+                </Button>
+              )}
+            </div>
+
+            <div className="mt-10">
+              <p className="font-['League_Spartan'] text-[68px] font-black leading-none tracking-[-0.06em] text-[#0e0e0f]">
+                {world.instanceCount}
+              </p>
+              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">
+                active surfaces
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
 

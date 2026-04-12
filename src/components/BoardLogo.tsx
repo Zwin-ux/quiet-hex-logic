@@ -16,22 +16,22 @@ export function BoardLogo({
   showWordmark = true,
   tone = "dark",
 }: BoardLogoProps) {
-  const isDark = tone === "dark";
-
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <div
-        className={cn(
-          "board-domino-mark",
-          isDark ? "text-[#0a0a0a]" : "text-white",
-          iconClassName,
-        )}
-        aria-hidden="true"
-      />
+    <div className={cn("flex items-center", className)}>
+      {!showWordmark ? (
+        <div
+          className={cn(
+            "board-domino-mark",
+            tone === "dark" ? "text-[#0e0e0f]" : "text-white",
+            iconClassName,
+          )}
+          aria-hidden="true"
+        />
+      ) : null}
       {showWordmark && (
         <BoardWordmark
           size="compact"
-          tone={isDark ? "dark" : "light"}
+          tone={tone}
           className={wordmarkClassName}
         />
       )}

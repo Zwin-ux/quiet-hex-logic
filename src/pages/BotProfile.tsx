@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Bot, Swords, Trophy, ArrowLeft, RefreshCw } from 'lucide-react';
 import { NavBar } from '@/components/NavBar';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { guestAuthMessage } from '@/lib/authErrors';
+import { buildAuthRoute } from '@/lib/authRedirect';
 import { toast } from 'sonner';
 
 type BotRow = {
@@ -65,8 +65,9 @@ function variantLabel(gameKey: string, rules: any): string | null {
 
 export default function BotProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { botId } = useParams();
-  const { user, signInAnonymously } = useAuth();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [bot, setBot] = useState<BotRow | null>(null);
@@ -82,12 +83,9 @@ export default function BotProfile() {
 
   const ensureSession = async () => {
     if (user) return true;
-    const { error } = await signInAnonymously();
-    if (error) {
-      toast.error('Sign in required', { description: guestAuthMessage(error, 'challenge bots') });
-      return false;
-    }
-    return true;
+    toast.error('Sign in required', { description: 'Use an account to challenge bots from this profile.' });
+    navigate(buildAuthRoute(location.pathname));
+    return false;
   };
 
   const canChallenge = useMemo(() => {

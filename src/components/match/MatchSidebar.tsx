@@ -1,5 +1,6 @@
 import { Eye } from "lucide-react";
 import { AIThinkingIndicator } from "@/components/AIThinkingIndicator";
+import { CounterBlock } from "@/components/board/CounterBlock";
 import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { PlayerPanel } from "@/components/PlayerPanel";
@@ -30,10 +31,37 @@ export function MatchSidebar({
 }: MatchSidebarProps) {
   const seatAState = currentColor === 1 && match.status === "active" ? "success" : "normal";
   const seatBState = currentColor === 2 && match.status === "active" ? "success" : "normal";
+  const presencePanel =
+    !isAIMatch && spectators.length > 0 ? (
+      <VenuePanel
+        eyebrow="Presence"
+        title={`${spectators.length} watching`}
+        titleBarEnd={<StateTag>{spectators.length} attached</StateTag>}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CounterBlock label="watchers" value={spectators.length} />
+          <CounterBlock label="status" value="live" />
+        </div>
+        <div className="mt-4 space-y-2 border-t border-black pt-4">
+          {spectators.slice(0, 5).map((spectator) => (
+            <div key={spectator.profile_id} className="retro-status-strip justify-between bg-[#e8e8e8] px-3 py-2">
+              <span>{spectator.profiles?.username || "Anonymous"}</span>
+              <span className="inline-flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                watching
+              </span>
+            </div>
+          ))}
+          {spectators.length > 5 ? (
+            <div className="board-meta-chip">+{spectators.length - 5} more watching</div>
+          ) : null}
+        </div>
+      </VenuePanel>
+    ) : null;
 
   return (
     <>
-      <div className="order-1 space-y-4 lg:block">
+      <div className="order-1 space-y-4 lg:sticky lg:top-6 lg:block">
         {player1 ? (
           <VenuePanel
             eyebrow="Seat A"
@@ -81,10 +109,14 @@ export function MatchSidebar({
               ) : null}
             </VenuePanel>
           ) : null}
+
+          <div className="lg:hidden">
+            {presencePanel}
+          </div>
         </div>
       </div>
 
-      <div className="order-3 hidden space-y-4 lg:block">
+      <div className="order-3 hidden space-y-4 lg:sticky lg:top-6 lg:block">
         {player2 ? (
           <VenuePanel
             eyebrow="Seat B"
@@ -108,35 +140,10 @@ export function MatchSidebar({
                 <AIThinkingIndicator isThinking={aiThinking} difficulty={match.ai_difficulty} />
               </div>
             ) : null}
-          </VenuePanel>
-        ) : null}
+            </VenuePanel>
+          ) : null}
 
-        {!isAIMatch && spectators.length > 0 ? (
-          <VenuePanel
-            eyebrow="Presence"
-            title={`${spectators.length} watching`}
-            titleBarEnd={<StateTag>{spectators.length} attached</StateTag>}
-          >
-            <div className="retro-status-strip justify-between bg-white">
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                <span>Watch lane</span>
-              </div>
-              <span>live</span>
-            </div>
-            <div className="mt-4 space-y-2 border-t border-black pt-4">
-              {spectators.slice(0, 5).map((spectator) => (
-                <div key={spectator.profile_id} className="retro-status-strip justify-between bg-[#e8e8e8] px-3 py-2">
-                  <span>{spectator.profiles?.username || "Anonymous"}</span>
-                  <span>watching</span>
-                </div>
-              ))}
-              {spectators.length > 5 ? (
-                <div className="board-meta-chip">+{spectators.length - 5} more watching</div>
-              ) : null}
-            </div>
-          </VenuePanel>
-        ) : null}
+        {presencePanel}
       </div>
     </>
   );

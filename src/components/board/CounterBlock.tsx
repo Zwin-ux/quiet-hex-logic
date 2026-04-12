@@ -10,8 +10,10 @@ type CounterBlockProps = {
 export function CounterBlock({ label, value, className }: CounterBlockProps) {
   return (
     <div className={cn("retro-counter", className)}>
-      <span>{label}</span>
-      <span className="text-white">{value}</span>
+      <span className="board-rail-label text-[10px] text-black/48">{label}</span>
+      <span className="text-[2rem] font-black leading-none tracking-[-0.06em] text-foreground">
+        {value}
+      </span>
     </div>
   );
 }

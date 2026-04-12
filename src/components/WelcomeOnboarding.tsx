@@ -149,7 +149,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
           <VenuePanel
             eyebrow="Why this exists"
             title="Start fast, commit later."
-            description="The first touch should feel physical and immediate. Accounts matter when you want worlds, recurring identity, room history, and host-run competition."
+            description="Start with board feel. Use an account when you want venues, history, and events."
             titleBarEnd={<StateTag tone="warning">identity later</StateTag>}
           >
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
@@ -160,7 +160,7 @@ export function WelcomeOnboarding({ onComplete, onCreateMatch, isCreating }: Wel
                   <CounterBlock label="venue" value="later" />
                 </div>
                 <div className="retro-warning-strip mt-5 text-sm">
-                  No account is needed to test the systems. The product proves itself through board feel first, then asks you to step into a venue.
+                  No account needed. Try the board first, step into a venue later.
                 </div>
               </div>
               <div className="retro-inset bg-white p-3">

@@ -4,8 +4,8 @@ import { Sparkles, Hash, Grid2x2, Hexagon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getGameMeta } from '@/lib/gameMetadata';
 import { useAuth } from '@/hooks/useAuth';
+import { buildAuthRoute } from '@/lib/authRedirect';
 import { supabase } from '@/integrations/supabase/client';
-import { guestAuthMessage } from '@/lib/authErrors';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -41,19 +41,11 @@ export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HT
   const { user } = useAuth();
 
   const handleTryIt = async (mod: typeof FEATURED_MODS[0]) => {
-    let currentUser = user;
-    if (!currentUser) {
-      try {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) throw error;
-        currentUser = data.user;
-      } catch (err) {
-        toast.error('Sign in required', { description: guestAuthMessage(err, 'launch variants') });
-        return;
-      }
+    if (!user) {
+      toast.error('Sign in required', { description: 'Use an account to launch hosted variants.' });
+      navigate(buildAuthRoute('/mods'));
+      return;
     }
-
-    if (!currentUser) return;
 
     try {
       const { data, error } = await supabase
@@ -62,7 +54,7 @@ export const FeaturedMods = memo(forwardRef<HTMLElement, React.HTMLAttributes<HT
           game_key: mod.game_key,
           status: 'active',
           turn: 1,
-          owner: currentUser.id,
+          owner: user.id,
           // rules: mod.rules as any, // Only add if the schema supports it, otherwise use game_key/options
           is_ranked: false,
         })

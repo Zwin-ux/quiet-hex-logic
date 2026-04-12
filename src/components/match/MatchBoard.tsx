@@ -36,6 +36,7 @@ interface MatchBoardProps {
   showConfetti: boolean;
   ratingResult: RatingResult | null;
   requestingRematch: boolean;
+  timeRemaining: number | null;
   userId: string | undefined;
   onMove: (move: any) => void;
   onSwapColors: () => void;
@@ -70,6 +71,7 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
     showConfetti,
     ratingResult,
     requestingRematch,
+    timeRemaining,
     userId,
     onMove,
     onSwapColors,
@@ -103,95 +105,84 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
       ? "Your move"
       : `Waiting for ${currentPlayer?.username || "opponent"}`;
 
-  const turnTone =
-    match.status !== "active"
-      ? "normal"
-      : isSpectating
-        ? "warning"
-        : currentPlayer?.profile_id === userId ||
-            (isDiscordLocalMatch && currentPlayer?.profile_id === "discord-player")
-          ? "success"
-          : "normal";
+  const formatTime = (seconds: number | null) => {
+    if (seconds == null) return "clock off";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div className="order-2 flex w-full flex-col items-center gap-4 lg:gap-6">
+    <div className="w-full space-y-4">
       {showAIReasoning && aiReasoning ? (
         <VenuePanel
           eyebrow="Reasoning"
           title="Engine note"
           description={aiReasoning}
-          className="w-full max-w-3xl"
+          className="w-full"
           state="warning"
-          titleBarEnd={<StateTag tone="warning">Expert only</StateTag>}
+          titleBarEnd={<StateTag tone="warning">expert only</StateTag>}
         >
           <div className="retro-status-strip justify-between bg-white">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span>Why this move</span>
             </div>
-            <span>Analysis open</span>
+            <span>analysis open</span>
           </div>
         </VenuePanel>
       ) : null}
 
-      <section className="retro-window w-full">
-        <div className="retro-window__titlebar">
-          <div>
-            <p className="retro-window__eyebrow">Board well</p>
-            <h2 className="retro-window__title mt-1">
-              {Board ? `${gameDef?.displayName ?? gameKey} board` : "Missing board UI"}
-            </h2>
-          </div>
-          <StateTag tone={turnTone}>{match.status === "active" ? "active" : "result"}</StateTag>
-        </div>
-
-        <div className="retro-window__body !bg-[#f3f0e5] p-3 md:p-4">
-          <div className="retro-inset bg-white p-2">
-            <div className="aspect-square w-full bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,241,233,0.92))]">
-              {Board ? (
-                <Board
-                  engine={engine}
-                  matchSize={match.size}
-                  boardSkin={boardSkin}
-                  winningPath={winningPath}
-                  lastMove={lastMove}
-                  isAggressiveMove={isAggressiveMove}
-                  disabled={disabled}
-                  canSwap={canSwap}
-                  onMove={onMove}
-                  onSwapColors={onSwapColors}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center border border-black bg-white text-black">
-                  <div className="space-y-2 p-6 text-center">
-                    <div className="board-rail-label">Missing board UI</div>
-                    <div className="board-section-title">{gameKey}</div>
-                    <div className="text-xs">
-                      Add a <span className="font-mono">boardComponent</span> in{" "}
-                      <span className="font-mono">src/lib/engine/registry.ts</span>.
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => onNavigate("/docs")}>
-                      Open docs
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {match.status === "active" ? (
-        <div className="w-full">
-          {turnTone === "warning" ? (
-            <div className="retro-warning-strip text-center">{statusCopy}</div>
+        <div className="retro-status-strip justify-between gap-3 bg-white px-4 py-4">
+          <span>{statusCopy}</span>
+          {timeRemaining != null ? <StateTag tone={timeRemaining <= 10 ? "critical" : timeRemaining <= 30 ? "warning" : "success"}>{formatTime(timeRemaining)}</StateTag> : null}
+        </div>
+      ) : null}
+
+      <section className="border-2 border-black bg-[#fbfaf8] p-3 md:p-4">
+        <div className="aspect-square w-full border border-black bg-[#f6f4f0] p-2 md:p-3">
+          {Board ? (
+            <Board
+              engine={engine}
+              matchSize={match.size}
+              boardSkin={boardSkin}
+              winningPath={winningPath}
+              lastMove={lastMove}
+              isAggressiveMove={isAggressiveMove}
+              disabled={disabled}
+              canSwap={canSwap}
+              onMove={onMove}
+              onSwapColors={onSwapColors}
+            />
           ) : (
-            <div className="retro-status-strip justify-between bg-white px-4 py-3">
-              <span>Turn state</span>
-              <StateTag tone={turnTone}>{statusCopy}</StateTag>
+            <div className="flex h-full items-center justify-center border border-black bg-white text-black">
+              <div className="space-y-2 p-6 text-center">
+                <div className="board-rail-label">Missing board UI</div>
+                <div className="board-section-title">{gameKey}</div>
+                <div className="text-xs">
+                  Add a <span className="font-mono">boardComponent</span> in{" "}
+                  <span className="font-mono">src/lib/engine/registry.ts</span>.
+                </div>
+                <Button variant="outline" size="sm" onClick={() => onNavigate("/docs")}>
+                  Open docs
+                </Button>
+              </div>
             </div>
           )}
         </div>
+      </section>
+
+      <div className="retro-status-strip flex-wrap gap-3 bg-white px-4 py-4">
+        <StateTag>{`move ${Math.max(match.turn - 1, 0)}`}</StateTag>
+        <StateTag tone={match.status === "active" ? "success" : "warning"}>
+          {currentColor === 1 ? `${player1?.username || "seat a"} to move` : `${player2?.username || "seat b"} to move`}
+        </StateTag>
+        <StateTag>{match.status === "finished" ? "review ready" : "replay ready"}</StateTag>
+      </div>
+
+      {match.status === "active" && canSwap ? (
+        <div className="retro-warning-strip w-full text-center">Swap colors is available on this turn.</div>
       ) : null}
 
       {isAIMatch && currentColor === 2 && match.status === "active" ? (
@@ -223,7 +214,7 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
                 ? "The board closed level."
                 : `${match.winner === 1 ? player1?.username : player2?.username} closed the room.`
             }
-            className="w-full max-w-3xl"
+            className="w-full"
             state={match.result === "draw" ? "warning" : match.winner === userPlayer?.color ? "normal" : "critical"}
             titleBarEnd={
               <StateTag tone={match.result === "draw" ? "warning" : match.winner === userPlayer?.color ? "success" : "critical"}>
@@ -257,7 +248,7 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
               </div>
             ) : null}
 
-            <div className="retro-command-rail">
+            <div className="flex flex-wrap gap-3">
               {isAIMatch ? (
                 <Button onClick={onPlayAgainAI}>
                   <RefreshCw className="h-4 w-4" />

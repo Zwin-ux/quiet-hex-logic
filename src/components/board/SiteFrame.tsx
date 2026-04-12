@@ -19,16 +19,16 @@ export function SiteFrame({
     <div className={cn("board-shell", className)}>
       <div className="pointer-events-none fixed inset-0">
         <div className="board-grid absolute inset-0 opacity-70" />
-        <div className="board-topography absolute inset-0 opacity-80" />
-        <div className="absolute inset-x-0 top-0 h-48 board-texture-fade opacity-80" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/[0.03] to-transparent" />
+        <div className="board-topography absolute inset-0 opacity-90" />
+        <div className="absolute inset-x-0 top-0 h-64 board-texture-fade opacity-80" />
+        <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/[0.04] to-transparent" />
       </div>
 
       {showNav ? <NavBar /> : null}
 
       <main
         className={cn(
-          "board-page-width relative z-10 mx-auto px-4 pb-20 pt-32 md:px-6 lg:px-8",
+          "board-page-width relative z-10 mx-auto px-4 pb-20 pt-28 md:px-6 md:pt-32 lg:px-8",
           contentClassName,
         )}
       >

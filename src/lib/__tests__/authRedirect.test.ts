@@ -5,6 +5,7 @@ import {
   buildAuthRoute,
   buildPasswordResetRedirectUrl,
   getCurrentAppPath,
+  parseAuthUrlState,
   resolvePostAuthPath,
 } from '../authRedirect';
 
@@ -59,5 +60,24 @@ describe('auth redirect helpers', () => {
       'https://board.test/auth?reset=true&next=%2Fworlds%2Fdemo-world',
     );
     expect(resolvePostAuthPath('/worlds/demo-world')).toBe('/worlds/demo-world');
+  });
+
+  it('parses auth callback errors and strips transient params', () => {
+    const state = parseAuthUrlState('?next=%2Fplay&error_description=Access%20denied&code=abc', '');
+
+    expect(state.returnTo).toBe('/play');
+    expect(state.authError).toBe('Access denied');
+    expect(state.hasCode).toBe(true);
+    expect(state.cleanedSearch).toBe('?next=%2Fplay');
+    expect(state.notice?.tone).toBe('critical');
+  });
+
+  it('treats recovery callbacks as reset flow without clearing token hashes early', () => {
+    const state = parseAuthUrlState('?next=%2Fworlds%2Fdemo-world', '#type=recovery&access_token=test-token');
+
+    expect(state.returnTo).toBe('/worlds/demo-world');
+    expect(state.isResetFlow).toBe(true);
+    expect(state.shouldClearHash).toBe(false);
+    expect(state.notice?.title).toBe('Reset your password');
   });
 });

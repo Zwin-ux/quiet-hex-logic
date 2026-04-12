@@ -10,6 +10,7 @@ import { createLocalAIMatch } from "@/lib/localAiMatch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { AsciiGameCard } from "@/components/board/AsciiGameCard";
 import { SectionRail } from "@/components/board/SectionRail";
 import { VenuePanel } from "@/components/board/VenuePanel";
 
@@ -26,8 +27,8 @@ export const GameGrid = memo(
       const navigate = useNavigate();
       const { user } = useAuth();
       const [loadingDifficulty, setLoadingDifficulty] = useState<string | null>(null);
-      const [selectedGame, setSelectedGame] = useState<string | null>(null);
       const games = listGames();
+      const [selectedGame, setSelectedGame] = useState<string | null>(games[0]?.key ?? null);
 
       const handleStart = async (gameKey: string, difficulty: AIDifficulty) => {
         setLoadingDifficulty(difficulty);
@@ -98,11 +99,10 @@ export const GameGrid = memo(
               title="Local tables, live immediately."
               description={
                 <>
-                  Practice is the quick-entry surface. Pick a ruleset, choose the
-                  pressure level, and start a table without waiting on world setup.
+                  Pick a ruleset, read the ASCII board, set pressure, and launch.
                 </>
               }
-              actions={<div className="text-sm font-semibold text-[#4f4f4f]">Guest practice stays available</div>}
+              actions={<div className="text-sm font-semibold text-[#4f4f4f]">Guest practice stays open</div>}
             />
 
             <div className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -167,13 +167,15 @@ export const GameGrid = memo(
                 title={selectedGame ? getGame(selectedGame).displayName : "Choose a game"}
                 description={
                   selectedGame
-                    ? "Pick the intensity you want. These matches launch immediately and are tuned for repetition, study, and instinct."
-                    : "Each ruleset opens a local practice path first. Select a game to expose the difficulty rail."
+                    ? "Live ASCII preview first. Difficulty rail below."
+                    : "Select a game to expose the difficulty rail."
                 }
                 className="min-h-[420px] bg-[#fbfaf6]"
               >
                 {selectedGame ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    <AsciiGameCard gameKey={selectedGame} size="feature" />
+
                     {DIFFICULTIES.map((difficulty) => (
                       <Button
                         key={difficulty.id}
@@ -206,8 +208,7 @@ export const GameGrid = memo(
                 <div className="mt-8 border-t border-black/10 pt-5">
                   <p className="board-rail-label">Practice note</p>
                   <p className="mt-3 max-w-md text-sm leading-7 text-[#66645f]">
-                    BOARD keeps solo play frictionless on purpose. The host-owned
-                    layers matter more when you move into rooms, worlds, and events.
+                    Solo play stays instant. Worlds and events add the host layer later.
                   </p>
                 </div>
               </VenuePanel>
