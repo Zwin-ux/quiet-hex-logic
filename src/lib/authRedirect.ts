@@ -52,6 +52,12 @@ function getAuthOrigin(): string {
   return "http://localhost";
 }
 
+export function buildAppUrl(path?: string | null): string {
+  const origin = getAuthOrigin();
+  const safePath = sanitizeReturnPath(path) ?? DEFAULT_POST_AUTH_PATH;
+  return new URL(safePath, origin).toString();
+}
+
 export function buildAuthRoute(returnTo?: string | null): string {
   const url = new URL("/auth", getAuthOrigin());
   const safeReturnTo = sanitizeReturnPath(returnTo) ?? getCurrentAppPath();

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildAppUrl,
   buildAuthRedirectUrl,
   buildAuthRoute,
   buildPasswordResetRedirectUrl,
@@ -69,6 +70,9 @@ describe('auth redirect helpers', () => {
       VITE_PUBLIC_APP_URL: 'https://board.example.com',
     };
 
+    expect(buildAppUrl('/profile?connections=1')).toBe(
+      'https://board.example.com/profile?connections=1',
+    );
     expect(buildAuthRedirectUrl('/events')).toBe('https://board.example.com/auth?next=%2Fevents');
     expect(buildPasswordResetRedirectUrl('/events')).toBe(
       'https://board.example.com/auth?reset=true&next=%2Fevents',

@@ -28,6 +28,7 @@ import WorldIDWidget from '@/components/WorldID';
 import { BaseWalletSectionLazy } from '@/components/Base';
 import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
 import { NavBar } from '@/components/NavBar';
+import { AuthConnectionsSection } from '@/components/AuthConnectionsSection';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface ProfileData {
@@ -297,6 +298,8 @@ const Profile = () => {
             </div>
           </div>
         </Card>
+
+        <AuthConnectionsSection />
 
         <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[550ms]">
           <div className="flex items-center gap-3 mb-6">
