@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { ArrowLeft, Chrome, Disc3, KeyRound, Loader2, Lock, Mail, User } from "lucide-react";
-import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
+import { SupportFrame } from "@/components/support/SupportFrame";
+import { SupportPanel } from "@/components/support/SupportPanel";
+import { SupportSoon } from "@/components/support/SupportSoon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -359,28 +361,32 @@ export default function Auth() {
       <div className="mt-8 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px]">
         <AuthProviderButton
           label="Continue with Google"
-          detail="Fast entry"
+          detail="Primary login"
           icon={Chrome}
           disabled={isSubmitting || Boolean(authStorageIssue)}
           onClick={() => handleProviderSignIn("google")}
-          variant="hero"
+          variant="support"
         />
         <AuthProviderButton
           label="Discord"
-          detail={discordReady ? "Second login" : "Add later"}
+          detail={discordReady ? "Second login" : "SOOON"}
           icon={Disc3}
           disabled={isSubmitting || Boolean(authStorageIssue) || !discordReady}
           onClick={() => handleProviderSignIn("discord")}
-          variant="outline"
+          variant="supportOutline"
         />
       </div>
 
-      <div className="mt-6 border-t border-[#0e0e0f]/14 pt-6">
-        <p className="board-rail-label text-[11px] text-[#525257]">Email Entry</p>
+      {!discordReady ? (
+        <SupportSoon className="mt-4" detail="Discord login lands here after the Google / World ID pass." />
+      ) : null}
+
+      <div className="mt-6 border-t border-white/14 pt-6">
+        <p className="support-mini-label text-white/60">Email entry</p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button
             type="button"
-            variant={authMode === "password" && authTab === "signup" ? "secondary" : "outline"}
+            variant={authMode === "password" && authTab === "signup" ? "support" : "supportGhost"}
             onClick={() => {
               setAuthMode("password");
               setAuthTab("signup");
@@ -391,7 +397,7 @@ export default function Auth() {
           </Button>
           <Button
             type="button"
-            variant={authMode === "password" && authTab === "signin" ? "secondary" : "outline"}
+            variant={authMode === "password" && authTab === "signin" ? "support" : "supportGhost"}
             onClick={() => {
               setAuthMode("password");
               setAuthTab("signin");
@@ -402,7 +408,7 @@ export default function Auth() {
           </Button>
           <Button
             type="button"
-            variant={authMode === "magic-link" ? "secondary" : "outline"}
+            variant={authMode === "magic-link" ? "support" : "supportGhost"}
             onClick={() => setAuthMode("magic-link")}
             disabled={Boolean(authStorageIssue)}
           >
@@ -418,7 +424,7 @@ export default function Auth() {
         <div>
           <Label
             htmlFor="entry-email"
-            className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+            className="support-mini-label mb-2 block text-white/60"
           >
             Email
           </Label>
@@ -430,6 +436,7 @@ export default function Auth() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              variant="support"
               className="pl-11"
               autoFocus
               required
@@ -440,12 +447,12 @@ export default function Auth() {
 
         {authMode === "password" && authTab === "signup" ? (
           <div>
-            <Label
-              htmlFor="entry-username"
-              className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
-            >
-              Username
-            </Label>
+          <Label
+            htmlFor="entry-username"
+            className="support-mini-label mb-2 block text-white/60"
+          >
+            Username
+          </Label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d7a74]" />
               <Input
@@ -454,6 +461,7 @@ export default function Auth() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Choose a name"
+                variant="support"
                 className="pl-11"
                 required
                 disabled={Boolean(authStorageIssue)}
@@ -467,7 +475,7 @@ export default function Auth() {
             <div className="mb-2 flex items-center justify-between">
               <Label
                 htmlFor="entry-password"
-                className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+                className="support-mini-label text-white/60"
               >
                 Password
               </Label>
@@ -490,6 +498,7 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
+                variant="support"
                 className="pl-11"
                 required
                 disabled={Boolean(authStorageIssue)}
@@ -499,7 +508,7 @@ export default function Auth() {
         ) : null}
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" variant="hero" disabled={isSubmitting || Boolean(authStorageIssue)}>
+          <Button type="submit" variant="support" disabled={isSubmitting || Boolean(authStorageIssue)}>
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -516,44 +525,44 @@ export default function Auth() {
         </div>
       </form>
 
-      <p className="mt-4 max-w-[430px] text-[13px] leading-6 text-[#525257]">
+      <p className="mt-4 max-w-[430px] text-[13px] leading-6 text-white/68">
         Use one account. Link backup logins later from{" "}
-        <span className="font-semibold text-[#0e0e0f]">Profile / Account Connections</span>.
+        <span className="font-semibold text-white">Profile / Account Connections</span>.
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border border-[#0e0e0f] bg-[#f3efe6] px-4 py-4">
-        <p className="max-w-[24rem] text-[14px] leading-7 text-[#525257]">
+      <div className="support-inline-card mt-8 flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">
           Need a board now? Open local practice.
         </p>
-        <Button type="button" variant="outline" onClick={() => navigate("/play")}>
+        <Button type="button" variant="supportOutline" onClick={() => navigate("/play")}>
           Local practice
         </Button>
       </div>
 
       {shouldShowReturnTarget ? (
-        <div className="mt-6 border border-[#0e0e0f] p-4">
-          <p className="board-rail-label text-[11px] text-[#525257]">Return target</p>
-          <p className="mt-2 text-[15px] leading-7 text-[#0e0e0f]">{returnTo}</p>
+        <div className="support-note mt-6">
+          <p className="support-mini-label text-white/58">Return target</p>
+          <p className="mt-2 text-[15px] leading-7 text-white">{returnTo}</p>
         </div>
       ) : null}
 
       {authStorageIssue ? (
-        <div className="mt-6 border border-[#8a4b08] bg-[#fff4e8] p-4">
-          <p className="board-rail-label text-[11px] text-[#8a4b08]">Compatibility issue</p>
-          <p className="mt-2 text-[15px] leading-7 text-[#0e0e0f]">{authStorageIssue}</p>
+        <div className="mt-6 rounded-[24px] border-4 border-[#ffe600] bg-[#ff6b35]/18 p-4 text-white">
+          <p className="support-mini-label text-[#ffe600]">Compatibility issue</p>
+          <p className="mt-2 text-[15px] leading-7">{authStorageIssue}</p>
         </div>
       ) : null}
     </>
   );
 
   return (
-    <SiteFrame contentClassName="pt-28 md:pt-32">
-      <div className="board-page-width mx-auto">
+    <SupportFrame contentClassName="pt-28 md:pt-32">
+      <div className="mx-auto max-w-[1240px]">
         <div className="flex items-center justify-between gap-4 pb-8">
-          <StateTag>Account</StateTag>
+          <div className="support-chip">Account access</div>
           {shouldShowReturnTarget ? (
-            <div className="hidden border border-[#0e0e0f] px-3 py-2 md:block">
-              <p className="board-rail-label text-[11px] text-[#0e0e0f]">
+            <div className="hidden rounded-full border-4 border-[#ff6b35] bg-white/10 px-4 py-2 md:block">
+              <p className="support-mini-label text-white">
                 Next / {returnTo.replace(/^\//, "")}
               </p>
             </div>
@@ -561,26 +570,27 @@ export default function Auth() {
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[520px_minmax(0,1fr)]">
-          <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6 md:p-7">
-            <h1 className="text-[clamp(2.25rem,4vw,3.5rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#0e0e0f]">
-              {getAuthTitle(authView, emailSent, authTab)}
-            </h1>
-            <p className="mt-5 max-w-[430px] text-[18px] leading-8 text-[#525257]">
-              {getAuthDescription(authView, emailSent, authTab, email)}
-            </p>
-
+          <SupportPanel
+            tone="light"
+            eyebrow="Access desk"
+            title={getAuthTitle(authView, emailSent, authTab)}
+            description={getAuthDescription(authView, emailSent, authTab, email)}
+            className="min-h-full"
+            motionIndex={0}
+            motionVariant="hero"
+          >
             {authNotice ? (
               <div
-                className={`mt-6 border p-4 ${
+                className={`mt-1 rounded-[24px] border-4 p-4 ${
                   authNotice.tone === "critical"
-                    ? "border-[#a80000] bg-[#fff3f3]"
+                    ? "border-[#ffe600] bg-[#ff6b35]/18 text-white"
                     : authNotice.tone === "warning"
-                      ? "border-[#8a4b08] bg-[#fff4e8]"
-                      : "border-[#0e0e0f] bg-white"
+                      ? "border-[#ff6b35] bg-[#ffe600]/20 text-white"
+                      : "border-[#00f5d4] bg-white/8 text-white"
                 }`}
               >
-                <p className="board-rail-label text-[11px] text-[#525257]">{authNotice.title}</p>
-                <p className="mt-2 text-[15px] leading-7 text-[#0e0e0f]">{authNotice.description}</p>
+                <p className="support-mini-label text-inherit">{authNotice.title}</p>
+                <p className="mt-2 text-[15px] leading-7">{authNotice.description}</p>
               </div>
             ) : null}
 
@@ -624,34 +634,47 @@ export default function Auth() {
             ) : (
               renderMainForm()
             )}
-          </section>
+          </SupportPanel>
 
           <div className="space-y-8">
-            <section className="border border-[#090909] bg-[#090909] p-6 md:p-7">
-              <p className="board-rail-label text-[11px] text-white/68">ENTRY</p>
-              <div className="mt-6 text-[clamp(2.3rem,4vw,3.5rem)] font-extrabold leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
-                <p>Sign in.</p>
-                <p>Open rooms.</p>
-                <p>Watch finals.</p>
-              </div>
-              <p className="mt-6 max-w-[22rem] text-[17px] leading-8 text-[#e8e1d5]">
-                Google first. Email if needed. Link more logins later. Verify before ranked.
-              </p>
-            </section>
+            <SupportPanel
+              tone="dark"
+              eyebrow="Quick read"
+              title={
+                <>
+                  <p>Sign in.</p>
+                  <p>Open rooms.</p>
+                  <p>Watch finals.</p>
+                </>
+              }
+              description="Google first. Email if needed. Link more logins later. Verify before ranked."
+              motionIndex={1}
+              motionVariant="aside"
+            />
 
-            <section className="border border-[#090909]/12 bg-white/60 p-6 md:p-7">
-              <p className="board-rail-label text-[11px] text-[#5c5750]">ONE ACCOUNT</p>
-              <p className="mt-4 max-w-[22rem] text-[17px] leading-8 text-[#17181c]">
-                Sign in once. Keep one record.
-              </p>
-              <Button type="button" variant="outline" className="mt-8" onClick={() => navigate("/play")}>
-                Play local
-              </Button>
-            </section>
+            <SupportPanel
+              tone="paper"
+              eyebrow="One account"
+              title="Keep one record."
+              description="Use Google or email to get in. Add backup logins later. Do not split progress across multiple accounts."
+              motionIndex={2}
+              footer={
+                <Button type="button" variant="supportOutline" className="w-full justify-between" onClick={() => navigate("/play")}>
+                  <span>Play local</span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              }
+            >
+              <div className="flex flex-wrap gap-2">
+                <span className="support-chip support-chip--paper">Google</span>
+                <span className="support-chip support-chip--paper">Email</span>
+                <span className="support-chip support-chip--paper">World ID later</span>
+              </div>
+            </SupportPanel>
           </div>
         </div>
       </div>
-    </SiteFrame>
+    </SupportFrame>
   );
 }
 
@@ -668,13 +691,13 @@ function AuthProviderButton({
   icon: typeof Chrome;
   disabled: boolean;
   onClick: () => void;
-  variant: "hero" | "outline";
+  variant: "support" | "supportOutline";
 }) {
   return (
     <Button
       type="button"
       variant={variant}
-      className="h-auto min-h-[72px] justify-between whitespace-normal px-4 py-4 text-left"
+      className="h-auto min-h-[76px] justify-between whitespace-normal px-4 py-4 text-left"
       disabled={disabled}
       onClick={onClick}
     >
@@ -682,7 +705,7 @@ function AuthProviderButton({
         <Icon className="h-4 w-4" />
         <span className="min-w-0">
           <span className="block font-semibold">{label}</span>
-          <span className="block text-[12px] font-medium uppercase tracking-[0.12em] opacity-72">
+          <span className="block text-[12px] font-medium uppercase tracking-[0.12em] opacity-80">
             {detail}
           </span>
         </span>
@@ -695,7 +718,7 @@ function getAuthTitle(authView: AuthView, emailSent: boolean, authTab: AuthTab) 
   if (authView === "forgot-password") return emailSent ? "Check your inbox" : "Reset password";
   if (authView === "reset-password") return "Set a new password";
   if (emailSent) return "Magic link sent";
-  return authTab === "signup" ? "Enter the room" : "Return to the room";
+  return authTab === "signup" ? "Get in fast" : "Get back in";
 }
 
 function getAuthDescription(
@@ -716,7 +739,7 @@ function getAuthDescription(
     return `Use the sign-in link sent to ${email}.`;
   }
   return authTab === "signup"
-    ? "Use Google or email. Open rooms and events later."
+    ? "Use Google or email. Link more logins later."
     : "Sign back in for rooms, invites, and events.";
 }
 
@@ -739,13 +762,13 @@ function ForgotPasswordForm({
 }) {
   return emailSent ? (
     <div className="space-y-6">
-      <div className="border border-[#0e0e0f] p-4">
-        <p className="board-rail-label text-[11px] text-[#525257]">Reset Link Sent</p>
-        <p className="mt-3 text-[16px] leading-7 text-[#0e0e0f]">
+      <div className="support-note">
+        <p className="support-mini-label text-white/58">Reset link sent</p>
+        <p className="mt-3 text-[16px] leading-7 text-white">
           Open the reset link. Then come back.
         </p>
       </div>
-      <Button variant="outline" onClick={onBack} className="h-11 w-full">
+      <Button variant="supportOutline" onClick={onBack} className="h-11 w-full">
         <ArrowLeft className="h-4 w-4" />
         Back to sign in
       </Button>
@@ -755,7 +778,7 @@ function ForgotPasswordForm({
       <div>
         <Label
           htmlFor="reset-email"
-          className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+          className="support-mini-label mb-2 block text-white/60"
         >
           Email
         </Label>
@@ -765,12 +788,13 @@ function ForgotPasswordForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
+          variant="support"
           required
           autoFocus
           disabled={isBlocked}
         />
       </div>
-      <Button type="submit" variant="hero" className="h-11 w-full" disabled={isSubmitting || isBlocked}>
+      <Button type="submit" variant="support" className="h-11 w-full" disabled={isSubmitting || isBlocked}>
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -780,7 +804,7 @@ function ForgotPasswordForm({
           "Send Reset Link"
         )}
       </Button>
-      <Button type="button" variant="outline" className="h-11 w-full" onClick={onBack}>
+      <Button type="button" variant="supportOutline" className="h-11 w-full" onClick={onBack}>
         <ArrowLeft className="h-4 w-4" />
         Back to sign in
       </Button>
@@ -810,7 +834,7 @@ function ResetPasswordForm({
       <div>
         <Label
           htmlFor="new-password"
-          className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+          className="support-mini-label mb-2 block text-white/60"
         >
           New Password
         </Label>
@@ -822,6 +846,7 @@ function ResetPasswordForm({
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password"
+            variant="support"
             className="pl-11"
             required
             autoFocus
@@ -832,7 +857,7 @@ function ResetPasswordForm({
       <div>
         <Label
           htmlFor="confirm-password"
-          className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#525257]"
+          className="support-mini-label mb-2 block text-white/60"
         >
           Confirm Password
         </Label>
@@ -844,13 +869,14 @@ function ResetPasswordForm({
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm password"
+            variant="support"
             className="pl-11"
             required
             disabled={isBlocked}
           />
         </div>
       </div>
-      <Button type="submit" variant="hero" className="h-11 w-full" disabled={isSubmitting || isBlocked}>
+      <Button type="submit" variant="support" className="h-11 w-full" disabled={isSubmitting || isBlocked}>
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -873,13 +899,13 @@ function MagicLinkSent({
 }) {
   return (
     <div className="space-y-6">
-      <div className="border border-[#0e0e0f] p-4">
-        <p className="board-rail-label text-[11px] text-[#525257]">Magic Link Sent</p>
-        <p className="mt-3 text-[16px] leading-7 text-[#0e0e0f]">
+      <div className="support-note">
+        <p className="support-mini-label text-white/58">Magic link sent</p>
+        <p className="mt-3 text-[16px] leading-7 text-white">
           Sign-in link sent to <span className="font-semibold">{email}</span>.
         </p>
       </div>
-      <Button variant="outline" className="h-11 w-full" onClick={onReset}>
+      <Button variant="supportOutline" className="h-11 w-full" onClick={onReset}>
         Use another email
       </Button>
     </div>

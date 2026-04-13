@@ -1,9 +1,11 @@
 import { memo, forwardRef } from "react";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { Button } from "@/components/ui/button";
 import { getGame } from "@/lib/engine/registry";
+import { FIRST_TOURNAMENT } from "@/lib/launchAnnouncements";
 import { cn } from "@/lib/utils";
 
 const HERO_PREVIEW_KEY = "hex";
@@ -57,19 +59,47 @@ export const LandingHero = memo(
                 </div>
 
                 <div className="flex flex-col gap-8 border-t border-black/10 pt-6 md:flex-row md:items-end md:justify-between">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                    <Button
-                      variant="hero"
-                      size="lg"
-                      className="min-w-[178px] justify-between bg-[#090909] text-[#f3efe6] hover:bg-[#17181c]"
-                      onClick={startNow}
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <Button
+                        variant="hero"
+                        size="lg"
+                        className="min-w-[178px] justify-between bg-[#090909] text-[#f3efe6] hover:bg-[#17181c]"
+                        onClick={startNow}
+                      >
+                        <span>Start local</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                      <p className="board-public-label max-w-[30rem] leading-7 text-[#5c5750]">
+                        Hex / {heroGame.defaultBoardSize}x{heroGame.defaultBoardSize} / no sign-in
+                      </p>
+                    </div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                      className="flex flex-wrap items-center gap-3 border border-black/12 bg-white/58 px-4 py-3"
                     >
-                      <span>Start local</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                    <p className="board-public-label max-w-[30rem] leading-7 text-[#5c5750]">
-                      Hex / {heroGame.defaultBoardSize}x{heroGame.defaultBoardSize} / no sign-in
-                    </p>
+                      <p className="board-public-label text-[#5c5750]">FOUNDING OPEN</p>
+                      <p className="board-public-copy text-[0.95rem] text-[#17181c]">
+                        {FIRST_TOURNAMENT.fullDate} / {FIRST_TOURNAMENT.time}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
+                        onClick={() => navigate("/events")}
+                      >
+                        View event
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
+                        onClick={() => navigate("/hiring")}
+                      >
+                        Crew call
+                      </Button>
+                    </motion.div>
                   </div>
 
                   <div className="max-w-[18rem]">

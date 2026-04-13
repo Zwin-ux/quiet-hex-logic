@@ -20,6 +20,7 @@ const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
   { match: /^\/worlds/, label: "World Directory" },
   { match: /^\/play|^\/lobby/, label: "Play Network" },
   { match: /^\/events|^\/tournaments|^\/tournament/, label: "Event Rail" },
+  { match: /^\/hiring/, label: "Hiring" },
   { match: /^\/match|^\/replay/, label: "Live Surface" },
   { match: /^\/docs/, label: "Manual" },
   { match: /^\/workbench/, label: "Workbench" },

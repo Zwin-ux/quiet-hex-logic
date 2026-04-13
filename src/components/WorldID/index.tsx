@@ -13,7 +13,7 @@ import {
 } from "@/lib/worldIdConfig";
 import { toast } from "sonner";
 
-export default function WorldIDWidget() {
+export default function WorldIDWidget({ variant = "default" }: { variant?: "default" | "support" }) {
   const { user } = useAuth();
   const {
     isVerified,
@@ -29,6 +29,7 @@ export default function WorldIDWidget() {
   const worldIdAppId = getWorldIdAppId();
   const worldIdAction = getWorldIdAction();
   const configurationIssue = getWorldIdConfigurationIssue();
+  const isSupport = variant === "support";
 
   const handleSuccess = useCallback(async (result: ISuccessResult) => {
     const { success, error } = await verifyProof({
@@ -50,35 +51,35 @@ export default function WorldIDWidget() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[132px] items-center justify-center border border-black bg-white px-4 py-4">
-        <Loader2 className="h-5 w-5 animate-spin text-black/55" />
+      <div className={isSupport ? "support-inline-card flex min-h-[132px] items-center justify-center" : "flex min-h-[132px] items-center justify-center border border-black bg-white px-4 py-4"}>
+        <Loader2 className={isSupport ? "h-5 w-5 animate-spin text-white/58" : "h-5 w-5 animate-spin text-black/55"} />
       </div>
     );
   }
 
   if (isVerified) {
     return (
-      <div className="space-y-4 border border-black bg-white px-4 py-4">
+      <div className={isSupport ? "support-inline-card space-y-4" : "space-y-4 border border-black bg-white px-4 py-4"}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="board-rail-label text-black/55">Trust state</p>
+            <p className={isSupport ? "support-mini-label text-white/60" : "board-rail-label text-black/55"}>Trust state</p>
             <div className="mt-3 flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-emerald-700" />
               <div>
-                <p className="font-semibold text-black">Human verification complete</p>
-                <p className="text-sm leading-6 text-black/62">
+                <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Human verification complete</p>
+                <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
                   Ranked queues and competitive events unlocked.
                 </p>
               </div>
             </div>
           </div>
-          <div className="retro-status-strip">
+          <div className={isSupport ? "support-chip support-chip--light" : "retro-status-strip"}>
             <span>world id</span>
             <span>verified</span>
           </div>
         </div>
 
-        <p className="text-xs leading-6 text-black/55">
+        <p className={isSupport ? "text-xs leading-6 text-white/58" : "text-xs leading-6 text-black/55"}>
           Verified {verifiedAt ? new Date(verifiedAt).toLocaleDateString() : "recently"}.
         </p>
       </div>
@@ -87,12 +88,12 @@ export default function WorldIDWidget() {
 
   if (isDiscordEnvironment) {
     return (
-      <div className="space-y-4 border border-black bg-white px-4 py-4">
+      <div className={isSupport ? "support-inline-card space-y-4" : "space-y-4 border border-black bg-white px-4 py-4"}>
         <div className="flex items-center gap-3">
           <Scan className="h-5 w-5 text-black/62" />
           <div>
-            <p className="font-semibold text-black">Verify on the web</p>
-            <p className="text-sm leading-6 text-black/62">
+            <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify on the web</p>
+            <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
               Open the web page. Use World App.
             </p>
           </div>
@@ -101,7 +102,7 @@ export default function WorldIDWidget() {
           href={buildAppUrl("/profile#identity")}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-medium text-black underline underline-offset-2"
+          className={isSupport ? "inline-flex items-center gap-2 text-sm font-medium text-[#00f5d4] underline underline-offset-2" : "inline-flex items-center gap-2 text-sm font-medium text-black underline underline-offset-2"}
         >
           <ExternalLink className="h-4 w-4" />
           Open verification on the web
@@ -111,28 +112,28 @@ export default function WorldIDWidget() {
   }
 
   return (
-    <div className="space-y-4 border border-black bg-white px-4 py-4">
+    <div className={isSupport ? "support-inline-card space-y-4" : "space-y-4 border border-black bg-white px-4 py-4"}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="board-rail-label text-black/55">Trust & verification</p>
+          <p className={isSupport ? "support-mini-label text-white/60" : "board-rail-label text-black/55"}>Trust & verification</p>
           <div className="mt-3 flex items-center gap-3">
-            <Globe className="h-5 w-5 text-black/62" />
+            <Globe className={isSupport ? "h-5 w-5 text-[#00f5d4]" : "h-5 w-5 text-black/62"} />
             <div>
-              <p className="font-semibold text-black">Verify for ranked</p>
-              <p className="text-sm leading-6 text-black/62">
+              <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify for ranked</p>
+              <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
                 Use World ID. Join ranked queues. Join competitive events.
               </p>
             </div>
           </div>
         </div>
-        <div className="retro-status-strip">
+        <div className={isSupport ? "support-chip support-chip--light" : "retro-status-strip"}>
           <span>ranked gate</span>
           <span>world id</span>
         </div>
       </div>
 
       {configurationIssue ? (
-        <div className="flex items-start gap-2 border border-dashed border-black/20 bg-[#fbfaf8] px-3 py-3 text-sm text-black/62">
+        <div className={isSupport ? "flex items-start gap-2 rounded-[22px] border-2 border-dashed border-white/20 bg-white/6 px-3 py-3 text-sm text-white/68" : "flex items-start gap-2 border border-dashed border-black/20 bg-[#fbfaf8] px-3 py-3 text-sm text-black/62"}>
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p>{configurationIssue}</p>
@@ -144,7 +145,7 @@ export default function WorldIDWidget() {
       ) : null}
 
       {error ? (
-        <div className="flex items-start gap-2 border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-700">
+        <div className={isSupport ? "flex items-start gap-2 rounded-[22px] border-2 border-[#ffe600] bg-[#ff6b35]/18 px-3 py-3 text-sm text-white" : "flex items-start gap-2 border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-700"}>
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p>{error}</p>
@@ -167,7 +168,7 @@ export default function WorldIDWidget() {
             <Button
               onClick={open}
               disabled={isVerifying}
-              variant="hero"
+              variant={isSupport ? "support" : "hero"}
               className="w-full justify-between"
             >
               <span>{isVerifying ? "Verifying" : "Verify for ranked"}</span>
@@ -178,7 +179,7 @@ export default function WorldIDWidget() {
       ) : (
         <Button
           disabled
-          variant="outline"
+          variant={isSupport ? "supportOutline" : "outline"}
           className="w-full justify-between"
         >
           <span>World ID unavailable</span>
@@ -186,7 +187,7 @@ export default function WorldIDWidget() {
         </Button>
       )}
 
-      <p className="text-xs leading-6 text-black/55">
+      <p className={isSupport ? "text-xs leading-6 text-white/58" : "text-xs leading-6 text-black/55"}>
         Scan in World App.
       </p>
     </div>

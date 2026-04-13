@@ -20,6 +20,12 @@ const buttonVariants = cva(
         hero: "bg-[#0e0e0f] text-[#f6f4f0] hover:bg-[#202124]",
         quiet: "border-transparent bg-transparent text-[#525257] hover:bg-[#efebe3] hover:text-[#0e0e0f]",
         success: "bg-[#0e0e0f] text-[#f6f4f0] hover:bg-[#202124]",
+        support:
+          "rounded-full border-4 border-[#ffe600] bg-[linear-gradient(90deg,#ff3af2_0%,#7b2fff_52%,#00f5d4_100%)] font-black uppercase tracking-[0.18em] text-white shadow-[0_0_28px_rgba(255,58,242,0.35),8px_8px_0_#ffe600,16px_16px_0_#7b2fff] hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_0_34px_rgba(255,58,242,0.5),10px_10px_0_#ffe600,20px_20px_0_#7b2fff] active:translate-y-0 active:scale-[0.99]",
+        supportOutline:
+          "rounded-full border-4 border-dashed border-[#00f5d4] bg-[#171024]/70 font-bold uppercase tracking-[0.16em] text-white shadow-[0_0_20px_rgba(0,245,212,0.18),8px_8px_0_#ff3af2] hover:-translate-y-0.5 hover:border-[#ffe600] hover:bg-[#211739] active:translate-y-0 active:scale-[0.99]",
+        supportGhost:
+          "rounded-full border-4 border-transparent bg-white/8 font-bold uppercase tracking-[0.16em] text-white hover:border-[#ff6b35] hover:bg-white/16 active:scale-[0.99]",
       },
       size: {
         default: "h-11 px-4 py-2",

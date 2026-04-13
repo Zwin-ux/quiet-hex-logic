@@ -27,6 +27,9 @@ export function QuietFooter() {
           <Link to="/events" className="transition-colors hover:text-[#0a0a0a]">
             Events
           </Link>
+          <Link to="/hiring" className="transition-colors hover:text-[#0a0a0a]">
+            Hiring
+          </Link>
           <Link to="/docs" className="transition-colors hover:text-[#0a0a0a]">
             Manual
           </Link>

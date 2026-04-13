@@ -1,9 +1,7 @@
 import { MessageCircle, Mail, Shield } from "lucide-react";
-import { CounterBlock } from "@/components/board/CounterBlock";
-import { SiteFrame } from "@/components/board/SiteFrame";
-import { SectionRail } from "@/components/board/SectionRail";
-import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
+import { SupportFrame } from "@/components/support/SupportFrame";
+import { SupportPanel } from "@/components/support/SupportPanel";
+import { SupportSoon } from "@/components/support/SupportSoon";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -11,105 +9,112 @@ export default function Support() {
   useDocumentTitle("Support");
 
   return (
-    <SiteFrame>
+    <SupportFrame>
       <div className="space-y-8">
-        <SectionRail
-          eyebrow="Support"
-          title="Help for players, hosts, and builders."
-          description={
-            <>
-              If something breaks, feels confusing, or blocks a live event, start here.
-              The fastest path is still Discord.
-            </>
-          }
-          meta={
-            <>
-              <span className="board-meta-chip">Channels / Discord + email</span>
-              <span className="board-meta-chip">Audience / players, hosts, builders</span>
-            </>
-          }
-          status={<StateTag tone="success">operators online</StateTag>}
-        />
+        <SupportPanel
+          tone="dark"
+          eyebrow="Support desk"
+          title="Need help."
+          description="Join Discord for live issues. Use email when it needs a record."
+          motionIndex={0}
+          motionVariant="hero"
+        >
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="support-chip">Discord</span>
+            <span className="support-chip support-chip--light">email</span>
+            <span className="support-chip support-chip--light">hosts + players</span>
+          </div>
+        </SupportPanel>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-          <VenuePanel eyebrow="Fastest help" title="Join the Discord" titleBarEnd={<StateTag tone="success">live support</StateTag>}>
-            <p className="text-sm leading-7 text-muted-foreground">
-              For live questions, setup problems, and event-day issues, Discord is the
-              quickest way to reach us and the rest of the BOARD community.
-            </p>
-            <div className="grid gap-3 pt-5 sm:grid-cols-2">
-              <CounterBlock label="response path" value="discord" />
-              <CounterBlock label="best for" value="live issues" />
+          <SupportPanel
+            tone="light"
+            eyebrow="Fastest help"
+            title="Join the Discord"
+            description="Use this for setup trouble, event-day issues, and short questions."
+            titleBarEnd={<span className="support-chip support-chip--light">live support</span>}
+            motionIndex={1}
+          >
+            <div className="grid gap-3 pt-1 sm:grid-cols-2">
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-white/58">response path</p>
+                <p className="mt-2 text-lg font-semibold text-white">discord</p>
+              </div>
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-white/58">best for</p>
+                <p className="mt-2 text-lg font-semibold text-white">live issues</p>
+              </div>
             </div>
-            <div className="mt-6">
+            <div className="mt-8">
               <a href="https://discord.gg/67EmmZu69q" target="_blank" rel="noopener noreferrer">
-                <Button variant="hero">
+                <Button variant="support">
                   <MessageCircle className="h-4 w-4" />
                   Join Discord
                 </Button>
               </a>
             </div>
-          </VenuePanel>
+          </SupportPanel>
 
-          <VenuePanel eyebrow="Contact" title="Email for technical or business issues" titleBarEnd={<StateTag tone="normal">paper trail</StateTag>}>
-            <p className="text-sm leading-7 text-muted-foreground">
-              Use email when you need a paper trail, have infrastructure questions, or
-              want to talk about running BOARD in a real venue or club context.
-            </p>
-            <div className="grid gap-3 pt-5 sm:grid-cols-2">
-              <CounterBlock label="channel" value="email" />
-              <CounterBlock label="best for" value="technical" />
+          <SupportPanel
+            tone="paper"
+            eyebrow="Contact"
+            title="Email questions"
+            titleBarEnd={<span className="support-chip support-chip--paper">paper trail</span>}
+            motionIndex={2}
+          >
+            <div className="support-note">
+              Use email for venue questions, technical details, or follow-up that should stay in writing.
             </div>
-            <div className="retro-inset mt-6 bg-white p-4">
-              <a href="mailto:community@hexology.me" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:opacity-70">
+            <div className="grid gap-3 pt-1 sm:grid-cols-2">
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-black/58">channel</p>
+                <p className="mt-2 text-lg font-semibold text-black">email</p>
+              </div>
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-black/58">best for</p>
+                <p className="mt-2 text-lg font-semibold text-black">technical</p>
+              </div>
+            </div>
+            <div className="support-inline-card support-inline-card--paper mt-8">
+              <a href="mailto:community@hexology.me" className="inline-flex items-center gap-2 text-sm font-semibold text-black hover:opacity-70">
                 <Mail className="h-4 w-4" />
                 community@hexology.me
               </a>
             </div>
-          </VenuePanel>
+          </SupportPanel>
         </div>
 
-        <VenuePanel eyebrow="Common questions" title="The short version" titleBarEnd={<StateTag tone="normal">reference</StateTag>}>
-          <div className="board-ledger">
-            <div className="board-ledger-row md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div>
-                <h3 className="text-lg font-bold tracking-[-0.04em] text-foreground">How do I play?</h3>
-              </div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                Start from Play for solo practice or open Worlds for host-run rooms and events.
-              </p>
+        <SupportPanel
+          tone="light"
+          eyebrow="Quick answers"
+          title="Quick answers"
+          titleBarEnd={<span className="support-chip support-chip--light">reference</span>}
+          motionIndex={3}
+          motionVariant="hero"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="support-inline-card">
+              <p className="support-mini-label text-white/58">How do I play?</p>
+              <p className="mt-3 text-base leading-7 text-white">Open Play for local boards. Open Worlds for hosted rooms and events.</p>
             </div>
-
-            <div className="board-ledger-row md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div>
-                <h3 className="text-lg font-bold tracking-[-0.04em] text-foreground">What is BOARD+?</h3>
-              </div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                It is the optional supporter plan for extra analysis, aesthetics, and funding the product without ads.
-              </p>
+            <div className="support-inline-card">
+              <p className="support-mini-label text-white/58">What is BOARD+?</p>
+              <SupportSoon className="mt-3" detail="BOARD+ notes land here after the core launch pass." />
             </div>
-
-            <div className="board-ledger-row md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div>
-                <h3 className="text-lg font-bold tracking-[-0.04em] text-foreground">Where do events live?</h3>
-              </div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                Recurring competitions should come from Worlds. The Events page is the network-wide directory.
-              </p>
+            <div className="support-inline-card">
+              <p className="support-mini-label text-white/58">Where do events live?</p>
+              <p className="mt-3 text-base leading-7 text-white">Run recurring events from Worlds. Use Events as the public board.</p>
             </div>
-
-            <div className="board-ledger-row md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="support-inline-card">
               <div className="flex items-center gap-3">
-                <Shield className="h-4 w-4 text-foreground" />
-                <h3 className="text-lg font-bold tracking-[-0.04em] text-foreground">Fair play</h3>
+                <Shield className="h-4 w-4 text-[#ffe600]" />
+                <p className="support-mini-label text-white/58">Fair play</p>
               </div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                BOARD stays pay-to-host, not pay-to-win. Competitive trust matters more than cosmetic upsells.
-              </p>
+              <p className="mt-3 text-base leading-7 text-white">World ID gates competitive entry. Casual play stays open.</p>
             </div>
           </div>
-        </VenuePanel>
+        </SupportPanel>
       </div>
-    </SiteFrame>
+    </SupportFrame>
   );
 }

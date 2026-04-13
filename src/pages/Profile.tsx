@@ -6,10 +6,8 @@ import { AuthConnectionsSection } from "@/components/AuthConnectionsSection";
 import { BaseWalletSectionLazy } from "@/components/Base";
 import WorldIDWidget from "@/components/WorldID";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
-import { CounterBlock } from "@/components/board/CounterBlock";
-import { SiteFrame } from "@/components/board/SiteFrame";
-import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
+import { SupportFrame } from "@/components/support/SupportFrame";
+import { SupportPanel } from "@/components/support/SupportPanel";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
 import { RatingHistoryChart } from "@/components/RatingHistoryChart";
@@ -115,20 +113,23 @@ export default function Profile() {
   const profileDescription = profile?.bio || "Link logins. Verify for ranked. Keep one account.";
 
   return (
-    <SiteFrame contentClassName="pt-24">
+    <SupportFrame contentClassName="pt-24">
       <div className="space-y-8">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px] xl:items-start">
-          <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
-            <p className="board-rail-label text-white/68">Identity / account</p>
+          <SupportPanel
+            tone="dark"
+            eyebrow="Identity / account"
+            className="px-2 md:px-3"
+            description={profileDescription}
+            motionIndex={0}
+            motionVariant="hero"
+          >
             <div className="mt-5 flex flex-wrap items-start justify-between gap-5">
               <div className="min-w-0">
-                <BoardWordmark className="text-[#f3efe6]" />
-                <h1 className="mt-6 text-[clamp(2.8rem,5vw,4.8rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
+                <BoardWordmark className="text-white" />
+                <h1 className="mt-6 text-[clamp(2.8rem,5vw,4.8rem)] font-black leading-[0.9] tracking-[-0.07em] text-white">
                   {profile?.username || "Profile"}
                 </h1>
-                <p className="mt-4 max-w-[34rem] text-[17px] leading-8 text-white/72">
-                  {profileDescription}
-                </p>
               </div>
 
               <UserAvatar
@@ -142,94 +143,114 @@ export default function Profile() {
             </div>
 
             <div className="mt-8 grid gap-3 md:grid-cols-3">
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">login rule</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-white/58">login rule</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-white">
                   One account. Link backups later.
                 </p>
               </div>
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">ranked</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-white/58">ranked</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-white">
                   {profile?.is_verified_human ? "Ready now." : "Verify before entry."}
                 </p>
               </div>
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">recovery</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-white/58">recovery</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-white">
                   {user?.email ? "Email on file." : "Add email next."}
                 </p>
               </div>
             </div>
-          </section>
+          </SupportPanel>
 
-          <aside className="border border-[#090909] bg-[#fbfaf8] px-5 py-5">
+          <SupportPanel tone="paper" motionIndex={1} motionVariant="aside">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="board-rail-label text-black/55">Account state</p>
+                <p className="support-mini-label text-black/55">Account state</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <StateTag tone={trustTone}>{trustLabel}</StateTag>
-                  <StateTag>{linkedProviderCount} methods</StateTag>
+                  <span className="support-chip support-chip--paper">{trustLabel}</span>
+                  <span className="support-chip support-chip--paper">{linkedProviderCount} methods</span>
                 </div>
               </div>
-              <Button variant="outline" onClick={() => navigate("/profile/edit")}>
+              <Button variant="supportOutline" onClick={() => navigate("/profile/edit")}>
                 <Settings className="h-4 w-4" />
                 Edit
               </Button>
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <CounterBlock label="rating" value={profile?.elo_rating ?? 1200} />
-              <CounterBlock label="games" value={stats?.total_games || 0} />
-              <CounterBlock label="win rate" value={`${winRate}%`} />
-              <CounterBlock label="methods" value={linkedProviderCount} />
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-black/58">rating</p>
+                <p className="mt-2 text-[2rem] font-black leading-none tracking-[-0.07em] text-black">{profile?.elo_rating ?? 1200}</p>
+              </div>
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-black/58">games</p>
+                <p className="mt-2 text-[2rem] font-black leading-none tracking-[-0.07em] text-black">{stats?.total_games || 0}</p>
+              </div>
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-black/58">win rate</p>
+                <p className="mt-2 text-[2rem] font-black leading-none tracking-[-0.07em] text-black">{winRate}%</p>
+              </div>
+              <div className="support-grid-stat">
+                <p className="support-mini-label text-black/58">methods</p>
+                <p className="mt-2 text-[2rem] font-black leading-none tracking-[-0.07em] text-black">{linkedProviderCount}</p>
+              </div>
             </div>
-          </aside>
+          </SupportPanel>
         </div>
 
         <div id="identity" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <VenuePanel
+          <SupportPanel
+            tone="light"
             eyebrow="Account Connections"
             title="Link login methods"
             description="Keep one account. Add backup logins."
+            motionIndex={2}
           >
-            <AuthConnectionsSection />
-          </VenuePanel>
+            <AuthConnectionsSection variant="support" />
+          </SupportPanel>
 
-          <VenuePanel
+          <SupportPanel
+            tone="paper"
             eyebrow="Trust & Verification"
             title={profile?.is_verified_human ? "Ranked ready" : "Verify for ranked"}
             description="Use World ID. Join ranked queues. Join competitive events. Skip it for casual play."
-            titleBarEnd={<StateTag tone={profile?.is_verified_human ? "success" : "warning"}>{trustLabel}</StateTag>}
+            titleBarEnd={<span className="support-chip support-chip--paper">{trustLabel}</span>}
+            motionIndex={3}
           >
             <div className="space-y-4">
-              <WorldIDWidget />
-              <div className="border border-black bg-[#fbfaf8] px-4 py-4">
-                <p className="board-rail-label text-black/55">Wallet / Base</p>
+              <WorldIDWidget variant="support" />
+              <div className="support-inline-card support-inline-card--paper">
+                <p className="support-mini-label text-black/55">Wallet / Base</p>
                 <div className="mt-4">
                   <BaseWalletSectionLazy />
                 </div>
               </div>
             </div>
-          </VenuePanel>
+          </SupportPanel>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <VenuePanel
+          <SupportPanel
+            tone="light"
             eyebrow="Competitive rating"
             title="Rating"
             description="Check score. Review recent games."
+            motionIndex={4}
           >
             <RatingHistoryChart
               history={ratingHistory}
               currentRating={profile?.elo_rating ?? 1200}
             />
-          </VenuePanel>
+          </SupportPanel>
 
-          <VenuePanel
+          <SupportPanel
+            tone="paper"
             eyebrow="Board theme"
             title="Pick board skin"
             description="Change tiles. Change board colors."
+            motionIndex={5}
           >
             <div className="grid gap-3">
               {boardSkins.map((skin) => (
@@ -238,10 +259,10 @@ export default function Profile() {
                   type="button"
                   onClick={() => handleSkinChange(skin.id)}
                   disabled={saving}
-                  className={`border px-4 py-4 text-left transition-colors ${
+                  className={`rounded-[24px] border-[3px] px-4 py-4 text-left transition-colors ${
                     selectedSkin === skin.id
-                      ? "border-black bg-[#efebe3]"
-                      : "border-black/16 bg-white hover:bg-[#efebe3]"
+                      ? "border-[#ff6b35] bg-white"
+                      : "border-black/16 bg-white/75 hover:bg-white"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -254,22 +275,25 @@ export default function Profile() {
                 </button>
               ))}
             </div>
-          </VenuePanel>
+          </SupportPanel>
         </div>
 
-        <VenuePanel
+        <SupportPanel
+          tone="light"
           eyebrow="Achievements"
           title={`${earnedAchievements.length}/${achievements.length} unlocked`}
           description="Track wins. Clear goals."
+          motionIndex={6}
+          motionVariant="hero"
           titleBarEnd={
-            <div className="retro-status-strip">
-              <span>profile</span>
-              <span>history</span>
+            <div className="flex flex-wrap gap-2">
+              <span className="support-chip support-chip--light">profile</span>
+              <span className="support-chip support-chip--light">history</span>
             </div>
           }
         >
           {achievements.length === 0 ? (
-            <div className="border border-dashed border-black/20 bg-white px-4 py-6 text-sm leading-7 text-black/62">
+            <div className="support-note">
               Play games. Unlock marks.
             </div>
           ) : (
@@ -277,26 +301,26 @@ export default function Profile() {
               {achievements.map((achievement) => (
                 <div
                   key={achievement.id}
-                  className={`border px-4 py-4 ${
-                    achievement.earned ? "border-black bg-white" : "border-black/16 bg-[#fbfaf8] opacity-60"
+                  className={`rounded-[24px] border-[3px] px-4 py-4 ${
+                    achievement.earned ? "border-[#00f5d4] bg-white/10" : "border-white/14 bg-white/6 opacity-72"
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     <div className="text-4xl">{achievement.icon}</div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-black">{achievement.name}</p>
-                        {achievement.earned ? <StateTag tone="success">unlocked</StateTag> : null}
+                        <p className="font-semibold text-white">{achievement.name}</p>
+                        {achievement.earned ? <span className="support-chip support-chip--light">unlocked</span> : null}
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-black/62">{achievement.description}</p>
+                      <p className="mt-2 text-sm leading-6 text-white/68">{achievement.description}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </VenuePanel>
+        </SupportPanel>
       </div>
-    </SiteFrame>
+    </SupportFrame>
   );
 }

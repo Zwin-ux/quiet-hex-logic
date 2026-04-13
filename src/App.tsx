@@ -39,6 +39,7 @@ const Puzzles = lazy(() => import("./pages/Puzzles"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Support = lazy(() => import("./pages/Support"));
+const Hiring = lazy(() => import("./pages/Hiring"));
 const Mods = lazy(() => import("./pages/Mods"));
 const Arena = lazy(() => import("./pages/Arena"));
 const Workbench = lazy(() => import("./pages/Workbench"));
@@ -231,6 +232,7 @@ const App = () => {
                         />
                         <Route path="/terms" element={<Terms />} />
                         <Route path="/privacy" element={<Privacy />} />
+                        <Route path="/hiring" element={<Hiring />} />
                         <Route path="/support" element={<Support />} />
                         <Route
                           path="/mods"

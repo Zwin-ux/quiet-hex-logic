@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { listWorlds } from "@/lib/worlds";
 import { buildAuthRoute } from "@/lib/authRedirect";
+import { FIRST_TOURNAMENT } from "@/lib/launchAnnouncements";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
@@ -245,21 +246,30 @@ export default function Tournaments() {
           </section>
 
           <aside className="border border-black bg-[#fbfaf8] px-5 py-5">
-            <p className="board-rail-label text-black/55">Featured bracket</p>
+            <p className="board-rail-label text-black/55">First tournament</p>
             <h2 className="mt-5 text-[2.3rem] font-black leading-[0.92] tracking-[-0.06em] text-black">
-              {primaryEvent?.name || "Host the first bracket"}
+              {primaryEvent?.name || FIRST_TOURNAMENT.title}
             </h2>
             <p className="mt-4 text-[16px] leading-7 text-black/68">
               {primaryEvent?.description ||
-                "Set the format. Open seats. Start rounds."}
+                FIRST_TOURNAMENT.detail}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">
-              <StateTag>{primaryEvent ? `board ${primaryEvent.board_size}` : "new board"}</StateTag>
+              <StateTag>{primaryEvent ? `board ${primaryEvent.board_size}` : FIRST_TOURNAMENT.shortDate}</StateTag>
               <StateTag tone={primaryEvent?.competitive_mode ? "warning" : "normal"}>
-                {primaryEvent ? (primaryEvent.competitive_mode ? "competitive" : "casual") : "casual first"}
+                {primaryEvent ? (primaryEvent.competitive_mode ? "competitive" : "casual") : FIRST_TOURNAMENT.time}
               </StateTag>
             </div>
+
+            {!primaryEvent ? (
+              <div className="mt-6 border border-black/12 bg-white/50 px-4 py-4">
+                <p className="board-rail-label text-black/55">Crew call</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-black">
+                  Need event coordinators.
+                </p>
+              </div>
+            ) : null}
 
             <div className="mt-8 flex flex-col gap-3">
               {user && !isGuest ? (
@@ -275,6 +285,11 @@ export default function Tournaments() {
               {primaryEvent ? (
                 <Button variant="outline" onClick={() => navigate(`/tournament/${primaryEvent.id}`)}>
                   Open featured event
+                </Button>
+              ) : null}
+              {!primaryEvent ? (
+                <Button variant="outline" onClick={() => navigate("/hiring")}>
+                  Hiring page
                 </Button>
               ) : null}
             </div>

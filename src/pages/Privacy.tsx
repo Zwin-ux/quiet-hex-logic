@@ -1,62 +1,91 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { SupportFrame } from "@/components/support/SupportFrame";
+import { SupportPanel } from "@/components/support/SupportPanel";
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Language, privacyTranslations } from "@/lib/translations/legal";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function Privacy() {
-  const [language, setLanguage] = useState<Language>('en');
+  useDocumentTitle("Privacy");
+
+  const [language, setLanguage] = useState<Language>("en");
   const t = privacyTranslations[language];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-3xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <Link to="/">
-            <Button variant="ghost">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t.backToHome}
-            </Button>
-          </Link>
-          <LanguageSelector currentLanguage={language} onLanguageChange={setLanguage} />
-        </div>
+    <SupportFrame contentClassName="pt-24">
+      <div className="mx-auto max-w-[1080px] space-y-8">
+        <SupportPanel
+          tone="dark"
+          eyebrow="Privacy"
+          title={t.title}
+          description={t.lastUpdated}
+          titleBarEnd={<LanguageSelector currentLanguage={language} onLanguageChange={setLanguage} />}
+          motionIndex={0}
+          motionVariant="hero"
+          footer={
+            <Link to="/">
+              <Button variant="supportOutline">
+                <ArrowLeft className="h-4 w-4" />
+                {t.backToHome}
+              </Button>
+            </Link>
+          }
+        >
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="support-chip">accounts</span>
+            <span className="support-chip support-chip--light">events</span>
+            <span className="support-chip support-chip--light">billing</span>
+          </div>
+        </SupportPanel>
 
-        <h1 className="text-4xl font-bold mb-8">{t.title}</h1>
-        <p className="text-muted-foreground mb-8">{t.lastUpdated}</p>
-
-        <div className="prose prose-invert max-w-none space-y-6">
+        <div className="grid gap-6">
           {t.sections.map((section, index) => (
-            <section key={index}>
-              <h2 className="text-2xl font-semibold mb-4">{section.title}</h2>
-              <p className="text-muted-foreground">{section.content}</p>
+            <SupportPanel
+              key={index}
+              tone={index % 3 === 1 ? "paper" : index % 2 === 0 ? "light" : "dark"}
+              eyebrow={`Section ${index + 1}`}
+              title={section.title}
+              motionIndex={index + 1}
+              motionVariant={index % 3 === 1 ? "card" : "aside"}
+            >
+              <p className={index % 3 === 1 ? "text-[15px] leading-7 text-black/80" : "text-[15px] leading-7 text-white/78"}>
+                {section.content}
+              </p>
               {section.list && (
-                <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
-                  {section.list.map((item, i) => (
-                    <li key={i}>{item}</li>
+                <ul className={index % 3 === 1 ? "mt-4 space-y-2 text-[15px] leading-7 text-black/78" : "mt-4 space-y-2 text-[15px] leading-7 text-white/76"}>
+                  {section.list.map((item, itemIndex) => (
+                    <li key={itemIndex} className="flex gap-3">
+                      <span className="support-mini-label pt-1">{String(itemIndex + 1).padStart(2, "0")}</span>
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ul>
               )}
-            </section>
+            </SupportPanel>
           ))}
-          
-          <section className="mt-8 p-4 bg-primary/10 rounded-lg">
-            <h2 className="text-2xl font-semibold mb-4">Questions?</h2>
-            <p className="text-muted-foreground mb-4">
-              If you have any questions about our privacy practices, join our Discord community to chat with the developers directly.
-            </p>
-            <a 
-              href="https://discord.gg/67EmmZu69q" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button className="bg-[#5865F2] hover:bg-[#4752C4] text-white">
-                Join Discord
-              </Button>
-            </a>
-          </section>
         </div>
+
+        <SupportPanel
+          tone="paper"
+          eyebrow="Questions"
+          title="Need a privacy answer"
+          description="Join Discord for a quick reply. Use email if it should stay in writing."
+          motionIndex={t.sections.length + 1}
+          footer={
+            <div className="flex flex-wrap gap-3">
+              <a href="https://discord.gg/67EmmZu69q" target="_blank" rel="noopener noreferrer">
+                <Button variant="support">Join Discord</Button>
+              </a>
+              <a href="mailto:community@hexology.me">
+                <Button variant="supportOutline">Email</Button>
+              </a>
+            </div>
+          }
+        />
       </div>
-    </div>
+    </SupportFrame>
   );
 }
