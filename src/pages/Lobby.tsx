@@ -551,7 +551,7 @@ export default function Lobby() {
                   Open a board or join a room.
                 </h1>
                 <p className="board-copy max-w-[540px] text-[18px] leading-8 text-black/68">
-                  Local practice, public rooms, and hosted rooms each get a clear lane.
+                  Local boards. Public rooms. Host rooms.
                 </p>
               </div>
 
@@ -559,7 +559,7 @@ export default function Lobby() {
                 <div className="board-panel px-5 py-5">
                   <h2 className="board-section-title text-[2rem] tracking-[-0.04em]">Local Practice</h2>
                   <p className="board-copy mt-3 max-w-[300px] text-[16px] leading-7 text-black/68">
-                    No account. Open a board now.
+                    No account.
                   </p>
                   <Button
                     variant="outline"
@@ -569,14 +569,14 @@ export default function Lobby() {
                     }
                     disabled={creatingMatch}
                   >
-                    {creatingMatch ? "Opening..." : "Start local"}
+                    {creatingMatch ? "Opening..." : "Open local"}
                   </Button>
                 </div>
 
                 <div className="board-panel px-5 py-5">
                   <h2 className="board-section-title text-[2rem] tracking-[-0.04em]">Join Public Room</h2>
                   <p className="board-copy mt-3 max-w-[300px] text-[16px] leading-7 text-black/68">
-                    Jump into an open room.
+                    Open seat.
                   </p>
                   <Button
                     variant="outline"
@@ -596,7 +596,7 @@ export default function Lobby() {
             </div>
 
             <aside className="border border-black bg-black px-5 py-5 text-[#f6f4f0]">
-              <p className="board-rail-label text-[#c7c7cc]">Live Room Feed</p>
+              <p className="board-rail-label text-[#c7c7cc]">Live feed</p>
               <div className="mt-6 space-y-4">
                 {featuredLiveMatch ? (
                   <NetworkFeedCard
@@ -636,9 +636,7 @@ export default function Lobby() {
                 </span>
               </div>
 
-              <p className="mt-6 max-w-[290px] text-[16px] leading-8 text-[#c7c7cc]">
-                This side rail carries the live network read. It should feel immediate, not decorative.
-              </p>
+              <p className="mt-6 max-w-[290px] text-[16px] leading-8 text-[#c7c7cc]">Open rooms. Live tables.</p>
             </aside>
           </div>
 
@@ -646,7 +644,7 @@ export default function Lobby() {
             <VenuePanel
               eyebrow="Practice desk"
               title={getGame(selectedAIGame).displayName}
-              description="Pick the board system and pressure level, then open a local board or queue into ranked play."
+              description="Pick board. Set AI. Open local."
               titleBarEnd={<StateTag tone={creatingMatch ? "warning" : "success"}>{creatingMatch ? "starting" : "ready"}</StateTag>}
             >
               {networkIssue ? <div className="retro-critical-strip mb-4">{networkIssue}</div> : null}
@@ -724,7 +722,7 @@ export default function Lobby() {
               title="World-owned rooms still sit behind identity."
               description={
                 user && !isGuest
-                  ? "Open your world, create a room, or jump to events. Hosted access stays attached to real account state."
+                  ? "Open worlds. Create rooms. Run events."
                   : `Create an account for world rooms, recurring events, and hosted access${isGuest ? ` - current guest: ${guestUsername}` : ""}.`
               }
               state={user && !isGuest ? "normal" : "warning"}
@@ -762,7 +760,7 @@ export default function Lobby() {
           <VenuePanel
             eyebrow="Open room directory"
             title={lobbies.length ? `${lobbies.length} waiting rooms` : "No waiting rooms"}
-            description="World-owned rooms and standalone public rooms stay visible together, but they do not collapse into the same product object."
+            description="World rooms and public rooms."
             titleBarEnd={<StateTag tone={directoryStatusTone}>{lobbies.length || "none"}</StateTag>}
             state={directoryStatusTone === "critical" ? "critical" : lobbies.length ? "normal" : "warning"}
           >
@@ -821,7 +819,7 @@ export default function Lobby() {
           <VenuePanel
             eyebrow="Live board directory"
             title={activeMatches.length ? `${activeMatches.length} active boards` : "No boards live"}
-            description="Live boards remain one click away from the play desk."
+            description="Watch live boards."
             titleBarEnd={<StateTag tone={activeMatches.length ? "success" : "warning"}>{activeMatches.length || "none"}</StateTag>}
             state={activeMatches.length ? "normal" : "warning"}
           >

@@ -56,13 +56,13 @@ export function WelcomeOnboarding({
     <SiteFrame showNav={false} contentClassName="py-10 md:py-14">
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <SectionRail
-          eyebrow="Instant practice"
+          eyebrow="Practice"
           title="Sit down and play."
-          description="Pick a board. Open a local seat. Account stays secondary until you want worlds or events."
+          description="Pick a board. Start local."
           status={<StateTag tone="success">local ready</StateTag>}
           actions={
             <Button variant="outline" onClick={handleSignIn}>
-              Use account
+              Sign in
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           }
@@ -72,7 +72,7 @@ export function WelcomeOnboarding({
           <VenuePanel
             eyebrow="Quick seat"
             title={selectedDefinition ? `Start ${selectedDefinition.displayName} now` : "Start local practice"}
-            description="One button opens a local board on starter pressure. Account stays secondary."
+            description="One click. Local board."
             titleBarEnd={<StateTag tone="success">1 click</StateTag>}
           >
             <div className="space-y-5">
@@ -117,7 +117,7 @@ export function WelcomeOnboarding({
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
                 <div className="retro-warning-strip text-sm">
-                  Account adds worlds, history, and events.
+                  Sign in for rooms and events.
                 </div>
                 <Button
                   variant="outline"
@@ -134,7 +134,7 @@ export function WelcomeOnboarding({
             <VenuePanel
               eyebrow="Systems"
               title="Choose a board"
-              description="Hex sits in the fast seat. Switch here if you want a different first match."
+              description="Pick the board."
               titleBarEnd={<StateTag tone="normal">starter</StateTag>}
             >
               <div className="board-ledger">

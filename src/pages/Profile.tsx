@@ -110,7 +110,7 @@ export default function Profile() {
   const linkedProviderCount = Math.max(connections.length + (user?.email ? 1 : 0), 1);
   const trustLabel = profile?.is_verified_human ? "ranked ready" : "casual only";
   const trustTone = profile?.is_verified_human ? "success" : "warning";
-  const profileDescription = profile?.bio || "Link logins. Verify for ranked. Keep one account.";
+  const profileDescription = profile?.bio || "Link logins. Verify for ranked.";
 
   return (
     <SupportFrame contentClassName="pt-24">
@@ -146,7 +146,7 @@ export default function Profile() {
               <div className="support-grid-stat">
                 <p className="support-mini-label text-white/58">login rule</p>
                 <p className="mt-2 text-[15px] font-semibold leading-7 text-white">
-                  One account. Link backups later.
+                  One account.
                 </p>
               </div>
               <div className="support-grid-stat">
@@ -205,7 +205,7 @@ export default function Profile() {
             tone="light"
             eyebrow="Account Connections"
             title="Link login methods"
-            description="Keep one account. Add backup logins."
+            description="Add backups."
             motionIndex={2}
           >
             <AuthConnectionsSection variant="support" />
@@ -215,7 +215,7 @@ export default function Profile() {
             tone="paper"
             eyebrow="Trust & Verification"
             title={profile?.is_verified_human ? "Ranked ready" : "Verify for ranked"}
-            description="Use World ID. Join ranked queues. Join competitive events. Skip it for casual play."
+            description="World ID for ranked and competitive."
             titleBarEnd={<span className="support-chip support-chip--paper">{trustLabel}</span>}
             motionIndex={3}
           >
@@ -236,7 +236,7 @@ export default function Profile() {
             tone="light"
             eyebrow="Competitive rating"
             title="Rating"
-            description="Check score. Review recent games."
+            description="Recent games."
             motionIndex={4}
           >
             <RatingHistoryChart
@@ -249,7 +249,7 @@ export default function Profile() {
             tone="paper"
             eyebrow="Board theme"
             title="Pick board skin"
-            description="Change tiles. Change board colors."
+            description="Pick tiles."
             motionIndex={5}
           >
             <div className="grid gap-3">
@@ -282,12 +282,11 @@ export default function Profile() {
           tone="light"
           eyebrow="Achievements"
           title={`${earnedAchievements.length}/${achievements.length} unlocked`}
-          description="Track wins. Clear goals."
+          description="Marks earned."
           motionIndex={6}
           motionVariant="hero"
           titleBarEnd={
             <div className="flex flex-wrap gap-2">
-              <span className="support-chip support-chip--light">profile</span>
               <span className="support-chip support-chip--light">history</span>
             </div>
           }

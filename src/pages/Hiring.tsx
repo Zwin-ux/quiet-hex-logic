@@ -40,7 +40,7 @@ export default function Hiring() {
             </h1>
             <div className="mt-5 space-y-2 text-[17px] leading-8 text-[#2e1b0b]">
               <p>Work the {FIRST_TOURNAMENT.fullDate} opener.</p>
-              <p>Run check-in. Seat players. Keep rounds moving.</p>
+              <p>Run check-in. Seat players. Move rounds.</p>
             </div>
 
             <div className="mt-8 grid gap-3 border-t border-black/18 pt-5 md:grid-cols-[120px_minmax(0,1fr)]">
@@ -77,7 +77,7 @@ export default function Hiring() {
 
             <div className="mt-5 flex items-center gap-2 text-sm leading-7 text-[#2e1b0b]/72">
               <Hammer className="h-4 w-4" />
-              <span>Short note is enough. Name, timezone, event background.</span>
+              <span>Name. Timezone. Event background.</span>
             </div>
           </div>
         </motion.section>

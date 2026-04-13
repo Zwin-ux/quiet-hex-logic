@@ -361,7 +361,7 @@ export default function Auth() {
       <div className="mt-8 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px]">
         <AuthProviderButton
           label="Continue with Google"
-          detail="Primary login"
+          detail="Fastest"
           icon={Chrome}
           disabled={isSubmitting || Boolean(authStorageIssue)}
           onClick={() => handleProviderSignIn("google")}
@@ -369,7 +369,7 @@ export default function Auth() {
         />
         <AuthProviderButton
           label="Discord"
-          detail={discordReady ? "Second login" : "SOOON"}
+          detail={discordReady ? "Backup" : "SOOON"}
           icon={Disc3}
           disabled={isSubmitting || Boolean(authStorageIssue) || !discordReady}
           onClick={() => handleProviderSignIn("discord")}
@@ -526,14 +526,11 @@ export default function Auth() {
       </form>
 
       <p className="mt-4 max-w-[430px] text-[13px] leading-6 text-white/68">
-        Use one account. Link backup logins later from{" "}
-        <span className="font-semibold text-white">Profile / Account Connections</span>.
+        One account. Add backups in <span className="font-semibold text-white">Profile</span>.
       </p>
 
       <div className="support-inline-card mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">
-          Need a board now? Open local practice.
-        </p>
+        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">Need a board now?</p>
         <Button type="button" variant="supportOutline" onClick={() => navigate("/play")}>
           Local practice
         </Button>
@@ -644,10 +641,10 @@ export default function Auth() {
                 <>
                   <p>Sign in.</p>
                   <p>Open rooms.</p>
-                  <p>Watch finals.</p>
+                  <p>Play ranked.</p>
                 </>
               }
-              description="Google first. Email if needed. Link more logins later. Verify before ranked."
+              description="Google first. Email works. Verify for ranked."
               motionIndex={1}
               motionVariant="aside"
             />
@@ -656,7 +653,7 @@ export default function Auth() {
               tone="paper"
               eyebrow="One account"
               title="Keep one record."
-              description="Use Google or email to get in. Add backup logins later. Do not split progress across multiple accounts."
+              description="Start with Google or email. Add backups later."
               motionIndex={2}
               footer={
                 <Button type="button" variant="supportOutline" className="w-full justify-between" onClick={() => navigate("/play")}>
@@ -668,7 +665,7 @@ export default function Auth() {
               <div className="flex flex-wrap gap-2">
                 <span className="support-chip support-chip--paper">Google</span>
                 <span className="support-chip support-chip--paper">Email</span>
-                <span className="support-chip support-chip--paper">World ID later</span>
+                <span className="support-chip support-chip--paper">Backups later</span>
               </div>
             </SupportPanel>
           </div>
@@ -715,10 +712,10 @@ function AuthProviderButton({
 }
 
 function getAuthTitle(authView: AuthView, emailSent: boolean, authTab: AuthTab) {
-  if (authView === "forgot-password") return emailSent ? "Check your inbox" : "Reset password";
+  if (authView === "forgot-password") return emailSent ? "Check inbox" : "Reset password";
   if (authView === "reset-password") return "Set a new password";
   if (emailSent) return "Magic link sent";
-  return authTab === "signup" ? "Get in fast" : "Get back in";
+  return authTab === "signup" ? "Create account" : "Sign in";
 }
 
 function getAuthDescription(
@@ -730,17 +727,17 @@ function getAuthDescription(
   if (authView === "forgot-password") {
     return emailSent
       ? `Reset link sent to ${email}.`
-      : "Enter your email and we will send a reset link.";
+      : "Enter email. Get reset link.";
   }
   if (authView === "reset-password") {
-    return "Set a new password for your BOARD identity.";
+    return "Set a new password.";
   }
   if (emailSent) {
-    return `Use the sign-in link sent to ${email}.`;
+    return `Open the link sent to ${email}.`;
   }
   return authTab === "signup"
-    ? "Use Google or email. Link more logins later."
-    : "Sign back in for rooms, invites, and events.";
+    ? "Google or email. Add backups later."
+    : "Return to rooms and events.";
 }
 
 function ForgotPasswordForm({
@@ -765,7 +762,7 @@ function ForgotPasswordForm({
       <div className="support-note">
         <p className="support-mini-label text-white/58">Reset link sent</p>
         <p className="mt-3 text-[16px] leading-7 text-white">
-          Open the reset link. Then come back.
+          Open the link. Come back.
         </p>
       </div>
       <Button variant="supportOutline" onClick={onBack} className="h-11 w-full">
@@ -902,7 +899,7 @@ function MagicLinkSent({
       <div className="support-note">
         <p className="support-mini-label text-white/58">Magic link sent</p>
         <p className="mt-3 text-[16px] leading-7 text-white">
-          Sign-in link sent to <span className="font-semibold">{email}</span>.
+          Link sent to <span className="font-semibold">{email}</span>.
         </p>
       </div>
       <Button variant="supportOutline" className="h-11 w-full" onClick={onReset}>

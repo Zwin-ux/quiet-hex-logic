@@ -6,6 +6,7 @@ import { useAIOpponent } from "@/hooks/useAIOpponent";
 import { useMatchTimer } from "@/hooks/useMatchTimer";
 import { useAmbientMusic } from "@/hooks/useAmbientMusic";
 import { TutorialOverlay } from "@/components/TutorialOverlay";
+import { AIThinkingIndicator } from "@/components/AIThinkingIndicator";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
@@ -289,9 +290,7 @@ export default function Match() {
           <aside className="space-y-4 border border-black bg-black px-4 py-4 text-[#f6f4f0] xl:sticky xl:top-6">
             <BoardWordmark className="text-[30px] text-[#f6f4f0]" tone="light" />
             <h2 className="font-display text-[2rem] font-bold leading-none tracking-[-0.04em]">Live Rail</h2>
-            <p className="text-[15px] leading-7 text-[#c7c7cc]">
-              Status and spectatorship stay in one persistent rail.
-            </p>
+            <p className="text-[15px] leading-7 text-[#c7c7cc]">Seats. Watchers. Clock.</p>
             <RailBlock inverse label="Seat A" value={player1?.username || "Unknown"} />
             <RailBlock inverse label="Seat B" value={player2?.username || "Waiting"} />
             <RailBlock inverse label="Watchers" value={!isAIMatch ? `${spectators.length} live now` : "practice"} />
@@ -336,9 +335,7 @@ export default function Match() {
             <h2 className="font-display text-[2rem] font-bold leading-none tracking-[-0.04em] text-black">
               Control Rail
             </h2>
-            <p className="text-[15px] leading-7 text-black/68">
-              Controls and replay context stay subordinate to the board.
-            </p>
+            <p className="text-[15px] leading-7 text-black/68">Replay. Chat. Actions.</p>
             <RailBlock label="Mode" value={roomMode} />
             <RailBlock label="Replay" value={match.status === "finished" ? "review mode ready" : "replay ready"} />
             <RailBlock label="Chat" value={!isAIMatch && spectators.length > 0 ? "public / moderated" : "quiet room"} />

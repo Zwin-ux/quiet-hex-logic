@@ -111,12 +111,12 @@ export const PracticeDesk = memo(
         >
           <div className="board-page-width board-public mx-auto px-4 md:px-6 lg:px-8">
             <div className="max-w-[52rem]">
-              <p className="board-public-label text-[#5d5d5d]">Instant practice desk</p>
+              <p className="board-public-label text-[#5d5d5d]">Practice</p>
               <h2 className="board-public-display mt-5 max-w-[11ch] text-[clamp(2.25rem,4vw,4.1rem)] text-[#0a0a0a]">
-                Pick a game. Read the board. Start immediately.
+                Pick a board. Start local.
               </h2>
               <p className="board-public-copy mt-6 max-w-[36rem] text-[1rem] md:text-[1.08rem]">
-                Every game opens from the same desk. No account required for local play.
+                No account.
               </p>
             </div>
 
@@ -172,14 +172,14 @@ export const PracticeDesk = memo(
                   {selectedDefinition && selectedMeta && preview ? (
                     <>
                       <div className="space-y-3">
-                        <p className="board-public-label text-[#5d5d5d]">Selected board</p>
+                        <p className="board-public-label text-[#5d5d5d]">Board</p>
                         <div className="flex flex-wrap items-end justify-between gap-4">
                           <div>
                             <h3 className="board-public-display text-[clamp(2rem,3vw,3rem)] text-[#0a0a0a]">
                               {selectedDefinition.displayName}
                             </h3>
                             <p className="board-public-copy mt-3 max-w-[28rem] text-[1rem]">
-                              {selectedMeta.tagline}. Set the AI. Start local. Bring the same game into rooms later.
+                              {selectedMeta.tagline}. Set AI. Start.
                             </p>
                           </div>
 
@@ -219,23 +219,23 @@ export const PracticeDesk = memo(
 
                         <div className="space-y-3 border border-black/12 bg-[#f8f4ea] p-4">
                           <div>
-                            <p className="board-public-label text-[#5d5d5d]">Start here</p>
+                            <p className="board-public-label text-[#5d5d5d]">Local</p>
                             <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Open a board. Test the line. Keep pressure light.
+                              Open board. Play now.
                             </p>
                           </div>
                           <div className="board-hairline" />
                           <div>
-                            <p className="board-public-label text-[#5d5d5d]">When it grows</p>
+                            <p className="board-public-label text-[#5d5d5d]">Rooms</p>
                             <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Add rooms. Add brackets. Keep the same login.
+                              Open rooms later.
                             </p>
                           </div>
                           <div className="board-hairline" />
                           <div>
                             <p className="board-public-label text-[#5d5d5d]">Ranked</p>
                             <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Verify with World ID before competitive entry.
+                              World ID required.
                             </p>
                           </div>
                         </div>
@@ -286,10 +286,10 @@ export const PracticeDesk = memo(
                               </div>
 
                               <span className="board-public-label text-[#5d5d5d]">
-                                {selectedDifficulty === difficulty.id ? "selected" : "set"}
-                              </span>
-                            </button>
-                          ))}
+                            {selectedDifficulty === difficulty.id ? "live" : "pick"}
+                          </span>
+                        </button>
+                      ))}
                         </div>
                       ) : null}
 
@@ -305,7 +305,7 @@ export const PracticeDesk = memo(
                             Start local {selectedDefinition.displayName}
                           </p>
                           <p className="board-public-label mt-2 whitespace-normal leading-6 text-[#d5d0c5] md:whitespace-nowrap">
-                            {selectedDifficulty} AI / no account required
+                            {selectedDifficulty} AI / local
                           </p>
                         </div>
                         {loadingDifficulty ? (
@@ -316,9 +316,9 @@ export const PracticeDesk = memo(
                       </Button>
 
                       <div className="border-t border-black/10 pt-5">
-                        <p className="board-public-label text-[#5d5d5d]">Local rule</p>
+                        <p className="board-public-label text-[#5d5d5d]">Rule</p>
                         <p className="board-public-copy mt-3 max-w-[34rem] text-[0.98rem]">
-                          Signed out stays local. Sign in only when you want rooms, worlds, or events.
+                          Sign in for rooms and events.
                         </p>
                       </div>
                     </>

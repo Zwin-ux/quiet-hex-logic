@@ -15,14 +15,13 @@ export default function Support() {
           tone="dark"
           eyebrow="Support desk"
           title="Need help."
-          description="Join Discord for live issues. Use email when it needs a record."
+          description="Discord first. Email for records."
           motionIndex={0}
           motionVariant="hero"
         >
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="support-chip">Discord</span>
             <span className="support-chip support-chip--light">email</span>
-            <span className="support-chip support-chip--light">hosts + players</span>
           </div>
         </SupportPanel>
 
@@ -31,7 +30,7 @@ export default function Support() {
             tone="light"
             eyebrow="Fastest help"
             title="Join the Discord"
-            description="Use this for setup trouble, event-day issues, and short questions."
+            description="Setup. Event day. Short questions."
             titleBarEnd={<span className="support-chip support-chip--light">live support</span>}
             motionIndex={1}
           >
@@ -63,7 +62,7 @@ export default function Support() {
             motionIndex={2}
           >
             <div className="support-note">
-              Use email for venue questions, technical details, or follow-up that should stay in writing.
+              Venue questions. Technical follow-up.
             </div>
             <div className="grid gap-3 pt-1 sm:grid-cols-2">
               <div className="support-grid-stat">
@@ -95,7 +94,7 @@ export default function Support() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="support-inline-card">
               <p className="support-mini-label text-white/58">How do I play?</p>
-              <p className="mt-3 text-base leading-7 text-white">Open Play for local boards. Open Worlds for hosted rooms and events.</p>
+              <p className="mt-3 text-base leading-7 text-white">Open Play. Or open Worlds.</p>
             </div>
             <div className="support-inline-card">
               <p className="support-mini-label text-white/58">What is BOARD+?</p>
@@ -103,14 +102,14 @@ export default function Support() {
             </div>
             <div className="support-inline-card">
               <p className="support-mini-label text-white/58">Where do events live?</p>
-              <p className="mt-3 text-base leading-7 text-white">Run recurring events from Worlds. Use Events as the public board.</p>
+              <p className="mt-3 text-base leading-7 text-white">Run them from Worlds. Show them in Events.</p>
             </div>
             <div className="support-inline-card">
               <div className="flex items-center gap-3">
                 <Shield className="h-4 w-4 text-[#ffe600]" />
                 <p className="support-mini-label text-white/58">Fair play</p>
               </div>
-              <p className="mt-3 text-base leading-7 text-white">World ID gates competitive entry. Casual play stays open.</p>
+              <p className="mt-3 text-base leading-7 text-white">World ID gates competitive entry.</p>
             </div>
           </div>
         </SupportPanel>

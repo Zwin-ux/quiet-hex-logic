@@ -8,7 +8,7 @@ export function QuietFooter() {
         <div className="space-y-4">
           <BoardLogo tone="dark" wordmarkClassName="text-[30px] md:text-[36px]" />
           <p className="board-public-copy max-w-[34rem] text-[0.98rem]">
-            Start local first. When the table fills up, open rooms and keep the bracket attached.
+            Start local. Open rooms later.
           </p>
         </div>
 

@@ -13,15 +13,15 @@ const HERO_PREVIEW_KEY = "hex";
 const venueRail = [
   {
     label: "HOST",
-    value: "Open rooms, share one invite, and keep the bracket attached.",
+    value: "Open rooms. Share invites.",
   },
   {
     label: "WATCH",
-    value: "Follow live tables, finals, and replays from the same place.",
+    value: "Watch tables. Catch finals.",
   },
   {
     label: "RANKED",
-    value: "Verify once with World ID, then use the same account in ranked play.",
+    value: "Verify. Enter ranked.",
   },
 ] as const;
 
@@ -51,10 +51,10 @@ export const LandingHero = memo(
                   <p className="board-public-label text-[#5c5750]">BOARD / local play / rooms and brackets</p>
                   <BoardWordmark size="hero" className="mt-6 text-[#090909]" />
                   <h1 className="board-public-display mt-10 max-w-[10ch] text-[clamp(3.3rem,6.6vw,6.8rem)] text-[#090909]">
-                    Start local. Open the room later.
+                    Start local. Open rooms later.
                   </h1>
                   <p className="board-public-copy mt-6 max-w-[29rem] text-[1.05rem] md:text-[1.16rem]">
-                    Practice in seconds. When more people show up, turn the same table into rooms, invites, and finals.
+                    Practice first. Host later.
                   </p>
                 </div>
 
@@ -105,7 +105,7 @@ export const LandingHero = memo(
                   <div className="max-w-[18rem]">
                     <p className="board-public-label text-[#5c5750]">NEXT</p>
                     <p className="board-public-copy mt-2 text-[0.96rem] text-[#17181c]">
-                      Open a room, post the invite, and keep the bracket on the same surface.
+                      Open room. Post invite.
                     </p>
                   </div>
                 </div>
