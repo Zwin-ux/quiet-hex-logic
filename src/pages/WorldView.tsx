@@ -172,14 +172,14 @@ export default function WorldView() {
               {world.name}
             </h1>
             <p className="mt-5 max-w-[32rem] text-[17px] leading-8 text-white/72">
-              {world.description || "Join tables. Watch games. Queue events."}
+              {world.description || "Tables open. Finals live."}
             </p>
 
             <div className="mt-8 grid gap-3 md:grid-cols-3">
               <div className="border border-white/12 px-4 py-4">
                 <p className="board-rail-label text-white/56">host</p>
                 <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  Create rooms. Start events.
+                  Open rooms. Start events.
                 </p>
               </div>
               <div className="border border-white/12 px-4 py-4">
@@ -204,8 +204,8 @@ export default function WorldView() {
             </h2>
             <p className="mt-4 text-[16px] leading-8 text-[#525257]">
               {canManage
-                ? "Create rooms. Start events. Copy one invite."
-                : "Join to enter rooms and brackets."}
+                ? "Open rooms. Queue matches. Copy one invite."
+                : "Join to enter tables and brackets."}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -260,7 +260,7 @@ export default function WorldView() {
                     <StateTag>{lobbies.length === 0 ? "no rooms yet" : "next steps"}</StateTag>
                   </div>
                   <h2 className="mt-5 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-                    Open the first room.
+                    Open tables. Queue first event.
                   </h2>
                   <p className="mt-4 max-w-[620px] text-[16px] leading-8 text-[#525257]">
                     Create room. Copy link. Queue event.
@@ -284,7 +284,7 @@ export default function WorldView() {
 
                   {hasCompetitiveEvent && !competitiveReady ? (
                     <div className="mt-6 retro-warning-strip">
-                      First event is competitive. Verify before players join.
+                      Competitive event locked. Verify first.
                     </div>
                   ) : null}
 

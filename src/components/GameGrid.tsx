@@ -113,11 +113,8 @@ export const PracticeDesk = memo(
             <div className="max-w-[52rem]">
               <p className="board-public-label text-[#5d5d5d]">Practice</p>
               <h2 className="board-public-display mt-5 max-w-[11ch] text-[clamp(2.25rem,4vw,4.1rem)] text-[#0a0a0a]">
-                Pick a board. Start local.
+                Pick a board.
               </h2>
-              <p className="board-public-copy mt-6 max-w-[36rem] text-[1rem] md:text-[1.08rem]">
-                No account.
-              </p>
             </div>
 
             <div className="landing-practice-shell mt-10">
@@ -179,7 +176,7 @@ export const PracticeDesk = memo(
                               {selectedDefinition.displayName}
                             </h3>
                             <p className="board-public-copy mt-3 max-w-[28rem] text-[1rem]">
-                              {selectedMeta.tagline}. Set AI. Start.
+                              {selectedMeta.tagline}. Set AI.
                             </p>
                           </div>
 
@@ -221,21 +218,21 @@ export const PracticeDesk = memo(
                           <div>
                             <p className="board-public-label text-[#5d5d5d]">Local</p>
                             <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Open board. Play now.
+                              Open now.
                             </p>
                           </div>
                           <div className="board-hairline" />
                           <div>
                             <p className="board-public-label text-[#5d5d5d]">Rooms</p>
                             <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Open rooms later.
+                              Sign in.
                             </p>
                           </div>
                           <div className="board-hairline" />
                           <div>
                             <p className="board-public-label text-[#5d5d5d]">Ranked</p>
                             <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              World ID required.
+                              Verify.
                             </p>
                           </div>
                         </div>
@@ -253,7 +250,7 @@ export const PracticeDesk = memo(
                           onClick={() => setShowSetup((current) => !current)}
                           disabled={launchDisabled}
                         >
-                          {showSetup ? "Hide pressure" : "Set pressure"}
+                          {showSetup ? "Hide AI" : "Set AI"}
                         </button>
                       </div>
 
@@ -318,7 +315,7 @@ export const PracticeDesk = memo(
                       <div className="border-t border-black/10 pt-5">
                         <p className="board-public-label text-[#5d5d5d]">Rule</p>
                         <p className="board-public-copy mt-3 max-w-[34rem] text-[0.98rem]">
-                          Sign in for rooms and events.
+                          Rooms need sign-in.
                         </p>
                       </div>
                     </>

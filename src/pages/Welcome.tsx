@@ -54,8 +54,8 @@ export default function Welcome() {
         <SupportPanel
           tone="dark"
           eyebrow="Choice desk"
-          title="Choose next."
-          description="Host. Verify. Play."
+          title="Pick next."
+          description="Host. Verify. Practice."
           motionIndex={0}
           motionVariant="hero"
         />
@@ -82,7 +82,7 @@ export default function Welcome() {
               tone="paper"
               eyebrow="Ranked"
               title="Verify for ranked"
-              description="World ID for ranked."
+              description="World ID required."
               motionIndex={2}
               footer={
                 <Button
@@ -100,7 +100,7 @@ export default function Welcome() {
               tone="paper"
               eyebrow="Practice"
               title="Local practice"
-              description="Open board. Play local."
+              description="Open board. Play."
               motionIndex={3}
               footer={
                 <Button variant="supportOutline" className="w-full justify-between" onClick={() => goTo("/play")}>
@@ -115,7 +115,7 @@ export default function Welcome() {
             tone="dark"
             eyebrow="Account rule"
             title="One BOARD account."
-            description="Sign in once. Add backups later."
+            description="Add backups later."
             motionIndex={4}
             motionVariant="aside"
             footer={

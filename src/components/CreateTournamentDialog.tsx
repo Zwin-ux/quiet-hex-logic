@@ -79,7 +79,7 @@ export function CreateTournamentDialog({
       if (data.error) throw new Error(data.error);
 
       toast.success("Event created", {
-        description: "Players can now join this competition.",
+        description: "Bracket open.",
       });
       onSuccess();
     } catch (error: any) {
@@ -162,7 +162,7 @@ export function CreateTournamentDialog({
                   <div>
                     <p className="text-sm font-medium text-foreground">Mode</p>
                     <p className="mt-1 text-xs leading-6 text-muted-foreground">
-                      Competitive requires World ID.
+                      Competitive = World ID.
                     </p>
                   </div>
                   <Switch
@@ -262,7 +262,7 @@ export function CreateTournamentDialog({
             <div className="mb-5 border border-black/10 bg-white px-4 py-4">
               <p className="board-rail-label">Event note</p>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Set name. Pick format. Open bracket.
+                Set name. Pick mode. Open bracket.
               </p>
             </div>
 

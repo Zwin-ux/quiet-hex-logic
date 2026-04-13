@@ -109,7 +109,6 @@ export default function Profile() {
   const earnedAchievements = achievements.filter((achievement) => achievement.earned);
   const linkedProviderCount = Math.max(connections.length + (user?.email ? 1 : 0), 1);
   const trustLabel = profile?.is_verified_human ? "ranked ready" : "casual only";
-  const trustTone = profile?.is_verified_human ? "success" : "warning";
   const profileDescription = profile?.bio || "Link logins. Verify for ranked.";
 
   return (
@@ -215,7 +214,7 @@ export default function Profile() {
             tone="paper"
             eyebrow="Trust & Verification"
             title={profile?.is_verified_human ? "Ranked ready" : "Verify for ranked"}
-            description="World ID for ranked and competitive."
+            description="World ID required for competitive."
             titleBarEnd={<span className="support-chip support-chip--paper">{trustLabel}</span>}
             motionIndex={3}
           >

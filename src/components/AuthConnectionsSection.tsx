@@ -21,12 +21,12 @@ const PROVIDER_META: Record<
   google: {
     label: "Google",
     icon: Chrome,
-    description: "Main login.",
+    description: "Primary login.",
   },
   discord: {
     label: "Discord",
     icon: Disc3,
-    description: "Second login.",
+    description: "Backup login.",
   },
 };
 
@@ -99,8 +99,8 @@ export function AuthConnectionsSection({ variant = "default" }: { variant?: "def
                 <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>{user.email || "No email on file"}</p>
                 <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
                   {emailIdentity
-                    ? "Email sign-in is linked."
-                    : "OAuth account. Add backup login first."}
+                    ? "Email linked."
+                    : "Add email before removing OAuth."}
                 </p>
               </div>
             </div>
@@ -168,7 +168,7 @@ export function AuthConnectionsSection({ variant = "default" }: { variant?: "def
                   ) : (
                     providerReady ? (
                       <p className={isSupport ? "mt-4 text-sm leading-6 text-white/68" : "mt-4 text-sm leading-6 text-black/62"}>
-                        Link this login later.
+                        Link later.
                       </p>
                     ) : (
                       <SupportSoon
@@ -221,7 +221,7 @@ export function AuthConnectionsSection({ variant = "default" }: { variant?: "def
       <div className={isSupport ? "support-note" : "border border-dashed border-black/20 bg-white px-4 py-4"}>
         <p className={isSupport ? "support-mini-label text-white/58" : "board-rail-label text-black/55"}>Connection rule</p>
         <p className={isSupport ? "mt-3 text-sm leading-7 text-white/72" : "mt-3 text-sm leading-7 text-black/62"}>
-          Turn on Supabase manual linking.
+          Manual linking must be on.
         </p>
         {error ? (
           <p className={isSupport ? "mt-3 text-sm leading-7 text-[#ffe600]" : "mt-3 text-sm leading-7 text-red-600"}>{normalizeConnectionError(error)}</p>

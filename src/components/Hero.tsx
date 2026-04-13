@@ -4,24 +4,40 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { Button } from "@/components/ui/button";
+import { ASCII_GAME_ORDER, getAsciiGamePreview } from "@/lib/asciiGames";
 import { getGame } from "@/lib/engine/registry";
+import { getGameMeta } from "@/lib/gameMetadata";
 import { FIRST_TOURNAMENT } from "@/lib/launchAnnouncements";
 import { cn } from "@/lib/utils";
 
 const HERO_PREVIEW_KEY = "hex";
+const HERO_ARENA_FEEDS = ASCII_GAME_ORDER.map((key, index) => {
+  const preview = getAsciiGamePreview(key);
+  const meta = getGameMeta(key);
+
+  return {
+    key,
+    label: preview.label,
+    note: preview.note,
+    status: preview.status,
+    accentClass: meta.accentClass,
+    frame:
+      preview.frames[Math.min(index + 1, preview.frames.length - 1)] ?? preview.frames[0],
+  };
+});
 
 const venueRail = [
   {
     label: "HOST",
-    value: "Open rooms. Share invites.",
+    value: "Open rooms.",
   },
   {
     label: "WATCH",
-    value: "Watch tables. Catch finals.",
+    value: "Watch finals.",
   },
   {
     label: "RANKED",
-    value: "Verify. Enter ranked.",
+    value: "Verify to enter.",
   },
 ] as const;
 
@@ -48,13 +64,13 @@ export const LandingHero = memo(
             <div className="landing-stage__grid lg:grid-cols-[minmax(0,1.12fr)_minmax(380px,0.88fr)]">
               <div className="landing-stage__copy board-public">
                 <div className="max-w-[820px]">
-                  <p className="board-public-label text-[#5c5750]">BOARD / local play / rooms and brackets</p>
+                  <p className="board-public-label text-[#5c5750]">BOARD / boards live / rooms open</p>
                   <BoardWordmark size="hero" className="mt-6 text-[#090909]" />
                   <h1 className="board-public-display mt-10 max-w-[10ch] text-[clamp(3.3rem,6.6vw,6.8rem)] text-[#090909]">
-                    Start local. Open rooms later.
+                    Walk in. Pick a table.
                   </h1>
                   <p className="board-public-copy mt-6 max-w-[29rem] text-[1.05rem] md:text-[1.16rem]">
-                    Practice first. Host later.
+                    Start local. Host when ready.
                   </p>
                 </div>
 
@@ -113,16 +129,59 @@ export const LandingHero = memo(
 
               <div className="landing-stage__object">
                 <div className="landing-stage__object-rail">
-                  <span className="board-public-label text-white/68">HEX / room monitor</span>
-                  <span className="board-public-label text-white/44">live table / route 03</span>
+                  <span className="board-public-label text-white/68">ARENA / live hall</span>
+                  <span className="board-public-label text-white/44">hex / chess / checkers / more</span>
                 </div>
 
-                <div className="landing-stage__piece-frame">
-                  <img
-                    src="/board/board-piece-cluster.svg"
-                    alt="Stacked low-poly board pieces."
-                    className="landing-stage__piece-image"
-                  />
+                <div className="landing-stage__arena-grid">
+                  {HERO_ARENA_FEEDS.map((feed, index) => (
+                    <motion.article
+                      key={feed.key}
+                      initial={{ opacity: 0, y: 18, rotate: index % 2 === 0 ? -1.4 : 1.2, scale: 0.98 }}
+                      animate={{
+                        opacity: 1,
+                        y: [0, index % 2 === 0 ? -6 : 6, 0],
+                        rotate: index % 2 === 0 ? [-1.4, -0.7, -1.4] : [1.2, 0.5, 1.2],
+                        scale: 1,
+                      }}
+                      transition={{
+                        opacity: { duration: 0.34, delay: index * 0.06 },
+                        scale: { duration: 0.34, delay: index * 0.06 },
+                        y: {
+                          duration: 6.2 + index * 0.45,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 0.2 + index * 0.04,
+                        },
+                        rotate: {
+                          duration: 7.4 + index * 0.3,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 0.15 + index * 0.04,
+                        },
+                      }}
+                      className={cn(
+                        "landing-stage__arena-card",
+                        index === 0 && "landing-stage__arena-card--wide",
+                        index === HERO_ARENA_FEEDS.length - 1 && "landing-stage__arena-card--tall",
+                      )}
+                    >
+                      <div className="landing-stage__monitor landing-stage__monitor--manual">
+                        <div className="landing-stage__monitor-signal" />
+                        <div className="landing-stage__monitor-meta flex">
+                          <span className={feed.accentClass}>{feed.label}</span>
+                          <span>{feed.status}</span>
+                        </div>
+                        <div className="landing-stage__monitor-viewport">
+                          <pre className="landing-stage__monitor-pre">{feed.frame}</pre>
+                        </div>
+                        <div className="landing-stage__monitor-footer">
+                          <span>{feed.note}</span>
+                          <span>table {String(index + 1).padStart(2, "0")}</span>
+                        </div>
+                      </div>
+                    </motion.article>
+                  ))}
                 </div>
 
                 <div className="landing-stage__note-grid">

@@ -304,8 +304,7 @@ export default function TournamentView() {
               {tournament.name}
             </h1>
             <p className="mt-5 max-w-[34rem] text-[17px] leading-8 text-white/72">
-              {tournament.description || "Join bracket."}{" "}
-              {tournament.competitive_mode ? "Verify to enter." : "Casual entry."}
+              {tournament.description || (tournament.competitive_mode ? "Competitive bracket." : "Open bracket.")}
             </p>
           </div>
 
@@ -336,8 +335,8 @@ export default function TournamentView() {
         <VenuePanel
           className="mt-6"
           eyebrow="Competitive gate"
-          title="Verify before joining."
-          description={competitiveJoinBlocked || "Use World ID. Then join."}
+          title="Verify to join."
+          description={competitiveJoinBlocked || "World ID required."}
           state="warning"
           titleBarEnd={<StateTag tone="warning">verification required</StateTag>}
         >
@@ -395,8 +394,8 @@ export default function TournamentView() {
             tournament.status === "registration"
               ? participants.length < tournament.min_players
                 ? `Need ${tournament.min_players - participants.length} more player(s).`
-                : `Ready with ${participants.length} players.`
-              : "Rounds live."
+                : `${participants.length} ready.`
+              : "Bracket live."
           }
         >
           <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -416,7 +415,7 @@ export default function TournamentView() {
                       Need more players.
                     </p>
                     <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
-                      Fill seats. Then start bracket.
+                      Fill seats. Start bracket.
                     </p>
                   </div>
                 </div>

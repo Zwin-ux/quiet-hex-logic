@@ -641,10 +641,10 @@ export default function Auth() {
                 <>
                   <p>Sign in.</p>
                   <p>Open rooms.</p>
-                  <p>Play ranked.</p>
+                  <p>Verify later.</p>
                 </>
               }
-              description="Google first. Email works. Verify for ranked."
+              description="Google first. Email works."
               motionIndex={1}
               motionVariant="aside"
             />
@@ -653,7 +653,7 @@ export default function Auth() {
               tone="paper"
               eyebrow="One account"
               title="Keep one record."
-              description="Start with Google or email. Add backups later."
+              description="Start with Google or email."
               motionIndex={2}
               footer={
                 <Button type="button" variant="supportOutline" className="w-full justify-between" onClick={() => navigate("/play")}>

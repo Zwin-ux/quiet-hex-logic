@@ -41,7 +41,7 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
 
     if (success) {
       toast.success("Verification complete", {
-        description: "Ranked queues and competitive events unlocked.",
+        description: "Ranked and competitive unlocked.",
       });
       return;
     }
@@ -68,7 +68,7 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
               <div>
                 <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Human verification complete</p>
                 <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
-                  Ranked queues and competitive events unlocked.
+                  Ranked and competitive unlocked.
                 </p>
               </div>
             </div>
@@ -92,10 +92,10 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
         <div className="flex items-center gap-3">
           <Scan className="h-5 w-5 text-black/62" />
           <div>
-            <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify on the web</p>
-            <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
-              Open the web page. Use World App.
-            </p>
+              <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify on the web</p>
+              <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
+                Open web. Scan in World App.
+              </p>
           </div>
         </div>
         <a
@@ -119,9 +119,9 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
           <div className="mt-3 flex items-center gap-3">
             <Globe className={isSupport ? "h-5 w-5 text-[#00f5d4]" : "h-5 w-5 text-black/62"} />
             <div>
-              <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify for ranked</p>
+              <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Competitive entry</p>
               <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
-                Use World ID. Join ranked queues. Join competitive events.
+                World ID required for ranked and competitive.
               </p>
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
               variant={isSupport ? "support" : "hero"}
               className="w-full justify-between"
             >
-              <span>{isVerifying ? "Verifying" : "Verify for ranked"}</span>
+              <span>{isVerifying ? "Verifying" : "Verify with World ID"}</span>
               {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scan className="h-4 w-4" />}
             </Button>
           )}
