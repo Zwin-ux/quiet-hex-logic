@@ -90,7 +90,6 @@ async function main() {
   console.log(`[random] functions: ${base}`);
   let backoff = 250;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const polled = await pollOnce();

@@ -3,7 +3,7 @@
  * Shows online status, challenge buttons, and spectate options
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,26 +37,7 @@ export function FriendsList({ compact = false, maxHeight = '400px' }: FriendsLis
   const [friends, setFriends] = useState<FriendData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchFriends();
-
-    // Subscribe to presence changes
-    const channel = supabase
-      .channel('friends-presence')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'user_presence' },
-        () => fetchFriends()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -126,7 +107,28 @@ export function FriendsList({ compact = false, maxHeight = '400px' }: FriendsLis
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchFriends();
+
+    // Subscribe to presence changes
+    const channel = supabase
+      .channel('friends-presence')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_presence' },
+        () => {
+          void fetchFriends();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchFriends, user]);
 
   const handleChallenge = async (friend: FriendData) => {
     if (!user) return;

@@ -162,7 +162,7 @@ export function CreateTournamentDialog({
                   <div>
                     <p className="text-sm font-medium text-foreground">Mode</p>
                     <p className="mt-1 text-xs leading-6 text-muted-foreground">
-                      Competitive events require human verification to enter. Casual events do not.
+                      Competitive requires World ID.
                     </p>
                   </div>
                   <Switch
@@ -262,7 +262,7 @@ export function CreateTournamentDialog({
             <div className="mb-5 border border-black/10 bg-white px-4 py-4">
               <p className="board-rail-label">Event note</p>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Events are orchestration layers. Competitive mode is a trust contract, not just a badge.
+                Set name. Pick format. Open bracket.
               </p>
             </div>
 

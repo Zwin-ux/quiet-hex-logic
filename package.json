@@ -1,7 +1,7 @@
 {
   "name": "hexology",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Five classic strategy games -- Hex, Chess, Checkers, Tic-Tac-Toe, Connect 4 -- with ranked matchmaking, AI opponents, and Discord integration.",
   "license": "MIT",
   "author": "bonelli.dev",

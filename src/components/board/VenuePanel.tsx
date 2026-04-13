@@ -34,14 +34,16 @@ export function VenuePanel({
         : "";
 
   return (
-    <section className={cn("retro-window", className)}>
+    <section className={cn("retro-window board-work-rail", className)}>
       {(eyebrow || title || titleBarEnd) ? (
         <div className={cn("retro-window__titlebar", titleBarTone)}>
-          <div className="min-w-0">
-            {eyebrow ? <p className="retro-window__eyebrow">{eyebrow}</p> : null}
-            {title ? <div className="retro-window__title mt-1">{title}</div> : null}
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              {eyebrow ? <p className="retro-window__eyebrow">{eyebrow}</p> : null}
+              {title ? <div className="retro-window__title mt-2">{title}</div> : null}
+            </div>
+            {titleBarEnd ? <div className="shrink-0">{titleBarEnd}</div> : null}
           </div>
-          {titleBarEnd ? <div className="shrink-0">{titleBarEnd}</div> : null}
         </div>
       ) : null}
 

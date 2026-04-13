@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, Copy, Loader2 } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
@@ -30,7 +30,7 @@ export default function WorldView() {
   const [overview, setOverview] = useState<WorldOverview | null>(null);
   const [viewerIsVerifiedHuman, setViewerIsVerifiedHuman] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!worldId) return;
 
     setLoading(true);
@@ -46,11 +46,11 @@ export default function WorldView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, user?.id, worldId]);
 
   useEffect(() => {
-    load();
-  }, [worldId, user?.id]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,7 +90,7 @@ export default function WorldView() {
   }
 
   const { world, events, lobbies, matches } = overview;
-  const canManage = canManageWorld(world);
+  const canManage = Boolean(user?.id) && canManageWorld(world);
   const setupMode = searchParams.get("setup") === "1";
   const hasLiveSurfaces = lobbies.length > 0 || matches.length > 0 || events.length > 0;
   const hasCompetitiveEvent = events.some((event) => event.competitiveMode);
@@ -159,19 +159,96 @@ export default function WorldView() {
           Back to worlds
         </Button>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <StateTag>{world.visibility}</StateTag>
-          <StateTag tone="success">Host online</StateTag>
-          <StateTag>{world.instanceCount} live tables</StateTag>
-          <StateTag>{world.eventCount} events queued</StateTag>
-        </div>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_318px] xl:items-start">
+          <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
+            <div className="flex flex-wrap gap-2">
+              <StateTag>{world.visibility}</StateTag>
+              <StateTag tone="success">{world.hostCount ?? 1} host{(world.hostCount ?? 1) === 1 ? "" : "s"}</StateTag>
+              <StateTag>{world.instanceCount} tables</StateTag>
+              <StateTag>{world.eventCount} events</StateTag>
+            </div>
 
-        <h1 className="mt-8 max-w-[620px] text-[clamp(3rem,5vw,4.6rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#0e0e0f]">
-          {world.name}
-        </h1>
-        <p className="mt-5 max-w-[620px] text-[18px] leading-8 text-[#525257]">
-          {world.description || "Public host-run venue with active rooms, queued events, and live spectator traffic."}
-        </p>
+            <h1 className="mt-8 max-w-[620px] text-[clamp(3rem,5vw,4.8rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
+              {world.name}
+            </h1>
+            <p className="mt-5 max-w-[32rem] text-[17px] leading-8 text-white/72">
+              {world.description || "Join tables. Watch games. Queue events."}
+            </p>
+
+            <div className="mt-8 grid gap-3 md:grid-cols-3">
+              <div className="border border-white/12 px-4 py-4">
+                <p className="board-rail-label text-white/56">host</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+                  Create rooms. Start events.
+                </p>
+              </div>
+              <div className="border border-white/12 px-4 py-4">
+                <p className="board-rail-label text-white/56">watch</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+                  Follow live tables and finals.
+                </p>
+              </div>
+              <div className="border border-white/12 px-4 py-4">
+                <p className="board-rail-label text-white/56">ranked</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+                  {competitiveReady ? "Ready now." : "Verify before entry."}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <aside className="border border-black bg-[#fbfaf8] p-5 md:p-6">
+            <p className="board-rail-label text-[11px] text-[#525257]">Host tools</p>
+            <h2 className="mt-4 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
+              {canManage ? "Run this room map" : "Enter this room map"}
+            </h2>
+            <p className="mt-4 text-[16px] leading-8 text-[#525257]">
+              {canManage
+                ? "Create rooms. Start events. Copy one invite."
+                : "Join to enter rooms and brackets."}
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <div className="retro-status-strip">
+                <span>members {world.memberCount}</span>
+                <span>hosts {world.hostCount ?? 1}</span>
+                <span>{competitiveReady ? "ranked ready" : "verify for ranked"}</span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3">
+              {canManage ? (
+                <>
+                  {!hasLiveSurfaces || !user ? null : <CreateLobby userId={user.id} worldId={world.id} />}
+                  <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
+                    Create event
+                  </Button>
+                  <Button variant="outline" onClick={copyInviteLink}>
+                    {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {inviteCopied ? "Invite link copied" : "Copy invite link"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="hero"
+                  onClick={handleJoin}
+                  disabled={joining || Boolean(world.userRole)}
+                >
+                  {joining ? "Joining..." : world.userRole ? "Already inside" : "Join world"}
+                </Button>
+              )}
+            </div>
+
+            <div className="mt-10">
+              <p className="text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
+                {world.instanceCount}
+              </p>
+              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">
+                open tables
+              </p>
+            </div>
+          </aside>
+        </div>
 
         <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_318px]">
           <div>
@@ -180,13 +257,13 @@ export default function WorldView() {
                 <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
                   <div className="flex flex-wrap items-center gap-2">
                     <StateTag tone="warning">{setupMode ? "setup mode" : "first world"}</StateTag>
-                    <StateTag>no live surfaces yet</StateTag>
+                    <StateTag>{lobbies.length === 0 ? "no rooms yet" : "next steps"}</StateTag>
                   </div>
                   <h2 className="mt-5 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-                    Stage the first room before inviting people in.
+                    Open the first room.
                   </h2>
                   <p className="mt-4 max-w-[620px] text-[16px] leading-8 text-[#525257]">
-                    A strong first hosted flow is: open one room, copy the world link, then queue the first event once the room is working.
+                    Create room. Copy link. Queue event.
                   </p>
 
                   <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -207,13 +284,15 @@ export default function WorldView() {
 
                   {hasCompetitiveEvent && !competitiveReady ? (
                     <div className="mt-6 retro-warning-strip">
-                      The first event is competitive. Verify this account before sending people into that bracket.
+                      First event is competitive. Verify before players join.
                     </div>
                   ) : null}
 
-                  <div className="mt-8">
-                    <CreateLobby userId={user!.id} worldId={world.id} />
-                  </div>
+                  {user ? (
+                    <div className="mt-8">
+                      <CreateLobby userId={user.id} worldId={world.id} />
+                    </div>
+                  ) : null}
                 </section>
               ) : null}
 
@@ -246,13 +325,13 @@ export default function WorldView() {
                       {match.label ?? `${match.gameKey} match`}
                     </h2>
                     <p className="mt-2 text-[15px] leading-7 text-[#525257]">
-                      Live now. {match.size}x{match.size}. {match.allowSpectators ? "8 watching" : "players only"}.
+                      Live now. {match.size}x{match.size}. {match.allowSpectators ? "Spectators allowed." : "Players only."}
                     </p>
                   </div>
                   <div className="border-l border-[#0e0e0f]/12 pl-4">
                     <p className="board-rail-label text-[11px] text-[#525257]">LIVE</p>
-                    <p className="mt-2 font-['League_Spartan'] text-[2.1rem] font-black leading-none tracking-[-0.05em] text-[#0e0e0f]">
-                      {match.allowSpectators ? "08" : "03"}
+                    <p className="mt-2 text-[2.1rem] font-extrabold leading-none tracking-[-0.07em] text-[#0e0e0f]">
+                      {match.allowSpectators ? "OPEN" : "LOCK"}
                     </p>
                   </div>
                 </button>
@@ -274,14 +353,14 @@ export default function WorldView() {
                       </StateTag>
                     </div>
                     <p className="mt-2 text-[15px] leading-7 text-[#525257]">
-                      {event.description || `Starts in ${event.status === "active" ? "now" : "18 minutes"} — seeded from the active bracket.`}
+                      {event.description || `Starts ${event.status === "active" ? "now" : "soon"}. Open bracket.`}
                     </p>
                   </div>
                   <div className="border-l border-[#0e0e0f]/12 pl-4">
                     <p className="board-rail-label text-[11px] text-[#525257]">
                       {event.status.toUpperCase()}
                     </p>
-                    <p className="mt-2 font-['League_Spartan'] text-[2.1rem] font-black leading-none tracking-[-0.05em] text-[#0e0e0f]">
+                    <p className="mt-2 text-[2.1rem] font-extrabold leading-none tracking-[-0.07em] text-[#0e0e0f]">
                       {String(event.participantCount).padStart(2, "0")}
                     </p>
                   </div>
@@ -291,62 +370,28 @@ export default function WorldView() {
               {!canManage && !hasLiveSurfaces ? (
                 <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
                   <p className="text-[16px] leading-7 text-[#525257]">
-                    No live rooms or events are open yet. This world exists, but the host has not staged the first surface.
+                    No rooms. No events. Host has not opened play.
                   </p>
                 </div>
               ) : null}
             </div>
           </div>
 
-          <aside className="border border-[#0e0e0f] bg-[#fbfaf8] p-5 md:p-6">
-            <p className="board-rail-label text-[11px] text-[#525257]">Operator Rail</p>
-            <h2 className="mt-4 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-              {canManage ? "Host verified" : "World access"}
-            </h2>
-            <p className="mt-4 text-[16px] leading-8 text-[#525257]">
-              {canManage
-                ? "Use this rail for occupancy, moderation state, and entry actions."
-                : "Join this world to enter hosted rooms and events."}
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <div className="retro-status-strip">
-                <span>members {world.memberCount}</span>
-                <span>hosts {world.hostCount ?? 1}</span>
-                <span>{competitiveReady ? "competitive ready" : "verify for competitive"}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-col gap-3">
-              {canManage ? (
-                <>
-                  {!hasLiveSurfaces ? null : <CreateLobby userId={user!.id} worldId={world.id} />}
-                  <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
-                    Create event
-                  </Button>
-                  <Button variant="outline" onClick={copyInviteLink}>
-                    {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {inviteCopied ? "Invite link copied" : "Copy invite link"}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  variant="hero"
-                  onClick={handleJoin}
-                  disabled={joining || Boolean(world.userRole)}
-                >
-                  {joining ? "Joining..." : world.userRole ? "Already inside" : "Join world"}
-                </Button>
-              )}
-            </div>
-
-            <div className="mt-10">
-              <p className="font-['League_Spartan'] text-[68px] font-black leading-none tracking-[-0.06em] text-[#0e0e0f]">
+          <aside className="space-y-4">
+            <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-5">
+              <p className="board-rail-label text-[11px] text-[#525257]">Room count</p>
+              <p className="mt-4 text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
                 {world.instanceCount}
               </p>
-              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">
-                active surfaces
+              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">open tables</p>
+            </div>
+
+            <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-5">
+              <p className="board-rail-label text-[11px] text-[#525257]">Event count</p>
+              <p className="mt-4 text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
+                {world.eventCount}
               </p>
+              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">events queued</p>
             </div>
           </aside>
         </div>

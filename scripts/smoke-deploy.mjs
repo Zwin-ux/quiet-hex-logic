@@ -55,9 +55,21 @@ function expectStatus(name, response, allowedStatuses) {
 async function main() {
   const cwd = process.cwd();
   const fileEnv = parseEnvFile(path.join(cwd, '.env'));
-  const url = (process.env.VITE_SUPABASE_URL || fileEnv.VITE_SUPABASE_URL || '').trim();
-  const anon = (process.env.VITE_SUPABASE_PUBLISHABLE_KEY || fileEnv.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
-  const appUrl = normalizeOrigin(process.env.VITE_PUBLIC_APP_URL || fileEnv.VITE_PUBLIC_APP_URL || '');
+  const url = (
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    fileEnv.VITE_SUPABASE_URL ||
+    fileEnv.SUPABASE_URL ||
+    ''
+  ).trim();
+  const anon = (
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    fileEnv.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    fileEnv.SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  ).trim();
+  const appUrl = normalizeOrigin(process.env.VITE_PUBLIC_APP_URL || fileEnv.VITE_PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || fileEnv.PUBLIC_APP_URL || '');
 
   const knownBadRef = 'ptuxqfwicdpdslqwnswd';
   if (url.includes(knownBadRef)) {
@@ -86,15 +98,17 @@ async function main() {
     if (!r.ok) throw new Error(`status=${r.status}`);
 
     const html = await r.text();
-    const requiredKeys = [
-      'VITE_SUPABASE_URL',
-      'VITE_SUPABASE_PUBLISHABLE_KEY',
-      'VITE_PUBLIC_APP_URL',
-    ];
+    const match = html.match(/window\.__HEXLOGY_RUNTIME_ENV__=({.*?})<\/script>/s);
+    if (!match?.[1]) {
+      throw new Error('missing_runtime_env_script');
+    }
+
+    const runtimeEnv = JSON.parse(match[1]);
+    const requiredKeys = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_PUBLIC_APP_URL'];
 
     for (const key of requiredKeys) {
-      if (!html.includes(`"${key}"`) && !html.includes(`${key}`)) {
-        throw new Error(`missing_runtime_key=${key}`);
+      if (typeof runtimeEnv[key] !== 'string' || !runtimeEnv[key].trim()) {
+        throw new Error(`missing_runtime_value=${key}`);
       }
     }
 
@@ -193,7 +207,6 @@ async function main() {
 
   const failed = results.filter((r) => !r.ok);
   for (const r of results) {
-    // eslint-disable-next-line no-console
     console.log(`${r.ok ? 'OK  ' : 'FAIL'} ${r.name}${r.status ? ` (status ${r.status})` : ''}${r.error ? `: ${r.error}` : ''}`);
   }
 
@@ -203,7 +216,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  // eslint-disable-next-line no-console
   console.error(`SMOKE FAILED: ${e?.message ?? e}`);
   process.exitCode = 1;
 });

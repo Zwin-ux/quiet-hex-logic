@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePremium } from '@/hooks/usePremium';
@@ -102,45 +102,7 @@ export default function Replay() {
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    if (!matchId) return;
-    fetchMatchData();
-  }, [matchId]);
-
-  useEffect(() => {
-    if (!match || moves.length === 0) return;
-    const gameKey = match.game_key ?? 'hex';
-
-    try {
-      const adapter = createEngine(gameKey, { boardSize: match.size, pieRule: match.pie_rule });
-      for (let i = 0; i < currentPly && i < moves.length; i++) {
-        const moveData = moves[i].move ?? { cell: moves[i].cell };
-        const move = adapter.deserializeMove(moveData);
-        adapter.applyMove(move);
-      }
-      setEngine(adapter);
-    } catch (e) {
-      console.error('Replay engine error:', e);
-    }
-  }, [currentPly, match, moves]);
-
-  useEffect(() => {
-    if (!playing) return;
-
-    const interval = setInterval(() => {
-      setCurrentPly(prev => {
-        if (prev >= moves.length) {
-          setPlaying(false);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [playing, moves.length]);
-
-  const fetchMatchData = async () => {
+  const fetchMatchData = useCallback(async () => {
     if (!matchId) return;
 
     setLoading(true);
@@ -193,7 +155,46 @@ export default function Replay() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [matchId]);
+
+  useEffect(() => {
+    if (!matchId) return;
+    void fetchMatchData();
+  }, [fetchMatchData, matchId]);
+
+  useEffect(() => {
+    if (!match || moves.length === 0) return;
+    const gameKey = match.game_key ?? 'hex';
+
+    try {
+      const adapter = createEngine(gameKey, { boardSize: match.size, pieRule: match.pie_rule });
+      for (let i = 0; i < currentPly && i < moves.length; i++) {
+        const moveData = moves[i].move ?? { cell: moves[i].cell };
+        const move = adapter.deserializeMove(moveData);
+        adapter.applyMove(move);
+      }
+      setEngine(adapter);
+    } catch (e) {
+      console.error('Replay engine error:', e);
+    }
+  }, [currentPly, match, moves]);
+
+  useEffect(() => {
+    if (!playing) return;
+
+    const interval = setInterval(() => {
+      setCurrentPly(prev => {
+        if (prev >= moves.length) {
+          setPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [playing, moves.length]);
+
 
   const handlePlayPause = () => {
     if (currentPly >= moves.length) {

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { ArrowLeft, Chrome, Disc3, KeyRound, Loader2, Lock, Mail, User } from "lucide-react";
-import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { SiteFrame } from "@/components/board/SiteFrame";
+import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -359,7 +359,7 @@ export default function Auth() {
       <div className="mt-8 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px]">
         <AuthProviderButton
           label="Continue with Google"
-          detail="Fastest onboarding path for BOARD"
+          detail="Fast entry"
           icon={Chrome}
           disabled={isSubmitting || Boolean(authStorageIssue)}
           onClick={() => handleProviderSignIn("google")}
@@ -367,7 +367,7 @@ export default function Auth() {
         />
         <AuthProviderButton
           label="Discord"
-          detail={discordReady ? "Secondary sign-in" : "Connect later from Profile"}
+          detail={discordReady ? "Second login" : "Add later"}
           icon={Disc3}
           disabled={isSubmitting || Boolean(authStorageIssue) || !discordReady}
           onClick={() => handleProviderSignIn("discord")}
@@ -489,7 +489,7 @@ export default function Auth() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••"
+                placeholder="Enter password"
                 className="pl-11"
                 required
                 disabled={Boolean(authStorageIssue)}
@@ -517,14 +517,18 @@ export default function Auth() {
       </form>
 
       <p className="mt-4 max-w-[430px] text-[13px] leading-6 text-[#525257]">
-        BOARD uses one durable account. Get in with Google or email, then add more providers later from{" "}
-        <span className="font-semibold text-[#0e0e0f]">Profile / Account Connections</span> to avoid
-        splitting identity across multiple accounts.
+        Use one account. Link backup logins later from{" "}
+        <span className="font-semibold text-[#0e0e0f]">Profile / Account Connections</span>.
       </p>
 
-      <p className="mt-8 text-[14px] leading-7 text-[#525257]">
-        Hosted actions require identity. Practice does not.
-      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border border-[#0e0e0f] bg-[#f3efe6] px-4 py-4">
+        <p className="max-w-[24rem] text-[14px] leading-7 text-[#525257]">
+          Need a board now? Open local practice.
+        </p>
+        <Button type="button" variant="outline" onClick={() => navigate("/play")}>
+          Local practice
+        </Button>
+      </div>
 
       {shouldShowReturnTarget ? (
         <div className="mt-6 border border-[#0e0e0f] p-4">
@@ -543,10 +547,10 @@ export default function Auth() {
   );
 
   return (
-    <SiteFrame contentClassName="pt-24">
+    <SiteFrame contentClassName="pt-28 md:pt-32">
       <div className="board-page-width mx-auto">
-        <div className="flex items-start justify-between gap-4 pb-8">
-          <BoardWordmark className="text-[#0e0e0f]" />
+        <div className="flex items-center justify-between gap-4 pb-8">
+          <StateTag>Account</StateTag>
           {shouldShowReturnTarget ? (
             <div className="hidden border border-[#0e0e0f] px-3 py-2 md:block">
               <p className="board-rail-label text-[11px] text-[#0e0e0f]">
@@ -623,32 +627,27 @@ export default function Auth() {
           </section>
 
           <div className="space-y-8">
-            <section className="border border-[#0e0e0f] bg-[#0e0e0f] p-6 md:p-7">
-              <p className="board-rail-label text-[11px] text-white/72">Hosted Access</p>
-              <div className="mt-6 font-['League_Spartan'] text-[clamp(2.2rem,4vw,3.3rem)] font-black leading-[0.92] tracking-[-0.05em] text-[#f6f4f0]">
-                <p>12 live tables</p>
-                <p>2 finals queued</p>
+            <section className="border border-[#090909] bg-[#090909] p-6 md:p-7">
+              <p className="board-rail-label text-[11px] text-white/68">ENTRY</p>
+              <div className="mt-6 text-[clamp(2.3rem,4vw,3.5rem)] font-extrabold leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
+                <p>Sign in.</p>
+                <p>Open rooms.</p>
+                <p>Watch finals.</p>
               </div>
-              <p className="mt-6 max-w-[380px] text-[18px] leading-8 text-white/82">
-                Identity unlocks join, spectate, host controls, and world membership.
+              <p className="mt-6 max-w-[22rem] text-[17px] leading-8 text-[#e8e1d5]">
+                Google first. Email if needed. Link more logins later. Verify before ranked.
               </p>
             </section>
 
-            <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6 md:p-7">
-              <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-                Account Rule
-              </h2>
-              <p className="mt-5 max-w-[420px] text-[18px] leading-8 text-[#525257]">
-                Sign in once. Connect more providers later from Profile. Competitive play gets the World ID upgrade after entry, not before.
+            <section className="border border-[#090909]/12 bg-white/60 p-6 md:p-7">
+              <p className="board-rail-label text-[11px] text-[#5c5750]">ONE ACCOUNT</p>
+              <p className="mt-4 max-w-[22rem] text-[17px] leading-8 text-[#17181c]">
+                Sign in once. Keep one record.
               </p>
               <Button type="button" variant="outline" className="mt-8" onClick={() => navigate("/play")}>
-                Local Practice
+                Play local
               </Button>
             </section>
-
-            <p className="max-w-[520px] text-[16px] leading-8 text-[#525257]">
-              This page must answer one question fast: what is the cleanest way into BOARD right now?
-            </p>
           </div>
         </div>
       </div>
@@ -696,7 +695,7 @@ function getAuthTitle(authView: AuthView, emailSent: boolean, authTab: AuthTab) 
   if (authView === "forgot-password") return emailSent ? "Check your inbox" : "Reset password";
   if (authView === "reset-password") return "Set a new password";
   if (emailSent) return "Magic link sent";
-  return authTab === "signup" ? "Enter BOARD" : "Return to BOARD";
+  return authTab === "signup" ? "Enter the room" : "Return to the room";
 }
 
 function getAuthDescription(
@@ -717,8 +716,8 @@ function getAuthDescription(
     return `Use the sign-in link sent to ${email}.`;
   }
   return authTab === "signup"
-    ? "Use account access for worlds, rooms, and events. Local practice stays outside the auth wall."
-    : "Use account access for hosted worlds, rooms, and events. Local practice stays outside the auth wall.";
+    ? "Use Google or email. Open rooms and events later."
+    : "Sign back in for rooms, invites, and events.";
 }
 
 function ForgotPasswordForm({
@@ -743,7 +742,7 @@ function ForgotPasswordForm({
       <div className="border border-[#0e0e0f] p-4">
         <p className="board-rail-label text-[11px] text-[#525257]">Reset Link Sent</p>
         <p className="mt-3 text-[16px] leading-7 text-[#0e0e0f]">
-          Use the reset link from your inbox, then return here.
+          Open the reset link. Then come back.
         </p>
       </div>
       <Button variant="outline" onClick={onBack} className="h-11 w-full">
@@ -881,7 +880,7 @@ function MagicLinkSent({
         </p>
       </div>
       <Button variant="outline" className="h-11 w-full" onClick={onReset}>
-        Use a different email
+        Use another email
       </Button>
     </div>
   );

@@ -6,6 +6,7 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const apiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "http://localhost:3001";
+  const lazyOnlyChunkPrefixes = ["assets/web3-", "assets/worldid-", "assets/chess-engine-"];
 
   return ({
   define: {
@@ -40,6 +41,15 @@ export default defineConfig(({ mode }) => {
     },
   },
   build: {
+    modulePreload: {
+      resolveDependencies: (_filename, deps, context) => {
+        if (context.hostType !== "html") return deps;
+
+        return deps.filter(
+          (dep) => !lazyOnlyChunkPrefixes.some((prefix) => dep.startsWith(prefix)),
+        );
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks: {

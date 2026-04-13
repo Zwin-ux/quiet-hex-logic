@@ -515,7 +515,7 @@ export function useMatchState(matchId: string | undefined) {
     } finally {
       loadInFlight.current = false;
     }
-  }, [matchId, navigate, replayMoves, setEngineFromAdapter, clearLastMoves]);
+  }, [matchId, navigate, replayMoves, setEngineFromAdapter, clearLastMoves, isLocalMatch]);
 
   // Initialize browser-local AI matches
   useEffect(() => {

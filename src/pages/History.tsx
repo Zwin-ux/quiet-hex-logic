@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,12 +43,7 @@ export default function History() {
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchMatchHistory();
-  }, [user]);
-
-  const fetchMatchHistory = async () => {
+  const fetchMatchHistory = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -88,7 +83,12 @@ export default function History() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchMatchHistory();
+  }, [fetchMatchHistory, user]);
 
   const getPlayerColor = (match: MatchHistory, userId: string) => {
     return match.players.find(p => p.profile_id === userId)?.color;
@@ -112,6 +112,10 @@ export default function History() {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <NavBar />
@@ -131,9 +135,9 @@ export default function History() {
         ) : (
           <div className="space-y-4">
             {matches.map((match) => {
-              const won = didWin(match, user!.id);
-              const opponent = getOpponentName(match, user!.id);
-              const ratingChange = getRatingChange(match, user!.id);
+              const won = didWin(match, user.id);
+              const opponent = getOpponentName(match, user.id);
+              const ratingChange = getRatingChange(match, user.id);
               const isRanked = match.is_ranked;
               
               return (

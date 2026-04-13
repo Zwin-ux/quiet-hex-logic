@@ -50,28 +50,6 @@ export function BracketVisualization({ tournamentId }: BracketVisualizationProps
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeRoundRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadBracket();
-
-    const channel = supabase
-      .channel(`tournament-bracket:${tournamentId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tournament_matches',
-          filter: `tournament_id=eq.${tournamentId}`
-        },
-        () => loadBracket()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tournamentId]);
-
   // Auto-scroll to the first active or ready round
   useEffect(() => {
     if (!loading && activeRoundRef.current) {
@@ -83,7 +61,7 @@ export function BracketVisualization({ tournamentId }: BracketVisualizationProps
     }
   }, [loading, matches]);
 
-  const loadBracket = async () => {
+  const loadBracket = useCallback(async () => {
     try {
       const { data: roundsData } = await supabase
         .from('tournament_rounds')
@@ -110,7 +88,31 @@ export function BracketVisualization({ tournamentId }: BracketVisualizationProps
     } finally {
       setLoading(false);
     }
-  };
+  }, [tournamentId]);
+
+  useEffect(() => {
+    void loadBracket();
+
+    const channel = supabase
+      .channel(`tournament-bracket:${tournamentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_matches',
+          filter: `tournament_id=eq.${tournamentId}`
+        },
+        () => {
+          void loadBracket();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadBracket, tournamentId]);
 
   // Group matches by round, sorted by round_number
   const matchesByRound: RoundWithMatches[] = useMemo(() => {

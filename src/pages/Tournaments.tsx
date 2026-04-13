@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { CounterBlock } from "@/components/board/CounterBlock";
 import { MetricLine } from "@/components/board/MetricLine";
 import { SiteFrame } from "@/components/board/SiteFrame";
@@ -62,7 +61,7 @@ function EventRow({
     <button
       type="button"
       onClick={() => onOpen(tournament.id)}
-      className="w-full border border-black bg-[#fbfaf8] px-4 py-4 text-left transition-colors hover:bg-black/[0.02] md:grid md:grid-cols-[minmax(0,1fr)_92px] md:items-center md:gap-6"
+      className="w-full border border-black bg-[#fbfaf8] px-4 py-4 text-left transition-colors hover:bg-[#efebe3] md:grid md:grid-cols-[minmax(0,1fr)_92px] md:items-center md:gap-6"
     >
       <div className="min-w-0">
         <h3 className="board-section-title">{tournament.name}</h3>
@@ -70,17 +69,16 @@ function EventRow({
           <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
             {tournament.competitive_mode ? "competitive" : "casual"}
           </StateTag>
+          {worldName ? <StateTag>{worldName}</StateTag> : null}
         </div>
         <p className="mt-3 text-sm leading-7 text-black/68">
           {tournament.description ||
-            `${worldName ? `${worldName} - ` : ""}${
-              label === "archive" ? "analysis and replay state" : "queue state and room resolution"
-            }`}
+            `${label === "archive" ? "Results posted. Replay ready." : "Seats open. Bracket ready."}`}
         </p>
       </div>
       <div className="mt-4 space-y-2 text-left md:mt-0 md:text-right">
         <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-black/55">{label}</p>
-        <p className="font-display text-[2rem] font-bold leading-none tracking-[-0.04em] text-black">
+        <p className="text-[2rem] font-extrabold leading-none tracking-[-0.07em] text-black">
           {metric}
         </p>
       </div>
@@ -127,7 +125,7 @@ export default function Tournaments() {
   const primaryEvent = featuredTournaments[0] ?? null;
   const remainingTournaments = sortedTournaments.slice(3);
 
-  const loadTournaments = async () => {
+  const loadTournaments = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("tournaments")
@@ -156,20 +154,20 @@ export default function Tournaments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadWorldNames = async () => {
+  const loadWorldNames = useCallback(async () => {
     try {
       const worlds = await listWorlds(user?.id);
       setWorldNames(Object.fromEntries(worlds.map((world) => [world.id, world.name])));
     } catch (error) {
       console.error("Failed to load world directory:", error);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
-    loadTournaments();
-    loadWorldNames();
+    void loadTournaments();
+    void loadWorldNames();
 
     const channel = supabase
       .channel("tournaments")
@@ -180,14 +178,16 @@ export default function Tournaments() {
           schema: "public",
           table: "tournaments",
         },
-        () => loadTournaments(),
+        () => {
+          void loadTournaments();
+        },
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [loadTournaments, loadWorldNames]);
 
   if (loading) {
     return (
@@ -202,116 +202,125 @@ export default function Tournaments() {
   return (
     <SiteFrame>
       <div className="space-y-8">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_356px] xl:items-start">
-          <div className="space-y-6">
-            <BoardWordmark className="text-[52px] md:text-[72px]" />
-
-            <div className="retro-status-strip w-fit flex-wrap gap-3 bg-white px-4 py-4">
-              <StateTag>events</StateTag>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px] xl:items-start">
+          <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
+            <div className="flex flex-wrap gap-2">
               <StateTag tone={openTournaments.length ? "warning" : "normal"}>
-                {openTournaments.length} queued finals
+                {openTournaments.length} open
               </StateTag>
-              <StateTag tone={activeTournaments.length ? "success" : "warning"}>
-                {activeTournaments.length} running
+              <StateTag tone={activeTournaments.length ? "success" : "normal"}>
+                {activeTournaments.length} live
               </StateTag>
             </div>
 
-            <div className="max-w-3xl space-y-4">
-              <h1 className="board-display-title max-w-[720px] text-[3.25rem] leading-[0.94] md:text-[4.5rem]">
-                Events are orchestration, not listings.
+            <div className="mt-6 max-w-[42rem]">
+              <h1 className="text-[clamp(3rem,5vw,5.2rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
+                Queue brackets. Run finals. Keep the room attached.
               </h1>
-              <p className="board-copy max-w-[560px] text-[18px] leading-8 text-black/68">
-                Scheduling, queue state, match state, and where the host’s event logic is about to push people next all live here.
+              <p className="mt-5 max-w-[30rem] text-[17px] leading-8 text-white/72">
+                Registration, seats, and bracket state stay in one place.
               </p>
             </div>
 
-            <div className="space-y-4">
-              {featuredTournaments.length > 0 ? (
-                featuredTournaments.map((tournament) => (
-                  <EventRow
-                    key={tournament.id}
-                    tournament={tournament}
-                    worldName={tournament.world_id ? worldNames[tournament.world_id] : undefined}
-                    onOpen={(tournamentId) => navigate(`/tournament/${tournamentId}`)}
-                  />
-                ))
-              ) : (
-                <div className="border border-black bg-[#fbfaf8] px-5 py-5">
-                  <h2 className="board-section-title text-[2rem] tracking-[-0.04em]">No events running</h2>
-                  <p className="board-copy mt-3 max-w-[480px] text-[16px] leading-7 text-black/68">
-                    Start with a world, then stage the first event from there.
-                  </p>
-                </div>
-              )}
+            <div className="mt-8 grid gap-3 md:grid-cols-3">
+              <div className="border border-white/12 px-4 py-4">
+                <p className="board-rail-label text-white/56">open</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+                  {openTournaments.length} registration live
+                </p>
+              </div>
+              <div className="border border-white/12 px-4 py-4">
+                <p className="board-rail-label text-white/56">running</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+                  {activeTournaments.length} brackets active
+                </p>
+              </div>
+              <div className="border border-white/12 px-4 py-4">
+                <p className="board-rail-label text-white/56">source</p>
+                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
+                  {worldHostedCount} tied to worlds
+                </p>
+              </div>
             </div>
-          </div>
+          </section>
 
           <aside className="border border-black bg-[#fbfaf8] px-5 py-5">
-            <p className="board-rail-label text-black/55">Event Rail</p>
-            <div className="mt-6 space-y-4">
-              <h2 className="board-section-title text-[2.1rem] tracking-[-0.04em]">
-                {primaryEvent?.name || "Create Event"}
-              </h2>
-              <p className="board-copy text-[16px] leading-7 text-black/68">
-                {primaryEvent?.description ||
-                  "Queue state, seed source, and next-room resolution belong here."}
-              </p>
+            <p className="board-rail-label text-black/55">Featured bracket</p>
+            <h2 className="mt-5 text-[2.3rem] font-black leading-[0.92] tracking-[-0.06em] text-black">
+              {primaryEvent?.name || "Host the first bracket"}
+            </h2>
+            <p className="mt-4 text-[16px] leading-7 text-black/68">
+              {primaryEvent?.description ||
+                "Set the format. Open seats. Start rounds."}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <StateTag>{primaryEvent ? `board ${primaryEvent.board_size}` : "new board"}</StateTag>
+              <StateTag tone={primaryEvent?.competitive_mode ? "warning" : "normal"}>
+                {primaryEvent ? (primaryEvent.competitive_mode ? "competitive" : "casual") : "casual first"}
+              </StateTag>
             </div>
 
-            <div className="retro-status-strip mt-6 flex-wrap gap-3 bg-white px-4 py-4">
-              <span className="border border-black px-3 py-2 text-[11px] uppercase tracking-[0.16em]">
-                {primaryEvent ? `room ${primaryEvent.board_size}` : "event rail"}
-              </span>
-              <span className="border border-black px-3 py-2 text-[11px] uppercase tracking-[0.16em]">
-                {primaryEvent ? (primaryEvent.competitive_mode ? "competitive" : "casual") : "round queue"}
-              </span>
-              <span className="border border-black px-3 py-2 text-[11px] uppercase tracking-[0.16em]">
-                {primaryEvent ? "host ready" : "host first"}
-              </span>
-            </div>
-
-            <div className="mt-6 border border-black px-4 py-4">
-              <h3 className="board-section-title text-[2rem] tracking-[-0.04em]">Create Event</h3>
-              <p className="board-copy mt-3 text-[16px] leading-7 text-black/68">
-                Use this rail for event creation and queue control.
-              </p>
+            <div className="mt-8 flex flex-col gap-3">
               {user && !isGuest ? (
-                <Button variant="outline" className="mt-8" onClick={() => setShowCreateDialog(true)}>
-                  Open
+                <Button variant={primaryEvent ? "outline" : "hero"} onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  Create event
                 </Button>
               ) : (
-                <Button variant="outline" className="mt-8" onClick={() => navigate(buildAuthRoute("/events"))}>
-                  Enter
+                <Button variant="outline" onClick={() => navigate(buildAuthRoute("/events"))}>
+                  Enter to host
                 </Button>
               )}
+              {primaryEvent ? (
+                <Button variant="outline" onClick={() => navigate(`/tournament/${primaryEvent.id}`)}>
+                  Open featured event
+                </Button>
+              ) : null}
             </div>
 
-            <div className="mt-10 space-y-2">
-              <p className="font-display text-[5rem] font-bold leading-none tracking-[-0.06em] text-black">
-                {String(openTournaments.length).padStart(2, "0")}
-              </p>
-              <p className="text-[12px] uppercase tracking-[0.18em] text-black/55">queued finals</p>
-            </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <CounterBlock label="world-hosted" value={worldHostedCount} />
               <CounterBlock label="standalone" value={standaloneCount} />
             </div>
 
             {isGuest ? (
               <div className="retro-warning-strip mt-6">
-                Playing as {guestUsername}. Create an account to join host-run events.
+                Playing as {guestUsername}. Sign in to join host-run brackets.
               </div>
             ) : null}
             {loadError ? <div className="retro-critical-strip mt-6">{loadError}</div> : null}
           </aside>
         </div>
 
+        <VenuePanel
+          eyebrow="Event queue"
+          title={featuredTournaments.length > 0 ? "Open brackets" : "No events live yet"}
+          description={
+            featuredTournaments.length > 0
+              ? "Open one. Check seats. Start rounds."
+              : "Create the first bracket."
+          }
+        >
+          {featuredTournaments.length > 0 ? (
+            <div className="space-y-4">
+              {featuredTournaments.map((tournament) => (
+                <EventRow
+                  key={tournament.id}
+                  tournament={tournament}
+                  worldName={tournament.world_id ? worldNames[tournament.world_id] : undefined}
+                  onOpen={(tournamentId) => navigate(`/tournament/${tournamentId}`)}
+                />
+              ))}
+            </div>
+          ) : null}
+        </VenuePanel>
+
         {remainingTournaments.length > 0 ? (
           <VenuePanel
-            eyebrow="Event queue"
-            title="Additional events"
-            description="The network queue extends beyond the featured items above."
+            eyebrow="More brackets"
+            title="More events"
+            description="Jump into another bracket."
             titleBarEnd={<StateTag>{remainingTournaments.length} more</StateTag>}
           >
             <div className="space-y-3">

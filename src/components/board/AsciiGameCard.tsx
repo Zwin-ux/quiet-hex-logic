@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import { useReducedMotion } from "framer-motion";
 import { StateTag } from "@/components/board/StateTag";
 import { getGameMeta } from "@/lib/gameMetadata";
-import { getAsciiGamePreview } from "@/lib/asciiGames";
+import { getAsciiGamePreview } from "@/lib/asciiGames.ts";
 import { cn } from "@/lib/utils";
 
 type AsciiGameCardProps = {
@@ -16,26 +14,13 @@ export function AsciiGameCard({
   gameKey,
   className,
   size = "compact",
-  titleBarEyebrow = "Ascii board",
+  titleBarEyebrow = "Board specimen",
 }: AsciiGameCardProps) {
   const preview = getAsciiGamePreview(gameKey);
   const meta = getGameMeta(gameKey);
   const Icon = meta.icon;
-  const prefersReducedMotion = useReducedMotion();
-  const [frameIndex, setFrameIndex] = useState(0);
-
-  useEffect(() => {
-    if (prefersReducedMotion || preview.frames.length <= 1) return;
-
-    const id = window.setInterval(() => {
-      setFrameIndex((current) => (current + 1) % preview.frames.length);
-    }, preview.speedMs);
-
-    return () => window.clearInterval(id);
-  }, [prefersReducedMotion, preview.frames.length, preview.speedMs]);
-
-  const frame = preview.frames[frameIndex] ?? preview.frames[0];
   const isFeature = size === "feature";
+  const previewFrame = preview.frames[Math.min(2, preview.frames.length - 1)] ?? preview.frames[0];
 
   return (
     <section className={cn("retro-window", className)}>
@@ -43,37 +28,38 @@ export function AsciiGameCard({
         <div className="min-w-0">
           <p className="retro-window__eyebrow">{titleBarEyebrow}</p>
           <div className="mt-1 flex items-center gap-2">
-            <Icon className="h-4 w-4 shrink-0 text-white" />
+            <Icon className={cn("h-4 w-4 shrink-0", meta.accentClass)} />
             <div className="retro-window__title">{preview.label}</div>
           </div>
         </div>
         <div className="shrink-0">
-          <StateTag tone="success">{preview.status}</StateTag>
+          <StateTag tone="normal">{preview.status}</StateTag>
         </div>
       </div>
 
       <div className="retro-window__body retro-window__body--shell">
-        <div className="ascii-monitor">
-          <div className="ascii-monitor__hud">
-            <span>demo</span>
-            <span>{preview.note}</span>
-            <span>{prefersReducedMotion ? "static" : `frame ${frameIndex + 1}`}</span>
+        <div className="overflow-hidden border border-black/12 bg-[#121316] text-[#f5f1e8]">
+          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-3 py-2">
+            <span className="board-rail-label text-[#d8d1c2]">{preview.label}</span>
+            <span className="board-rail-label text-[#8e8a80]">frame 03</span>
           </div>
           <pre
+            aria-label={`${preview.label} board specimen.`}
             className={cn(
-              "ascii-monitor__pre",
-              isFeature ? "ascii-monitor__pre--feature" : "ascii-monitor__pre--compact",
+              "m-0 overflow-x-auto px-3 py-4 font-['IBM_Plex_Mono'] font-semibold leading-[1.16] tracking-[0.04em] text-[#f5f1e8]",
+              isFeature ? "min-h-[13.8rem] text-[0.72rem]" : "min-h-[11.6rem] text-[0.64rem]",
             )}
-            aria-label={`${preview.label} animated ascii board preview`}
           >
-            {frame}
+            {previewFrame}
           </pre>
-          <div className="ascii-monitor__scanline" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-4 border-t border-white/10 px-3 py-2">
+            <span className="board-rail-label text-[#d8d1c2]">{preview.note}</span>
+            <span className="board-rail-label text-[#8e8a80]">static</span>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="board-meta-chip text-[#00aa00]">{meta.tagline}</span>
-          <span className="board-meta-chip text-black/55">system {preview.label.toLowerCase()}</span>
+          <span className="board-meta-chip">{meta.tagline}</span>
         </div>
       </div>
     </section>

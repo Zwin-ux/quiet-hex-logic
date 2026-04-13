@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -21,7 +21,16 @@ const APP_VERSION = "1.0.1";
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+  const splashHiddenRef = useRef(false);
   const [splashHidden, setSplashHidden] = useState(false);
+
+  const hideSplashScreen = useCallback(async () => {
+    if (splashHiddenRef.current) return;
+
+    splashHiddenRef.current = true;
+    await SplashScreen.hideAsync();
+    setSplashHidden(true);
+  }, []);
 
   useEffect(() => {
     const setupIAP = async () => {
@@ -54,10 +63,7 @@ export default function App() {
 
     // Fallback: hide splash after 1s if onLoadEnd hasn't fired
     const timer = setTimeout(async () => {
-      if (!splashHidden) {
-        await SplashScreen.hideAsync();
-        setSplashHidden(true);
-      }
+      await hideSplashScreen();
     }, 1000);
 
     const onBackPress = () => {
@@ -80,7 +86,7 @@ export default function App() {
       }
       InAppPurchases.disconnectAsync();
     };
-  }, []);
+  }, [hideSplashScreen]);
 
   const onMessage = async (event: { nativeEvent: { data: string } }) => {
     try {
@@ -155,10 +161,7 @@ export default function App() {
         injectedJavaScript={injectedJS}
         onMessage={onMessage}
         onLoadEnd={async () => {
-          if (!splashHidden) {
-            await SplashScreen.hideAsync();
-            setSplashHidden(true);
-          }
+          await hideSplashScreen();
         }}
       />
     </SafeAreaView>

@@ -19,12 +19,12 @@ const PROVIDER_META: Record<
   google: {
     label: "Google",
     icon: Chrome,
-    description: "Primary sign-in and recovery path.",
+    description: "Main login.",
   },
   discord: {
     label: "Discord",
     icon: Disc3,
-    description: "Community-facing secondary sign-in.",
+    description: "Second login.",
   },
 };
 
@@ -94,8 +94,8 @@ export function AuthConnectionsSection() {
                 <p className="font-semibold text-black">{user.email || "No email on file"}</p>
                 <p className="text-sm leading-6 text-black/62">
                   {emailIdentity
-                    ? "Email recovery is attached to this account."
-                    : "This account was created through OAuth. Add a backup method before removing providers."}
+                    ? "Email sign-in is linked."
+                    : "OAuth account. Add backup login first."}
                 </p>
               </div>
             </div>
@@ -151,7 +151,7 @@ export function AuthConnectionsSection() {
                     </div>
                   ) : (
                     <p className="mt-4 text-sm leading-6 text-black/62">
-                      Connect this after first sign-in so worlds, ratings, and moderation state stay on one BOARD identity.
+                      Link this login later.
                     </p>
                   )}
                 </div>
@@ -195,7 +195,7 @@ export function AuthConnectionsSection() {
       <div className="border border-dashed border-black/20 bg-white px-4 py-4">
         <p className="board-rail-label text-black/55">Connection rule</p>
         <p className="mt-3 text-sm leading-7 text-black/62">
-          Enable Supabase manual identity linking so added providers attach to the current user instead of creating separate accounts.
+          Turn on Supabase manual linking.
         </p>
         {error ? (
           <p className="mt-3 text-sm leading-7 text-red-600">{normalizeConnectionError(error)}</p>

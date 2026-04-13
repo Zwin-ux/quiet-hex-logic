@@ -62,7 +62,7 @@ export function useGameSounds() {
     } catch (e) {
       // Audio not supported or blocked
     }
-  }, [getAudioContext]);
+  }, [getAudioContext, triggerPlacement]);
 
   // Victory sound - triumphant ascending chord + celebration haptic
   const playWinSound = useCallback(() => {
@@ -120,7 +120,7 @@ export function useGameSounds() {
     } catch (e) {
       // Audio not supported or blocked
     }
-  }, [getAudioContext]);
+  }, [getAudioContext, triggerVictory]);
 
   // Defeat sound - descending tone + heavy haptic
   const playLoseSound = useCallback(() => {
@@ -156,7 +156,7 @@ export function useGameSounds() {
     } catch (e) {
       // Audio not supported or blocked
     }
-  }, [getAudioContext]);
+  }, [getAudioContext, triggerDefeat]);
 
   // Invalid move sound - error buzz + error haptic
   const playErrorSound = useCallback(() => {
@@ -185,7 +185,7 @@ export function useGameSounds() {
     } catch (e) {
       // Audio not supported or blocked
     }
-  }, [getAudioContext]);
+  }, [getAudioContext, triggerError]);
 
   return {
     playPlaceSound,

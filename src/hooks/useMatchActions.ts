@@ -309,7 +309,14 @@ export function useMatchActions({
 
   const handlePlayAgainAI = useCallback(() => {
     if (!match) return;
-    navigate('/lobby', { state: { createAI: true, difficulty: match.ai_difficulty, boardSize: match.size } });
+    navigate('/lobby', {
+      state: {
+        createAI: true,
+        difficulty: match.ai_difficulty,
+        boardSize: match.size,
+        gameKey: match.game_key ?? 'hex',
+      },
+    });
   }, [match, navigate]);
 
   return {

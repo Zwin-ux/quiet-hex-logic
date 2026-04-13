@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,27 +57,7 @@ export default function Friends() {
     if (!loading && !user) navigate(buildAuthRoute());
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchFriends();
-    
-    const friendsChannel = supabase
-      .channel('friends-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, fetchFriends)
-      .subscribe();
-
-    const presenceChannel = supabase
-      .channel('presence-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, fetchFriends)
-      .subscribe();
-
-    return () => { 
-      supabase.removeChannel(friendsChannel);
-      supabase.removeChannel(presenceChannel);
-    };
-  }, [user]);
-
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     if (!user) return;
 
     const { data: friendsData } = await supabase
@@ -114,7 +94,31 @@ export default function Friends() {
     setFriends(accepted);
     setPendingRequests(pending);
     setBlockedUsers(blocked);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchFriends();
+
+    const friendsChannel = supabase
+      .channel('friends-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => {
+        void fetchFriends();
+      })
+      .subscribe();
+
+    const presenceChannel = supabase
+      .channel('presence-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_presence' }, () => {
+        void fetchFriends();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(friendsChannel);
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [fetchFriends, user]);
 
   const sendChallenge = async (friendId: string, friendUsername: string) => {
     if (!user) return;

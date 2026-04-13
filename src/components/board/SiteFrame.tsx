@@ -7,6 +7,9 @@ type SiteFrameProps = {
   className?: string;
   contentClassName?: string;
   showNav?: boolean;
+  navVariant?: "default" | "landing";
+  contentMode?: "contained" | "full";
+  shellVariant?: "default" | "landing";
 };
 
 export function SiteFrame({
@@ -14,21 +17,41 @@ export function SiteFrame({
   className,
   contentClassName,
   showNav = true,
+  navVariant = "default",
+  contentMode = "contained",
+  shellVariant = navVariant === "landing" ? "landing" : "default",
 }: SiteFrameProps) {
   return (
-    <div className={cn("board-shell", className)}>
+    <div className={cn("board-shell", className)} data-shell-variant={shellVariant}>
       <div className="pointer-events-none fixed inset-0">
-        <div className="board-grid absolute inset-0 opacity-70" />
-        <div className="board-topography absolute inset-0 opacity-90" />
-        <div className="absolute inset-x-0 top-0 h-64 board-texture-fade opacity-80" />
+        <div
+          className={cn(
+            "board-grid absolute inset-0",
+            shellVariant === "landing" ? "opacity-[0.18]" : "opacity-[0.3]",
+          )}
+        />
+        <div
+          className={cn(
+            "board-topography absolute inset-0",
+            shellVariant === "landing" ? "opacity-[0.22]" : "opacity-[0.28]",
+          )}
+        />
+        <div
+          className={cn(
+            "absolute inset-x-0 top-0 h-64 board-texture-fade",
+            shellVariant === "landing" ? "opacity-[0.26]" : "opacity-[0.28]",
+          )}
+        />
         <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/[0.04] to-transparent" />
       </div>
 
-      {showNav ? <NavBar /> : null}
+      {showNav ? <NavBar variant={navVariant} /> : null}
 
       <main
         className={cn(
-          "board-page-width relative z-10 mx-auto px-4 pb-20 pt-28 md:px-6 md:pt-32 lg:px-8",
+          contentMode === "full"
+            ? "relative z-10 pb-20 pt-24 md:pt-28"
+            : "board-page-width relative z-10 mx-auto px-4 pb-20 pt-28 md:px-6 md:pt-32 lg:px-8",
           contentClassName,
         )}
       >

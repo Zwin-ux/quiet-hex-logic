@@ -1,5 +1,5 @@
 import { AsciiGameCard } from "@/components/board/AsciiGameCard";
-import { ASCII_GAME_ORDER } from "@/lib/asciiGames";
+import { ASCII_GAME_ORDER } from "@/lib/asciiGames.ts";
 import { cn } from "@/lib/utils";
 
 type AsciiGameDeckProps = {

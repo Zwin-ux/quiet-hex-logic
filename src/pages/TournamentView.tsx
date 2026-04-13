@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AlertCircle, Award, Play, Trophy, UserMinus, UserPlus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { SectionRail } from "@/components/board/SectionRail";
 import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { MetricLine } from "@/components/board/MetricLine";
@@ -54,7 +53,7 @@ export default function TournamentView() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const loadTournament = async () => {
+  const loadTournament = useCallback(async () => {
     if (!tournamentId) return;
 
     try {
@@ -104,12 +103,12 @@ export default function TournamentView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, tournamentId]);
 
   useEffect(() => {
     if (!tournamentId) return;
 
-    loadTournament();
+    void loadTournament();
 
     const channel = supabase
       .channel(`tournament:${tournamentId}`)
@@ -121,7 +120,9 @@ export default function TournamentView() {
           table: "tournaments",
           filter: `id=eq.${tournamentId}`,
         },
-        () => loadTournament(),
+        () => {
+          void loadTournament();
+        },
       )
       .on(
         "postgres_changes",
@@ -131,14 +132,16 @@ export default function TournamentView() {
           table: "tournament_participants",
           filter: `tournament_id=eq.${tournamentId}`,
         },
-        () => loadTournament(),
+        () => {
+          void loadTournament();
+        },
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tournamentId]);
+  }, [loadTournament, tournamentId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,30 +289,27 @@ export default function TournamentView() {
         </button>
       </div>
 
-      <SectionRail
-        eyebrow="Event"
-        title={
-          <div className="flex flex-wrap items-center gap-3">
-            <span>{tournament.name}</span>
-            <span className="board-rail-label rounded-md border border-black/10 px-2 py-1 text-[10px] text-black/55">
-              {tournament.status}
-            </span>
-            <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
-              {tournament.competitive_mode ? "competitive" : "casual"}
-            </StateTag>
+      <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
+        <div className="flex flex-wrap items-center gap-2">
+          <StateTag>{tournament.status}</StateTag>
+          <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
+            {tournament.competitive_mode ? "competitive" : "casual"}
+          </StateTag>
+          <StateTag>{tournament.format === "single_elimination" ? "single elim" : "round robin"}</StateTag>
+        </div>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+          <div className="min-w-0">
+            <h1 className="text-[clamp(3rem,5vw,5rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
+              {tournament.name}
+            </h1>
+            <p className="mt-5 max-w-[34rem] text-[17px] leading-8 text-white/72">
+              {tournament.description || "Join bracket."}{" "}
+              {tournament.competitive_mode ? "Verify to enter." : "Casual entry."}
+            </p>
           </div>
-        }
-        description={
-          <>
-            {tournament.description || "No description yet."} Format:{" "}
-            {tournament.format === "single_elimination" ? "single elimination" : "round robin"}.
-            {tournament.competitive_mode
-              ? " Human verification is required to enter."
-              : " Verification is optional for entry."}
-          </>
-        }
-        actions={
-          <>
+
+          <div className="flex flex-wrap gap-3 xl:max-w-[280px] xl:justify-end">
             {canJoin ? (
               <Button onClick={handleJoin} disabled={actionLoading}>
                 <UserPlus className="h-4 w-4" />
@@ -328,16 +328,16 @@ export default function TournamentView() {
                 Start
               </Button>
             ) : null}
-          </>
-        }
-      />
+          </div>
+        </div>
+      </section>
 
       {shouldShowCompetitiveGate ? (
         <VenuePanel
           className="mt-6"
           eyebrow="Competitive gate"
-          title="Verify this account before joining."
-          description={competitiveJoinBlocked || "Competitive events and ranked queues require World ID. Casual events do not."}
+          title="Verify before joining."
+          description={competitiveJoinBlocked || "Use World ID. Then join."}
           state="warning"
           titleBarEnd={<StateTag tone="warning">verification required</StateTag>}
         >
@@ -357,7 +357,7 @@ export default function TournamentView() {
         <VenuePanel eyebrow="Participants" title={`${participants.length}/${tournament.max_players} seats`}>
           {participants.length === 0 ? (
             <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
-              No participants yet.
+              No players yet.
             </div>
           ) : (
             <div className="divide-y divide-black/10 border-t border-black/10">
@@ -390,13 +390,13 @@ export default function TournamentView() {
 
         <VenuePanel
           eyebrow="Competition state"
-          title={tournament.status === "registration" ? "Registration open" : "Bracket live"}
+          title={tournament.status === "registration" ? "Join open" : "Bracket live"}
           description={
             tournament.status === "registration"
               ? participants.length < tournament.min_players
-                ? `Need ${tournament.min_players - participants.length} more player(s) to start.`
-                : `Ready to start with ${participants.length} players.`
-              : "Rounds and pairings are now live."
+                ? `Need ${tournament.min_players - participants.length} more player(s).`
+                : `Ready with ${participants.length} players.`
+              : "Rounds live."
           }
         >
           <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -405,7 +405,7 @@ export default function TournamentView() {
               <MetricLine label="Board" value={`${tournament.board_size}x${tournament.board_size}`} />
               <MetricLine label="Format" value={tournament.format === "single_elimination" ? "single elim" : "round robin"} />
               <MetricLine label="Mode" value={tournament.competitive_mode ? "competitive" : "casual"} />
-              <MetricLine icon={Award} label="Host control" value={isCreator ? "you" : "world owner"} />
+              <MetricLine icon={Award} label="Host" value={isCreator ? "you" : "world owner"} />
             </div>
             <div>
               {tournament.status === "registration" ? (
@@ -413,10 +413,10 @@ export default function TournamentView() {
                   <Trophy className="h-14 w-14 text-black/25" />
                   <div>
                     <p className="text-2xl font-bold tracking-[-0.04em] text-foreground">
-                      Waiting for the field
+                      Need more players.
                     </p>
                     <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
-                      Once the minimum player count is reached, the host can seed and launch the event.
+                      Fill seats. Then start bracket.
                     </p>
                   </div>
                 </div>

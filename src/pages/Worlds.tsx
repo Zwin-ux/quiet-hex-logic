@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Plus } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
@@ -25,7 +25,7 @@ export default function Worlds() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -40,11 +40,11 @@ export default function Worlds() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
-    load();
-  }, [user?.id]);
+    void load();
+  }, [load]);
 
   const orderedWorlds = useMemo(() => {
     return [...worlds].sort((left, right) => {
@@ -82,22 +82,24 @@ export default function Worlds() {
   return (
     <SiteFrame>
       <div className="board-page-width mx-auto">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_318px] xl:items-start">
+        <div
+          className={`grid gap-6 ${orderedWorlds.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_318px] xl:items-start" : ""}`}
+        >
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <StateTag>World Directory</StateTag>
               <div className="retro-status-strip">
-                <span>{orderedWorlds.length} live worlds</span>
+                <span>{orderedWorlds.length} worlds</span>
                 <span>{publicCount} public</span>
                 <span>{joinedCount} joined</span>
               </div>
             </div>
 
             <h1 className="mt-8 max-w-[560px] text-[clamp(3rem,6vw,5.1rem)] font-black leading-[0.9] tracking-[-0.06em] text-[#0e0e0f]">
-              Choose a world, not a page.
+              Pick a world. See the room map before you enter.
             </h1>
             <p className="mt-5 max-w-[470px] text-[18px] leading-8 text-[#525257]">
-              Hosts own these places. Access, occupancy, and live state should be visible before the user clicks through.
+              Each world shows who is hosting, what is live, and whether it is worth joining.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -114,48 +116,48 @@ export default function Worlds() {
             </div>
           </div>
 
-          <aside className="border border-[#0e0e0f] bg-[#fbfaf8] p-5 md:p-6">
-            {selectedWorld ? (
-              <>
-                <p className="board-rail-label text-[11px] text-[#525257]">Selected World</p>
-                <h2 className="mt-4 text-[clamp(2rem,3vw,3rem)] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-                  {selectedWorld.name}
-                </h2>
-                <p className="mt-4 text-[17px] leading-8 text-[#525257]">
-                  {selectedWorld.description || "Host-run venue with rooms, events, and live entry state."}
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <StateTag>{selectedWorld.visibility}</StateTag>
-                  <StateTag tone="success">{selectedWorld.ownerName}</StateTag>
-                  <StateTag>{selectedWorld.instanceCount} live</StateTag>
-                </div>
-
-                <div className="mt-8">
-                  <p className="font-['League_Spartan'] text-[68px] font-black leading-none tracking-[-0.06em] text-[#0e0e0f]">
-                    {selectedWorld.memberCount + selectedWorld.instanceCount}
+          {orderedWorlds.length > 0 ? (
+            <aside className="border border-[#0e0e0f] bg-[#fbfaf8] p-5 md:p-6">
+              {selectedWorld ? (
+                <>
+                  <p className="board-rail-label text-[11px] text-[#525257]">Selected World</p>
+                  <h2 className="mt-4 text-[clamp(2rem,3vw,3rem)] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
+                    {selectedWorld.name}
+                  </h2>
+                  <p className="mt-4 text-[17px] leading-8 text-[#525257]">
+                    {selectedWorld.description || "Rooms, events, and live finals in one place."}
                   </p>
-                  <p className="board-rail-label mt-2 text-[11px] text-[#525257]">
-                    watchers + queued players
-                  </p>
-                </div>
 
-                <div className="mt-8 flex flex-col gap-3">
-                  <Button variant="hero" onClick={() => navigate(`/worlds/${selectedWorld.id}`)}>
-                    Enter world
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/events")}>
-                    View events
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/play")}>
-                    Local practice
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="retro-warning-strip">No world selected.</div>
-            )}
-          </aside>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    <StateTag>{selectedWorld.visibility}</StateTag>
+                    <StateTag tone="success">{selectedWorld.ownerName}</StateTag>
+                    <StateTag>{selectedWorld.instanceCount} live</StateTag>
+                  </div>
+
+                  <div className="mt-8">
+                    <p className="text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
+                      {selectedWorld.memberCount + selectedWorld.instanceCount}
+                    </p>
+                    <p className="board-rail-label mt-2 text-[11px] text-[#525257]">
+                      members + live tables
+                    </p>
+                  </div>
+
+                  <div className="mt-8 flex flex-col gap-3">
+                    <Button variant="hero" onClick={() => navigate(`/worlds/${selectedWorld.id}`)}>
+                      Enter world
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate("/events")}>
+                      View events
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate("/play")}>
+                      Local practice
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+            </aside>
+          ) : null}
         </div>
 
         {loading ? (
@@ -167,7 +169,7 @@ export default function Worlds() {
         ) : orderedWorlds.length === 0 ? (
           <div className="mt-10 border border-[#0e0e0f] bg-[#fbfaf8] p-6">
             <p className="text-[18px] leading-8 text-[#525257]">
-              No worlds are live yet. The first alpha world should belong to a real organizer.
+              No worlds live yet. Create the first host space.
             </p>
           </div>
         ) : (
@@ -196,12 +198,12 @@ export default function Worlds() {
                     </h2>
                     <p className="mt-2 text-[15px] leading-7 text-[#525257]">
                       {world.description ||
-                        `${world.visibility === "public" ? "Public" : "Private"} venue with rooms, host controls, and event state.`}
+                        `${world.visibility === "public" ? "Public" : "Private"} room map with host, room, and event state.`}
                     </p>
                   </div>
                   <div className="border-l border-[#0e0e0f]/12 pl-4">
                     <p className="board-rail-label text-[11px] text-[#525257]">{stateLabel}</p>
-                    <p className="mt-2 font-['League_Spartan'] text-[2.1rem] font-black leading-none tracking-[-0.05em] text-[#0e0e0f]">
+                    <p className="mt-2 text-[2.1rem] font-extrabold leading-none tracking-[-0.07em] text-[#0e0e0f]">
                       {countLabel}
                     </p>
                   </div>

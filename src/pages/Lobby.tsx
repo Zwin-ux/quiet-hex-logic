@@ -170,13 +170,15 @@ export default function Lobby() {
 
   useEffect(() => {
     if (!isDiscordEnvironment && !loading && !user) {
+      const routeState = location.state as { createAI?: boolean; competitive?: boolean } | null;
+      if (routeState?.createAI || routeState?.competitive) return;
       const hasSeenOnboarding =
         localStorage.getItem("board_onboarded") || localStorage.getItem("openboard_onboarded");
       if (!hasSeenOnboarding) {
         setShowOnboarding(true);
       }
     }
-  }, [isDiscordEnvironment, loading, user]);
+  }, [isDiscordEnvironment, loading, location.state, user]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("board_onboarded", "true");
@@ -209,7 +211,9 @@ export default function Lobby() {
           };
           try {
             sessionStorage.setItem(`discord_local_match:${localMatchId}`, JSON.stringify(initPayload));
-          } catch {}
+          } catch {
+            // Embedded or privacy-restricted environments can block sessionStorage.
+          }
 
           toast.success(`Starting ${difficulty} AI match`);
           navigate(`/match/${localMatchId}`, { state: initPayload });
@@ -238,7 +242,9 @@ export default function Lobby() {
         try {
           const gameDef = listGames().find((game) => game.key === gameKey);
           if (gameDef) pieRule = gameDef.supportsPieRule;
-        } catch {}
+        } catch {
+          // Fall back to the game default above if registry lookup is unavailable.
+        }
 
         const { data: newMatch, error } = await supabase
           .from("matches")
@@ -397,16 +403,23 @@ export default function Lobby() {
     if (isLoading) return;
 
     const state = location.state as
-      | { createAI?: boolean; difficulty?: string; boardSize?: number; competitive?: boolean }
+      | {
+          createAI?: boolean;
+          difficulty?: string;
+          boardSize?: number;
+          competitive?: boolean;
+          gameKey?: string;
+        }
       | null;
 
     if (state?.createAI && state?.difficulty && !handledAutoCreate) {
       if (!isReadyForLocalPlay) return;
       setHandledAutoCreate(true);
       const difficulty = state.difficulty as "easy" | "medium" | "hard" | "expert";
-      const boardSize = state.boardSize || 7;
+      const gameKey = state.gameKey || "hex";
+      const boardSize = state.boardSize || getGame(gameKey).defaultBoardSize;
       navigate(location.pathname, { replace: true, state: {} });
-      createAIMatch(difficulty, boardSize);
+      createAIMatch(difficulty, boardSize, gameKey);
       return;
     }
 
@@ -535,10 +548,10 @@ export default function Lobby() {
 
               <div className="max-w-3xl space-y-4">
                 <h1 className="board-display-title max-w-[620px] text-[3.25rem] leading-[0.94] md:text-[4.5rem]">
-                  Join a room or start immediately.
+                  Open a board or join a room.
                 </h1>
                 <p className="board-copy max-w-[540px] text-[18px] leading-8 text-black/68">
-                  The play route is a room desk. Public rooms, hosted rooms, and local practice all have clear entry paths.
+                  Local practice, public rooms, and hosted rooms each get a clear lane.
                 </p>
               </div>
 
@@ -546,7 +559,7 @@ export default function Lobby() {
                 <div className="board-panel px-5 py-5">
                   <h2 className="board-section-title text-[2rem] tracking-[-0.04em]">Local Practice</h2>
                   <p className="board-copy mt-3 max-w-[300px] text-[16px] leading-7 text-black/68">
-                    No account required. Open a board and start playing immediately.
+                    No account. Open a board now.
                   </p>
                   <Button
                     variant="outline"
@@ -556,14 +569,14 @@ export default function Lobby() {
                     }
                     disabled={creatingMatch}
                   >
-                    {creatingMatch ? "Opening..." : "Open"}
+                    {creatingMatch ? "Opening..." : "Start local"}
                   </Button>
                 </div>
 
                 <div className="board-panel px-5 py-5">
                   <h2 className="board-section-title text-[2rem] tracking-[-0.04em]">Join Public Room</h2>
                   <p className="board-copy mt-3 max-w-[300px] text-[16px] leading-7 text-black/68">
-                    Enter a room with active players and live watchers.
+                    Jump into an open room.
                   </p>
                   <Button
                     variant="outline"
@@ -576,7 +589,7 @@ export default function Lobby() {
                       navigate("/worlds");
                     }}
                   >
-                    Open
+                    {publicRoom ? `Join ${publicRoom.code}` : "Browse rooms"}
                   </Button>
                 </div>
               </div>
@@ -588,7 +601,7 @@ export default function Lobby() {
                 {featuredLiveMatch ? (
                   <NetworkFeedCard
                     title={`Room ${featuredLiveMatch.id.slice(0, 4).toUpperCase()}`}
-                    body={`${featuredLiveMatch.world_id ? worldNameById.get(featuredLiveMatch.world_id) ?? "World room" : "Public room"} — spectators open`}
+                    body={`${featuredLiveMatch.world_id ? worldNameById.get(featuredLiveMatch.world_id) ?? "World room" : "Public room"} - spectators open`}
                     mode="live"
                     metric={featuredLiveMatch.size}
                     inverse
@@ -598,7 +611,7 @@ export default function Lobby() {
                 {publicRoom ? (
                   <NetworkFeedCard
                     title={`Room ${publicRoom.code}`}
-                    body="Open table — joinable"
+                    body="Open table - joinable"
                     mode="join"
                     metric={publicRoom.player_count ?? 0}
                     inverse
@@ -607,9 +620,9 @@ export default function Lobby() {
 
                 <NetworkFeedCard
                   title="Practice Desk"
-                  body="Solo board — local play only"
+                  body="Solo board - local play only"
                   mode="local"
-                  metric="—"
+                  metric="--"
                   inverse
                 />
               </div>
@@ -712,7 +725,7 @@ export default function Lobby() {
               description={
                 user && !isGuest
                   ? "Open your world, create a room, or jump to events. Hosted access stays attached to real account state."
-                  : `Create an account for world rooms, recurring events, and hosted access${isGuest ? ` — current guest: ${guestUsername}` : ""}.`
+                  : `Create an account for world rooms, recurring events, and hosted access${isGuest ? ` - current guest: ${guestUsername}` : ""}.`
               }
               state={user && !isGuest ? "normal" : "warning"}
               titleBarEnd={
@@ -833,7 +846,7 @@ export default function Lobby() {
                         {match.world_id && worldNameById.get(match.world_id)
                           ? `${worldNameById.get(match.world_id)}`
                           : "Standalone room"}{" "}
-                        — active now.
+                        - active now.
                       </p>
                     </div>
                     <div className="mt-4 flex justify-start md:mt-0 md:justify-end">

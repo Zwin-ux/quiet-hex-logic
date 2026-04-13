@@ -1,78 +1,109 @@
 import { memo, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { AsciiGameDeck } from "@/components/board/AsciiGameDeck";
+import { ArrowRight } from "lucide-react";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
+import { Button } from "@/components/ui/button";
+import { getGame } from "@/lib/engine/registry";
 import { cn } from "@/lib/utils";
 
-const entryRail = [
-  { label: "Enter Worlds", href: "/worlds" },
-  { label: "Start Local Practice", href: "/play" },
-  { label: "View Events", href: "/events" },
+const HERO_PREVIEW_KEY = "hex";
+
+const venueRail = [
+  {
+    label: "HOST",
+    value: "Open rooms, share one invite, and keep the bracket attached.",
+  },
+  {
+    label: "WATCH",
+    value: "Follow live tables, finals, and replays from the same place.",
+  },
+  {
+    label: "RANKED",
+    value: "Verify once with World ID, then use the same account in ranked play.",
+  },
 ] as const;
 
-const liveTape = [
-  "WORLD 03 / PUBLIC",
-  "12 LIVE TABLES",
-  "2 FINALS QUEUED",
-  "8 WATCHING",
-  "HOST ONLINE",
-] as const;
-
-const Hero = memo(
+export const LandingHero = memo(
   forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(({ className, ...props }, ref) => {
     const navigate = useNavigate();
+    const heroGame = getGame(HERO_PREVIEW_KEY);
+
+    const startNow = () => {
+      navigate("/play", {
+        state: {
+          createAI: true,
+          difficulty: "easy",
+          gameKey: HERO_PREVIEW_KEY,
+          boardSize: heroGame.defaultBoardSize,
+        },
+      });
+    };
 
     return (
-      <section ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
-        <div className="board-page-width relative mx-auto pb-12 pt-4 md:pb-16 md:pt-8">
-          <div className="relative border border-[#0e0e0f] bg-[#f6f4f0] px-6 py-8 md:px-10 md:py-10">
-            <div className="absolute inset-0 board-grid opacity-25" />
-            <div className="absolute inset-0 board-topography opacity-70" />
+      <section ref={ref} className={cn("relative overflow-hidden px-4 pt-4 md:px-6 md:pt-8", className)} {...props}>
+        <div className="mx-auto max-w-[1520px]">
+          <div className="landing-stage">
+            <div className="landing-stage__grid lg:grid-cols-[minmax(0,1.12fr)_minmax(380px,0.88fr)]">
+              <div className="landing-stage__copy board-public">
+                <div className="max-w-[820px]">
+                  <p className="board-public-label text-[#5c5750]">BOARD / local play / rooms and brackets</p>
+                  <BoardWordmark size="hero" className="mt-6 text-[#090909]" />
+                  <h1 className="board-public-display mt-10 max-w-[10ch] text-[clamp(3.3rem,6.6vw,6.8rem)] text-[#090909]">
+                    Start local. Open the room later.
+                  </h1>
+                  <p className="board-public-copy mt-6 max-w-[29rem] text-[1.05rem] md:text-[1.16rem]">
+                    Practice in seconds. When more people show up, turn the same table into rooms, invites, and finals.
+                  </p>
+                </div>
 
-            <div className="relative grid gap-10 xl:grid-cols-[0.95fr_1.05fr] xl:gap-14">
-              <div className="max-w-[520px]">
-                <BoardWordmark size="hero" />
-                <h1 className="mt-8 max-w-[460px] text-[clamp(2rem,3.1vw,3rem)] font-medium leading-[1.14] tracking-[-0.05em] text-[#0e0e0f]">
-                  Host a board world, not just a tournament page.
-                </h1>
-                <p className="mt-4 max-w-[430px] text-[17px] leading-8 text-[#525257] md:text-[18px]">
-                  BOARD is a venue system for worlds, rooms, instances, hosts,
-                  spectators, and live events. Alpha stays chess-first, but the
-                  system reads broader than one game.
-                </p>
-                <p className="board-rail-label mt-5 text-[11px] text-[#525257]">
-                  moving ascii boards preview every game system live
-                </p>
-
-                <div className="mt-8 inline-flex flex-col gap-3 border border-[#0e0e0f] bg-[#fbfaf8] p-5">
-                  <p className="board-rail-label text-[11px] text-[#525257]">Entry Desk</p>
-                  {entryRail.map((item) => (
-                    <button
-                      key={item.href}
-                      onClick={() => navigate(item.href)}
-                      className="inline-flex w-fit items-center border border-[#0e0e0f] bg-transparent px-3 py-2 text-[16px] font-medium text-[#0e0e0f] transition-colors duration-150 hover:bg-[#efebe3]"
+                <div className="flex flex-col gap-8 border-t border-black/10 pt-6 md:flex-row md:items-end md:justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <Button
+                      variant="hero"
+                      size="lg"
+                      className="min-w-[178px] justify-between bg-[#090909] text-[#f3efe6] hover:bg-[#17181c]"
+                      onClick={startNow}
                     >
-                      {item.label}
-                    </button>
+                      <span>Start local</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <p className="board-public-label max-w-[30rem] leading-7 text-[#5c5750]">
+                      Hex / {heroGame.defaultBoardSize}x{heroGame.defaultBoardSize} / no sign-in
+                    </p>
+                  </div>
+
+                  <div className="max-w-[18rem]">
+                    <p className="board-public-label text-[#5c5750]">NEXT</p>
+                    <p className="board-public-copy mt-2 text-[0.96rem] text-[#17181c]">
+                      Open a room, post the invite, and keep the bracket on the same surface.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="landing-stage__object">
+                <div className="landing-stage__object-rail">
+                  <span className="board-public-label text-white/68">HEX / room monitor</span>
+                  <span className="board-public-label text-white/44">live table / route 03</span>
+                </div>
+
+                <div className="landing-stage__piece-frame">
+                  <img
+                    src="/board/board-piece-cluster.svg"
+                    alt="Stacked low-poly board pieces."
+                    className="landing-stage__piece-image"
+                  />
+                </div>
+
+                <div className="landing-stage__note-grid">
+                  {venueRail.map((item) => (
+                    <div key={item.label} className="landing-stage__note">
+                      <p className="board-public-label text-white/58">{item.label}</p>
+                      <p className="board-public-copy text-[0.98rem] text-[#ddd6c9]">{item.value}</p>
+                    </div>
                   ))}
                 </div>
               </div>
-
-              <div className="relative">
-                <p className="board-rail-label mb-5 text-[11px] text-[#525257]">Ascii rack</p>
-                <AsciiGameDeck />
-              </div>
-            </div>
-
-            <div className="relative mt-12 flex flex-wrap gap-3 border border-[#0e0e0f] bg-[#fbfaf8] p-3 md:mt-16 md:w-fit">
-              {liveTape.map((item) => (
-                <div
-                  key={item}
-                  className="border border-[#0e0e0f] px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-[#0e0e0f]"
-                >
-                  {item}
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -81,6 +112,6 @@ const Hero = memo(
   }),
 );
 
-Hero.displayName = "Hero";
+LandingHero.displayName = "LandingHero";
 
-export default Hero;
+export default LandingHero;

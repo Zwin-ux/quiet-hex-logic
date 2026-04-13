@@ -34,8 +34,8 @@ export default function Welcome() {
   const verificationLabel = worldIdLoading
     ? "checking"
     : isVerified
-      ? "competitive ready"
-      : "verify next";
+      ? "ranked ready"
+      : "verify now";
   const connectionLabel = connectionsLoading ? "loading" : `${connectedMethods} methods`;
 
   const goTo = (path: string) => {
@@ -56,26 +56,27 @@ export default function Welcome() {
 
         <SectionRail
           eyebrow="Entry desk"
-          title="Pick the next move."
-          description="Identity is live. Now either host a world, verify for competitive play, or stay local. Extra providers can wait until after entry."
+          title="Choose next."
+          description="Host. Verify. Or play local."
           meta={
             <>
               <CounterBlock label="account" value={user?.email ? "live" : "new"} />
               <CounterBlock label="methods" value={connectedMethods} />
-              <CounterBlock label="trust" value={isVerified ? "ready" : "open"} />
+              <CounterBlock label="trust" value={isVerified ? "ready" : "locked"} />
             </>
           }
         />
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.28fr)_340px]">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
             <VenuePanel
               eyebrow="Host"
               title="Host a world"
-              description="Create the venue, land in setup mode, open the first room, then queue the first event."
+              description="Create a world. Open a room. Queue an event."
+              className="md:row-span-2"
               footer={
                 <Button variant="hero" className="w-full justify-between" onClick={() => goTo("/worlds?create=true")}>
-                  <span>Open world setup</span>
+                  <span>Create world</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               }
@@ -88,32 +89,32 @@ export default function Welcome() {
             </VenuePanel>
 
             <VenuePanel
-              eyebrow="Trust"
-              title="Verify for competitive"
-              description="Competitive events and ranked queues require World ID. Casual hosting and local practice do not."
+              eyebrow="Ranked"
+              title="Verify for ranked"
+              description="Use World ID. Join ranked queues. Join competitive events."
               footer={
                 <Button
                   variant={isVerified ? "secondary" : "outline"}
                   className="w-full justify-between"
                   onClick={() => goTo("/profile#identity")}
                 >
-                  <span>{isVerified ? "Review trust state" : "Open verification"}</span>
+                  <span>{isVerified ? "Check status" : "Open verify"}</span>
                   <Globe className="h-4 w-4" />
                 </Button>
               }
             >
               <div className="retro-status-strip w-fit">
-                <span>{isVerified ? "verified" : "required for ranked"}</span>
+                <span>{isVerified ? "verified" : "required"}</span>
               </div>
             </VenuePanel>
 
             <VenuePanel
               eyebrow="Practice"
               title="Local practice"
-              description="Stay outside the hosted stack. Open a board immediately and learn the game without touching event or membership state."
+              description="Open a board. Play local. No sign-in."
               footer={
                 <Button variant="outline" className="w-full justify-between" onClick={() => goTo("/play")}>
-                  <span>Open play desk</span>
+                  <span>Open play</span>
                   <Swords className="h-4 w-4" />
                 </Button>
               }
@@ -128,19 +129,19 @@ export default function Welcome() {
           <VenuePanel
             eyebrow="Account rule"
             title="One BOARD account."
-            description="Use Google or email to get in quickly. Add more sign-in methods later from Profile so worlds, ratings, and moderation state stay on one identity."
+            description="Sign in once. Link more logins later."
             footer={
               <Button variant="quiet" className="w-full justify-between" onClick={() => goTo("/profile#identity")}>
-                <span>Review account connections</span>
+                <span>Open account links</span>
                 <DoorOpen className="h-4 w-4" />
               </Button>
             }
           >
             <div className="space-y-3">
-              <StateTag tone="success">Google / email first</StateTag>
-              <StateTag>connect more providers later</StateTag>
+              <StateTag tone="success">Google or email</StateTag>
+              <StateTag>link more logins later</StateTag>
               <StateTag tone={isVerified ? "success" : "warning"}>
-                {isVerified ? "competitive unlocked" : "competitive still gated"}
+                {isVerified ? "ranked ready" : "ranked locked"}
               </StateTag>
             </div>
           </VenuePanel>

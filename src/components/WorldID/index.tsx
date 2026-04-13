@@ -40,7 +40,7 @@ export default function WorldIDWidget() {
 
     if (success) {
       toast.success("Verification complete", {
-        description: "This BOARD account is now eligible for competitive queues and competitive events.",
+        description: "Ranked queues and competitive events unlocked.",
       });
       return;
     }
@@ -67,7 +67,7 @@ export default function WorldIDWidget() {
               <div>
                 <p className="font-semibold text-black">Human verification complete</p>
                 <p className="text-sm leading-6 text-black/62">
-                  Competitive queues and competitive events are unlocked for this account.
+                  Ranked queues and competitive events unlocked.
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function WorldIDWidget() {
           <div>
             <p className="font-semibold text-black">Verify on the web</p>
             <p className="text-sm leading-6 text-black/62">
-              World ID requires the World App and is not available directly inside Discord.
+              Open the web page. Use World App.
             </p>
           </div>
         </div>
@@ -118,15 +118,15 @@ export default function WorldIDWidget() {
           <div className="mt-3 flex items-center gap-3">
             <Globe className="h-5 w-5 text-black/62" />
             <div>
-              <p className="font-semibold text-black">World ID upgrades this account for competitive play</p>
+              <p className="font-semibold text-black">Verify for ranked</p>
               <p className="text-sm leading-6 text-black/62">
-                Required for ranked queues and competitive events. Not required for casual hosting, casual worlds, or local practice.
+                Use World ID. Join ranked queues. Join competitive events.
               </p>
             </div>
           </div>
         </div>
         <div className="retro-status-strip">
-          <span>competitive gate</span>
+          <span>ranked gate</span>
           <span>world id</span>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function WorldIDWidget() {
               variant="hero"
               className="w-full justify-between"
             >
-              <span>{isVerifying ? "Verifying" : "Verify for competitive play"}</span>
+              <span>{isVerifying ? "Verifying" : "Verify for ranked"}</span>
               {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scan className="h-4 w-4" />}
             </Button>
           )}
@@ -187,7 +187,7 @@ export default function WorldIDWidget() {
       )}
 
       <p className="text-xs leading-6 text-black/55">
-        World ID proves uniqueness without turning this profile into a public identity document.
+        Scan in World App.
       </p>
     </div>
   );

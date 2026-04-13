@@ -17,10 +17,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import Lobby from "./pages/Lobby";
-import Match from "./pages/Match";
 
+const Auth = lazy(() => import("./pages/Auth"));
+const Lobby = lazy(() => import("./pages/Lobby"));
+const Match = lazy(() => import("./pages/Match"));
 const Friends = lazy(() => import("./pages/Friends"));
 const History = lazy(() => import("./pages/History"));
 const Replay = lazy(() => import("./pages/Replay"));

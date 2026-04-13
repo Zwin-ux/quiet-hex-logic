@@ -17,11 +17,74 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 
+function normalizeOrigin(value: string): string {
+  return new URL(value).origin;
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  try {
+    const normalizedOrigin = normalizeOrigin(origin);
+    const configuredAppUrl = getEnv('VITE_PUBLIC_APP_URL', 'PUBLIC_APP_URL');
+    const configuredApiBase = getEnv('VITE_API_BASE_URL', 'API_BASE_URL');
+
+    if (configuredAppUrl && normalizedOrigin === normalizeOrigin(configuredAppUrl)) {
+      return true;
+    }
+
+    if (configuredApiBase && normalizedOrigin === normalizeOrigin(configuredApiBase)) {
+      return true;
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      const hostname = new URL(normalizedOrigin).hostname;
+      return hostname === 'localhost' || hostname === '127.0.0.1';
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+function extractBearerToken(authHeader?: string): string {
+  const raw = authHeader?.trim() ?? '';
+  const prefix = 'Bearer ';
+  if (!raw.startsWith(prefix)) return '';
+  return raw.slice(prefix.length).trim();
+}
+
+async function requireAuthedUser(authHeader?: string) {
+  const token = extractBearerToken(authHeader);
+  if (!token) return null;
+
+  const { url, publishableKey } = getSupabaseConfig();
+  if (!url || !publishableKey) return null;
+
+  const authClient = createClient(url, publishableKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const { data, error } = await authClient.auth.getUser(token);
+  if (error || !data.user) {
+    return null;
+  }
+
+  return data.user;
+}
+
 app.use('/api', (req, res, next) => {
-  const origin = req.headers.origin;
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
 
   if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    if (!isAllowedOrigin(origin)) {
+      res.status(403).json({ error: 'Origin not allowed.' });
+      return;
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', normalizeOrigin(origin));
     res.setHeader('Vary', 'Origin');
   }
 
@@ -256,6 +319,12 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   try {
     const parsed = requestSchema.parse(req.body ?? {});
     const authHeader = req.header('authorization') ?? undefined;
+    const viewer = await requireAuthedUser(authHeader);
+
+    if (!viewer) {
+      res.status(401).json({ error: 'Authentication required for chat.' });
+      return;
+    }
 
     const result = streamText({
       model,
@@ -282,11 +351,26 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   }
 });
 
-app.use(express.static(distDir, { index: false }));
+app.use(
+  express.static(distDir, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return;
+      }
+
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }),
+);
 
 app.get(/^(?!\/api(?:\/|$)).*/, async (_req, res) => {
   try {
     const html = await fs.readFile(indexHtmlPath, 'utf8');
+    res.setHeader('Cache-Control', 'no-cache');
     res.type('html').send(injectRuntimeEnv(html));
   } catch {
     res.status(500).send('Build output not found. Run npm run build:railway first.');

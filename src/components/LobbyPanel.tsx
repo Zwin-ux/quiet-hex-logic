@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -99,7 +99,24 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
 
       fetchMatchAndNavigate();
     }
-  }, [lobby?.status, lobbyId, navigate, hasNavigated]);
+  }, [lobby, lobbyId, navigate, hasNavigated]);
+
+  const fetchMessages = useCallback(async () => {
+    if (!lobbyId) return;
+
+    const { data, error } = await supabase
+      .from('lobby_chat_messages')
+      .select('*, profiles(username, avatar_color)')
+      .eq('lobby_id', lobbyId)
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    if (error) {
+      console.error('Error fetching chat messages:', error);
+    } else {
+      setChatMessages(data || []);
+    }
+  }, [lobbyId]);
 
   // Fetch and subscribe to chat messages
   useEffect(() => {
@@ -107,22 +124,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
 
     let chatChannel: RealtimeChannel;
 
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('lobby_chat_messages')
-        .select('*, profiles(username, avatar_color)')
-        .eq('lobby_id', lobbyId)
-        .order('created_at', { ascending: true })
-        .limit(50);
-
-      if (error) {
-        console.error('Error fetching chat messages:', error);
-      } else {
-        setChatMessages(data || []);
-      }
-    };
-
-    fetchMessages();
+    void fetchMessages();
 
     // Subscribe to new messages
     chatChannel = supabase
@@ -153,7 +155,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
     return () => {
       supabase.removeChannel(chatChannel);
     };
-  }, [lobbyId]);
+  }, [fetchMessages, lobbyId]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {

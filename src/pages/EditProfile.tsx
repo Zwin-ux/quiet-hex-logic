@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,16 +28,7 @@ export default function EditProfile() {
   const [avatarColor, setAvatarColor] = useState<string>('indigo');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      navigate(buildAuthRoute());
-      return;
-    }
-
-    loadProfile();
-  }, [user, navigate]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user) return;
 
     const { data } = await supabase
@@ -51,7 +42,16 @@ export default function EditProfile() {
       setBio(data.bio || '');
       setAvatarColor(data.avatar_color || 'indigo');
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate(buildAuthRoute());
+      return;
+    }
+
+    void loadProfile();
+  }, [loadProfile, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

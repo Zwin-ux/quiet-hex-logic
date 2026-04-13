@@ -1,18 +1,16 @@
 import { memo, useState, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Target, ShieldCheck, Zap } from "lucide-react";
-import type { AIDifficulty } from "@/lib/hex/simpleAI";
-import { listGames, getGame } from "@/lib/engine/registry";
-import { getGameMeta } from "@/lib/gameMetadata";
+import { ArrowUpRight, Trophy, Target, ShieldCheck, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import type { AIDifficulty } from "@/lib/hex/simpleAI";
 import { createLocalAIMatch } from "@/lib/localAiMatch";
-import { toast } from "sonner";
+import { listGames, getGame } from "@/lib/engine/registry";
+import { getAsciiGamePreview } from "@/lib/asciiGames.ts";
+import { getGameMeta } from "@/lib/gameMetadata";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { AsciiGameCard } from "@/components/board/AsciiGameCard";
-import { SectionRail } from "@/components/board/SectionRail";
-import { VenuePanel } from "@/components/board/VenuePanel";
+import { toast } from "sonner";
 
 const DIFFICULTIES = [
   { id: "easy", label: "Starter", icon: Zap },
@@ -21,17 +19,26 @@ const DIFFICULTIES = [
   { id: "expert", label: "Relentless", icon: ShieldCheck },
 ] as const;
 
-export const GameGrid = memo(
+export const PracticeDesk = memo(
   forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(
     ({ className, ...props }, ref) => {
       const navigate = useNavigate();
       const { user } = useAuth();
+      const [selectedDifficulty, setSelectedDifficulty] = useState<AIDifficulty>("easy");
+      const [showSetup, setShowSetup] = useState(false);
       const [loadingDifficulty, setLoadingDifficulty] = useState<string | null>(null);
       const games = listGames();
       const [selectedGame, setSelectedGame] = useState<string | null>(games[0]?.key ?? null);
+      const selectedDefinition = selectedGame ? getGame(selectedGame) : null;
+      const selectedMeta = selectedGame ? getGameMeta(selectedGame) : null;
+      const preview = selectedGame ? getAsciiGamePreview(selectedGame) : null;
+      const previewFrame = preview
+        ? preview.frames[Math.min(2, preview.frames.length - 1)] ?? preview.frames[0]
+        : null;
 
       const handleStart = async (gameKey: string, difficulty: AIDifficulty) => {
         setLoadingDifficulty(difficulty);
+
         try {
           const currentUser = user;
           const gameDef = games.find((game) => game.key === gameKey);
@@ -43,6 +50,7 @@ export const GameGrid = memo(
               gameKey,
               boardSize: size,
             });
+
             navigate(`/match/${id}`, { state: payload });
             return;
           }
@@ -81,6 +89,7 @@ export const GameGrid = memo(
         } catch (error: any) {
           console.error("Error creating match:", error);
           const isNetwork = error instanceof TypeError && /fetch/i.test(error.message);
+
           toast.error(
             isNetwork
               ? "Network error - server may be offline"
@@ -91,127 +100,231 @@ export const GameGrid = memo(
         }
       };
 
+      const launchDisabled = Boolean(loadingDifficulty) || !selectedGame;
+
       return (
-        <section id="games" ref={ref} className={cn("bg-transparent py-20", className)} {...props}>
-          <div className="mx-auto max-w-[1440px]">
-            <SectionRail
-              eyebrow="Practice desk"
-              title="Local tables, live immediately."
-              description={
-                <>
-                  Pick a ruleset, read the ASCII board, set pressure, and launch.
-                </>
-              }
-              actions={<div className="text-sm font-semibold text-[#4f4f4f]">Guest practice stays open</div>}
-            />
+        <section
+          id="games"
+          ref={ref}
+          className={cn("board-public-section bg-transparent py-20", className)}
+          {...props}
+        >
+          <div className="board-page-width board-public mx-auto px-4 md:px-6 lg:px-8">
+            <div className="max-w-[52rem]">
+              <p className="board-public-label text-[#5d5d5d]">Instant practice desk</p>
+              <h2 className="board-public-display mt-5 max-w-[11ch] text-[clamp(2.25rem,4vw,4.1rem)] text-[#0a0a0a]">
+                Pick a game. Read the board. Start immediately.
+              </h2>
+              <p className="board-public-copy mt-6 max-w-[36rem] text-[1rem] md:text-[1.08rem]">
+                Every game opens from the same desk. No account required for local play.
+              </p>
+            </div>
 
-            <div className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="board-panel board-panel-cut rounded-[1.8rem] bg-white/90">
-                {games.map((game, index) => {
-                  const meta = getGameMeta(game.key);
-                  const Icon = meta.icon;
-                  const isSelected = selectedGame === game.key;
+            <div className="landing-practice-shell mt-10">
+              <div className="landing-practice-shell__grid">
+                <div className="landing-practice-list">
+                  {games.map((game, index) => {
+                    const meta = getGameMeta(game.key);
+                    const Icon = meta.icon;
+                    const isSelected = selectedGame === game.key;
 
-                  return (
-                    <button
-                      key={game.key}
-                      onClick={() => setSelectedGame(game.key)}
-                      disabled={Boolean(loadingDifficulty)}
-                      className={cn(
-                        "group relative grid w-full gap-3 border-b border-black/10 px-5 py-5 text-left transition-all duration-200 md:grid-cols-[48px_minmax(0,1fr)_140px]",
-                        "last:border-b-0 hover:bg-black/[0.025]",
-                        isSelected && "bg-black text-white hover:bg-black",
-                      )}
-                    >
-                      <div className="board-rail-label text-[10px] text-current/50">
-                        {String(index + 1).padStart(2, "0")}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-3">
-                          <Icon className={cn("h-5 w-5", isSelected ? "text-white" : "text-black/80")} />
-                          <h3
+                    return (
+                      <button
+                        key={game.key}
+                        type="button"
+                        onClick={() => setSelectedGame(game.key)}
+                        disabled={Boolean(loadingDifficulty)}
+                        className={cn("landing-game-row", isSelected && "landing-game-row--active")}
+                      >
+                        <span className="board-public-label text-current/48">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-3">
+                            <Icon
+                              className={cn(
+                                "h-5 w-5 shrink-0",
+                                isSelected ? "text-[#f8f6ef]" : "text-[#23252b]",
+                              )}
+                            />
+                            <h3 className="board-public-display text-[1.65rem] text-current">
+                              {game.displayName}
+                            </h3>
+                          </div>
+                          <p
                             className={cn(
-                              "text-2xl font-bold tracking-[-0.05em]",
-                              isSelected ? "text-white" : "text-[#0a0a0a]",
+                              "board-public-copy mt-2 text-sm",
+                              isSelected ? "text-[#d5d0c5]" : "text-[#5d5d5d]",
                             )}
                           >
-                            {game.displayName}
-                          </h3>
+                            {meta.tagline}
+                          </p>
                         </div>
-                        <p
-                          className={cn(
-                            "mt-2 max-w-xl text-sm leading-7",
-                            isSelected ? "text-white/65" : "text-[#66645f]",
-                          )}
-                        >
-                          {meta.tagline}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-start gap-2 md:justify-end">
-                        <span
-                          className={cn(
-                            "board-rail-label text-[10px]",
-                            isSelected ? "text-white/50" : "text-black/45",
-                          )}
-                        >
+                        <span className="board-public-label justify-self-start text-current/48 md:justify-self-end">
                           {game.defaultBoardSize}x{game.defaultBoardSize}
                         </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-              <VenuePanel
-                eyebrow="Selected system"
-                title={selectedGame ? getGame(selectedGame).displayName : "Choose a game"}
-                description={
-                  selectedGame
-                    ? "Live ASCII preview first. Difficulty rail below."
-                    : "Select a game to expose the difficulty rail."
-                }
-                className="min-h-[420px] bg-[#fbfaf6]"
-              >
-                {selectedGame ? (
-                  <div className="space-y-4">
-                    <AsciiGameCard gameKey={selectedGame} size="feature" />
-
-                    {DIFFICULTIES.map((difficulty) => (
-                      <Button
-                        key={difficulty.id}
-                        variant="outline"
-                        className="h-auto w-full justify-between border-black/10 bg-white px-4 py-4 text-left hover:bg-black/5"
-                        onClick={() => handleStart(selectedGame, difficulty.id)}
-                        disabled={loadingDifficulty === difficulty.id}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-[0.95rem] border border-black/10 bg-[#f5f4ef]">
-                            <difficulty.icon className="h-5 w-5 text-[#0a0a0a]" />
-                          </div>
+                <div className="landing-practice-preview">
+                  {selectedDefinition && selectedMeta && preview ? (
+                    <>
+                      <div className="space-y-3">
+                        <p className="board-public-label text-[#5d5d5d]">Selected board</p>
+                        <div className="flex flex-wrap items-end justify-between gap-4">
                           <div>
-                            <p className="text-base font-semibold text-[#0a0a0a]">
-                              {difficulty.label}
+                            <h3 className="board-public-display text-[clamp(2rem,3vw,3rem)] text-[#0a0a0a]">
+                              {selectedDefinition.displayName}
+                            </h3>
+                            <p className="board-public-copy mt-3 max-w-[28rem] text-[1rem]">
+                              {selectedMeta.tagline}. Set the AI. Start local. Bring the same game into rooms later.
                             </p>
-                            <p className="board-rail-label text-[10px] text-[#7a7368]">
-                              {difficulty.id}
+                          </div>
+
+                          <div className="landing-practice-meta">
+                            <span>{preview.status}</span>
+                            <span>
+                              {selectedDefinition.defaultBoardSize}x{selectedDefinition.defaultBoardSize}
+                            </span>
+                            <span>{preview.note}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_220px]">
+                        <div className="relative overflow-hidden border border-black/14 bg-[#111214] text-[#f5f1e8] shadow-[0_22px_60px_rgba(0,0,0,0.14)]">
+                          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
+                            <span className="board-public-label text-[#d8d1c2]">
+                              {preview.label} / specimen
+                            </span>
+                            <span className="board-public-label text-[#8e8a80]">
+                              frame 03
+                            </span>
+                          </div>
+                          <pre
+                            aria-label={`${preview.label} board specimen.`}
+                            className="m-0 overflow-x-auto px-4 py-5 font-['IBM_Plex_Mono'] text-[0.74rem] font-semibold leading-[1.18] tracking-[0.04em] text-[#f5f1e8]"
+                          >
+                            {previewFrame}
+                          </pre>
+                          <div className="flex flex-wrap gap-3 border-t border-white/10 px-4 py-3">
+                            <span className="board-public-label text-[#d8d1c2]">board open</span>
+                            <span className="board-public-label text-[#8e8a80]">
+                              no account required
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 border border-black/12 bg-[#f8f4ea] p-4">
+                          <div>
+                            <p className="board-public-label text-[#5d5d5d]">Start here</p>
+                            <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
+                              Open a board. Test the line. Keep pressure light.
+                            </p>
+                          </div>
+                          <div className="board-hairline" />
+                          <div>
+                            <p className="board-public-label text-[#5d5d5d]">When it grows</p>
+                            <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
+                              Add rooms. Add brackets. Keep the same login.
+                            </p>
+                          </div>
+                          <div className="board-hairline" />
+                          <div>
+                            <p className="board-public-label text-[#5d5d5d]">Ranked</p>
+                            <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
+                              Verify with World ID before competitive entry.
                             </p>
                           </div>
                         </div>
-                        {loadingDifficulty === difficulty.id ? (
-                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-black/25 border-t-black" />
-                        ) : null}
-                      </Button>
-                    ))}
-                  </div>
-                ) : null}
+                      </div>
 
-                <div className="mt-8 border-t border-black/10 pt-5">
-                  <p className="board-rail-label">Practice note</p>
-                  <p className="mt-3 max-w-md text-sm leading-7 text-[#66645f]">
-                    Solo play stays instant. Worlds and events add the host layer later.
-                  </p>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-5">
+                        <div className="landing-practice-meta">
+                          <span>{selectedDifficulty}</span>
+                          <span>{selectedDefinition.defaultBoardSize}x{selectedDefinition.defaultBoardSize}</span>
+                          <span>local first</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="board-public-label text-[#23252b] underline decoration-black/25 underline-offset-4"
+                          onClick={() => setShowSetup((current) => !current)}
+                          disabled={launchDisabled}
+                        >
+                          {showSetup ? "Hide pressure" : "Set pressure"}
+                        </button>
+                      </div>
+
+                      {showSetup ? (
+                        <div className="landing-difficulty-list">
+                          {DIFFICULTIES.map((difficulty) => (
+                            <button
+                              key={difficulty.id}
+                              type="button"
+                              className={cn(
+                                "landing-difficulty-row",
+                                selectedDifficulty === difficulty.id &&
+                                  "landing-difficulty-row--active",
+                              )}
+                              onClick={() => setSelectedDifficulty(difficulty.id)}
+                              disabled={launchDisabled}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="landing-difficulty-row__icon">
+                                  <difficulty.icon className="h-5 w-5 text-[#0a0a0a]" />
+                                </div>
+                                <div className="text-left">
+                                  <p className="board-public-display text-[1.18rem] text-[#0a0a0a]">
+                                    {difficulty.label}
+                                  </p>
+                                  <p className="board-public-label mt-1 text-[#5d5d5d]">
+                                    {difficulty.id}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <span className="board-public-label text-[#5d5d5d]">
+                                {selectedDifficulty === difficulty.id ? "selected" : "set"}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <Button
+                        variant="hero"
+                        size="lg"
+                        className="landing-launch-row h-auto items-start md:items-center"
+                        onClick={() => handleStart(selectedDefinition.key, selectedDifficulty)}
+                        disabled={launchDisabled}
+                      >
+                        <div className="text-left">
+                          <p className="text-[1rem] font-semibold leading-tight tracking-[-0.03em] text-[#f8f6ef] md:text-[1.15rem]">
+                            Start local {selectedDefinition.displayName}
+                          </p>
+                          <p className="board-public-label mt-2 whitespace-normal leading-6 text-[#d5d0c5] md:whitespace-nowrap">
+                            {selectedDifficulty} AI / no account required
+                          </p>
+                        </div>
+                        {loadingDifficulty ? (
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+                        ) : (
+                          <ArrowUpRight className="h-5 w-5 text-[#d5d0c5]" />
+                        )}
+                      </Button>
+
+                      <div className="border-t border-black/10 pt-5">
+                        <p className="board-public-label text-[#5d5d5d]">Local rule</p>
+                        <p className="board-public-copy mt-3 max-w-[34rem] text-[0.98rem]">
+                          Signed out stays local. Sign in only when you want rooms, worlds, or events.
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
-              </VenuePanel>
+              </div>
             </div>
           </div>
         </section>
@@ -220,4 +333,4 @@ export const GameGrid = memo(
   ),
 );
 
-GameGrid.displayName = "GameGrid";
+PracticeDesk.displayName = "PracticeDesk";

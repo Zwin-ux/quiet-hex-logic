@@ -25,13 +25,15 @@ export function SectionRail({
   status,
 }: SectionRailProps) {
   return (
-    <section className={cn("retro-window", className)}>
+    <section className={cn("retro-window board-hero-rail", className)}>
       <div className="retro-window__titlebar">
-        <div className="min-w-0">
-          <p className="retro-window__eyebrow">{eyebrow}</p>
-          <div className={cn("retro-window__title mt-1", titleClassName)}>{title}</div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="retro-window__eyebrow">{eyebrow}</p>
+            <div className={cn("retro-window__title mt-2", titleClassName)}>{title}</div>
+          </div>
+          {status ? <div className="shrink-0">{status}</div> : null}
         </div>
-        {status ? <div className="shrink-0">{status}</div> : null}
       </div>
 
       <div className="retro-window__body retro-window__body--soft">

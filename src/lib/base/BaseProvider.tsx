@@ -3,17 +3,27 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { getBooleanPublicEnv, getPublicEnv } from '@/lib/runtimeEnv';
 
-// Load OnchainKit styles dynamically to avoid PostCSS/Tailwind layer conflicts.
-// Important: keep this behind the "enabled" gate so Web3 libs don't execute for most users.
-let stylesLoaded = false;
+// Load OnchainKit styles dynamically and bundle them with the app so production
+// behavior does not depend on a third-party CDN.
+let stylesPromise: Promise<unknown> | null = null;
 function loadOnchainKitStyles() {
-  if (stylesLoaded || typeof document === 'undefined') return;
-  stylesLoaded = true;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  // Note: kept as "latest" to match prior behavior; pinning can be done later.
-  link.href = 'https://unpkg.com/@coinbase/onchainkit@latest/dist/assets/style.css';
-  document.head.appendChild(link);
+  if (stylesPromise || typeof document === 'undefined') return stylesPromise;
+  stylesPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLLinkElement>('link[data-onchainkit-styles="true"]');
+    if (existing) {
+      resolve();
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/vendor/onchainkit.css';
+    link.dataset.onchainkitStyles = 'true';
+    link.onload = () => resolve();
+    link.onerror = () => reject(new Error('Failed to load local OnchainKit styles'));
+    document.head.appendChild(link);
+  });
+  return stylesPromise;
 }
 
 interface BaseContextValue {
@@ -84,7 +94,7 @@ export function BaseProvider({ children }: BaseProviderProps) {
 
     (async () => {
       try {
-        loadOnchainKitStyles();
+        await loadOnchainKitStyles();
 
         // Dynamic imports prevent SES/lockdown-style libs from executing unless explicitly enabled.
         const [{ WagmiProvider }, { OnchainKitProvider }, { base }, cfg] = await Promise.all([

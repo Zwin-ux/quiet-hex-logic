@@ -107,7 +107,7 @@ export default function Match() {
     return () => {
       music.stopMusic();
     };
-  }, [music.stopMusic]);
+  }, [music]);
 
   const player1 = players.find((p) => p.color === 1);
   const player2 = players.find((p) => p.color === 2);
