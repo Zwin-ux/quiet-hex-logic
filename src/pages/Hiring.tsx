@@ -34,35 +34,22 @@ export default function Hiring() {
         >
           <div className="wood-note__grain absolute inset-0 pointer-events-none" />
           <div className="relative border border-black/28 bg-[rgba(64,35,16,0.12)] p-5 md:p-6">
-            <p className="support-mini-label text-black/65">Hiring / event crew</p>
             <h1 className="mt-5 max-w-[12ch] text-[clamp(2.7rem,6vw,4.9rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#1e130a]">
-              Need event coordinators.
+              Floor crew wanted.
             </h1>
             <div className="mt-5 space-y-2 text-[17px] leading-8 text-[#2e1b0b]">
-              <p>Work the {FIRST_TOURNAMENT.fullDate} opener.</p>
-              <p>Run check-in. Seat players. Move rounds.</p>
+              <p>{FIRST_TOURNAMENT.fullDate} / {FIRST_TOURNAMENT.time}</p>
+              <p>Check-in. Seating. Rounds.</p>
             </div>
 
             <div className="mt-8 grid gap-3 border-t border-black/18 pt-5 md:grid-cols-[120px_minmax(0,1fr)]">
-              <div>
-                <p className="support-mini-label text-black/55">Date</p>
-                <p className="mt-2 text-[2.4rem] font-black leading-none tracking-[-0.08em] text-[#1e130a]">
-                  {FIRST_TOURNAMENT.shortDate}
-                </p>
+              <div className="text-[2.4rem] font-black leading-none tracking-[-0.08em] text-[#1e130a]">
+                {FIRST_TOURNAMENT.shortDate}
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="border border-black/14 bg-white/24 px-4 py-4">
-                  <p className="support-mini-label text-black/55">Start</p>
-                  <p className="mt-2 text-[15px] font-semibold leading-7 text-[#1e130a]">
-                    {FIRST_TOURNAMENT.time}
-                  </p>
-                </div>
-                <div className="border border-black/14 bg-white/24 px-4 py-4">
-                  <p className="support-mini-label text-black/55">Contact</p>
-                  <p className="mt-2 break-all text-[15px] font-semibold leading-7 text-[#1e130a]">
-                    {BOARD_CONTACT_EMAIL}
-                  </p>
-                </div>
+              <div className="border border-black/14 bg-white/24 px-4 py-4">
+                <p className="break-all text-[15px] font-semibold leading-7 text-[#1e130a]">
+                  {BOARD_CONTACT_EMAIL}
+                </p>
               </div>
             </div>
 
@@ -77,7 +64,7 @@ export default function Hiring() {
 
             <div className="mt-5 flex items-center gap-2 text-sm leading-7 text-[#2e1b0b]/72">
               <Hammer className="h-4 w-4" />
-              <span>Name. Timezone. Event background.</span>
+              <span>Name. Timezone. Event work.</span>
             </div>
           </div>
         </motion.section>

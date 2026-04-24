@@ -27,14 +27,13 @@ export const HostWorldThesis = memo(
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="landing-open-poster"
             >
-              <p className="board-public-label text-[#5c5750]">Founding open</p>
               <p className="landing-open-poster__date">{FIRST_TOURNAMENT.shortDate}</p>
               <div className="space-y-2">
                 <p className="text-[1rem] font-semibold uppercase tracking-[0.12em] text-[#17181c]">
                   {FIRST_TOURNAMENT.fullDate}
                 </p>
                 <p className="board-public-copy text-[1rem] text-[#23252b]">
-                  {FIRST_TOURNAMENT.time} / hex / chess / checkers / finals
+                  {FIRST_TOURNAMENT.time} / Hex / Chess / Checkers
                 </p>
               </div>
 
@@ -76,20 +75,18 @@ export const HostWorldThesis = memo(
               <div className="wood-note__grain absolute inset-0 pointer-events-none" />
               <div className="relative grid gap-5 border border-black/24 bg-[rgba(64,35,16,0.12)] p-5 md:grid-cols-[minmax(0,1fr)_180px] md:p-6">
                 <div>
-                  <p className="board-public-label text-[#24150b]/64">Crew call</p>
                   <h2 className="mt-4 max-w-[12ch] text-[clamp(2.1rem,4vw,3.7rem)] font-black leading-[0.92] tracking-[-0.07em] text-[#1e130a]">
-                    Need floor crew.
+                    Floor crew wanted.
                   </h2>
                   <div className="mt-4 space-y-1 text-[16px] leading-7 text-[#2e1b0b]">
                     <p>Check-in.</p>
                     <p>Seat players.</p>
-                    <p>Move rounds.</p>
+                    <p>Run rounds.</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 md:text-right">
                   <div>
-                    <p className="board-public-label text-[#24150b]/56">Contact</p>
                     <p className="mt-2 break-all text-[15px] font-semibold leading-7 text-[#1e130a]">
                       {BOARD_CONTACT_EMAIL}
                     </p>

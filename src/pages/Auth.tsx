@@ -382,7 +382,6 @@ export default function Auth() {
       ) : null}
 
       <div className="mt-6 border-t border-white/14 pt-6">
-        <p className="support-mini-label text-white/60">Email entry</p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button
             type="button"
@@ -530,7 +529,7 @@ export default function Auth() {
       </p>
 
       <div className="support-inline-card mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">Need a board now?</p>
+        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">Play local now.</p>
         <Button type="button" variant="supportOutline" onClick={() => navigate("/play")}>
           Local practice
         </Button>
@@ -556,7 +555,7 @@ export default function Auth() {
     <SupportFrame contentClassName="pt-28 md:pt-32">
       <div className="mx-auto max-w-[1240px]">
         <div className="flex items-center justify-between gap-4 pb-8">
-          <div className="support-chip">Account access</div>
+          <div className="support-chip">Sign in</div>
           {shouldShowReturnTarget ? (
             <div className="hidden rounded-full border-4 border-[#ff6b35] bg-white/10 px-4 py-2 md:block">
               <p className="support-mini-label text-white">
@@ -636,24 +635,16 @@ export default function Auth() {
           <div className="space-y-8">
             <SupportPanel
               tone="dark"
-              eyebrow="Quick read"
-              title={
-                <>
-                  <p>Sign in.</p>
-                  <p>Open rooms.</p>
-                  <p>Verify later.</p>
-                </>
-              }
-              description="Google first. Email works."
+              title="Google first."
+              description="Email works. Backups later."
               motionIndex={1}
               motionVariant="aside"
             />
 
             <SupportPanel
               tone="paper"
-              eyebrow="One account"
-              title="Keep one record."
-              description="Start with Google or email."
+              title="One record."
+              description="Play local without it."
               motionIndex={2}
               footer={
                 <Button type="button" variant="supportOutline" className="w-full justify-between" onClick={() => navigate("/play")}>
@@ -661,13 +652,7 @@ export default function Auth() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               }
-            >
-              <div className="flex flex-wrap gap-2">
-                <span className="support-chip support-chip--paper">Google</span>
-                <span className="support-chip support-chip--paper">Email</span>
-                <span className="support-chip support-chip--paper">Backups later</span>
-              </div>
-            </SupportPanel>
+            />
           </div>
         </div>
       </div>

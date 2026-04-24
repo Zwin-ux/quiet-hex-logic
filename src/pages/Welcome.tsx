@@ -27,13 +27,16 @@ export default function Welcome() {
     }
   }, [loading, navigate, user]);
 
-  const connectedMethods = Math.max(connections.length + (user?.email ? 1 : 0), 1);
-  const verificationLabel = worldIdLoading
-    ? "checking"
+  const accountLabel = connectionsLoading
+    ? "Checking account."
+    : connections.length + (user?.email ? 1 : 0) > 1
+      ? "Backups linked."
+      : "Add backups later.";
+  const verifyLabel = worldIdLoading
+    ? "Checking ranked."
     : isVerified
-      ? "ranked ready"
-      : "verify now";
-  const connectionLabel = connectionsLoading ? "loading" : `${connectedMethods} methods`;
+      ? "Ranked ready."
+      : "Verify for ranked.";
 
   const goTo = (path: string) => {
     markPostAuthWelcomeSeen();
@@ -43,17 +46,10 @@ export default function Welcome() {
   return (
     <SupportFrame contentClassName="pt-24">
       <div className="space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <BoardWordmark className="text-white" />
-          <div className="flex flex-wrap gap-2">
-            <span className="support-chip">{connectionLabel}</span>
-            <span className="support-chip support-chip--light">{verificationLabel}</span>
-          </div>
-        </div>
+        <BoardWordmark className="text-white" />
 
         <SupportPanel
           tone="dark"
-          eyebrow="Choice desk"
           title="Pick next."
           description="Host. Verify. Practice."
           motionIndex={0}
@@ -113,9 +109,8 @@ export default function Welcome() {
 
           <SupportPanel
             tone="dark"
-            eyebrow="Account rule"
             title="One BOARD account."
-            description="Add backups later."
+            description={`${accountLabel} ${verifyLabel}`}
             motionIndex={4}
             motionVariant="aside"
             footer={
@@ -124,14 +119,7 @@ export default function Welcome() {
                 <DoorOpen className="h-4 w-4" />
               </Button>
             }
-          >
-            <div className="flex flex-wrap gap-2">
-              <span className="support-chip">Google or email</span>
-              <span className="support-chip support-chip--light">
-                {isVerified ? "ranked ready" : "ranked locked"}
-              </span>
-            </div>
-          </SupportPanel>
+          />
         </div>
       </div>
     </SupportFrame>

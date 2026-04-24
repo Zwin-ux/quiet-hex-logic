@@ -111,7 +111,6 @@ export const PracticeDesk = memo(
         >
           <div className="board-page-width board-public mx-auto px-4 md:px-6 lg:px-8">
             <div className="max-w-[52rem]">
-              <p className="board-public-label text-[#5d5d5d]">Practice</p>
               <h2 className="board-public-display mt-5 max-w-[11ch] text-[clamp(2.25rem,4vw,4.1rem)] text-[#0a0a0a]">
                 Pick a board.
               </h2>
@@ -169,25 +168,12 @@ export const PracticeDesk = memo(
                   {selectedDefinition && selectedMeta && preview ? (
                     <>
                       <div className="space-y-3">
-                        <p className="board-public-label text-[#5d5d5d]">Board</p>
-                        <div className="flex flex-wrap items-end justify-between gap-4">
-                          <div>
-                            <h3 className="board-public-display text-[clamp(2rem,3vw,3rem)] text-[#0a0a0a]">
-                              {selectedDefinition.displayName}
-                            </h3>
-                            <p className="board-public-copy mt-3 max-w-[28rem] text-[1rem]">
-                              {selectedMeta.tagline}. Set AI.
-                            </p>
-                          </div>
-
-                          <div className="landing-practice-meta">
-                            <span>{preview.status}</span>
-                            <span>
-                              {selectedDefinition.defaultBoardSize}x{selectedDefinition.defaultBoardSize}
-                            </span>
-                            <span>{preview.note}</span>
-                          </div>
-                        </div>
+                        <h3 className="board-public-display text-[clamp(2rem,3vw,3rem)] text-[#0a0a0a]">
+                          {selectedDefinition.displayName}
+                        </h3>
+                        <p className="board-public-copy max-w-[28rem] text-[1rem]">
+                          {selectedMeta.tagline}
+                        </p>
                       </div>
 
                       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_220px]">
@@ -206,35 +192,20 @@ export const PracticeDesk = memo(
                           >
                             {previewFrame}
                           </pre>
-                          <div className="flex flex-wrap gap-3 border-t border-white/10 px-4 py-3">
-                            <span className="board-public-label text-[#d8d1c2]">board open</span>
-                            <span className="board-public-label text-[#8e8a80]">
-                              no account required
-                            </span>
-                          </div>
                         </div>
 
                         <div className="space-y-3 border border-black/12 bg-[#f8f4ea] p-4">
-                          <div>
-                            <p className="board-public-label text-[#5d5d5d]">Local</p>
-                            <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Open now.
-                            </p>
-                          </div>
+                          <p className="board-public-copy text-[0.95rem] text-[#23252b]">
+                            Local now.
+                          </p>
                           <div className="board-hairline" />
-                          <div>
-                            <p className="board-public-label text-[#5d5d5d]">Rooms</p>
-                            <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Sign in.
-                            </p>
-                          </div>
+                          <p className="board-public-copy text-[0.95rem] text-[#23252b]">
+                            Rooms with sign-in.
+                          </p>
                           <div className="board-hairline" />
-                          <div>
-                            <p className="board-public-label text-[#5d5d5d]">Ranked</p>
-                            <p className="board-public-copy mt-2 text-[0.95rem] text-[#23252b]">
-                              Verify.
-                            </p>
-                          </div>
+                          <p className="board-public-copy text-[0.95rem] text-[#23252b]">
+                            Ranked with World ID.
+                          </p>
                         </div>
                       </div>
 
@@ -272,20 +243,11 @@ export const PracticeDesk = memo(
                                 <div className="landing-difficulty-row__icon">
                                   <difficulty.icon className="h-5 w-5 text-[#0a0a0a]" />
                                 </div>
-                                <div className="text-left">
-                                  <p className="board-public-display text-[1.18rem] text-[#0a0a0a]">
-                                    {difficulty.label}
-                                  </p>
-                                  <p className="board-public-label mt-1 text-[#5d5d5d]">
-                                    {difficulty.id}
-                                  </p>
-                                </div>
+                                <p className="board-public-display text-[1.18rem] text-[#0a0a0a]">
+                                  {difficulty.label}
+                                </p>
                               </div>
-
-                              <span className="board-public-label text-[#5d5d5d]">
-                            {selectedDifficulty === difficulty.id ? "live" : "pick"}
-                          </span>
-                        </button>
+                            </button>
                       ))}
                         </div>
                       ) : null}
@@ -302,7 +264,7 @@ export const PracticeDesk = memo(
                             Start local {selectedDefinition.displayName}
                           </p>
                           <p className="board-public-label mt-2 whitespace-normal leading-6 text-[#d5d0c5] md:whitespace-nowrap">
-                            {selectedDifficulty} AI / local
+                            {selectedDifficulty} AI
                           </p>
                         </div>
                         {loadingDifficulty ? (
@@ -311,13 +273,6 @@ export const PracticeDesk = memo(
                           <ArrowUpRight className="h-5 w-5 text-[#d5d0c5]" />
                         )}
                       </Button>
-
-                      <div className="border-t border-black/10 pt-5">
-                        <p className="board-public-label text-[#5d5d5d]">Rule</p>
-                        <p className="board-public-copy mt-3 max-w-[34rem] text-[0.98rem]">
-                          Rooms need sign-in.
-                        </p>
-                      </div>
                     </>
                   ) : null}
                 </div>
