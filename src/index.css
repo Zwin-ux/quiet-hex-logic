@@ -1512,17 +1512,33 @@
   .board-logo {
     display: inline-flex;
     align-items: center;
-    gap: clamp(0.2rem, 0.16em, 0.42rem);
+    gap: clamp(0.22rem, 0.18em, 0.46rem);
     line-height: 0;
     max-width: 100%;
+    white-space: nowrap;
+  }
+
+  .board-logo--split {
+    gap: clamp(0.26rem, 0.22em, 0.52rem);
   }
 
   .board-logo__mark {
     flex: 0 0 auto;
   }
 
+  .board-logo__mark-shell {
+    align-items: center;
+    justify-content: center;
+    padding: 0.12em;
+    border: 0.04em solid currentColor;
+  }
+
   .board-logo__wordmark {
     flex: 0 1 auto;
+  }
+
+  .board-logo__wordmark--trimmed {
+    padding-bottom: 0.02em;
   }
 
   .board-wordmark--hero {
@@ -1549,6 +1565,11 @@
     aspect-ratio: 0.58 / 1;
     overflow: visible;
     shape-rendering: geometricPrecision;
+  }
+
+  .board-wordmark__svg--trimmed {
+    width: min(100%, 3.34em);
+    aspect-ratio: 3.31 / 1;
   }
 
   .board-rail-label {

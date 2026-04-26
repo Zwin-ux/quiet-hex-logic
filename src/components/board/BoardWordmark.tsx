@@ -5,6 +5,7 @@ type BoardWordmarkProps = {
   size?: "hero" | "compact";
   tone?: "dark" | "light";
   decorative?: boolean;
+  leadGlyph?: "full" | "trimmed";
 };
 
 export const BOARD_MONOGRAM_PATH =
@@ -26,7 +27,10 @@ export function BoardWordmark({
   size = "compact",
   tone = "dark",
   decorative = false,
+  leadGlyph = "full",
 }: BoardWordmarkProps) {
+  const trimmed = leadGlyph === "trimmed";
+
   return (
     <span
       aria-hidden={decorative || undefined}
@@ -40,19 +44,19 @@ export function BoardWordmark({
     >
       <svg
         aria-hidden="true"
-        className="board-wordmark__svg"
-        viewBox="0 0 634 156"
+        className={cn("board-wordmark__svg", trimmed && "board-wordmark__svg--trimmed")}
+        viewBox={trimmed ? "0 0 516 156" : "0 0 634 156"}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <g fill="currentColor">
-          <path d={B_SHAPE} />
-          <path d={O_SHAPE} transform="translate(118 0)" />
-          <path d={A_SHAPE} transform="translate(248 0)" />
-          <path d={A_BAR} transform="translate(248 0)" />
-          <path d={R_BOWL} transform="translate(396 0)" />
-          <path d={R_LEG} transform="translate(396 0)" />
-          <path d={D_SHAPE} transform="translate(534 0)" />
+          {trimmed ? null : <path d={B_SHAPE} />}
+          <path d={O_SHAPE} transform={trimmed ? "translate(0 0)" : "translate(118 0)"} />
+          <path d={A_SHAPE} transform={trimmed ? "translate(130 0)" : "translate(248 0)"} />
+          <path d={A_BAR} transform={trimmed ? "translate(130 0)" : "translate(248 0)"} />
+          <path d={R_BOWL} transform={trimmed ? "translate(278 0)" : "translate(396 0)"} />
+          <path d={R_LEG} transform={trimmed ? "translate(278 0)" : "translate(396 0)"} />
+          <path d={D_SHAPE} transform={trimmed ? "translate(416 0)" : "translate(534 0)"} />
         </g>
       </svg>
     </span>

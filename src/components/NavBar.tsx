@@ -55,7 +55,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
             <div className="landing-nav-row">
               <button
                 onClick={() => navigate("/")}
-                className="shrink-0 w-[118px] text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257] md:w-auto"
+                className="shrink-0 w-[132px] text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257] sm:w-[142px] md:w-auto"
                 aria-label="Go to home"
               >
                 <BoardLogo tone="dark" wordmarkClassName="text-[29px] md:text-[34px]" />
@@ -111,7 +111,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 md:px-5">
           <button
             onClick={() => navigate("/")}
-            className="min-w-0 shrink text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257]"
+            className="min-w-0 shrink whitespace-nowrap text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257]"
             aria-label="Go to home"
           >
             <BoardLogo tone="dark" wordmarkClassName="text-[1.5rem] sm:text-[1.8rem] md:text-[2.25rem]" />
