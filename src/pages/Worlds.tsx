@@ -80,6 +80,12 @@ export default function Worlds() {
     orderedWorlds.find((world) => world.id === selectedWorldId) ?? orderedWorlds[0] ?? null;
   const joinedCount = orderedWorlds.filter((world) => Boolean(world.userRole)).length;
   const publicCount = orderedWorlds.filter((world) => world.visibility === "public").length;
+  const heroTitle = isAuthoringSurface
+    ? "Pick a world. See the room map before you enter."
+    : "Pick a room. Jump in when a table opens.";
+  const heroDescription = isAuthoringSurface
+    ? "Each world shows who is hosting, what is live, and whether it is worth joining."
+    : "Worlds show which tables are live, which brackets are running, and where to jump in.";
 
   return (
     <SiteFrame>
@@ -98,10 +104,10 @@ export default function Worlds() {
             </div>
 
             <h1 className="mt-8 max-w-[560px] text-[clamp(3rem,6vw,5.1rem)] font-black leading-[0.9] tracking-[-0.06em] text-[#0e0e0f]">
-              Pick a world. See the room map before you enter.
+              {heroTitle}
             </h1>
             <p className="mt-5 max-w-[470px] text-[18px] leading-8 text-[#525257]">
-              Each world shows who is hosting, what is live, and whether it is worth joining.
+              {heroDescription}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -115,8 +121,13 @@ export default function Worlds() {
                   Open play
                 </Button>
               ) : (
-                <Button variant="outline" onClick={() => navigate(buildAuthRoute("/worlds?create=true"))}>
-                  Sign in to host
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    navigate(buildAuthRoute(isAuthoringSurface ? "/worlds?create=true" : "/play"))
+                  }
+                >
+                  {isAuthoringSurface ? "Sign in to host" : "Enter to play"}
                 </Button>
               )}
             </div>

@@ -127,6 +127,12 @@ export default function Tournaments() {
   const featuredTournaments = sortedTournaments.slice(0, 3);
   const primaryEvent = featuredTournaments[0] ?? null;
   const remainingTournaments = sortedTournaments.slice(3);
+  const heroTitle = isAuthoringSurface
+    ? "Queue brackets. Run finals. Keep the room attached."
+    : "Open brackets. Join finals. Follow the room.";
+  const heroDescription = isAuthoringSurface
+    ? "Registration, seats, and bracket state stay in one place."
+    : "Seats, start times, and live bracket state stay here.";
 
   const loadTournaments = useCallback(async () => {
     try {
@@ -218,10 +224,10 @@ export default function Tournaments() {
 
             <div className="mt-6 max-w-[42rem]">
               <h1 className="text-[clamp(3rem,5vw,5.2rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
-                Queue brackets. Run finals. Keep the room attached.
+                {heroTitle}
               </h1>
               <p className="mt-5 max-w-[30rem] text-[17px] leading-8 text-white/72">
-                Registration, seats, and bracket state stay in one place.
+                {heroDescription}
               </p>
             </div>
 
@@ -279,23 +285,21 @@ export default function Tournaments() {
                   <Plus className="h-4 w-4" />
                   Create event
                 </Button>
-              ) : user && !isGuest ? (
+              ) : user || isGuest ? (
                 <Button variant="outline" onClick={() => navigate("/play")}>
                   Open play
                 </Button>
               ) : (
-                <Button variant="outline" onClick={() => navigate(buildAuthRoute("/events"))}>
-                  Enter to host
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(buildAuthRoute(isAuthoringSurface ? "/events" : "/play"))}
+                >
+                  {isAuthoringSurface ? "Enter to host" : "Enter to play"}
                 </Button>
               )}
               {primaryEvent ? (
                 <Button variant="outline" onClick={() => navigate(`/tournament/${primaryEvent.id}`)}>
                   Open featured event
-                </Button>
-              ) : null}
-              {!primaryEvent ? (
-                <Button variant="outline" onClick={() => navigate("/hiring")}>
-                  Hiring page
                 </Button>
               ) : null}
             </div>
@@ -320,7 +324,9 @@ export default function Tournaments() {
           description={
             featuredTournaments.length > 0
               ? "Open one. Check seats. Start rounds."
-              : "Create the first bracket."
+              : isAuthoringSurface
+                ? "Create the first bracket."
+                : "Open play and check back when the next bracket goes live."
           }
         >
           {featuredTournaments.length > 0 ? (

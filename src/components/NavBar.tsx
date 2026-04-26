@@ -9,10 +9,16 @@ import { buildAuthRoute } from "@/lib/authRedirect";
 import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
-const PRIMARY_LINKS = [
+const WEB_PRIMARY_LINKS = [
   { label: "Worlds", path: "/worlds" },
   { label: "Play", path: "/play" },
   { label: "Events", path: "/events" },
+];
+
+const PLAY_PRIMARY_LINKS = [
+  { label: "Play", path: "/play" },
+  { label: "Events", path: "/events" },
+  { label: "Worlds", path: "/worlds" },
 ];
 
 const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
@@ -41,7 +47,9 @@ export function NavBar({ variant = "default" }: NavBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { can } = useSurfaceCapabilities();
+  const { can, isAuthoringSurface } = useSurfaceCapabilities();
+  const primaryLinks = isAuthoringSurface ? WEB_PRIMARY_LINKS : PLAY_PRIMARY_LINKS;
+  const postAuthPath = isAuthoringSurface ? "/worlds" : "/play";
 
   const currentLabel =
     ROUTE_LABELS.find((route) => route.match.test(location.pathname))?.label ?? "BOARD";
@@ -51,7 +59,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
     location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
   if (variant === "landing") {
-    const enterPath = user ? "/worlds" : buildAuthRoute("/worlds");
+    const enterPath = user ? postAuthPath : buildAuthRoute(postAuthPath);
 
     return (
       <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6">
@@ -67,7 +75,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
               </button>
 
               <nav className="landing-nav-links" aria-label="Primary">
-                {PRIMARY_LINKS.map((link) => (
+                {primaryLinks.map((link) => (
                   <button
                     key={link.path}
                     onClick={() => navigate(link.path)}
@@ -91,7 +99,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
             </div>
 
             <nav className="landing-nav-links-mobile" aria-label="Primary mobile">
-              {PRIMARY_LINKS.map((link) => (
+              {primaryLinks.map((link) => (
                 <button
                   key={link.path}
                   onClick={() => navigate(link.path)}
@@ -123,7 +131,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
           </button>
 
           <nav className="hidden items-center gap-6 md:flex">
-            {PRIMARY_LINKS.map((link) => (
+            {primaryLinks.map((link) => (
               <button
                 key={link.path}
                 onClick={() => navigate(link.path)}
@@ -154,7 +162,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                 <UtilityButton
                   onClick={() => {
                     signOut();
-                    navigate(buildAuthRoute());
+                    navigate(buildAuthRoute(postAuthPath));
                   }}
                   label="Sign out"
                 >
@@ -163,7 +171,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
               </>
             ) : (
               <button
-                onClick={() => navigate(buildAuthRoute())}
+                onClick={() => navigate(buildAuthRoute(postAuthPath))}
                 className="inline-flex h-9 items-center justify-center whitespace-nowrap bg-[#0e0e0f] px-2.5 text-[12px] font-medium text-[#f6f4f0] transition-colors duration-150 hover:bg-[#202124] sm:h-10 sm:px-3 sm:text-[13px] md:px-4 md:text-[14px]"
               >
                 Enter
@@ -173,7 +181,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
         </div>
 
         <div className="flex items-center gap-4 overflow-x-auto border-t border-[#0e0e0f]/12 px-4 py-3 md:hidden">
-          {PRIMARY_LINKS.map((link) => (
+          {primaryLinks.map((link) => (
             <button
               key={link.path}
               onClick={() => navigate(link.path)}

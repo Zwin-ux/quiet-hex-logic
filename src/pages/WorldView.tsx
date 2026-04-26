@@ -102,6 +102,16 @@ export default function WorldView() {
     canManage &&
     setupMode &&
     (lobbies.length === 0 || events.length === 0 || (hasCompetitiveEvent && !competitiveReady));
+  const hostToolsTitle = canManage
+    ? isAuthoringSurface
+      ? "Run this room map"
+      : "Run the live room"
+    : "Enter this room map";
+  const hostToolsDescription = canManage
+    ? isAuthoringSurface
+      ? "Open rooms. Queue matches. Copy one invite."
+      : "Copy invites. Start live tables. Open web for setup."
+    : "Join to enter tables and brackets.";
   const setupSteps = [
     { label: "Create the first room", done: lobbies.length > 0 },
     { label: "Copy the invite link", done: inviteCopied },
@@ -203,12 +213,10 @@ export default function WorldView() {
           <aside className="border border-black bg-[#fbfaf8] p-5 md:p-6">
             <p className="board-rail-label text-[11px] text-[#525257]">Host tools</p>
             <h2 className="mt-4 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-              {canManage ? "Run this room map" : "Enter this room map"}
+              {hostToolsTitle}
             </h2>
             <p className="mt-4 text-[16px] leading-8 text-[#525257]">
-              {canManage
-                ? "Open rooms. Queue matches. Copy one invite."
-                : "Join to enter tables and brackets."}
+              {hostToolsDescription}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -255,6 +263,16 @@ export default function WorldView() {
                 </Button>
               )}
             </div>
+
+            {canManage && !isAuthoringSurface && !shouldShowSetupRail ? (
+              <div className="mt-6">
+                <WebHandoffNotice
+                  title="Venue setup stays on web."
+                  detail="Room creation, event setup, branding, and rules editing stay on the browser surface."
+                  to={`/worlds/${world.id}/settings`}
+                />
+              </div>
+            ) : null}
 
             <div className="mt-10">
               <p className="text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
