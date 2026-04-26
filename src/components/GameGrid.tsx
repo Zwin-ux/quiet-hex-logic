@@ -114,7 +114,7 @@ export const PracticeDesk = memo(
           <div className="board-page-width board-public mx-auto px-4 md:px-6 lg:px-8">
             <div className="max-w-[52rem]">
               <h2 className="board-public-display mt-5 max-w-[11ch] text-[clamp(2.25rem,4vw,4.1rem)] text-[#0a0a0a]">
-                Flagship boards.
+                Pick a board.
               </h2>
             </div>
 
@@ -149,14 +149,6 @@ export const PracticeDesk = memo(
                               {game.displayName}
                             </h3>
                           </div>
-                          <p
-                            className={cn(
-                              "board-public-copy mt-2 text-sm",
-                              isSelected ? "text-[#d5d0c5]" : "text-[#5d5d5d]",
-                            )}
-                          >
-                            {meta.tagline}
-                          </p>
                         </div>
                         <span className="board-public-label justify-self-start text-current/48 md:justify-self-end">
                           {game.defaultBoardSize}x{game.defaultBoardSize}
@@ -173,19 +165,19 @@ export const PracticeDesk = memo(
                         <h3 className="board-public-display text-[clamp(2rem,3vw,3rem)] text-[#0a0a0a]">
                           {selectedDefinition.displayName}
                         </h3>
-                        <p className="board-public-copy max-w-[28rem] text-[1rem]">
+                        <p className="board-public-copy text-[0.98rem]">
                           {selectedMeta.tagline}
                         </p>
                       </div>
 
-                      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_220px]">
-                        <div className="relative overflow-hidden border border-black/14 bg-[#111214] text-[#f5f1e8] shadow-[0_22px_60px_rgba(0,0,0,0.14)] lg:col-span-2">
+                      <div className="grid gap-4">
+                        <div className="landing-preview-screen landing-preview-screen--manual relative overflow-hidden border border-black/14 text-[#f5f1e8] shadow-[0_22px_60px_rgba(0,0,0,0.14)]">
                           <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
                             <span className="board-public-label text-[#d8d1c2]">
-                              {preview.label} / live set
+                              {selectedDefinition.displayName}
                             </span>
                             <span className="board-public-label text-[#8e8a80]">
-                              frame 03
+                              {selectedDefinition.defaultBoardSize}x{selectedDefinition.defaultBoardSize}
                             </span>
                           </div>
                           <pre
@@ -199,9 +191,8 @@ export const PracticeDesk = memo(
 
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-5">
                         <div className="landing-practice-meta">
-                          <span>{selectedDifficulty}</span>
+                          <span>{selectedDifficulty} AI</span>
                           <span>{selectedDefinition.defaultBoardSize}x{selectedDefinition.defaultBoardSize}</span>
-                          <span>arena set</span>
                         </div>
                         <button
                           type="button"
@@ -209,7 +200,7 @@ export const PracticeDesk = memo(
                           onClick={() => setShowSetup((current) => !current)}
                           disabled={launchDisabled}
                         >
-                          {showSetup ? "Hide AI" : "Set AI"}
+                          {showSetup ? "Close AI" : "AI setup"}
                         </button>
                       </div>
 
@@ -249,10 +240,10 @@ export const PracticeDesk = memo(
                       >
                         <div className="text-left">
                           <p className="text-[1rem] font-semibold leading-tight tracking-[-0.03em] text-[#f8f6ef] md:text-[1.15rem]">
-                            Start local {selectedDefinition.displayName}
+                            Play {selectedDefinition.displayName}
                           </p>
                           <p className="board-public-label mt-2 whitespace-normal leading-6 text-[#d5d0c5] md:whitespace-nowrap">
-                            {selectedDifficulty} AI
+                            Local / {selectedDifficulty} AI
                           </p>
                         </div>
                         {loadingDifficulty ? (

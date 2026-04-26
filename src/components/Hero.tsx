@@ -50,40 +50,31 @@ export const LandingHero = memo(
                 <div className="max-w-[820px]">
                   <BoardWordmark size="hero" className="mt-6 text-[#090909]" />
                   <h1 className="board-public-display mt-10 max-w-[10ch] text-[clamp(3.3rem,6.6vw,6.8rem)] text-[#090909]">
-                    Watch four boards at once.
+                    Four boards live.
                   </h1>
                   <p className="board-public-copy mt-6 max-w-[29rem] text-[1.05rem] md:text-[1.16rem]">
-                    Start local. Open the bracket later.
+                    Pick one. Start now.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-5 border-t border-black/10 pt-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        variant="hero"
-                        size="lg"
-                        className="min-w-[178px] justify-between bg-[#090909] text-[#f3efe6] hover:bg-[#17181c]"
-                        onClick={startNow}
-                      >
-                        <span>Start local</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
-                        onClick={() => navigate("/events")}
-                      >
-                        Open bracket
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
-                        onClick={() => navigate("/docs")}
-                      >
-                        Open manual
-                      </Button>
-                    </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="hero"
+                      size="lg"
+                      className="min-w-[178px] justify-between bg-[#090909] text-[#f3efe6] hover:bg-[#17181c]"
+                      onClick={startNow}
+                    >
+                      <span>Play now</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
+                      onClick={() => navigate("/events")}
+                    >
+                      Open events
+                    </Button>
                   </div>
 
                   <motion.p
@@ -99,7 +90,7 @@ export const LandingHero = memo(
 
               <div className="landing-stage__object">
                 <div className="landing-stage__object-rail">
-                  <span className="board-public-label text-white/68">four boards</span>
+                  <span className="board-public-label text-white/68">arena feed</span>
                 </div>
 
                 <div className="landing-stage__arena-grid">
@@ -131,6 +122,7 @@ export const LandingHero = memo(
                       }}
                       className={cn(
                         "landing-stage__arena-card",
+                        index === 0 && "landing-stage__arena-card--lead",
                         index === 0 && "landing-stage__arena-card--wide",
                         index === HERO_ARENA_FEEDS.length - 1 && "landing-stage__arena-card--tall",
                       )}
@@ -146,7 +138,6 @@ export const LandingHero = memo(
                         </div>
                         <div className="landing-stage__monitor-footer">
                           <span>{feed.note}</span>
-                          <span>table {String(index + 1).padStart(2, "0")}</span>
                         </div>
                       </div>
                     </motion.article>
