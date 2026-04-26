@@ -40,6 +40,11 @@ const createTournamentSchema = z.object({
     .min(10, 'Turn timer must be at least 10 seconds')
     .max(600, 'Turn timer cannot exceed 600 seconds (10 minutes)')
     .optional(),
+  modVersionId: z.string().uuid('Invalid variant ID').optional().nullable(),
+  variantSeed: z.string().trim().max(128).optional().nullable(),
+  registrationUrl: z.string().trim().url('Invalid registration URL').optional().nullable().or(z.literal('')),
+  accessType: z.enum(['public', 'world_members', 'access_code']).optional(),
+  accessCode: z.string().trim().min(2, 'Access code must be at least 2 characters').max(64).optional().nullable(),
   registrationDeadline: z.string()
     .datetime('Invalid registration deadline format')
     .optional()
@@ -48,10 +53,15 @@ const createTournamentSchema = z.object({
     .datetime('Invalid start time format')
     .optional()
     .nullable()
-}).refine(data => data.maxPlayers >= data.minPlayers, {
-  message: 'Max players must be greater than or equal to min players',
-  path: ['maxPlayers']
-});
+})
+  .refine(data => data.maxPlayers >= data.minPlayers, {
+    message: 'Max players must be greater than or equal to min players',
+    path: ['maxPlayers']
+  })
+  .refine(data => data.accessType !== 'access_code' || Boolean(data.accessCode?.trim()), {
+    message: 'Access code required for code-protected events',
+    path: ['accessCode']
+  });
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -102,6 +112,11 @@ Deno.serve(async (req) => {
       boardSize,
       pieRule,
       turnTimerSeconds,
+      modVersionId,
+      variantSeed,
+      registrationUrl,
+      accessType,
+      accessCode,
       registrationDeadline,
       startTime
     } = validationResult.data;
@@ -118,6 +133,11 @@ Deno.serve(async (req) => {
       p_board_size: boardSize ?? null,
       p_pie_rule: pieRule ?? null,
       p_turn_timer_seconds: turnTimerSeconds || 45,
+      p_mod_version_id: modVersionId ?? null,
+      p_variant_seed: variantSeed || null,
+      p_registration_url: registrationUrl || null,
+      p_access_type: accessType || 'public',
+      p_access_code: accessCode || null,
       p_registration_deadline: registrationDeadline || null,
       p_start_time: startTime || null,
     });

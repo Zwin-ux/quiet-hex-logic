@@ -5,6 +5,7 @@ export interface TournamentRow {
   turn_timer_seconds: number | null;
   world_id: string | null;
   game_key?: string | null;
+  mod_version_id?: string | null;
 }
 
 export interface TournamentParticipantRow {
@@ -76,6 +77,7 @@ async function createLiveMatchForTournamentPair(
   supabase: any,
   tournament: TournamentRow,
   tournamentMatch: TournamentMatchRow,
+  variantSnapshot?: { rules: Record<string, unknown> | null; modVersionId: string | null },
 ) {
   if (!tournamentMatch.player1_id || !tournamentMatch.player2_id || tournamentMatch.match_id) {
     return null;
@@ -91,12 +93,14 @@ async function createLiveMatchForTournamentPair(
       tournament_id: tournament.id,
       world_id: tournament.world_id ?? null,
       owner: tournamentMatch.player1_id,
-      game_key: gameKey,
-      size,
-      pie_rule: pieRule,
-      turn_timer_seconds: tournament.turn_timer_seconds,
-      allow_spectators: true,
-      status: 'active',
+        game_key: gameKey,
+        size,
+        pie_rule: pieRule,
+        turn_timer_seconds: tournament.turn_timer_seconds,
+        rules: variantSnapshot?.rules ?? null,
+        mod_version_id: variantSnapshot?.modVersionId ?? null,
+        allow_spectators: true,
+        status: 'active',
     })
     .select()
     .single();
@@ -143,6 +147,30 @@ export async function syncTournamentBracket(
   supabase: any,
   tournament: TournamentRow,
 ) {
+  let variantSnapshot: { rules: Record<string, unknown> | null; modVersionId: string | null } | undefined;
+
+  if (tournament.mod_version_id) {
+    const { data: versionRow, error: versionError } = await supabase
+      .from('workshop_mod_versions')
+      .select('id, rules, workshop_mods!inner(game_key)')
+      .eq('id', tournament.mod_version_id)
+      .maybeSingle();
+
+    if (versionError) throw versionError;
+    if (!versionRow) throw new Error('Tournament variant not found');
+
+    const modGameKey = (versionRow as any)?.workshop_mods?.game_key;
+    const gameKey = tournament.game_key ?? 'hex';
+    if (modGameKey !== gameKey) {
+      throw new Error('Tournament variant does not match tournament game');
+    }
+
+    variantSnapshot = {
+      rules: ((versionRow as any)?.rules ?? null) as Record<string, unknown> | null,
+      modVersionId: (versionRow as any)?.id ?? null,
+    };
+  }
+
   const { data: roundsData, error: roundsError } = await supabase
     .from('tournament_rounds')
     .select('id, round_number, round_name, status')
@@ -212,7 +240,12 @@ export async function syncTournamentBracket(
         !match.match_id &&
         match.status !== 'completed'
       ) {
-        const liveMatchId = await createLiveMatchForTournamentPair(supabase, tournament, match);
+        const liveMatchId = await createLiveMatchForTournamentPair(
+          supabase,
+          tournament,
+          match,
+          variantSnapshot,
+        );
         if (liveMatchId) {
           match.match_id = liveMatchId;
           match.status = 'active';

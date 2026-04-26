@@ -8,6 +8,7 @@ import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { MetricLine } from "@/components/board/MetricLine";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
 import { BracketVisualization } from "@/components/BracketVisualization";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 interface Tournament {
   id: string;
   world_id?: string | null;
+  mod_version_id?: string | null;
   name: string;
   description: string | null;
   format: string;
@@ -25,6 +27,8 @@ interface Tournament {
   board_size: number;
   pie_rule: boolean;
   turn_timer_seconds: number;
+  registration_url?: string | null;
+  access_type?: "public" | "world_members" | "access_code";
   created_by: string;
   created_at: string;
 }
@@ -48,6 +52,8 @@ export default function TournamentView() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [worldContext, setWorldContext] = useState<{ id: string; name: string } | null>(null);
+  const [variantLabel, setVariantLabel] = useState<string | null>(null);
+  const [accessCode, setAccessCode] = useState("");
   const [viewerIsVerifiedHuman, setViewerIsVerifiedHuman] = useState(false);
   const [competitiveJoinBlocked, setCompetitiveJoinBlocked] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,6 +87,18 @@ export default function TournamentView() {
         }
       } else {
         setWorldContext(null);
+      }
+
+      if ((tournamentData as any)?.mod_version_id) {
+        const { data: variantData } = await (supabase as any)
+          .from("workshop_mod_versions")
+          .select("id, workshop_mods!inner(name)")
+          .eq("id", (tournamentData as any).mod_version_id)
+          .maybeSingle();
+
+        setVariantLabel((variantData as any)?.workshop_mods?.name ?? "Variant");
+      } else {
+        setVariantLabel(null);
       }
 
       const { data: participantsData, error: participantsError } = await supabase
@@ -176,7 +194,7 @@ export default function TournamentView() {
 
     try {
       const { data, error } = await supabase.functions.invoke("join-tournament", {
-        body: { tournamentId },
+        body: { tournamentId, accessCode: accessCode.trim() || null },
       });
 
       if (error) throw error;
@@ -267,7 +285,8 @@ export default function TournamentView() {
     !isParticipant &&
     tournament.status === "registration" &&
     participants.length < tournament.max_players &&
-    !(tournament.competitive_mode && !viewerIsVerifiedHuman);
+    !(tournament.competitive_mode && !viewerIsVerifiedHuman) &&
+    (tournament.access_type !== "access_code" || Boolean(accessCode.trim()));
   const canLeave =
     user &&
     isParticipant &&
@@ -296,6 +315,7 @@ export default function TournamentView() {
             {tournament.competitive_mode ? "competitive" : "casual"}
           </StateTag>
           <StateTag>{tournament.format === "single_elimination" ? "single elim" : "round robin"}</StateTag>
+          {variantLabel ? <StateTag>{variantLabel}</StateTag> : null}
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
@@ -309,6 +329,14 @@ export default function TournamentView() {
           </div>
 
           <div className="flex flex-wrap gap-3 xl:max-w-[280px] xl:justify-end">
+            {tournament.registration_url ? (
+              <Button
+                variant="outline"
+                onClick={() => window.open(tournament.registration_url as string, "_blank", "noopener,noreferrer")}
+              >
+                Open signup
+              </Button>
+            ) : null}
             {canJoin ? (
               <Button onClick={handleJoin} disabled={actionLoading}>
                 <UserPlus className="h-4 w-4" />
@@ -404,6 +432,8 @@ export default function TournamentView() {
               <MetricLine label="Board" value={`${tournament.board_size}x${tournament.board_size}`} />
               <MetricLine label="Format" value={tournament.format === "single_elimination" ? "single elim" : "round robin"} />
               <MetricLine label="Mode" value={tournament.competitive_mode ? "competitive" : "casual"} />
+              <MetricLine label="Access" value={tournament.access_type === "world_members" ? "members" : tournament.access_type === "access_code" ? "code" : "public"} />
+              <MetricLine label="Variant" value={variantLabel ?? "standard"} />
               <MetricLine icon={Award} label="Host" value={isCreator ? "you" : "world owner"} />
             </div>
             <div>
@@ -418,6 +448,16 @@ export default function TournamentView() {
                       Fill seats. Start bracket.
                     </p>
                   </div>
+                  {tournament.access_type === "access_code" ? (
+                    <div className="w-full max-w-[260px] space-y-2">
+                      <Input
+                        value={accessCode}
+                        onChange={(event) => setAccessCode(event.target.value)}
+                        placeholder="Access code"
+                        className="border-black/10 bg-white"
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <BracketVisualization tournamentId={tournamentId!} />

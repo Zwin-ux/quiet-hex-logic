@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useManageableWorlds } from "@/hooks/useManageableWorlds";
+import { useWorkshopMods } from "@/hooks/useWorkshopMods";
+import { listGames } from "@/lib/engine/registry";
+import { groupVariantsForGame, type AccessType } from "@/lib/variants";
 
 const STANDALONE_WORLD_VALUE = "__standalone__";
 
@@ -28,11 +31,13 @@ export function CreateTournamentDialog({
 }: CreateTournamentDialogProps) {
   const { user } = useAuth();
   const { worlds: manageableWorlds } = useManageableWorlds(worldId ? undefined : user?.id);
+  const games = useMemo(() => listGames().filter((game) => game.key !== "ttt"), []);
   const [loading, setLoading] = useState(false);
   const [selectedWorldValue, setSelectedWorldValue] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    gameKey: "hex",
     format: "single_elimination",
     competitiveMode: false,
     maxPlayers: 8,
@@ -40,6 +45,10 @@ export function CreateTournamentDialog({
     boardSize: 11,
     pieRule: true,
     turnTimerSeconds: 45,
+    registrationUrl: "",
+    accessType: "public" as AccessType,
+    accessCode: "",
+    modVersionId: "__none__",
   });
 
   useEffect(() => {
@@ -66,13 +75,39 @@ export function CreateTournamentDialog({
     worldId ||
     (selectedWorldValue === STANDALONE_WORLD_VALUE ? undefined : selectedWorldValue);
 
+  const { mods } = useWorkshopMods({
+    gameKey: formData.gameKey,
+    worldId: resolvedWorldId,
+    includeUnavailable: false,
+  });
+  const variantGroups = groupVariantsForGame(mods, formData.gameKey, resolvedWorldId);
+
+  const selectedGame = games.find((game) => game.key === formData.gameKey) ?? games[0];
+
+  useEffect(() => {
+    setFormData((current) => ({
+      ...current,
+      boardSize: selectedGame?.configurableBoardSize
+        ? current.boardSize
+        : (selectedGame?.defaultBoardSize ?? current.boardSize),
+      pieRule: selectedGame?.supportsPieRule ?? false,
+      modVersionId: "__none__",
+    }));
+  }, [formData.gameKey, selectedGame?.configurableBoardSize, selectedGame?.defaultBoardSize, selectedGame?.supportsPieRule]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-tournament", {
-        body: { ...formData, worldId: resolvedWorldId },
+        body: {
+          ...formData,
+          worldId: resolvedWorldId,
+          registrationUrl: formData.registrationUrl || null,
+          accessCode: formData.accessType === "access_code" ? formData.accessCode || null : null,
+          modVersionId: formData.modVersionId === "__none__" ? null : formData.modVersionId,
+        },
       });
 
       if (error) throw error;
@@ -136,23 +171,84 @@ export function CreateTournamentDialog({
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Optional context for the event"
+                  placeholder="Short context for the room map"
                   rows={5}
                   className="border-black/10 bg-white"
                 />
               </Field>
 
-              <Field label="Format">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Game">
+                  <Select
+                    value={formData.gameKey}
+                    onValueChange={(value) => setFormData({ ...formData, gameKey: value })}
+                  >
+                    <SelectTrigger className="h-11 border-black/10 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {games.map((game) => (
+                        <SelectItem key={game.key} value={game.key}>
+                          {game.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field label="Format">
+                  <Select
+                    value={formData.format}
+                    onValueChange={(value) => setFormData({ ...formData, format: value })}
+                  >
+                    <SelectTrigger className="h-11 border-black/10 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single_elimination">Single elimination</SelectItem>
+                      <SelectItem value="round_robin">Round robin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              <Field label="Variant">
                 <Select
-                  value={formData.format}
-                  onValueChange={(value) => setFormData({ ...formData, format: value })}
+                  value={formData.modVersionId}
+                  onValueChange={(value) => setFormData({ ...formData, modVersionId: value })}
                 >
                   <SelectTrigger className="h-11 border-black/10 bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="single_elimination">Single elimination</SelectItem>
-                    <SelectItem value="round_robin">Round robin</SelectItem>
+                    <SelectItem value="__none__">Standard</SelectItem>
+                    {variantGroups.official.map((mod) => (
+                      <SelectItem
+                        key={mod.id}
+                        value={mod.latest_version_id ?? `__missing__${mod.id}`}
+                        disabled={!mod.latest_version_id}
+                      >
+                        {`Official / ${mod.name}`}
+                      </SelectItem>
+                    ))}
+                    {variantGroups.club.map((mod) => (
+                      <SelectItem
+                        key={mod.id}
+                        value={mod.latest_version_id ?? `__missing__${mod.id}`}
+                        disabled={!mod.latest_version_id}
+                      >
+                        {`Club / ${mod.name}`}
+                      </SelectItem>
+                    ))}
+                    {variantGroups.workshop.map((mod) => (
+                      <SelectItem
+                        key={mod.id}
+                        value={mod.latest_version_id ?? `__missing__${mod.id}`}
+                        disabled={!mod.latest_version_id}
+                      >
+                        {`Workshop / ${mod.name}`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>
@@ -170,28 +266,46 @@ export function CreateTournamentDialog({
                     onCheckedChange={(checked) => setFormData({ ...formData, competitiveMode: checked })}
                   />
                 </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, competitiveMode: false })}
-                    className={`border px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] ${
-                      !formData.competitiveMode ? "border-black bg-[#efebe3]" : "border-black/10 bg-[#fbfaf6]"
-                    }`}
-                  >
-                    Casual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, competitiveMode: true })}
-                    className={`border px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] ${
-                      formData.competitiveMode ? "border-black bg-[#efebe3]" : "border-black/10 bg-[#fbfaf6]"
-                    }`}
-                  >
-                    Competitive
-                  </button>
-                </div>
               </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Registration URL">
+                  <Input
+                    value={formData.registrationUrl}
+                    onChange={(event) => setFormData({ ...formData, registrationUrl: event.target.value })}
+                    placeholder="Optional external signup link"
+                    className="h-11 border-black/10 bg-white"
+                  />
+                </Field>
+
+                <Field label="Access">
+                  <Select
+                    value={formData.accessType}
+                    onValueChange={(value: AccessType) => setFormData({ ...formData, accessType: value })}
+                  >
+                    <SelectTrigger className="h-11 border-black/10 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Public</SelectItem>
+                      <SelectItem value="world_members">World members</SelectItem>
+                      <SelectItem value="access_code">Access code</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              {formData.accessType === "access_code" ? (
+                <Field label="Access code">
+                  <Input
+                    value={formData.accessCode}
+                    onChange={(event) => setFormData({ ...formData, accessCode: event.target.value })}
+                    placeholder="Share this with paid or invited players"
+                    className="h-11 border-black/10 bg-white"
+                    required
+                  />
+                </Field>
+              ) : null}
             </div>
 
             <div className="space-y-5">
@@ -216,45 +330,56 @@ export function CreateTournamentDialog({
                 </Field>
               </div>
 
-              <Field label="Board size">
-                <Select
-                  value={formData.boardSize.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, boardSize: parseInt(value, 10) })}
-                >
-                  <SelectTrigger className="h-11 border-black/10 bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7">7x7 quick</SelectItem>
-                    <SelectItem value="9">9x9 fast</SelectItem>
-                    <SelectItem value="11">11x11 standard</SelectItem>
-                    <SelectItem value="13">13x13 long</SelectItem>
-                    <SelectItem value="15">15x15 epic</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
+              {selectedGame?.configurableBoardSize ? (
+                <Field label="Board size">
+                  <Select
+                    value={formData.boardSize.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, boardSize: parseInt(value, 10) })}
+                  >
+                    <SelectTrigger className="h-11 border-black/10 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(selectedGame.boardSizeOptions ?? []).map((option) => (
+                        <SelectItem key={option.value} value={String(option.value)}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              ) : (
+                <div className="border border-black/10 bg-white px-4 py-4">
+                  <p className="text-sm font-medium text-foreground">Board size</p>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Fixed by the game or variant.
+                  </p>
+                </div>
+              )}
 
               <Field label="Turn timer">
                 <Input
                   type="number"
-                  min={30}
-                  max={300}
+                  min={10}
+                  max={600}
                   value={formData.turnTimerSeconds}
                   onChange={(e) => setFormData({ ...formData, turnTimerSeconds: parseInt(e.target.value, 10) })}
                   className="h-11 border-black/10 bg-white"
                 />
               </Field>
 
-              <div className="flex items-center justify-between border border-black/10 bg-white px-4 py-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Pie rule</p>
-                  <p className="text-xs text-muted-foreground">Allow a color swap after the first move</p>
+              {selectedGame?.supportsPieRule ? (
+                <div className="flex items-center justify-between border border-black/10 bg-white px-4 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Pie rule</p>
+                    <p className="text-xs text-muted-foreground">Allow a color swap after the first move</p>
+                  </div>
+                  <Switch
+                    checked={formData.pieRule}
+                    onCheckedChange={(checked) => setFormData({ ...formData, pieRule: checked })}
+                  />
                 </div>
-                <Switch
-                  checked={formData.pieRule}
-                  onCheckedChange={(checked) => setFormData({ ...formData, pieRule: checked })}
-                />
-              </div>
+              ) : null}
             </div>
           </div>
 
@@ -262,7 +387,7 @@ export function CreateTournamentDialog({
             <div className="mb-5 border border-black/10 bg-white px-4 py-4">
               <p className="board-rail-label">Event note</p>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Set name. Pick mode. Open bracket.
+                Pick the board. Attach the rules. Open the bracket.
               </p>
             </div>
 
@@ -286,7 +411,7 @@ function Field({
   children,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div>

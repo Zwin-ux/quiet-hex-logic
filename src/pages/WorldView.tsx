@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Copy, Loader2 } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
+import { OpenOnWebButton, WebHandoffNotice } from "@/components/surfaces/WebSurfaceGate";
 import { CreateLobby } from "@/components/CreateLobby";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { LobbyCard } from "@/components/LobbyCard";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { canManageWorld, joinWorld, loadWorldOverview, type WorldOverview } from "@/lib/worlds";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { buildAuthRoute } from "@/lib/authRedirect";
+import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { toast } from "sonner";
 
 export default function WorldView() {
@@ -23,6 +25,7 @@ export default function WorldView() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
+  const { isAuthoringSurface } = useSurfaceCapabilities();
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -219,14 +222,32 @@ export default function WorldView() {
             <div className="mt-8 flex flex-col gap-3">
               {canManage ? (
                 <>
-                  {!hasLiveSurfaces || !user ? null : <CreateLobby userId={user.id} worldId={world.id} />}
-                  <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
-                    Create event
-                  </Button>
+                  {!hasLiveSurfaces || !user ? null : isAuthoringSurface ? (
+                    <CreateLobby userId={user.id} worldId={world.id} />
+                  ) : (
+                    <OpenOnWebButton to={`/worlds/${world.id}`} label="Create room on web" />
+                  )}
+                  {isAuthoringSurface ? (
+                    <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
+                      Create event
+                    </Button>
+                  ) : (
+                    <OpenOnWebButton to={`/worlds/${world.id}`} label="Create event on web" />
+                  )}
                   <Button variant="outline" onClick={copyInviteLink}>
                     {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {inviteCopied ? "Invite link copied" : "Copy invite link"}
                   </Button>
+                  {isAuthoringSurface ? (
+                    <>
+                      <Button variant="outline" onClick={() => navigate(`/worlds/${world.id}/variants`)}>
+                        Variants
+                      </Button>
+                      <Button variant="outline" onClick={() => navigate(`/worlds/${world.id}/settings`)}>
+                        Settings
+                      </Button>
+                    </>
+                  ) : null}
                 </>
               ) : (
                 <Button
@@ -288,7 +309,17 @@ export default function WorldView() {
                     </div>
                   ) : null}
 
-                  {user ? (
+                  {!isAuthoringSurface && canManage ? (
+                    <div className="mt-8">
+                      <WebHandoffNotice
+                        title="Variants and venue setup stay on web."
+                        detail="Mobile and Discord can run the live room, but branding, room creation, and rules editing stay on the browser surface."
+                        to={`/worlds/${world.id}/variants`}
+                      />
+                    </div>
+                  ) : null}
+
+                  {user && isAuthoringSurface ? (
                     <div className="mt-8">
                       <CreateLobby userId={user.id} worldId={world.id} />
                     </div>

@@ -8,6 +8,9 @@ export type WorldSummary = {
   slug: string;
   name: string;
   description: string | null;
+  tagline?: string | null;
+  accentColor?: string | null;
+  publicStatus?: "draft" | "live" | null;
   visibility: WorldVisibility;
   createdBy: string | null;
   createdAt: string;
@@ -18,6 +21,7 @@ export type WorldSummary = {
   eventCount: number;
   instanceCount: number;
   userRole: WorldRole | null;
+  hostCount?: number | null;
 };
 
 export type WorldEventSummary = {
@@ -72,6 +76,9 @@ type WorldRow = {
   slug: string;
   name: string;
   description: string | null;
+  tagline?: string | null;
+  accent_color?: string | null;
+  public_status?: 'draft' | 'live' | null;
   visibility: WorldVisibility;
   created_by: string | null;
   created_at: string;
@@ -224,6 +231,9 @@ function buildWorldSummary(args: {
     slug: args.world.slug,
     name: args.world.name,
     description: args.world.description,
+    tagline: args.world.tagline ?? null,
+    accentColor: args.world.accent_color ?? null,
+    publicStatus: args.world.public_status ?? 'draft',
     visibility: args.world.visibility,
     createdBy: args.world.created_by,
     createdAt: args.world.created_at,
@@ -245,7 +255,7 @@ export async function listWorlds(currentUserId?: string) {
 
   const { data: worldsData, error: worldsError } = await db()
     .from('worlds')
-    .select('id, slug, name, description, visibility, created_by, created_at, updated_at')
+    .select('id, slug, name, description, tagline, accent_color, public_status, visibility, created_by, created_at, updated_at')
     .order('created_at', { ascending: false });
 
   if (worldsError) throw worldsError;
@@ -319,7 +329,7 @@ export async function loadWorldOverview(worldId: string, currentUserId?: string)
 
   const { data: worldData, error: worldError } = await db()
     .from('worlds')
-    .select('id, slug, name, description, visibility, created_by, created_at, updated_at')
+    .select('id, slug, name, description, tagline, accent_color, public_status, visibility, created_by, created_at, updated_at')
     .eq('id', worldId)
     .single();
 
@@ -475,7 +485,7 @@ export async function createWorld(input: {
         visibility,
         created_by: input.userId,
       })
-      .select('id, slug, name, description, visibility, created_by, created_at, updated_at')
+      .select('id, slug, name, description, tagline, accent_color, public_status, visibility, created_by, created_at, updated_at')
       .single();
 
     if (!error && data) {
@@ -567,4 +577,33 @@ export async function joinWorld(worldId: string, userId: string) {
 
 export function canManageWorld(world: WorldSummary) {
   return world.userRole === 'owner' || world.userRole === 'admin';
+}
+
+export async function updateWorldSettings(input: {
+  worldId: string;
+  name: string;
+  description?: string;
+  tagline?: string;
+  visibility: WorldVisibility;
+  publicStatus: 'draft' | 'live';
+  accentColor?: string;
+}) {
+  const payload = {
+    name: input.name.trim(),
+    description: input.description?.trim() || null,
+    tagline: input.tagline?.trim() || null,
+    visibility: input.visibility,
+    public_status: input.publicStatus,
+    accent_color: input.accentColor?.trim() || null,
+  };
+
+  const { data, error } = await db()
+    .from('worlds')
+    .update(payload)
+    .eq('id', input.worldId)
+    .select('id, slug, name, description, tagline, accent_color, public_status, visibility, created_by, created_at, updated_at')
+    .single();
+
+  if (error) throw error;
+  return data as WorldRow;
 }

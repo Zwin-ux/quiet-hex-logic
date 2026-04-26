@@ -8,7 +8,8 @@ const corsHeaders = {
 
 // Input validation schema
 const joinTournamentSchema = z.object({
-  tournamentId: z.string().uuid('Invalid tournament ID format')
+  tournamentId: z.string().uuid('Invalid tournament ID format'),
+  accessCode: z.string().trim().max(64).optional().nullable(),
 });
 
 Deno.serve(async (req) => {
@@ -48,10 +49,11 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { tournamentId } = validationResult.data;
+    const { tournamentId, accessCode } = validationResult.data;
 
     const { error: joinError } = await supabase.rpc('join_tournament_atomic', {
       p_tournament_id: tournamentId,
+      p_access_code: accessCode || null,
     });
 
     if (joinError) throw joinError;

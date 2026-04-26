@@ -10,6 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLobby } from '@/hooks/useLobby';
 import { useWorkshopMods } from '@/hooks/useWorkshopMods';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { OpenOnWebButton, WebHandoffNotice } from '@/components/surfaces/WebSurfaceGate';
+import { useSurfaceCapabilities } from '@/lib/surfaces';
+import { groupVariantsForGame } from '@/lib/variants';
 import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -41,6 +44,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const [sendingMessage, setSendingMessage] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { isAuthoringSurface } = useSurfaceCapabilities();
 
   const isHost = lobby?.host_id === userId;
   const currentPlayer = players.find(p => p.player_id === userId);
@@ -49,6 +53,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const gameKey = (lobby as any)?.game_key ?? 'hex';
   const currentModVersionId = (lobby as any)?.mod_version_id ?? null;
   const { mods: workshopMods, loading: workshopModsLoading } = useWorkshopMods({ gameKey });
+  const variantGroups = groupVariantsForGame(workshopMods, gameKey, (lobby as any)?.world_id ?? undefined);
 
   // Auto-navigate both players when match starts (critical for guest navigation)
   useEffect(() => {
@@ -422,20 +427,38 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               <Select
                 value={typeof currentModVersionId === 'string' && currentModVersionId ? currentModVersionId : '__none__'}
                 onValueChange={(v) => updateSettings('modVersionId', v === '__none__' ? null : v)}
-                disabled={!isHost || updating || workshopModsLoading}
+                disabled={!isHost || !isAuthoringSurface || updating || workshopModsLoading}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {workshopMods.map((m) => (
+                  {variantGroups.official.map((m) => (
                     <SelectItem
                       key={m.id}
                       value={m.latest_version_id ?? `__missing__${m.id}`}
                       disabled={!m.latest_version_id}
                     >
-                      {m.name}
+                      {`Official / ${m.name}`}
+                    </SelectItem>
+                  ))}
+                  {variantGroups.club.map((m) => (
+                    <SelectItem
+                      key={m.id}
+                      value={m.latest_version_id ?? `__missing__${m.id}`}
+                      disabled={!m.latest_version_id}
+                    >
+                      {`Club / ${m.name}`}
+                    </SelectItem>
+                  ))}
+                  {variantGroups.workshop.map((m) => (
+                    <SelectItem
+                      key={m.id}
+                      value={m.latest_version_id ?? `__missing__${m.id}`}
+                      disabled={!m.latest_version_id}
+                    >
+                      {`Workshop / ${m.name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -443,6 +466,11 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               <p className="text-xs text-muted-foreground mt-2">
                 Variants are enforced server-side via a rules snapshot and are always unranked.
               </p>
+              {isHost && !isAuthoringSurface && (lobby as any)?.world_id ? (
+                <div className="mt-3">
+                  <OpenOnWebButton to={`/worlds/${(lobby as any).world_id}/variants`} label="Edit variants on web" />
+                </div>
+              ) : null}
             </div>
 
             <div>
@@ -452,7 +480,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               <Select
                 value={lobby.board_size.toString()}
                 onValueChange={(v) => updateSettings('boardSize', parseInt(v))}
-                disabled={!isHost || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
+                disabled={!isHost || !isAuthoringSurface || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -475,7 +503,7 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
                 variant={lobby.pie_rule ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => updateSettings('pieRule', !lobby.pie_rule)}
-                disabled={!isHost || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
+                disabled={!isHost || !isAuthoringSurface || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
               >
                 {lobby.pie_rule ? 'On' : 'Off'}
               </Button>
@@ -487,6 +515,15 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
               Only the host can change settings
             </p>
           )}
+          {isHost && !isAuthoringSurface && (lobby as any)?.world_id ? (
+            <div className="mt-4">
+              <WebHandoffNotice
+                title="Rules editing stays on web."
+                detail="Mobile and Discord can run the room, but lobby rules, board setup, and variant selection stay on the browser surface."
+                to={`/worlds/${(lobby as any).world_id}/variants`}
+              />
+            </div>
+          ) : null}
         </Card>
 
         {/* Chat Section */}

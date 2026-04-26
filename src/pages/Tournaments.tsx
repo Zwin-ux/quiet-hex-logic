@@ -9,11 +9,13 @@ import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { Button } from "@/components/ui/button";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
+import { OpenOnWebButton } from "@/components/surfaces/WebSurfaceGate";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { listWorlds } from "@/lib/worlds";
 import { buildAuthRoute } from "@/lib/authRedirect";
 import { FIRST_TOURNAMENT } from "@/lib/launchAnnouncements";
+import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
@@ -93,6 +95,7 @@ export default function Tournaments() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isGuest, guestUsername } = useGuestMode();
+  const { isAuthoringSurface } = useSurfaceCapabilities();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [worldNames, setWorldNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -272,11 +275,13 @@ export default function Tournaments() {
             ) : null}
 
             <div className="mt-8 flex flex-col gap-3">
-              {user && !isGuest ? (
+              {user && !isGuest && isAuthoringSurface ? (
                 <Button variant={primaryEvent ? "outline" : "hero"} onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4" />
                   Create event
                 </Button>
+              ) : user && !isGuest ? (
+                <OpenOnWebButton to="/events" label="Create on web" variant={primaryEvent ? "outline" : "hero"} />
               ) : (
                 <Button variant="outline" onClick={() => navigate(buildAuthRoute("/events"))}>
                   Enter to host

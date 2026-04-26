@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StateTag } from "@/components/board/StateTag";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAuthRoute } from "@/lib/authRedirect";
+import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
 const PRIMARY_LINKS = [
@@ -17,9 +18,12 @@ const PRIMARY_LINKS = [
 const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
   { match: /^\/$/, label: "Home" },
   { match: /^\/auth/, label: "Enter" },
+  { match: /^\/worlds\/[^/]+\/settings/, label: "World Settings" },
+  { match: /^\/worlds\/[^/]+\/variants/, label: "World Variants" },
   { match: /^\/worlds/, label: "World Directory" },
   { match: /^\/play|^\/lobby/, label: "Play Network" },
   { match: /^\/events|^\/tournaments|^\/tournament/, label: "Event Rail" },
+  { match: /^\/host/, label: "Host" },
   { match: /^\/hiring/, label: "Hiring" },
   { match: /^\/match|^\/replay/, label: "Live Surface" },
   { match: /^\/docs/, label: "Manual" },
@@ -37,6 +41,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { can } = useSurfaceCapabilities();
 
   const currentLabel =
     ROUTE_LABELS.find((route) => route.match.test(location.pathname))?.label ?? "BOARD";
@@ -141,9 +146,11 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                 <UtilityButton onClick={() => navigate("/profile")} label="Profile">
                   <User className="h-4 w-4" />
                 </UtilityButton>
-                <UtilityButton onClick={() => navigate("/workbench")} label="Workbench">
-                  <Wrench className="h-4 w-4" />
-                </UtilityButton>
+                {can("useWorkbench") ? (
+                  <UtilityButton onClick={() => navigate("/workbench")} label="Workbench">
+                    <Wrench className="h-4 w-4" />
+                  </UtilityButton>
+                ) : null}
                 <UtilityButton
                   onClick={() => {
                     signOut();

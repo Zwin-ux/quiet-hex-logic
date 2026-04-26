@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 const gameKeySchema = z.enum(['hex', 'chess', 'checkers', 'ttt', 'connect4']);
+const scopeSchema = z.enum(['official_global', 'public_registry', 'world_private']);
+const sourceKindSchema = z.enum(['official_seed', 'simple_editor', 'package_upload', 'engine_pack']);
 
-// Minimal validation for the OpenBoard v1 manifest format used by the web client.
 const manifestSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -20,8 +21,10 @@ const manifestSchema = z.object({
 
 const bodySchema = z.object({
   manifest: manifestSchema,
-  // Optional: allow publishing just one game from a multi-game manifest.
   gameKey: gameKeySchema.optional(),
+  worldId: z.string().uuid().optional().nullable(),
+  scope: scopeSchema.optional(),
+  sourceKind: sourceKindSchema.optional(),
 });
 
 type Json = Record<string, unknown>;
@@ -72,6 +75,30 @@ Deno.serve(async (req) => {
     const manifestId = manifest.id;
     const name = manifest.name.trim();
     const description = manifest.description?.trim() || null;
+    const scope = parsed.data.scope ?? 'public_registry';
+    const sourceKind = parsed.data.sourceKind ?? 'package_upload';
+    const worldId = scope === 'world_private' ? parsed.data.worldId ?? null : null;
+
+    if (scope === 'official_global') {
+      return json({ error: 'Official variants are seeded by the platform and cannot be published from the client.' }, 403);
+    }
+
+    if (scope === 'world_private' && !worldId) {
+      return json({ error: 'worldId is required for world-private variants' }, 400);
+    }
+
+    if (worldId) {
+      const { data: membership, error: membershipError } = await supabase
+        .from('world_members')
+        .select('role')
+        .eq('world_id', worldId)
+        .eq('profile_id', user.id)
+        .in('role', ['owner', 'admin'])
+        .maybeSingle();
+
+      if (membershipError) return json({ error: membershipError.message }, 400);
+      if (!membership) return json({ error: 'Only world organizers can publish world variants' }, 403);
+    }
 
     const allRulesGames = pickRulesGames(manifest);
     const requestedGameKey = parsed.data.gameKey;
@@ -87,9 +114,10 @@ Deno.serve(async (req) => {
 
     for (const t of targets) {
       const gameKey = t.gameKey;
-      const rules = t.rules;
+      const rules = t.rules as Record<string, unknown>;
+      const startFen = typeof rules?.startFen === 'string' ? rules.startFen : null;
+      const startSeed = typeof (rules as any)?.startSeed === 'string' ? String((rules as any).startSeed) : null;
 
-      // Upsert mod row by (manifest_id, game_key).
       const { data: existing, error: exErr } = await supabase
         .from('workshop_mods' as any)
         .select('id, author_id')
@@ -97,7 +125,7 @@ Deno.serve(async (req) => {
         .eq('game_key', gameKey)
         .maybeSingle();
       if (exErr) return json({ error: exErr.message }, 400);
-      if (existing && existing.author_id !== user.id) {
+      if (existing && existing.author_id && existing.author_id !== user.id) {
         return json({ error: `Mod ${manifestId} for ${gameKey} already exists and is owned by a different author.` }, 403);
       }
 
@@ -113,6 +141,13 @@ Deno.serve(async (req) => {
           author_id: user.id,
           rules: rules as any,
           is_published: true,
+          world_id: worldId,
+          scope,
+          is_official: false,
+          featured_rank: null,
+          availability: 'hosted',
+          engine_mode: 'standard',
+          validation_status: 'published',
           updated_at: now,
         }, { onConflict: 'manifest_id,game_key' })
         .select('id')
@@ -128,6 +163,11 @@ Deno.serve(async (req) => {
           version: manifest.version,
           manifest: manifest as any,
           rules: rules as any,
+          source_kind: sourceKind,
+          start_fen: startFen,
+          start_seed: startSeed,
+          capabilities: {},
+          validation_notes: {},
         }, { onConflict: 'mod_id,version' })
         .select('id')
         .single();
@@ -150,4 +190,3 @@ Deno.serve(async (req) => {
     return json({ error: msg }, 400);
   }
 });
-

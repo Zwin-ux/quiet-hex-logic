@@ -5,9 +5,11 @@ import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
 import { CreateWorldDialog } from "@/components/CreateWorldDialog";
 import { Button } from "@/components/ui/button";
+import { OpenOnWebButton } from "@/components/surfaces/WebSurfaceGate";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { listWorlds, type WorldSummary } from "@/lib/worlds";
 import { buildAuthRoute } from "@/lib/authRedirect";
 import { toast } from "sonner";
@@ -19,6 +21,7 @@ export default function Worlds() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
+  const { isAuthoringSurface } = useSurfaceCapabilities();
   const [loading, setLoading] = useState(true);
   const [worlds, setWorlds] = useState<WorldSummary[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -103,11 +106,13 @@ export default function Worlds() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              {user && !isGuest ? (
+              {user && !isGuest && isAuthoringSurface ? (
                 <Button variant="hero" onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4" />
                   Create world
                 </Button>
+              ) : user && !isGuest ? (
+                <OpenOnWebButton to="/worlds?create=true" label="Create on web" variant="hero" />
               ) : (
                 <Button variant="outline" onClick={() => navigate(buildAuthRoute("/worlds?create=true"))}>
                   Sign in to host
@@ -213,7 +218,7 @@ export default function Worlds() {
           </div>
         )}
 
-        {user && !isGuest ? (
+        {user && !isGuest && isAuthoringSurface ? (
           <CreateWorldDialog
             open={showCreateDialog}
             onClose={() => setShowCreateDialog(false)}

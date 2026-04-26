@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     const { data: tournamentData, error: tournamentError } = await service
       .from('tournaments')
-      .select('id, created_by, status, min_players, max_players, board_size, pie_rule, turn_timer_seconds, world_id, game_key, format')
+      .select('id, created_by, status, min_players, max_players, board_size, pie_rule, turn_timer_seconds, world_id, game_key, format, mod_version_id')
       .eq('id', tournamentId)
       .single();
 

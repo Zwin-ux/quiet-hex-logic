@@ -1,19 +1,20 @@
-import { useEffect, lazy, Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect, lazy, Suspense, type ReactNode } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AchievementToast } from "@/components/AchievementToast";
 import { DeploymentConfigScreen } from "@/components/DeploymentConfigScreen";
-import { DiscordProvider } from "@/lib/discord/DiscordContext";
 import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
-import { BaseProvider } from "@/lib/base/BaseProvider";
-import { getSupabaseConfigError, supabase } from "@/integrations/supabase/client";
 import { EnvSanityBanner } from "@/components/EnvSanityBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { WebSurfaceGate } from "@/components/surfaces/WebSurfaceGate";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { BaseProvider } from "@/lib/base/BaseProvider";
+import { DiscordProvider } from "@/lib/discord/DiscordContext";
+import { getSupabaseConfigError, supabase } from "@/integrations/supabase/client";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,8 @@ const Tutorial = lazy(() => import("./pages/Tutorial"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 const Worlds = lazy(() => import("./pages/Worlds.tsx"));
 const WorldView = lazy(() => import("./pages/WorldView.tsx"));
+const WorldSettings = lazy(() => import("./pages/WorldSettings"));
+const WorldVariants = lazy(() => import("./pages/WorldVariants"));
 const LobbyView = lazy(() => import("./pages/LobbyView"));
 const Tournaments = lazy(() => import("./pages/Tournaments"));
 const TournamentView = lazy(() => import("./pages/TournamentView"));
@@ -40,6 +43,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Support = lazy(() => import("./pages/Support"));
 const Hiring = lazy(() => import("./pages/Hiring"));
+const Host = lazy(() => import("./pages/Host"));
 const Mods = lazy(() => import("./pages/Mods"));
 const Arena = lazy(() => import("./pages/Arena"));
 const Workbench = lazy(() => import("./pages/Workbench"));
@@ -63,6 +67,19 @@ const suspenseFallback = (
     <div className="board-rail-label animate-pulse text-black/50">Loading...</div>
   </div>
 );
+
+function webOnly(
+  capability: "editWorldSettings" | "useWorkbench" | "useArena",
+  element: ReactNode,
+  title: string,
+  reason: string,
+) {
+  return (
+    <WebSurfaceGate capability={capability} title={title} reason={reason}>
+      {element}
+    </WebSurfaceGate>
+  );
+}
 
 const App = () => {
   const allowDebugRoute =
@@ -108,6 +125,28 @@ const App = () => {
                               <WorldView />
                             </RouteErrorBoundary>
                           }
+                        />
+                        <Route
+                          path="/worlds/:worldId/settings"
+                          element={webOnly(
+                            "editWorldSettings",
+                            <RouteErrorBoundary fallbackTitle="World settings failed to load">
+                              <WorldSettings />
+                            </RouteErrorBoundary>,
+                            "World settings live on web.",
+                            "Branding, visibility, and venue state stay on the web authoring surface.",
+                          )}
+                        />
+                        <Route
+                          path="/worlds/:worldId/variants"
+                          element={webOnly(
+                            "editWorldSettings",
+                            <RouteErrorBoundary fallbackTitle="World variants failed to load">
+                              <WorldVariants />
+                            </RouteErrorBoundary>,
+                            "Variant editing lives on web.",
+                            "Surface rules, package uploads, and publishing stay on the web authoring flow.",
+                          )}
                         />
                         <Route
                           path="/play"
@@ -235,20 +274,37 @@ const App = () => {
                         <Route path="/hiring" element={<Hiring />} />
                         <Route path="/support" element={<Support />} />
                         <Route
+                          path="/host"
+                          element={webOnly(
+                            "editWorldSettings",
+                            <RouteErrorBoundary fallbackTitle="Host failed to load">
+                              <Host />
+                            </RouteErrorBoundary>,
+                            "Host setup lives on web.",
+                            "World creation, venue setup, and publishing stay on the web organizer surface.",
+                          )}
+                        />
+                        <Route
                           path="/mods"
-                          element={
+                          element={webOnly(
+                            "editWorldSettings",
                             <RouteErrorBoundary fallbackTitle="Mods failed to load">
                               <Mods />
-                            </RouteErrorBoundary>
-                          }
+                            </RouteErrorBoundary>,
+                            "Mods live on web.",
+                            "Package publishing and deeper variant management stay on the web editing flow.",
+                          )}
                         />
                         <Route
                           path="/arena"
-                          element={
+                          element={webOnly(
+                            "useArena",
                             <RouteErrorBoundary fallbackTitle="Arena failed to load">
                               <Arena />
-                            </RouteErrorBoundary>
-                          }
+                            </RouteErrorBoundary>,
+                            "Arena lives on web.",
+                            "The full arena and builder tools are only available on the web surface.",
+                          )}
                         />
                         <Route
                           path="/bot/:botId"
@@ -260,19 +316,25 @@ const App = () => {
                         />
                         <Route
                           path="/workbench"
-                          element={
+                          element={webOnly(
+                            "useWorkbench",
                             <RouteErrorBoundary fallbackTitle="Workbench failed to load">
                               <Workbench />
-                            </RouteErrorBoundary>
-                          }
+                            </RouteErrorBoundary>,
+                            "Workbench lives on web.",
+                            "Builder tools and deeper engine workflows stay on the web surface.",
+                          )}
                         />
                         <Route
                           path="/docs"
-                          element={
+                          element={webOnly(
+                            "useWorkbench",
                             <RouteErrorBoundary fallbackTitle="Docs failed to load">
                               <Docs />
-                            </RouteErrorBoundary>
-                          }
+                            </RouteErrorBoundary>,
+                            "Docs live on web.",
+                            "Manuals and builder references stay on the web editing surface.",
+                          )}
                         />
                         <Route
                           path="/debug"
