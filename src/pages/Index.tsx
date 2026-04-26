@@ -1,5 +1,5 @@
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { HostWorldThesis } from "@/components/FeaturesShowcase";
+import { CapabilityShowcase } from "@/components/FeaturesShowcase";
 import { PracticeDesk } from "@/components/GameGrid";
 import { LandingHero } from "@/components/Hero";
 import { QuietFooter } from "@/components/QuietFooter";
@@ -13,8 +13,8 @@ const Index = () => {
       contentClassName="pb-0"
     >
       <LandingHero />
-      <HostWorldThesis />
       <PracticeDesk />
+      <CapabilityShowcase />
       <QuietFooter />
     </SiteFrame>
   );

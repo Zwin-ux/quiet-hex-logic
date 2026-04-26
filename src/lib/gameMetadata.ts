@@ -58,6 +58,8 @@ export const GAME_METADATA: Record<string, GameMeta> = {
   },
 };
 
+export const SHOWCASE_GAME_KEYS = ["hex", "chess", "checkers", "connect4"] as const;
+
 export function getGameMeta(key: string): GameMeta {
   return GAME_METADATA[key] ?? GAME_METADATA.hex;
 }

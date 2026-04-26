@@ -5,7 +5,7 @@ export const FIRST_TOURNAMENT = {
   shortDate: "05 / 01",
   fullDate: "May 1, 2026",
   time: "7 PM PT",
-  detail: "Open online bracket. Casual rounds first. Finals after lock.",
+  detail: "Open online bracket. Four boards. Finals after lock.",
   hiringLabel: "Need event coordinators",
 };
 

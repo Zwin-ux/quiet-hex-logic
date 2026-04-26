@@ -8,7 +8,7 @@ import type { AIDifficulty } from "@/lib/hex/simpleAI";
 import { createLocalAIMatch } from "@/lib/localAiMatch";
 import { listGames, getGame } from "@/lib/engine/registry";
 import { getAsciiGamePreview } from "@/lib/asciiGames.ts";
-import { getGameMeta } from "@/lib/gameMetadata";
+import { getGameMeta, SHOWCASE_GAME_KEYS } from "@/lib/gameMetadata";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -27,7 +27,9 @@ export const PracticeDesk = memo(
       const [selectedDifficulty, setSelectedDifficulty] = useState<AIDifficulty>("easy");
       const [showSetup, setShowSetup] = useState(false);
       const [loadingDifficulty, setLoadingDifficulty] = useState<string | null>(null);
-      const games = listGames();
+      const games = listGames().filter((game) =>
+        SHOWCASE_GAME_KEYS.includes(game.key as (typeof SHOWCASE_GAME_KEYS)[number]),
+      );
       const [selectedGame, setSelectedGame] = useState<string | null>(games[0]?.key ?? null);
       const selectedDefinition = selectedGame ? getGame(selectedGame) : null;
       const selectedMeta = selectedGame ? getGameMeta(selectedGame) : null;
@@ -112,7 +114,7 @@ export const PracticeDesk = memo(
           <div className="board-page-width board-public mx-auto px-4 md:px-6 lg:px-8">
             <div className="max-w-[52rem]">
               <h2 className="board-public-display mt-5 max-w-[11ch] text-[clamp(2.25rem,4vw,4.1rem)] text-[#0a0a0a]">
-                Pick a board.
+                Flagship boards.
               </h2>
             </div>
 
@@ -177,10 +179,10 @@ export const PracticeDesk = memo(
                       </div>
 
                       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.12fr)_220px]">
-                        <div className="relative overflow-hidden border border-black/14 bg-[#111214] text-[#f5f1e8] shadow-[0_22px_60px_rgba(0,0,0,0.14)]">
+                        <div className="relative overflow-hidden border border-black/14 bg-[#111214] text-[#f5f1e8] shadow-[0_22px_60px_rgba(0,0,0,0.14)] lg:col-span-2">
                           <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
                             <span className="board-public-label text-[#d8d1c2]">
-                              {preview.label} / specimen
+                              {preview.label} / live set
                             </span>
                             <span className="board-public-label text-[#8e8a80]">
                               frame 03
@@ -193,27 +195,13 @@ export const PracticeDesk = memo(
                             {previewFrame}
                           </pre>
                         </div>
-
-                        <div className="space-y-3 border border-black/12 bg-[#f8f4ea] p-4">
-                          <p className="board-public-copy text-[0.95rem] text-[#23252b]">
-                            Local now.
-                          </p>
-                          <div className="board-hairline" />
-                          <p className="board-public-copy text-[0.95rem] text-[#23252b]">
-                            Rooms with sign-in.
-                          </p>
-                          <div className="board-hairline" />
-                          <p className="board-public-copy text-[0.95rem] text-[#23252b]">
-                            Ranked with World ID.
-                          </p>
-                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-5">
                         <div className="landing-practice-meta">
                           <span>{selectedDifficulty}</span>
                           <span>{selectedDefinition.defaultBoardSize}x{selectedDefinition.defaultBoardSize}</span>
-                          <span>local first</span>
+                          <span>arena set</span>
                         </div>
                         <button
                           type="button"

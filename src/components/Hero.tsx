@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { Button } from "@/components/ui/button";
-import { ASCII_GAME_ORDER, getAsciiGamePreview } from "@/lib/asciiGames";
+import { getAsciiGamePreview } from "@/lib/asciiGames";
 import { getGame } from "@/lib/engine/registry";
-import { getGameMeta } from "@/lib/gameMetadata";
+import { getGameMeta, SHOWCASE_GAME_KEYS } from "@/lib/gameMetadata";
 import { cn } from "@/lib/utils";
 
 const HERO_PREVIEW_KEY = "hex";
-const HERO_ARENA_FEEDS = ASCII_GAME_ORDER.map((key, index) => {
+const HERO_ARENA_FEEDS = SHOWCASE_GAME_KEYS.map((key, index) => {
   const preview = getAsciiGamePreview(key);
   const meta = getGameMeta(key);
 
@@ -50,10 +50,10 @@ export const LandingHero = memo(
                 <div className="max-w-[820px]">
                   <BoardWordmark size="hero" className="mt-6 text-[#090909]" />
                   <h1 className="board-public-display mt-10 max-w-[10ch] text-[clamp(3.3rem,6.6vw,6.8rem)] text-[#090909]">
-                    Walk in. Pick a table.
+                    Watch four boards at once.
                   </h1>
                   <p className="board-public-copy mt-6 max-w-[29rem] text-[1.05rem] md:text-[1.16rem]">
-                    Local first. Rooms later.
+                    Start local. Open the bracket later.
                   </p>
                 </div>
 
@@ -74,14 +74,14 @@ export const LandingHero = memo(
                         className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
                         onClick={() => navigate("/events")}
                       >
-                        May 1 open
+                        Open bracket
                       </Button>
                       <Button
                         variant="ghost"
                         className="h-10 border border-black/12 px-3 text-[12px] uppercase tracking-[0.14em] text-[#17181c] hover:bg-black hover:text-[#f3efe6]"
-                        onClick={() => navigate("/hiring")}
+                        onClick={() => navigate("/docs")}
                       >
-                        Crew call
+                        Open manual
                       </Button>
                     </div>
                   </div>
@@ -92,14 +92,14 @@ export const LandingHero = memo(
                     transition={{ delay: 0.2, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                     className="board-public-label text-[#5c5750]"
                   >
-                    Hex / {heroGame.defaultBoardSize}x{heroGame.defaultBoardSize} / local now
+                    Hex / Chess / Checkers / Connect 4
                   </motion.p>
                 </div>
               </div>
 
               <div className="landing-stage__object">
                 <div className="landing-stage__object-rail">
-                  <span className="board-public-label text-white/68">boards live</span>
+                  <span className="board-public-label text-white/68">four boards</span>
                 </div>
 
                 <div className="landing-stage__arena-grid">
