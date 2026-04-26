@@ -1,5 +1,4 @@
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { CapabilityShowcase } from "@/components/FeaturesShowcase";
 import { PracticeDesk } from "@/components/GameGrid";
 import { LandingHero } from "@/components/Hero";
 import { QuietFooter } from "@/components/QuietFooter";
@@ -14,7 +13,6 @@ const Index = () => {
     >
       <LandingHero />
       <PracticeDesk />
-      <CapabilityShowcase />
       <QuietFooter />
     </SiteFrame>
   );
