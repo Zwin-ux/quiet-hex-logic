@@ -19,6 +19,9 @@ import { useManageableWorlds } from "@/hooks/useManageableWorlds";
 import { buildAuthRoute } from "@/lib/authRedirect";
 import { toast } from "sonner";
 
+const LAUNCH_ASSIST_URL =
+  "https://buy.stripe.com/9B65kE3E2cZz51rdAo6c003";
+
 export default function Host() {
   useDocumentTitle("Host");
 
@@ -264,6 +267,15 @@ export default function Host() {
               <p>Use a Stripe Payment Link, Eventbrite page, or your own club registration form.</p>
               <p>Paste that URL into the event form on web.</p>
               <p>Use access codes when you only want paid or invited players to enter.</p>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(LAUNCH_ASSIST_URL, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Book launch assist
+                </Button>
+              </div>
               {loading ? <p>Loading worlds...</p> : null}
             </div>
           </VenuePanel>
