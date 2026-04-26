@@ -334,7 +334,7 @@ export default function TournamentView() {
                 variant="outline"
                 onClick={() => window.open(tournament.registration_url as string, "_blank", "noopener,noreferrer")}
               >
-                Open signup
+                Open signup link
               </Button>
             ) : null}
             {canJoin ? (
@@ -453,7 +453,7 @@ export default function TournamentView() {
                       <Input
                         value={accessCode}
                         onChange={(event) => setAccessCode(event.target.value)}
-                        placeholder="Access code"
+                        placeholder="Paid or invite code"
                         className="border-black/10 bg-white"
                       />
                     </div>

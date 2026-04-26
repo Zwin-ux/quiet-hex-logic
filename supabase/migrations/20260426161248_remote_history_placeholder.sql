@@ -1,0 +1,4 @@
+-- Remote history placeholder.
+-- The surface-split variant migration was previously applied directly to the linked project
+-- under this timestamped history entry. Keep this no-op file so local migration history
+-- matches the remote project before subsequent pushes.

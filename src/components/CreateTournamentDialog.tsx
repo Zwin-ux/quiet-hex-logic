@@ -269,11 +269,11 @@ export function CreateTournamentDialog({
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Registration URL">
+                <Field label="Signup / payment link">
                   <Input
                     value={formData.registrationUrl}
                     onChange={(event) => setFormData({ ...formData, registrationUrl: event.target.value })}
-                    placeholder="Optional external signup link"
+                    placeholder="Stripe Payment Link, Eventbrite, or club form"
                     className="h-11 border-black/10 bg-white"
                   />
                 </Field>
@@ -300,7 +300,7 @@ export function CreateTournamentDialog({
                   <Input
                     value={formData.accessCode}
                     onChange={(event) => setFormData({ ...formData, accessCode: event.target.value })}
-                    placeholder="Share this with paid or invited players"
+                    placeholder="Share this only with paid or invited players"
                     className="h-11 border-black/10 bg-white"
                     required
                   />
@@ -387,7 +387,7 @@ export function CreateTournamentDialog({
             <div className="mb-5 border border-black/10 bg-white px-4 py-4">
               <p className="board-rail-label">Event note</p>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Pick the board. Attach the rules. Open the bracket.
+                Pick the board. Attach the rules. Add your own signup or payment link. Open the bracket.
               </p>
             </div>
 
