@@ -97,6 +97,31 @@ export function useAuth() {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: {},
+      });
+
+      if (error) {
+        return { data: null, error };
+      }
+
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch {
+        // The auth user may already be soft-deleted server-side. Clear local state anyway.
+      }
+
+      setSession(null);
+      setUser(null);
+
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: normalizeError(err) as any };
+    }
+  };
+
   const signInAnonymously = async () => {
     try {
       const { error } = await supabase.auth.signInAnonymously();
@@ -189,5 +214,6 @@ export function useAuth() {
     signInWithApple,
     resetPassword,
     updatePassword,
+    deleteAccount,
   };
 }

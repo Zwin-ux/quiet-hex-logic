@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
 import { BracketVisualization } from "@/components/BracketVisualization";
+import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { toast } from "sonner";
 
 interface Tournament {
@@ -49,6 +50,7 @@ export default function TournamentView() {
   const { tournamentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isWeb } = useSurfaceCapabilities();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [worldContext, setWorldContext] = useState<{ id: string; name: string } | null>(null);
@@ -329,7 +331,7 @@ export default function TournamentView() {
           </div>
 
           <div className="flex flex-wrap gap-3 xl:max-w-[280px] xl:justify-end">
-            {tournament.registration_url ? (
+            {tournament.registration_url && isWeb ? (
               <Button
                 variant="outline"
                 onClick={() => window.open(tournament.registration_url as string, "_blank", "noopener,noreferrer")}
@@ -457,6 +459,11 @@ export default function TournamentView() {
                         className="border-black/10 bg-white"
                       />
                     </div>
+                  ) : null}
+                  {tournament.registration_url && !isWeb ? (
+                    <p className="max-w-xl text-sm leading-7 text-muted-foreground">
+                      Signup stays on web. Join here after the host clears or shares your seat.
+                    </p>
                   ) : null}
                 </div>
               ) : (

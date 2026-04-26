@@ -254,11 +254,14 @@ const App = () => {
                         />
                         <Route
                           path="/premium"
-                          element={
+                          element={webOnly(
+                            "editWorldSettings",
                             <RouteErrorBoundary fallbackTitle="Premium failed to load">
                               <Premium />
-                            </RouteErrorBoundary>
-                          }
+                            </RouteErrorBoundary>,
+                            "Support tiers live on web.",
+                            "The mobile build is play-first. Billing and support tiers stay on the web surface.",
+                          )}
                         />
                         <Route path="/leaderboard" element={<Leaderboard />} />
                         <Route

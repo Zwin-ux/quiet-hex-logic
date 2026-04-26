@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Settings } from "lucide-react";
+import { Loader2, Settings, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { AuthConnectionsSection } from "@/components/AuthConnectionsSection";
 import { BaseWalletSectionLazy } from "@/components/Base";
 import WorldIDWidget from "@/components/WorldID";
@@ -9,6 +20,7 @@ import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { SupportFrame } from "@/components/support/SupportFrame";
 import { SupportPanel } from "@/components/support/SupportPanel";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
 import { RatingHistoryChart } from "@/components/RatingHistoryChart";
 import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
@@ -36,7 +48,7 @@ interface ProfileData {
 export default function Profile() {
   useDocumentTitle("Profile");
 
-  const { user } = useAuth();
+  const { user, deleteAccount } = useAuth();
   const { stats, loading: statsLoading } = useUserStats(user?.id);
   const { achievements, loading: achievementsLoading } = useAchievements(user?.id);
   const { history: ratingHistory, loading: ratingHistoryLoading } = useRatingHistory(user?.id, 30);
@@ -48,6 +60,8 @@ export default function Profile() {
   const [selectedSkin, setSelectedSkin] = useState("classic");
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const googleConnection = connections.find((connection) => connection.provider === "google");
 
@@ -98,6 +112,30 @@ export default function Profile() {
       console.error(error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+
+    try {
+      const { error } = await deleteAccount();
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Account deleted", {
+        description: "BOARD signed this device out.",
+      });
+      navigate("/", { replace: true });
+    } catch (error: any) {
+      toast.error("Failed to delete account", {
+        description: error?.message ?? "Please try again.",
+      });
+    } finally {
+      setDeletingAccount(false);
+      setDeleteConfirmValue("");
     }
   };
 
@@ -278,11 +316,75 @@ export default function Profile() {
         </div>
 
         <SupportPanel
+          tone="paper"
+          eyebrow="Account control"
+          title="Delete account"
+          description="Removes this BOARD profile and signs out this device."
+          motionIndex={6}
+        >
+          <div className="space-y-4">
+            <div className="support-note">
+              Cancel paid plans first. Hosted venue billing and active support tiers should be closed before deletion.
+            </div>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="border-red-500/30 text-red-700 hover:bg-red-50 hover:text-red-800">
+                  <Trash2 className="h-4 w-4" />
+                  Delete account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="border-black bg-[#fbfaf6]">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this BOARD account?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes the profile, linked sessions, and player-facing account data. Type DELETE to continue.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-2">
+                  <p className="board-rail-label text-black/55">Confirmation</p>
+                  <Input
+                    value={deleteConfirmValue}
+                    onChange={(event) => setDeleteConfirmValue(event.target.value)}
+                    placeholder="DELETE"
+                    className="h-11 border-black/10 bg-white"
+                  />
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteConfirmValue("")}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(event) => {
+                      event.preventDefault();
+                      void handleDeleteAccount();
+                    }}
+                    className="bg-[#0e0e0f] text-[#f6f4f0] hover:bg-[#202124]"
+                    disabled={deleteConfirmValue !== "DELETE" || deletingAccount}
+                  >
+                    {deletingAccount ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete account"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </SupportPanel>
+
+        <SupportPanel
           tone="light"
           eyebrow="Achievements"
           title={`${earnedAchievements.length}/${achievements.length} unlocked`}
           description="Marks earned."
-          motionIndex={6}
+          motionIndex={7}
           motionVariant="hero"
           titleBarEnd={
             <div className="flex flex-wrap gap-2">
