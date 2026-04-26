@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { BoardWordmark } from "@/components/board/BoardWordmark";
+import { BOARD_MONOGRAM_PATH, BoardWordmark } from "@/components/board/BoardWordmark";
 
 type BoardLogoProps = {
   className?: string;
@@ -9,10 +9,19 @@ type BoardLogoProps = {
   tone?: "dark" | "light";
 };
 
-function BoardMonogram({ className, tone }: { className?: string; tone: "dark" | "light" }) {
+function BoardMonogram({
+  className,
+  tone,
+  decorative = false,
+}: {
+  className?: string;
+  tone: "dark" | "light";
+  decorative?: boolean;
+}) {
   return (
     <span
-      aria-hidden="true"
+      aria-hidden={decorative || undefined}
+      aria-label={decorative ? undefined : "BOARD"}
       className={cn(
         "board-wordmark inline-flex",
         tone === "light" ? "board-wordmark--light text-white" : "text-[#0e0e0f]",
@@ -26,7 +35,7 @@ function BoardMonogram({ className, tone }: { className?: string; tone: "dark" |
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M0 0H54L82 18V58L66 74L82 90V138L54 156H0V0ZM24 24V60H46L58 52V32L46 24H24ZM24 84V132H45L58 124V96L45 84H24Z"
+          d={BOARD_MONOGRAM_PATH}
           fill="currentColor"
         />
       </svg>
@@ -42,16 +51,16 @@ export function BoardLogo({
   tone = "dark",
 }: BoardLogoProps) {
   return (
-    <div className={cn("flex items-center", className)}>
+    <span className={cn("board-logo", className)}>
       {showWordmark ? (
         <BoardWordmark
           size="compact"
           tone={tone}
-          className={wordmarkClassName}
+          className={cn("board-logo__wordmark", wordmarkClassName)}
         />
       ) : (
         <BoardMonogram tone={tone} className={iconClassName} />
       )}
-    </div>
+    </span>
   );
 }

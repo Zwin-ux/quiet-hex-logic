@@ -1503,10 +1503,26 @@
 
   .board-wordmark {
     display: inline-flex;
-    align-items: flex-start;
+    align-items: center;
     line-height: 0;
     color: currentColor;
     max-width: 100%;
+  }
+
+  .board-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(0.2rem, 0.16em, 0.42rem);
+    line-height: 0;
+    max-width: 100%;
+  }
+
+  .board-logo__mark {
+    flex: 0 0 auto;
+  }
+
+  .board-logo__wordmark {
+    flex: 0 1 auto;
   }
 
   .board-wordmark--hero {
@@ -1519,18 +1535,20 @@
 
   .board-wordmark__svg {
     display: block;
-    width: min(100%, 3.98em);
+    width: min(100%, 4.08em);
     height: auto;
-    aspect-ratio: 3.98 / 1;
+    aspect-ratio: 4.06 / 1;
     overflow: visible;
+    shape-rendering: geometricPrecision;
   }
 
   .board-wordmark__monogram {
     display: block;
-    width: min(100%, 0.53em);
+    width: min(100%, 0.58em);
     height: auto;
-    aspect-ratio: 0.53 / 1;
+    aspect-ratio: 0.58 / 1;
     overflow: visible;
+    shape-rendering: geometricPrecision;
   }
 
   .board-rail-label {
