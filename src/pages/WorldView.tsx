@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Copy, Loader2 } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
-import { OpenOnWebButton, WebHandoffNotice } from "@/components/surfaces/WebSurfaceGate";
+import { WebHandoffNotice } from "@/components/surfaces/WebSurfaceGate";
 import { CreateLobby } from "@/components/CreateLobby";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { LobbyCard } from "@/components/LobbyCard";
@@ -224,16 +224,12 @@ export default function WorldView() {
                 <>
                   {!hasLiveSurfaces || !user ? null : isAuthoringSurface ? (
                     <CreateLobby userId={user.id} worldId={world.id} />
-                  ) : (
-                    <OpenOnWebButton to={`/worlds/${world.id}`} label="Create room on web" />
-                  )}
+                  ) : null}
                   {isAuthoringSurface ? (
                     <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
                       Create event
                     </Button>
-                  ) : (
-                    <OpenOnWebButton to={`/worlds/${world.id}`} label="Create event on web" />
-                  )}
+                  ) : null}
                   <Button variant="outline" onClick={copyInviteLink}>
                     {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {inviteCopied ? "Invite link copied" : "Copy invite link"}
@@ -312,8 +308,8 @@ export default function WorldView() {
                   {!isAuthoringSurface && canManage ? (
                     <div className="mt-8">
                       <WebHandoffNotice
-                        title="Variants and venue setup stay on web."
-                        detail="Mobile and Discord can run the live room, but branding, room creation, and rules editing stay on the browser surface."
+                        title="Venue setup stays on web."
+                        detail="Mobile and Discord can run the live room, but room creation, branding, and rules editing stay on the browser surface."
                         to={`/worlds/${world.id}/variants`}
                       />
                     </div>

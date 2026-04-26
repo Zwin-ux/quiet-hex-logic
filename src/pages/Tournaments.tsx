@@ -9,7 +9,6 @@ import { StateTag } from "@/components/board/StateTag";
 import { VenuePanel } from "@/components/board/VenuePanel";
 import { Button } from "@/components/ui/button";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
-import { OpenOnWebButton } from "@/components/surfaces/WebSurfaceGate";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { listWorlds } from "@/lib/worlds";
@@ -281,7 +280,9 @@ export default function Tournaments() {
                   Create event
                 </Button>
               ) : user && !isGuest ? (
-                <OpenOnWebButton to="/events" label="Create on web" variant={primaryEvent ? "outline" : "hero"} />
+                <Button variant="outline" onClick={() => navigate("/play")}>
+                  Open play
+                </Button>
               ) : (
                 <Button variant="outline" onClick={() => navigate(buildAuthRoute("/events"))}>
                   Enter to host

@@ -5,7 +5,6 @@ import { SiteFrame } from "@/components/board/SiteFrame";
 import { StateTag } from "@/components/board/StateTag";
 import { CreateWorldDialog } from "@/components/CreateWorldDialog";
 import { Button } from "@/components/ui/button";
-import { OpenOnWebButton } from "@/components/surfaces/WebSurfaceGate";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -112,7 +111,9 @@ export default function Worlds() {
                   Create world
                 </Button>
               ) : user && !isGuest ? (
-                <OpenOnWebButton to="/worlds?create=true" label="Create on web" variant="hero" />
+                <Button variant="outline" onClick={() => navigate("/play")}>
+                  Open play
+                </Button>
               ) : (
                 <Button variant="outline" onClick={() => navigate(buildAuthRoute("/worlds?create=true"))}>
                   Sign in to host
@@ -174,8 +175,17 @@ export default function Worlds() {
         ) : orderedWorlds.length === 0 ? (
           <div className="mt-10 border border-[#0e0e0f] bg-[#fbfaf8] p-6">
             <p className="text-[18px] leading-8 text-[#525257]">
-              No worlds live yet. Create the first host space.
+              {isAuthoringSurface
+                ? "No worlds live yet. Create the first host space."
+                : "No worlds live yet. Open quickplay or check back when a room goes live."}
             </p>
+            {!isAuthoringSurface ? (
+              <div className="mt-4">
+                <Button variant="outline" onClick={() => navigate("/play")}>
+                  Open play
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="mt-10 grid gap-4">
