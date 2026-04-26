@@ -1703,6 +1703,46 @@
       font-size: clamp(3.25rem, 17vw, 5.4rem);
     }
 
+    .landing-stage__copy {
+      gap: 1.6rem;
+      padding: 1.3rem;
+    }
+
+    .landing-stage__object {
+      gap: 1.2rem;
+      padding: 1.2rem;
+    }
+
+    .landing-stage__arena-grid {
+      display: flex;
+      gap: 0.8rem;
+      overflow-x: auto;
+      align-items: stretch;
+      padding-bottom: 0.15rem;
+      scroll-snap-type: x proximity;
+    }
+
+    .landing-stage__arena-card {
+      flex: 0 0 min(78vw, 280px);
+      scroll-snap-align: start;
+    }
+
+    .landing-stage__arena-card--wide,
+    .landing-stage__arena-card--tall {
+      grid-column: auto;
+    }
+
+    .landing-stage__arena-card .landing-stage__monitor-pre {
+      min-height: 8.8rem;
+      font-size: 0.58rem;
+    }
+
+    .landing-stage__arena-card--wide .landing-stage__monitor-pre,
+    .landing-stage__arena-card--tall .landing-stage__monitor-pre {
+      min-height: 9.8rem;
+      font-size: 0.62rem;
+    }
+
     .landing-launch-row {
       min-height: auto;
       flex-direction: column;

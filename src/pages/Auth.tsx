@@ -377,9 +377,7 @@ export default function Auth() {
         />
       </div>
 
-      {!discordReady ? (
-        <SupportSoon className="mt-4" detail="Discord login lands here after the Google / World ID pass." />
-      ) : null}
+      {!discordReady ? <SupportSoon className="mt-4" detail="Discord later." /> : null}
 
       <div className="mt-6 border-t border-white/14 pt-6">
         <div className="mt-4 flex flex-wrap gap-3">
@@ -529,7 +527,7 @@ export default function Auth() {
       </p>
 
       <div className="support-inline-card mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">Play local now.</p>
+        <p className="max-w-[24rem] text-[14px] leading-7 text-white/72">Local is open.</p>
         <Button type="button" variant="supportOutline" onClick={() => navigate("/play")}>
           Local practice
         </Button>
@@ -537,7 +535,7 @@ export default function Auth() {
 
       {shouldShowReturnTarget ? (
         <div className="support-note mt-6">
-          <p className="support-mini-label text-white/58">Return target</p>
+          <p className="support-mini-label text-white/58">Return</p>
           <p className="mt-2 text-[15px] leading-7 text-white">{returnTo}</p>
         </div>
       ) : null}
@@ -636,15 +634,15 @@ export default function Auth() {
             <SupportPanel
               tone="dark"
               title="Google first."
-              description="Email works. Backups later."
+              description="Email also works."
               motionIndex={1}
               motionVariant="aside"
             />
 
             <SupportPanel
               tone="paper"
-              title="One record."
-              description="Play local without it."
+              title="One account."
+              description="Local works without sign-in."
               motionIndex={2}
               footer={
                 <Button type="button" variant="supportOutline" className="w-full justify-between" onClick={() => navigate("/play")}>
@@ -721,8 +719,8 @@ function getAuthDescription(
     return `Open the link sent to ${email}.`;
   }
   return authTab === "signup"
-    ? "Google or email. Add backups later."
-    : "Return to rooms and events.";
+    ? "Google or email."
+    : "Enter rooms. Join events.";
 }
 
 function ForgotPasswordForm({
