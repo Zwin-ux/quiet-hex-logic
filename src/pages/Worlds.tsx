@@ -40,6 +40,10 @@ function getWorldMeta(world: WorldSummary) {
   ].join(" / ");
 }
 
+function getWorldDecisionLine(world: WorldSummary) {
+  return `${world.instanceCount} live / ${world.eventCount} events`;
+}
+
 export default function Worlds() {
   useDocumentTitle("Worlds");
 
@@ -234,13 +238,19 @@ export default function Worlds() {
                           </div>
 
                           <div className="ops-directory-row__decision">
-                            <div className="ops-directory-row__decision-block">
-                              <p className="ops-directory-row__stat-label">Live</p>
-                              <p className="ops-directory-row__stat-value">{world.instanceCount}</p>
-                            </div>
-                            <div className="ops-directory-row__decision-block">
-                              <p className="ops-directory-row__stat-label">Events</p>
-                              <p className="ops-directory-row__stat-value">{world.eventCount}</p>
+                            <p className="ops-directory-row__decision-line">
+                              {getWorldDecisionLine(world)}
+                            </p>
+
+                            <div className="ops-directory-row__decision-grid">
+                              <div className="ops-directory-row__decision-block">
+                                <p className="ops-directory-row__stat-label">Live</p>
+                                <p className="ops-directory-row__stat-value">{world.instanceCount}</p>
+                              </div>
+                              <div className="ops-directory-row__decision-block">
+                                <p className="ops-directory-row__stat-label">Events</p>
+                                <p className="ops-directory-row__stat-value">{world.eventCount}</p>
+                              </div>
                             </div>
                           </div>
                         </button>

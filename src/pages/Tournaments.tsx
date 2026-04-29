@@ -74,6 +74,10 @@ function formatSeatLabel(tournament: Tournament) {
   return `${tournament.participant_count ?? 0}/${tournament.max_players}`;
 }
 
+function getEventDecisionLine(tournament: Tournament) {
+  return `${formatSeatLabel(tournament)} seats / ${formatStartLabel(tournament.start_time)}`;
+}
+
 function getEventMeta(tournament: Tournament, worldName?: string) {
   return [
     worldName ?? "Independent",
@@ -320,13 +324,21 @@ export default function Tournaments() {
                           </div>
 
                           <div className="ops-events-row__decision">
-                            <div className="ops-events-row__decision-block">
-                              <p className="ops-events-row__stat-label">Seats</p>
-                              <p className="ops-events-row__stat-value">{formatSeatLabel(tournament)}</p>
-                            </div>
-                            <div className="ops-events-row__decision-block">
-                              <p className="ops-events-row__stat-label">Start</p>
-                              <p className="ops-events-row__stat-value">{formatStartLabel(tournament.start_time)}</p>
+                            <p className="ops-events-row__decision-line">
+                              {getEventDecisionLine(tournament)}
+                            </p>
+
+                            <div className="ops-events-row__decision-grid">
+                              <div className="ops-events-row__decision-block">
+                                <p className="ops-events-row__stat-label">Seats</p>
+                                <p className="ops-events-row__stat-value">{formatSeatLabel(tournament)}</p>
+                              </div>
+                              <div className="ops-events-row__decision-block">
+                                <p className="ops-events-row__stat-label">Start</p>
+                                <p className="ops-events-row__stat-value">
+                                  {formatStartLabel(tournament.start_time)}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </button>

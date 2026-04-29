@@ -1,16 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Loader2 } from "lucide-react";
-import { AsciiGameCard } from "@/components/board/AsciiGameCard";
-import { CounterBlock } from "@/components/board/CounterBlock";
-import { SectionRail } from "@/components/board/SectionRail";
+import { Loader2 } from "lucide-react";
+import { BoardLogo } from "@/components/BoardLogo";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
 import { Button } from "@/components/ui/button";
 import { buildAuthRoute } from "@/lib/authRedirect";
 import { listGames } from "@/lib/engine/registry";
-import { getGameMeta } from "@/lib/gameMetadata";
+import { getGameMeta, SHOWCASE_GAME_KEYS } from "@/lib/gameMetadata";
 import { cn } from "@/lib/utils";
 
 interface WelcomeOnboardingProps {
@@ -31,9 +27,18 @@ export function WelcomeOnboarding({
   const navigate = useNavigate();
   const games = listGames();
   const [selectedGame, setSelectedGame] = useState<string>(games[0]?.key ?? "hex");
-  const [showBoardPicker, setShowBoardPicker] = useState(false);
+  const [showAllBoards, setShowAllBoards] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const selectedDefinition = games.find((game) => game.key === selectedGame) ?? games[0];
+
+  const displayedGames = useMemo(() => {
+    if (showAllBoards) return games;
+    return games.filter((game) =>
+      SHOWCASE_GAME_KEYS.includes(game.key as (typeof SHOWCASE_GAME_KEYS)[number]),
+    );
+  }, [games, showAllBoards]);
+
+  const selectedDefinition =
+    games.find((game) => game.key === selectedGame) ?? displayedGames[0] ?? games[0];
 
   const handleQuickStart = async () => {
     if (!selectedDefinition) return;
@@ -53,168 +58,81 @@ export function WelcomeOnboarding({
   };
 
   return (
-    <SiteFrame showNav={false} contentClassName="py-10 md:py-14">
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <SectionRail
-          eyebrow="Practice"
-          title="Sit down and play."
-          description="Pick a board. Start local."
-          status={<StateTag tone="success">local ready</StateTag>}
-          actions={
-            <Button variant="outline" onClick={handleSignIn}>
-              Sign in
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          }
-        />
-
-        <div className={cn("mt-10 grid gap-6", showBoardPicker && "xl:grid-cols-[1.05fr_0.95fr]")}>
-          <VenuePanel
-            eyebrow="Quick seat"
-            title={selectedDefinition ? `Start ${selectedDefinition.displayName} now` : "Start local practice"}
-            description="One click. Local board."
-            titleBarEnd={<StateTag tone="success">1 click</StateTag>}
-          >
-            <div className="space-y-5">
-              <AsciiGameCard gameKey={selectedGame} size="feature" />
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <CounterBlock label="account" value="optional" />
-                <CounterBlock label="pressure" value="starter" />
-                <CounterBlock
-                  label="size"
-                  value={
-                    selectedDefinition
-                      ? `${selectedDefinition.defaultBoardSize}x${selectedDefinition.defaultBoardSize}`
-                      : "ready"
-                  }
-                />
-              </div>
-
-              <Button
-                variant="hero"
-                size="lg"
-                className="h-auto w-full justify-between px-4 py-4 text-left"
-                onClick={handleQuickStart}
-                disabled={isStarting || isCreating}
-              >
-                <div>
-                  <p className="text-base font-semibold">
-                    {selectedDefinition
-                      ? `Start local ${selectedDefinition.displayName}`
-                      : "Start local practice"}
-                  </p>
-                  <p className="board-rail-label mt-1 text-[10px] text-[#d7d7dc]">
-                    local / starter
-                  </p>
-                </div>
-                {isStarting || isCreating ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <ArrowUpRight className="h-5 w-5" />
-                )}
-              </Button>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
-                <div className="retro-warning-strip text-sm">
-                  Sign in for rooms and events.
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowBoardPicker((current) => !current)}
-                >
-                  {showBoardPicker ? "Hide boards" : "Switch board"}
-                </Button>
-              </div>
-            </div>
-          </VenuePanel>
-
-          {showBoardPicker ? (
-            <VenuePanel
-              eyebrow="Systems"
-              title="Choose a board"
-              description="Pick the board."
-              titleBarEnd={<StateTag tone="normal">starter</StateTag>}
-            >
-              <div className="board-ledger">
-                {games.map((game, index) => {
-                  const meta = getGameMeta(game.key);
-                  const Icon = meta.icon;
-                  const isSelected = selectedGame === game.key;
-
-                  return (
-                    <button
-                      key={game.key}
-                      onClick={() => setSelectedGame(game.key)}
-                      className={`board-ledger-row w-full text-left transition-none md:grid-cols-[48px_minmax(0,1fr)_180px] ${
-                        isSelected ? "bg-black text-white" : "hover:bg-black/[0.025]"
-                      }`}
-                    >
-                      <div
-                        className={`board-rail-label pt-1 text-[10px] ${
-                          isSelected ? "text-white/55" : "text-black/45"
-                        }`}
-                      >
-                        {String(index + 1).padStart(2, "0")}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`retro-inset flex h-11 w-11 items-center justify-center ${
-                              isSelected ? "bg-[#d7d7dc]" : "bg-white"
-                            }`}
-                          >
-                            <Icon
-                              className={`h-5 w-5 ${
-                                isSelected ? "text-black" : meta.accentClass
-                              }`}
-                            />
-                          </div>
-                          <div>
-                            <h2
-                              className={`text-2xl font-bold tracking-[-0.05em] ${
-                                isSelected ? "text-white" : "text-foreground"
-                              }`}
-                            >
-                              {game.displayName}
-                            </h2>
-                            <p
-                              className={`mt-1 text-sm ${
-                                isSelected ? "text-white/70" : "text-muted-foreground"
-                              }`}
-                            >
-                              {meta.tagline}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        className={`flex items-center justify-between border-l pl-4 ${
-                          isSelected ? "border-white/25" : "border-black"
-                        }`}
-                      >
-                        <span
-                          className={`board-rail-label text-[10px] ${
-                            isSelected ? "text-white/55" : "text-black/45"
-                          }`}
-                        >
-                          {game.defaultBoardSize} seat
-                        </span>
-                        <ArrowUpRight
-                          className={`h-4 w-4 ${
-                            isSelected ? "text-white/55" : "text-black/45"
-                          }`}
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </VenuePanel>
-          ) : null}
+    <SiteFrame showNav={false} contentClassName="pb-12 pt-10 md:pb-16 md:pt-14">
+      <section className="system-onboarding-shell animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="system-onboarding-head">
+          <BoardLogo variant="wordmark" tone="dark" wordmarkClassName="text-[2rem] md:text-[2.4rem]" />
+          <div className="system-onboarding-copy">
+            <h1 className="system-onboarding-title">Pick a board</h1>
+            <p className="system-onboarding-subtitle">
+              Start local first. Sign in later for rooms and events.
+            </p>
+          </div>
         </div>
-      </div>
+
+        <div className="system-onboarding-list" role="listbox" aria-label="Board choices">
+          {displayedGames.map((game) => {
+            const meta = getGameMeta(game.key);
+            const Icon = meta.icon;
+            const selected = selectedGame === game.key;
+
+            return (
+              <button
+                key={game.key}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => setSelectedGame(game.key)}
+                className={cn(
+                  "system-onboarding-choice",
+                  selected && "is-selected",
+                )}
+              >
+                <div className="system-onboarding-choice__main">
+                  <div className="system-onboarding-choice__glyph">
+                    <Icon className={cn("h-4 w-4", selected ? "text-[#090909]" : meta.accentClass)} />
+                  </div>
+                  <div className="system-onboarding-choice__copy">
+                    <h2 className="system-onboarding-choice__title">{game.displayName}</h2>
+                    <p className="system-onboarding-choice__meta">
+                      {meta.tagline} / {game.defaultBoardSize}x{game.defaultBoardSize}
+                    </p>
+                  </div>
+                </div>
+                {selected ? <span className="system-onboarding-choice__state">Ready</span> : null}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="system-onboarding-actions">
+          <Button
+            variant="hero"
+            size="lg"
+            className="system-onboarding-start"
+            onClick={handleQuickStart}
+            disabled={isStarting || isCreating || !selectedDefinition}
+          >
+            <span>
+              {selectedDefinition ? `Start ${selectedDefinition.displayName}` : "Start local"}
+            </span>
+            {isStarting || isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+          </Button>
+
+          <div className="system-onboarding-links">
+            <button
+              type="button"
+              onClick={() => setShowAllBoards((current) => !current)}
+              className="system-onboarding-link"
+            >
+              {showAllBoards ? "Less boards" : "More boards"}
+            </button>
+            <button type="button" onClick={handleSignIn} className="system-onboarding-link">
+              Sign in
+            </button>
+          </div>
+        </div>
+      </section>
     </SiteFrame>
   );
 }
