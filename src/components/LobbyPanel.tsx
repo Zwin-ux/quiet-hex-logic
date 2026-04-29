@@ -1,36 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useLobby } from '@/hooks/useLobby';
-import { useWorkshopMods } from '@/hooks/useWorkshopMods';
-import { VerifiedBadge } from '@/components/VerifiedBadge';
-import { OpenOnWebButton, WebHandoffNotice } from '@/components/surfaces/WebSurfaceGate';
-import { useSurfaceCapabilities } from '@/lib/surfaces';
-import { groupVariantsForGame } from '@/lib/variants';
-import { Crown, Users, Copy, Check, LogOut, Play, Send, MessageSquare, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { useEffect, useMemo, useState } from "react";
+import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
+import { DecisionEntry, DecisionLane, UtilityPill, UtilityStrip } from "@/components/board/SystemSurface";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { OpenOnWebButton, WebHandoffNotice } from "@/components/surfaces/WebSurfaceGate";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLobby } from "@/hooks/useLobby";
+import { useWorkshopMods } from "@/hooks/useWorkshopMods";
+import { supabase } from "@/integrations/supabase/client";
+import { getGameMeta } from "@/lib/gameMetadata";
+import { useSurfaceCapabilities } from "@/lib/surfaces";
+import { groupVariantsForGame, supportsBoardSize, variantLabel } from "@/lib/variants";
+import { Check, Copy, Crown, LogOut, Play, X } from "lucide-react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 type LobbyPanelProps = {
   lobbyId: string;
   userId: string;
-};
-
-type ChatMessage = {
-  id: string;
-  user_id: string;
-  message: string;
-  created_at: string;
-  profiles?: {
-    username: string;
-    avatar_color?: string;
-  };
 };
 
 export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
@@ -39,201 +27,119 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const [updating, setUpdating] = useState(false);
   const [starting, setStarting] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { isAuthoringSurface } = useSurfaceCapabilities();
 
   const isHost = lobby?.host_id === userId;
-  const currentPlayer = players.find(p => p.player_id === userId);
-  const allReady = players.length === 2 && players.every(p => p.is_ready);
+  const currentPlayer = players.find((player) => player.player_id === userId);
+  const allReady = players.length === 2 && players.every((player) => player.is_ready);
   const canStart = isHost && allReady;
-  const gameKey = (lobby as any)?.game_key ?? 'hex';
+  const gameKey = (lobby as any)?.game_key ?? "hex";
   const currentModVersionId = (lobby as any)?.mod_version_id ?? null;
   const { mods: workshopMods, loading: workshopModsLoading } = useWorkshopMods({ gameKey });
   const variantGroups = groupVariantsForGame(workshopMods, gameKey, (lobby as any)?.world_id ?? undefined);
+  const currentVariant = useMemo(
+    () => workshopMods.find((mod) => mod.latest_version_id === currentModVersionId) ?? null,
+    [currentModVersionId, workshopMods],
+  );
 
-  // Auto-navigate both players when match starts (critical for guest navigation)
+  const gameMeta = getGameMeta(gameKey);
+  const gameLabel = gameKey === "connect4" ? "Connect 4" : gameKey === "ttt" ? "Tic-tac-toe" : gameKey.charAt(0).toUpperCase() + gameKey.slice(1);
+  const boardLabel = supportsBoardSize(gameKey)
+    ? `${lobby?.board_size ?? 11}x${lobby?.board_size ?? 11}`
+    : gameKey === "ttt"
+      ? "3x3"
+      : "standard";
+  const turnTimerLabel = lobby?.turn_timer_seconds ? `${lobby.turn_timer_seconds}s clock` : "untimed";
+
   useEffect(() => {
     if (!lobby || hasNavigated) return;
 
-    // Detect when lobby status changes to 'starting'
-    if (lobby.status === 'starting') {
-      setHasNavigated(true); // Prevent duplicate navigation
+    if (lobby.status === "starting") {
+      setHasNavigated(true);
 
-      // Quick poll with timeout to get matchId
       const fetchMatchAndNavigate = async () => {
         const maxAttempts = 5;
         const delayMs = 500;
 
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
           try {
-            const { data: match, error } = await supabase
-              .from('matches')
-              .select('id')
-              .eq('lobby_id', lobbyId)
+            const { data: match, error: matchError } = await supabase
+              .from("matches")
+              .select("id")
+              .eq("lobby_id", lobbyId)
               .maybeSingle();
 
             if (match?.id) {
-              toast.success('Match starting!');
+              toast.success("Match starting");
               navigate(`/match/${match.id}`);
               return;
             }
 
-            if (error) {
-              console.error('[LobbyPanel] Error fetching match:', error);
+            if (matchError) {
+              console.error("[LobbyPanel] Error fetching match:", matchError);
             }
 
-            // Wait before retry
             if (attempt < maxAttempts - 1) {
-              await new Promise(resolve => setTimeout(resolve, delayMs));
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
             }
-          } catch (err) {
-            console.error('[LobbyPanel] Exception fetching match:', err);
+          } catch (matchException) {
+            console.error("[LobbyPanel] Exception fetching match:", matchException);
           }
         }
 
-        // Failed to find match after retries
-        toast.error('Failed to join match', {
-          description: 'Please try refreshing the page'
+        toast.error("Failed to join match", {
+          description: "Refresh the room and try again.",
         });
         setHasNavigated(false);
       };
 
-      fetchMatchAndNavigate();
+      void fetchMatchAndNavigate();
     }
-  }, [lobby, lobbyId, navigate, hasNavigated]);
-
-  const fetchMessages = useCallback(async () => {
-    if (!lobbyId) return;
-
-    const { data, error } = await supabase
-      .from('lobby_chat_messages')
-      .select('*, profiles(username, avatar_color)')
-      .eq('lobby_id', lobbyId)
-      .order('created_at', { ascending: true })
-      .limit(50);
-
-    if (error) {
-      console.error('Error fetching chat messages:', error);
-    } else {
-      setChatMessages(data || []);
-    }
-  }, [lobbyId]);
-
-  // Fetch and subscribe to chat messages
-  useEffect(() => {
-    if (!lobbyId) return;
-
-    let chatChannel: RealtimeChannel;
-
-    void fetchMessages();
-
-    // Subscribe to new messages
-    chatChannel = supabase
-      .channel(`lobby-chat:${lobbyId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'lobby_chat_messages',
-          filter: `lobby_id=eq.${lobbyId}`
-        },
-        async (payload) => {
-          // Fetch the message with profile data
-          const { data } = await supabase
-            .from('lobby_chat_messages')
-            .select('*, profiles(username, avatar_color)')
-            .eq('id', payload.new.id)
-            .single();
-
-          if (data) {
-            setChatMessages(prev => [...prev, data]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(chatChannel);
-    };
-  }, [fetchMessages, lobbyId]);
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+  }, [hasNavigated, lobby, lobbyId, navigate]);
 
   const copyCode = async () => {
-    if (lobby?.code) {
-      await navigator.clipboard.writeText(lobby.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast.success('Code copied!');
-    }
+    if (!lobby?.code) return;
+    await navigator.clipboard.writeText(lobby.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("Code copied");
   };
 
   const toggleReady = async () => {
     try {
-      const { error } = await supabase.functions.invoke('toggle-lobby-ready', {
+      const { error: readyError } = await supabase.functions.invoke("toggle-lobby-ready", {
         body: {
           lobbyId,
-          isReady: !currentPlayer?.is_ready
-        }
+          isReady: !currentPlayer?.is_ready,
+        },
       });
 
-      if (error) throw error;
-    } catch (err: any) {
-      toast.error('Failed to update ready state', {
-        description: err.message
+      if (readyError) throw readyError;
+    } catch (readyException: any) {
+      toast.error("Failed to update ready state", {
+        description: readyException.message,
       });
     }
   };
 
-  const sendChatMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || sendingMessage) return;
-
-    setSendingMessage(true);
-    try {
-      const { error } = await supabase
-        .from('lobby_chat_messages')
-        .insert({
-          lobby_id: lobbyId,
-          user_id: userId,
-          message: newMessage.trim()
-        });
-
-      if (error) throw error;
-      setNewMessage('');
-    } catch (err: any) {
-      console.error('Error sending message:', err);
-      toast.error('Failed to send message');
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
-  const updateSettings = async (field: string, value: any) => {
+  const updateSettings = async (field: string, value: unknown) => {
     if (!isHost) return;
-    
+
     setUpdating(true);
     try {
-      const { error } = await supabase.functions.invoke('update-lobby-settings', {
+      const { error: settingsError } = await supabase.functions.invoke("update-lobby-settings", {
         body: {
           lobbyId,
-          [field]: value
-        }
+          [field]: value,
+        },
       });
 
-      if (error) throw error;
-      toast.success('Settings updated');
-    } catch (err: any) {
-      toast.error('Failed to update settings', {
-        description: err.message
+      if (settingsError) throw settingsError;
+      toast.success("Room updated");
+    } catch (settingsException: any) {
+      toast.error("Failed to update room", {
+        description: settingsException.message,
       });
     } finally {
       setUpdating(false);
@@ -243,24 +149,24 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
   const startMatch = async () => {
     setStarting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('start-lobby-match', {
-        body: { lobbyId }
+      const { data, error: startError } = await supabase.functions.invoke("start-lobby-match", {
+        body: { lobbyId },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (startError) throw startError;
+      if (data?.error) throw new Error(data.error);
 
-      // Host navigates immediately with matchId
-      if (data.matchId) {
-        toast.success('Match starting!');
+      if (data?.matchId) {
+        toast.success("Match starting");
         setHasNavigated(true);
         navigate(`/match/${data.matchId}`);
-      } else {
-        throw new Error('No matchId returned');
+        return;
       }
-    } catch (err: any) {
-      toast.error('Failed to start match', {
-        description: err.message
+
+      throw new Error("No matchId returned");
+    } catch (startException: any) {
+      toast.error("Failed to start match", {
+        description: startException.message,
       });
       setStarting(false);
     }
@@ -268,395 +174,306 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
 
   const leaveLobby = async () => {
     try {
-      const { error } = await supabase.functions.invoke('leave-lobby', {
-        body: { lobbyId }
+      const { error: leaveError } = await supabase.functions.invoke("leave-lobby", {
+        body: { lobbyId },
       });
 
-      if (error) throw error;
-      toast.success('Left lobby');
-      navigate('/lobby');
-    } catch (err: any) {
-      toast.error('Failed to leave lobby', {
-        description: err.message
+      if (leaveError) throw leaveError;
+      toast.success("Left room");
+      navigate("/play");
+    } catch (leaveException: any) {
+      toast.error("Failed to leave room", {
+        description: leaveException.message,
       });
     }
   };
 
   const closeLobby = async () => {
-    if (!confirm('Are you sure you want to close this lobby? All players will be removed.')) {
-      return;
-    }
+    if (!confirm("Close this room and remove both seats?")) return;
 
     try {
-      const { error } = await supabase.functions.invoke('close-lobby', {
-        body: { lobbyId }
+      const { error: closeError } = await supabase.functions.invoke("close-lobby", {
+        body: { lobbyId },
       });
 
-      if (error) throw error;
-      toast.success('Lobby closed');
-      navigate('/lobby');
-    } catch (err: any) {
-      toast.error('Failed to close lobby', {
-        description: err.message
+      if (closeError) throw closeError;
+      toast.success("Room closed");
+      navigate("/play");
+    } catch (closeException: any) {
+      toast.error("Failed to close room", {
+        description: closeException.message,
       });
     }
   };
 
   if (loading) {
-    return (
-      <Card className="p-12 text-center">
-        <p className="text-muted-foreground">Loading lobby...</p>
-      </Card>
-    );
+    return <p className="system-empty">Loading room state...</p>;
   }
 
   if (error || !lobby) {
     return (
-      <Card className="p-12 text-center">
-        <p className="text-destructive mb-4">{error || 'Lobby not found'}</p>
-        <Button onClick={() => navigate('/lobby')}>Back to Lobby</Button>
-      </Card>
+      <div className="grid gap-3">
+        <p className="system-empty text-destructive">{error || "Room not found."}</p>
+        <div>
+          <Button variant="hero" className="border-0" onClick={() => navigate("/play")}>
+            Back to play
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Code Display */}
-      <Card className="p-4 sm:p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex-1">
-            <p className="text-xs sm:text-sm text-muted-foreground mb-1">Lobby Code</p>
-            <p className="text-3xl sm:text-4xl font-mono font-bold tracking-wider text-primary break-all">
-              {lobby.code}
+    <div className="lobby-panel-system">
+      <DecisionEntry as="div" className="lobby-panel-system__summary">
+        <div className="flex items-start gap-3">
+          <div className="system-onboarding-choice__glyph h-11 w-11">
+            <BoardScene
+              game={gameKey as BoardSceneKey}
+              state={lobby.status === "starting" ? "loading" : "idle"}
+              decorative
+              className="h-5 w-5 text-[#090909]"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="ops-directory-row__title">{lobby.code}</h3>
+              <UtilityPill strong>{lobby.status === "starting" ? "starting" : currentPlayer?.is_ready ? "ready" : "waiting"}</UtilityPill>
+            </div>
+            <p className="ops-directory-row__meta">
+              {gameLabel}. {gameMeta.tagline}. Fill both seats, then commit to the match.
             </p>
           </div>
-          <Button onClick={copyCode} variant="outline" className="gap-2 w-full sm:w-auto h-11 touch-manipulation">
+
+          <Button type="button" variant="ghost" size="icon" className="border-0" onClick={copyCode}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Copied!' : 'Copy Code'}
           </Button>
         </div>
-      </Card>
 
-      <div className="grid gap-6">
-        {/* Players */}
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-base sm:text-lg">Players ({players.length}/2)</h3>
-          </div>
-          
-          <div className="space-y-3">
-            {players.map((player) => {
-              // Defensive null-safety for profiles
-              const username = player.profiles?.username || 'Unknown';
-              const avatarLetter = username[0]?.toUpperCase() || '?';
-              const avatarColor = player.profiles?.avatar_color || 'indigo';
-              const isVerifiedHuman = player.profiles?.is_verified_human || false;
-              
-              // Connection status based on last_seen
-              const lastSeen = new Date(player.last_seen);
-              const now = new Date();
-              const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
-              const isConnected = secondsSinceLastSeen < 30;
+        <UtilityStrip className="lobby-panel-system__meta">
+          <UtilityPill strong>{boardLabel}</UtilityPill>
+          <UtilityPill>{turnTimerLabel}</UtilityPill>
+          {gameKey === "hex" ? <UtilityPill>{lobby.pie_rule ? "swap allowed" : "no swap"}</UtilityPill> : null}
+          <UtilityPill>{variantLabel(currentVariant)}</UtilityPill>
+        </UtilityStrip>
+      </DecisionEntry>
 
-              return (
-                <div
-                  key={player.player_id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: `var(--${avatarColor}-500, rgb(99 102 241 / 0.1))` }}
-                      >
-                        <span className="font-bold" style={{ color: `var(--${avatarColor}-700, rgb(67 56 202))` }}>
-                          {avatarLetter}
-                        </span>
-                      </div>
-                      {/* Connection indicator */}
-                      <div
-                        className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
-                          isConnected ? 'bg-green-500' : 'bg-gray-400'
-                        }`}
-                        title={isConnected ? 'Connected' : 'Disconnected'}
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{username}</span>
-                        {isVerifiedHuman && <VerifiedBadge size="sm" />}
-                        {player.role === 'host' && (
-                          <Crown className="h-4 w-4 text-amber-500" />
-                        )}
-                      </div>
-                      {player.player_id === userId && (
-                        <span className="text-xs text-muted-foreground">You</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {player.is_ready ? (
-                    <Badge className="bg-green-500">Ready</Badge>
-                  ) : (
-                    <Badge variant="outline">Not Ready</Badge>
-                  )}
-                </div>
-              );
-            })}
-            
-            {players.length < 2 && (
-              <div className="p-4 border-2 border-dashed rounded-lg text-center">
-                <p className="text-sm text-muted-foreground">
-                  Waiting for player 2...
-                </p>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)]">
+        <div className="grid gap-4">
+          <div className="grid gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="system-section__label">Seats</p>
+                <h3 className="system-section__title">Ready the room</h3>
               </div>
-            )}
-          </div>
-        </Card>
+              <UtilityStrip>
+                <UtilityPill strong>{players.length}/2 seats</UtilityPill>
+                <UtilityPill>{allReady ? "locked" : "waiting"}</UtilityPill>
+              </UtilityStrip>
+            </div>
 
-        {/* Settings */}
-        <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold mb-4 text-base sm:text-lg">Game Settings</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Rules Variant (Workshop)
-              </label>
+            <DecisionLane>
+              {players.map((player) => {
+                const username = player.profiles?.username || "Unknown";
+                const avatarLetter = username[0]?.toUpperCase() || "?";
+                const isVerifiedHuman = player.profiles?.is_verified_human || false;
+                const lastSeen = new Date(player.last_seen);
+                const secondsSinceLastSeen = (Date.now() - lastSeen.getTime()) / 1000;
+                const isConnected = secondsSinceLastSeen < 30;
+
+                return (
+                  <DecisionEntry as="div" key={player.player_id}>
+                    <div className="flex items-center gap-3">
+                      <div className="lobby-panel-system__avatar">
+                        <span>{avatarLetter}</span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="ops-directory-row__title">{username}</p>
+                          {isVerifiedHuman ? <VerifiedBadge size="sm" /> : null}
+                          {player.role === "host" ? <Crown className="h-4 w-4 text-black" /> : null}
+                          {player.player_id === userId ? <UtilityPill>You</UtilityPill> : null}
+                        </div>
+                        <p className="ops-directory-row__meta">
+                          {isConnected ? "Connected now." : "Away from the room."}
+                        </p>
+                      </div>
+
+                      <UtilityStrip>
+                        <UtilityPill strong={player.is_ready}>
+                          {player.is_ready ? "ready" : "waiting"}
+                        </UtilityPill>
+                      </UtilityStrip>
+                    </div>
+                  </DecisionEntry>
+                );
+              })}
+
+              {players.length < 2 ? (
+                <DecisionEntry as="div">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="ops-directory-row__title">Seat open</h3>
+                      <UtilityPill>pending</UtilityPill>
+                    </div>
+                    <p className="ops-directory-row__meta">
+                      Share the room code and wait for the second player to enter.
+                    </p>
+                  </div>
+                </DecisionEntry>
+              ) : null}
+            </DecisionLane>
+          </div>
+
+          {!allReady && players.length === 2 ? (
+            <p className="system-inline-note">Both seats need to lock ready before the room can start.</p>
+          ) : null}
+        </div>
+
+        <DecisionEntry as="div" className="lobby-panel-system__rules">
+          <div className="grid gap-2">
+            <p className="system-section__label">Rules</p>
+            <h3 className="system-section__title">Room setup</h3>
+            <p className="system-inline-note">
+              Web owns the deeper rule editing flow. Mobile and Discord can still run the room.
+            </p>
+          </div>
+
+          <div className="lobby-panel-system__control-grid">
+            <div className="grid gap-2">
+              <label className="system-nav-context">Variant</label>
               <Select
-                value={typeof currentModVersionId === 'string' && currentModVersionId ? currentModVersionId : '__none__'}
-                onValueChange={(v) => updateSettings('modVersionId', v === '__none__' ? null : v)}
+                value={typeof currentModVersionId === "string" && currentModVersionId ? currentModVersionId : "__none__"}
+                onValueChange={(value) => updateSettings("modVersionId", value === "__none__" ? null : value)}
                 disabled={!isHost || !isAuthoringSurface || updating || workshopModsLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="lobby-panel-system__select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {variantGroups.official.map((m) => (
+                  <SelectItem value="__none__">Standard</SelectItem>
+                  {variantGroups.official.map((variant) => (
                     <SelectItem
-                      key={m.id}
-                      value={m.latest_version_id ?? `__missing__${m.id}`}
-                      disabled={!m.latest_version_id}
+                      key={variant.id}
+                      value={variant.latest_version_id ?? `__missing__${variant.id}`}
+                      disabled={!variant.latest_version_id}
                     >
-                      {`Official / ${m.name}`}
+                      {`Official / ${variant.name}`}
                     </SelectItem>
                   ))}
-                  {variantGroups.club.map((m) => (
+                  {variantGroups.club.map((variant) => (
                     <SelectItem
-                      key={m.id}
-                      value={m.latest_version_id ?? `__missing__${m.id}`}
-                      disabled={!m.latest_version_id}
+                      key={variant.id}
+                      value={variant.latest_version_id ?? `__missing__${variant.id}`}
+                      disabled={!variant.latest_version_id}
                     >
-                      {`Club / ${m.name}`}
+                      {`Club / ${variant.name}`}
                     </SelectItem>
                   ))}
-                  {variantGroups.workshop.map((m) => (
+                  {variantGroups.workshop.map((variant) => (
                     <SelectItem
-                      key={m.id}
-                      value={m.latest_version_id ?? `__missing__${m.id}`}
-                      disabled={!m.latest_version_id}
+                      key={variant.id}
+                      value={variant.latest_version_id ?? `__missing__${variant.id}`}
+                      disabled={!variant.latest_version_id}
                     >
-                      {`Workshop / ${m.name}`}
+                      {`Workshop / ${variant.name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-2">
-                Variants are enforced server-side via a rules snapshot and are always unranked.
-              </p>
-              {isHost && !isAuthoringSurface && (lobby as any)?.world_id ? (
-                <div className="mt-3">
-                  <OpenOnWebButton to={`/worlds/${(lobby as any).world_id}/variants`} label="Edit variants on web" />
-                </div>
-              ) : null}
             </div>
 
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Board Size
-              </label>
-              <Select
-                value={lobby.board_size.toString()}
-                onValueChange={(v) => updateSettings('boardSize', parseInt(v))}
-                disabled={!isHost || !isAuthoringSurface || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">7×7 - Quick</SelectItem>
-                  <SelectItem value="9">9×9 - Standard</SelectItem>
-                  <SelectItem value="11">11×11 - Classic</SelectItem>
-                  <SelectItem value="13">13×13 - Epic</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <p className="font-medium text-sm">Pie Rule</p>
-                <p className="text-xs text-muted-foreground">Swap allowed</p>
-              </div>
-              <Button
-                variant={lobby.pie_rule ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => updateSettings('pieRule', !lobby.pie_rule)}
-                disabled={!isHost || !isAuthoringSurface || updating || gameKey === 'chess' || gameKey === 'checkers' || gameKey === 'ttt'}
-              >
-                {lobby.pie_rule ? 'On' : 'Off'}
-              </Button>
+            <div className="grid gap-2">
+              <label className="system-nav-context">Board</label>
+              {supportsBoardSize(gameKey) ? (
+                <Select
+                  value={lobby.board_size.toString()}
+                  onValueChange={(value) => updateSettings("boardSize", parseInt(value, 10))}
+                  disabled={!isHost || !isAuthoringSurface || updating}
+                >
+                  <SelectTrigger className="lobby-panel-system__select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7x7 quick</SelectItem>
+                    <SelectItem value="9">9x9 standard</SelectItem>
+                    <SelectItem value="11">11x11 classic</SelectItem>
+                    <SelectItem value="13">13x13 long</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input className="lobby-panel-system__select" value={boardLabel} readOnly />
+              )}
             </div>
           </div>
 
-          {!isHost && (
-            <p className="text-xs text-muted-foreground mt-4">
-              Only the host can change settings
-            </p>
-          )}
+          <UtilityStrip className="lobby-panel-system__rule-pills">
+            <UtilityPill strong={!!currentVariant}>{variantLabel(currentVariant)}</UtilityPill>
+            <UtilityPill>{turnTimerLabel}</UtilityPill>
+            <UtilityPill>{supportsBoardSize(gameKey) ? boardLabel : "fixed board"}</UtilityPill>
+          </UtilityStrip>
+
+          {gameKey === "hex" ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="system-nav-context">Swap rule</p>
+                <p className="system-inline-note">Turn the opening into a fair commit.</p>
+              </div>
+              <Button
+                variant={lobby.pie_rule ? "hero" : "outline"}
+                className="border-0"
+                onClick={() => updateSettings("pieRule", !lobby.pie_rule)}
+                disabled={!isHost || !isAuthoringSurface || updating}
+              >
+                {lobby.pie_rule ? "Swap on" : "Swap off"}
+              </Button>
+            </div>
+          ) : null}
+
+          {!isHost ? <p className="system-inline-note">Only the host can change room rules.</p> : null}
           {isHost && !isAuthoringSurface && (lobby as any)?.world_id ? (
-            <div className="mt-4">
+            <div className="grid gap-3">
+              <OpenOnWebButton to={`/worlds/${(lobby as any).world_id}/variants`} label="Edit variants on web" />
               <WebHandoffNotice
                 title="Rules editing stays on web."
-                detail="Mobile and Discord can run the room, but lobby rules, board setup, and variant selection stay on the browser surface."
+                detail="Board setup, variant publishing, and deeper mod control stay on the browser surface."
                 to={`/worlds/${(lobby as any).world_id}/variants`}
               />
             </div>
           ) : null}
-        </Card>
-
-        {/* Chat Section */}
-        <Card className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <h3 className="font-body text-base sm:text-lg font-semibold">Lobby Chat</h3>
-          </div>
-
-          <div className="space-y-4">
-            {/* Messages */}
-            <ScrollArea className="h-[250px] sm:h-[300px] pr-4 border rounded-lg bg-muted/30">
-              <div className="p-3 sm:p-4 space-y-3">
-                {chatMessages.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No messages yet. Say hello! 👋
-                  </p>
-                ) : (
-                  chatMessages.map((msg) => {
-                    const isOwnMessage = msg.user_id === userId;
-                    const username = msg.profiles?.username || 'Unknown';
-                    const avatarColor = msg.profiles?.avatar_color || 'indigo';
-
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex gap-2 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm"
-                          style={{ backgroundColor: `hsl(var(--${avatarColor}))` }}
-                        >
-                          {username[0]?.toUpperCase()}
-                        </div>
-                        <div className={`flex-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-                          <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <span className="text-xs font-semibold">
-                              {isOwnMessage ? 'You' : username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(msg.created_at).toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
-                            </span>
-                          </div>
-                          <div
-                            className={`mt-1 inline-block px-3 py-2 rounded-lg text-sm ${
-                              isOwnMessage
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            }`}
-                          >
-                            {msg.message}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={chatEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Message Input */}
-            <form onSubmit={sendChatMessage} className="flex gap-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                maxLength={200}
-                disabled={sendingMessage}
-                className="flex-1"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!newMessage.trim() || sendingMessage}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-        </Card>
+        </DecisionEntry>
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="lobby-panel-system__actions">
         {isHost ? (
-          <Button
-            variant="destructive"
-            onClick={closeLobby}
-            className="gap-2 h-11 touch-manipulation order-3 sm:order-1"
-          >
+          <Button variant="ghost" className="border-0" onClick={closeLobby}>
             <X className="h-4 w-4" />
-            Close Lobby
+            Close room
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            onClick={leaveLobby}
-            className="gap-2 h-11 touch-manipulation order-3 sm:order-1"
-          >
+          <Button variant="ghost" className="border-0" onClick={leaveLobby}>
             <LogOut className="h-4 w-4" />
-            Leave Lobby
+            Leave room
           </Button>
         )}
 
         <Button
           onClick={toggleReady}
-          variant={currentPlayer?.is_ready ? 'outline' : 'default'}
-          className="flex-1 h-11 touch-manipulation order-1 sm:order-2"
+          variant={currentPlayer?.is_ready ? "outline" : "hero"}
+          className="border-0"
         >
-          {currentPlayer?.is_ready ? 'Not Ready' : 'Ready Up'}
+          {currentPlayer?.is_ready ? "Hold ready" : "Ready up"}
         </Button>
 
-        {isHost && (
-          <Button
-            onClick={startMatch}
-            disabled={!canStart || starting}
-            className="gap-2 flex-1 h-11 touch-manipulation order-2 sm:order-3"
-          >
+        {isHost ? (
+          <Button onClick={startMatch} disabled={!canStart || starting} variant="hero" className="border-0">
             <Play className="h-4 w-4" />
-            {starting ? 'Starting...' : 'Start Match'}
+            {starting ? "Starting..." : "Start match"}
           </Button>
-        )}
+        ) : null}
       </div>
-
-      {!allReady && players.length === 2 && (
-        <p className="text-center text-xs sm:text-sm text-muted-foreground">
-          Both players must be ready to start
-        </p>
-      )}
     </div>
   );
 }

@@ -14,11 +14,12 @@ import { SiteFrame } from "@/components/board/SiteFrame";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { EnhancedChat } from "@/components/EnhancedChat";
 import { Button } from "@/components/ui/button";
+import { buildAuthRoute } from "@/lib/authRedirect";
 
 export default function LobbyView() {
   const { lobbyId } = useParams<{ lobbyId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [worldContext, setWorldContext] = useState<{ id: string; name: string } | null>(null);
 
   usePresence(user?.id);
@@ -53,12 +54,54 @@ export default function LobbyView() {
     loadWorldContext();
   }, [lobbyId]);
 
-  if (!user || !lobbyId) {
+  if (!lobbyId) {
     return (
       <SiteFrame visualMode="mono">
         <div className="flex min-h-[420px] items-center justify-center text-muted-foreground">
           Loading room...
         </div>
+      </SiteFrame>
+    );
+  }
+
+  if (loading) {
+    return (
+      <SiteFrame visualMode="mono">
+        <div className="flex min-h-[420px] items-center justify-center text-muted-foreground">
+          Loading room...
+        </div>
+      </SiteFrame>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+        <SystemScreen
+          label="Room"
+          title="Sign in to enter"
+          description="Live rooms need an account so readiness, presence, and match routing stay attached to you."
+        >
+          <SystemSection label="Access" title="Room access is account-bound">
+            <div className="grid gap-4">
+              <p className="system-inline-note">
+                The room exists. Sign in, then BOARD will drop you back into this exact room.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="hero"
+                  className="border-0"
+                  onClick={() => navigate(buildAuthRoute(`/lobby/${lobbyId}`))}
+                >
+                  Sign in
+                </Button>
+                <Button variant="ghost" className="border-0" onClick={() => navigate("/play")}>
+                  Back to play
+                </Button>
+              </div>
+            </div>
+          </SystemSection>
+        </SystemScreen>
       </SiteFrame>
     );
   }
