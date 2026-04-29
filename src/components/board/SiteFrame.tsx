@@ -10,6 +10,7 @@ type SiteFrameProps = {
   navVariant?: "default" | "landing";
   contentMode?: "contained" | "full";
   shellVariant?: "default" | "landing";
+  visualMode?: "default" | "mono";
 };
 
 export function SiteFrame({
@@ -20,9 +21,14 @@ export function SiteFrame({
   navVariant = "default",
   contentMode = "contained",
   shellVariant = navVariant === "landing" ? "landing" : "default",
+  visualMode = "default",
 }: SiteFrameProps) {
   return (
-    <div className={cn("board-shell", className)} data-shell-variant={shellVariant}>
+    <div
+      className={cn("board-shell", className)}
+      data-shell-variant={shellVariant}
+      data-shell-visual={visualMode}
+    >
       <div className="pointer-events-none fixed inset-0">
         <div
           className={cn(
@@ -45,7 +51,7 @@ export function SiteFrame({
         <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/[0.02] to-transparent" />
       </div>
 
-      {showNav ? <NavBar variant={navVariant} /> : null}
+      {showNav ? <NavBar variant={navVariant} visualMode={visualMode} /> : null}
 
       <main
         className={cn(

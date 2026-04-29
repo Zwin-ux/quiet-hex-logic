@@ -40,9 +40,10 @@ const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
 
 type NavBarProps = {
   variant?: "default" | "landing";
+  visualMode?: "default" | "mono";
 };
 
-export function NavBar({ variant = "default" }: NavBarProps) {
+export function NavBar({ variant = "default", visualMode = "default" }: NavBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -61,13 +62,20 @@ export function NavBar({ variant = "default" }: NavBarProps) {
     const enterPath = user ? postAuthPath : buildAuthRoute(postAuthPath);
 
     return (
-      <header className="fixed inset-x-0 top-0 z-50 bg-[#f6f4f0]/84 px-4 pt-4 backdrop-blur-[16px] md:px-6">
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6",
+          visualMode === "mono"
+            ? "bg-[#f7f4ed] md:bg-[#f7f4ed]/98"
+            : "bg-[#f6f4f0]/84 backdrop-blur-[16px]",
+        )}
+      >
         <div className="mx-auto max-w-[1520px]">
           <div className="system-nav-shell system-nav-shell--landing">
             <div className="system-nav-row">
               <button
                 onClick={() => navigate("/")}
-                className="shrink-0 w-[132px] text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257] sm:w-[142px] md:w-auto"
+                className="shrink-0 w-[132px] text-[#0e0e0f] transition-colors duration-150 hover:text-[#2d2d30] sm:w-[142px] md:w-auto"
                 aria-label="Go to home"
               >
                 <>
@@ -92,7 +100,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                     onClick={() => navigate(link.path)}
                     className={cn(
                       "board-public-label transition-colors duration-150 hover:text-[#0e0e0f]",
-                      isActive(link.path) ? "text-[#0e0e0f]" : "text-[#5d5d5d]",
+                      isActive(link.path) ? "text-[#0e0e0f]" : "text-black/58",
                     )}
                   >
                     {link.label}
@@ -116,7 +124,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                   onClick={() => navigate(link.path)}
                   className={cn(
                     "board-public-label whitespace-nowrap transition-colors duration-150 hover:text-[#0e0e0f]",
-                    isActive(link.path) ? "text-[#0e0e0f]" : "text-[#5d5d5d]",
+                    isActive(link.path) ? "text-[#0e0e0f]" : "text-black/58",
                   )}
                 >
                   {link.label}
@@ -130,13 +138,20 @@ export function NavBar({ variant = "default" }: NavBarProps) {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 bg-[#f6f4f0]/84 px-4 pt-4 backdrop-blur-[16px] md:px-6">
+    <header
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6",
+        visualMode === "mono"
+          ? "bg-[#f7f4ed] md:bg-[#f7f4ed]/98"
+          : "bg-[#f6f4f0]/84 backdrop-blur-[16px]",
+      )}
+    >
       <div className="board-page-width mx-auto">
         <div className="system-nav-shell">
           <div className="system-nav-row">
           <button
             onClick={() => navigate("/")}
-            className="min-w-0 shrink whitespace-nowrap text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257]"
+            className="min-w-0 shrink whitespace-nowrap text-[#0e0e0f] transition-colors duration-150 hover:text-[#2d2d30]"
             aria-label="Go to home"
           >
             <>
@@ -160,7 +175,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                 key={link.path}
                 onClick={() => navigate(link.path)}
                 className={cn(
-                  "board-rail-label text-[11px] tracking-[0.14em] text-[#525257] transition-colors duration-150 hover:text-[#0e0e0f]",
+                  "board-rail-label text-[11px] tracking-[0.14em] text-black/58 transition-colors duration-150 hover:text-[#0e0e0f]",
                   isActive(link.path) && "text-[#0e0e0f]",
                 )}
               >
@@ -175,11 +190,19 @@ export function NavBar({ variant = "default" }: NavBarProps) {
             ) : null}
             {user ? (
               <>
-                <UtilityButton onClick={() => navigate("/profile")} label="Profile">
+                <UtilityButton
+                  onClick={() => navigate("/profile")}
+                  label="Profile"
+                  visualMode={visualMode}
+                >
                   <User className="h-4 w-4" />
                 </UtilityButton>
                 {can("useWorkbench") ? (
-                  <UtilityButton onClick={() => navigate("/workbench")} label="Workbench">
+                  <UtilityButton
+                    onClick={() => navigate("/workbench")}
+                    label="Workbench"
+                    visualMode={visualMode}
+                  >
                     <Wrench className="h-4 w-4" />
                   </UtilityButton>
                 ) : null}
@@ -189,6 +212,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                     navigate(buildAuthRoute(postAuthPath));
                   }}
                   label="Sign out"
+                  visualMode={visualMode}
                 >
                   <LogOut className="h-4 w-4" />
                 </UtilityButton>
@@ -210,7 +234,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
               key={link.path}
               onClick={() => navigate(link.path)}
               className={cn(
-                "board-rail-label whitespace-nowrap text-[11px] tracking-[0.14em] text-[#525257]",
+                "board-rail-label whitespace-nowrap text-[11px] tracking-[0.14em] text-black/58",
                 isActive(link.path) && "text-[#0e0e0f]",
               )}
             >
@@ -228,16 +252,18 @@ function UtilityButton({
   children,
   label,
   onClick,
+  visualMode = "default",
 }: {
   children: ReactNode;
   label: string;
   onClick: () => void;
+  visualMode?: "default" | "mono";
 }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
-      className="system-nav-utility"
+      className={cn("system-nav-utility", visualMode === "mono" && "system-nav-utility--mono")}
     >
       {children}
     </button>

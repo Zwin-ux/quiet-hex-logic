@@ -48,14 +48,14 @@ const statusOrder: Record<string, number> = {
 
 function getEventTone(tournament: Tournament) {
   if (tournament.status === "active" || tournament.status === "seeding") {
-    return { label: "Live", tone: "is-live" as const };
+    return { label: "Live", tone: "is-solid" as const };
   }
 
   if (tournament.status === "registration") {
-    return { label: "Open", tone: "is-warning" as const };
+    return { label: "Open", tone: "is-solid" as const };
   }
 
-  return { label: "Archive", tone: "is-neutral" as const };
+  return { label: "Archive", tone: "is-plain" as const };
 }
 
 function formatStartLabel(value: string | null) {
@@ -209,7 +209,7 @@ export default function Tournaments() {
 
   if (loading) {
     return (
-      <SiteFrame>
+      <SiteFrame visualMode="mono">
         <div className="flex min-h-[420px] items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -218,7 +218,7 @@ export default function Tournaments() {
   }
 
   return (
-    <SiteFrame contentClassName="pb-16 pt-32 md:pt-28">
+    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
       <div className="ops-events-shell">
         <section className="ops-events-head">
           <div className="ops-events-head__copy">

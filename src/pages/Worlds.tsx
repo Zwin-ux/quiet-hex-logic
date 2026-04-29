@@ -1,4 +1,4 @@
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Plus } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
@@ -22,14 +22,14 @@ const WORLD_FILTERS: Array<{ key: WorldFilter; label: string }> = [
 
 function getWorldActivity(world: WorldSummary) {
   if (world.instanceCount > 0) {
-    return { label: "Live", tone: "is-live" as const };
+    return { label: "Live", tone: "is-solid" as const };
   }
 
   if (world.eventCount > 0) {
-    return { label: "Queued", tone: "is-warning" as const };
+    return { label: "Queued", tone: "is-plain" as const };
   }
 
-  return { label: "Quiet", tone: "is-neutral" as const };
+  return { label: "Quiet", tone: "is-plain" as const };
 }
 
 function getWorldMeta(world: WorldSummary) {
@@ -126,7 +126,7 @@ export default function Worlds() {
     filter === "joined" ? "joined" : filter === "public" ? "public" : "available";
 
   return (
-    <SiteFrame contentClassName="pb-16 pt-32 md:pt-28">
+    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
       <div className="ops-directory-shell">
         <section className="ops-directory-head">
           <div className="ops-directory-head__copy">
@@ -213,15 +213,11 @@ export default function Worlds() {
                   {filteredWorlds.map((world) => {
                     const selected = world.id === selectedWorldId;
                     const activity = getWorldActivity(world);
-                    const rowStyle = {
-                      "--ops-accent": world.accentColor || "#1c64f2",
-                    } as CSSProperties;
 
                     return (
                       <div
                         key={world.id}
                         className={selected ? "ops-directory-entry is-selected" : "ops-directory-entry"}
-                        style={rowStyle}
                       >
                         <button
                           type="button"

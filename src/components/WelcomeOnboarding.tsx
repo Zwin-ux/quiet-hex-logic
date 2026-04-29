@@ -58,7 +58,11 @@ export function WelcomeOnboarding({
   };
 
   return (
-    <SiteFrame showNav={false} contentClassName="pb-12 pt-10 md:pb-16 md:pt-14">
+    <SiteFrame
+      showNav={false}
+      visualMode="mono"
+      contentClassName="pb-12 pt-10 md:pb-16 md:pt-14"
+    >
       <section className="system-onboarding-shell animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="system-onboarding-head">
           <BoardLogo variant="wordmark" tone="dark" wordmarkClassName="text-[2rem] md:text-[2.4rem]" />
@@ -90,7 +94,7 @@ export function WelcomeOnboarding({
               >
                 <div className="system-onboarding-choice__main">
                   <div className="system-onboarding-choice__glyph">
-                    <Icon className={cn("h-4 w-4", selected ? "text-[#090909]" : meta.accentClass)} />
+                    <Icon className="h-4 w-4 text-[#090909]" />
                   </div>
                   <div className="system-onboarding-choice__copy">
                     <h2 className="system-onboarding-choice__title">{game.displayName}</h2>
