@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Calendar, Loader2, Plus, Radio, ShieldCheck, Users } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { listWorlds } from "@/lib/worlds";
-import { buildAuthRoute } from "@/lib/authRedirect";
 import { FIRST_TOURNAMENT } from "@/lib/launchAnnouncements";
 import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,15 +58,6 @@ function getEventTone(tournament: Tournament) {
   return { label: "Archive", tone: "is-neutral" as const };
 }
 
-function getEventCopy(tournament: Tournament) {
-  return (
-    tournament.description ||
-    (tournament.status === "completed"
-      ? "Results posted. Replay and standings ready."
-      : "Seats open. Bracket and room state stay attached.")
-  );
-}
-
 function formatStartLabel(value: string | null) {
   if (!value) return "TBD";
 
@@ -82,6 +72,14 @@ function formatStartLabel(value: string | null) {
 
 function formatSeatLabel(tournament: Tournament) {
   return `${tournament.participant_count ?? 0}/${tournament.max_players}`;
+}
+
+function getEventMeta(tournament: Tournament, worldName?: string) {
+  return [
+    worldName ?? "Independent",
+    tournament.competitive_mode ? "Competitive" : "Casual",
+    `Board ${tournament.board_size}`,
+  ].join(" / ");
 }
 
 export default function Tournaments() {
@@ -118,27 +116,6 @@ export default function Tournaments() {
     });
   }, [filter, sortedTournaments]);
 
-  const openTournaments = useMemo(
-    () => tournaments.filter((tournament) => tournament.status === "registration"),
-    [tournaments],
-  );
-  const activeTournaments = useMemo(
-    () => tournaments.filter((tournament) => tournament.status === "active" || tournament.status === "seeding"),
-    [tournaments],
-  );
-  const completedTournaments = useMemo(
-    () => tournaments.filter((tournament) => tournament.status === "completed"),
-    [tournaments],
-  );
-  const worldHostedCount = useMemo(
-    () => tournaments.filter((tournament) => Boolean(tournament.world_id)).length,
-    [tournaments],
-  );
-  const seatCount = useMemo(
-    () => tournaments.reduce((sum, tournament) => sum + tournament.max_players, 0),
-    [tournaments],
-  );
-
   useEffect(() => {
     if (!filteredTournaments.length) {
       setSelectedTournamentId(null);
@@ -152,17 +129,10 @@ export default function Tournaments() {
     );
   }, [filteredTournaments]);
 
-  const selectedTournament =
-    filteredTournaments.find((tournament) => tournament.id === selectedTournamentId) ??
-    filteredTournaments[0] ??
-    null;
-  const selectedWorldName =
-    selectedTournament?.world_id ? worldNames[selectedTournament.world_id] : undefined;
-
-  const heroTitle = "Events";
+  const heroTitle = "Pick a bracket";
   const heroDescription = isAuthoringSurface
-    ? "Queue brackets, watch live rooms, and open the one that matters."
-    : "See which brackets are open, then jump in when a room goes live.";
+    ? "Choose one queue. Run it when the room is ready."
+    : "Choose one queue. Open it when you are ready.";
 
   const loadTournaments = useCallback(async () => {
     try {
@@ -246,63 +216,6 @@ export default function Tournaments() {
             <p className="ops-events-label">Events</p>
             <h1 className="ops-events-title mt-4">{heroTitle}</h1>
             <p className="ops-events-copy mt-4">{heroDescription}</p>
-
-            <div className="ops-events-actions">
-              {user && !isGuest && isAuthoringSurface ? (
-                <Button
-                  variant="hero"
-                  onClick={() => setShowCreateDialog(true)}
-                  className="ops-events-action ops-events-action--primary"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create event
-                </Button>
-              ) : user || isGuest ? (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/play")}
-                  className="ops-events-action"
-                >
-                  Open play
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(buildAuthRoute(isAuthoringSurface ? "/events" : "/play"))}
-                  className="ops-events-action"
-                >
-                  {isAuthoringSurface ? "Enter to host" : "Enter to play"}
-                </Button>
-              )}
-
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/worlds")}
-                className="ops-events-action ops-events-action--ghost"
-              >
-                Open worlds
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="ops-events-summary" aria-label="Event summary">
-            <div className="ops-events-summary__item">
-              <p className="ops-events-summary__label">Open</p>
-              <p className="ops-events-summary__value">{openTournaments.length}</p>
-            </div>
-            <div className="ops-events-summary__item">
-              <p className="ops-events-summary__label">Live</p>
-              <p className="ops-events-summary__value">{activeTournaments.length}</p>
-            </div>
-            <div className="ops-events-summary__item">
-              <p className="ops-events-summary__label">Seats</p>
-              <p className="ops-events-summary__value">{seatCount}</p>
-            </div>
-            <div className="ops-events-summary__item">
-              <p className="ops-events-summary__label">Worlds</p>
-              <p className="ops-events-summary__value">{worldHostedCount}</p>
-            </div>
           </div>
         </section>
 
@@ -316,11 +229,11 @@ export default function Tournaments() {
         {sortedTournaments.length === 0 ? (
           <div className="ops-events-empty">
             <p className="ops-events-section-title">
-              {isAuthoringSurface ? "No events yet." : "Nothing queued yet."}
+              {isAuthoringSurface ? "No brackets queued." : "Nothing queued."}
             </p>
             <p className="ops-events-copy mt-3">
               {isAuthoringSurface
-                ? "Create the first bracket, attach it to a room, and bring the queue online."
+                ? "Create the first bracket and bring the room online."
                 : FIRST_TOURNAMENT.detail}
             </p>
             <div className="ops-events-actions">
@@ -346,7 +259,7 @@ export default function Tournaments() {
           </div>
         ) : (
           <div className="ops-events-grid">
-            <section className="ops-events-surface">
+            <section className="ops-events-surface ops-events-surface--list">
               <div className="ops-events-section-head">
                 <div>
                   <p className="ops-events-label">Queue</p>
@@ -373,7 +286,7 @@ export default function Tournaments() {
 
               {filteredTournaments.length === 0 ? (
                 <div className="ops-events-empty ops-events-empty--inline">
-                  <p className="ops-events-copy">No brackets match this filter.</p>
+                  <p className="ops-events-copy">Nothing matches this filter.</p>
                 </div>
               ) : (
                 <div className="ops-events-list mt-6">
@@ -383,146 +296,76 @@ export default function Tournaments() {
                     const tone = getEventTone(tournament);
 
                     return (
-                      <button
+                      <div
                         key={tournament.id}
-                        type="button"
-                        onClick={() => setSelectedTournamentId(tournament.id)}
-                        className={selected ? "ops-events-row is-selected" : "ops-events-row"}
+                        className={selected ? "ops-events-entry is-selected" : "ops-events-entry"}
                       >
-                        <div className="ops-events-row__main">
-                          <div className="ops-events-row__titleline">
-                            <span className="ops-events-dot" aria-hidden="true" />
-                            <h3 className="ops-events-row__title">{tournament.name}</h3>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTournamentId(tournament.id)}
+                          className={selected ? "ops-events-row is-selected" : "ops-events-row"}
+                        >
+                          <div className="ops-events-row__main">
+                            <div className="ops-events-row__titleline">
+                              <span className={`ops-events-chip ${tone.tone}`}>{tone.label}</span>
+                              <h3 className="ops-events-row__title">{tournament.name}</h3>
+                            </div>
+
+                            <p className="ops-events-row__meta">{getEventMeta(tournament, worldName)}</p>
                           </div>
 
-                          <p className="ops-events-row__copy">{getEventCopy(tournament)}</p>
+                          <div className="ops-events-row__decision">
+                            <div className="ops-events-row__decision-block">
+                              <p className="ops-events-row__stat-label">Seats</p>
+                              <p className="ops-events-row__stat-value">{formatSeatLabel(tournament)}</p>
+                            </div>
+                            <div className="ops-events-row__decision-block">
+                              <p className="ops-events-row__stat-label">Start</p>
+                              <p className="ops-events-row__stat-value">{formatStartLabel(tournament.start_time)}</p>
+                            </div>
+                          </div>
+                        </button>
 
-                          <div className="ops-events-chip-row">
-                            <span className={`ops-events-chip ${tone.tone}`}>{tone.label}</span>
-                            <span className="ops-events-chip">
-                              {tournament.competitive_mode ? "Competitive" : "Casual"}
-                            </span>
-                            {worldName ? <span className="ops-events-chip is-dark">{worldName}</span> : null}
-                          </div>
-                        </div>
+                        {selected ? (
+                          <div className="ops-events-focus">
+                            <div className="ops-events-focus__facts">
+                              <div className="ops-events-focus__fact">
+                                <span>Format</span>
+                                <strong>
+                                  {tournament.format === "single_elimination" ? "Single" : "Round robin"}
+                                </strong>
+                              </div>
+                              <div className="ops-events-focus__fact">
+                                <span>{worldName ? "World" : "Mode"}</span>
+                                <strong>{worldName ?? "Standalone"}</strong>
+                              </div>
+                            </div>
 
-                        <div className="ops-events-row__stats">
-                          <div className="ops-events-row__stat">
-                            <p className="ops-events-row__stat-label">Seats</p>
-                            <p className="ops-events-row__stat-value">{formatSeatLabel(tournament)}</p>
+                            <div className="ops-events-focus__actions">
+                              <Button
+                                variant="hero"
+                                onClick={() => navigate(`/tournament/${tournament.id}`)}
+                                className="ops-events-action ops-events-action--primary"
+                              >
+                                Open event
+                              </Button>
+
+                              <button
+                                type="button"
+                                onClick={() => navigate(worldName ? "/worlds" : "/play")}
+                                className="ops-events-inline-link"
+                              >
+                                {worldName ? "Open world" : "Local practice"}
+                              </button>
+                            </div>
                           </div>
-                          <div className="ops-events-row__stat">
-                            <p className="ops-events-row__stat-label">Board</p>
-                            <p className="ops-events-row__stat-value">{tournament.board_size}</p>
-                          </div>
-                          <div className="ops-events-row__stat">
-                            <p className="ops-events-row__stat-label">Start</p>
-                            <p className="ops-events-row__stat-value">{formatStartLabel(tournament.start_time)}</p>
-                          </div>
-                        </div>
-                      </button>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
               )}
             </section>
-
-            {selectedTournament ? (
-              <aside className="ops-events-surface ops-events-surface--detail">
-                <div className="ops-events-detail-topline">
-                  <span className={`ops-events-chip ${getEventTone(selectedTournament).tone}`}>
-                    {getEventTone(selectedTournament).label}
-                  </span>
-                  <span className="ops-events-chip">
-                    {selectedTournament.competitive_mode ? "Competitive" : "Casual"}
-                  </span>
-                  {selectedWorldName ? (
-                    <span className="ops-events-chip is-dark">{selectedWorldName}</span>
-                  ) : null}
-                </div>
-
-                <h2 className="ops-events-detail-title mt-5">{selectedTournament.name}</h2>
-                <p className="ops-events-detail-copy mt-3">{getEventCopy(selectedTournament)}</p>
-
-                <div className="ops-events-detail-hero">
-                  <p className="ops-events-detail-hero__label">Seats</p>
-                  <p className="ops-events-detail-hero__value">{formatSeatLabel(selectedTournament)}</p>
-                  <p className="ops-events-detail-hero__foot">
-                    {selectedWorldName
-                      ? `${selectedWorldName}. Room and bracket stay attached.`
-                      : "Standalone bracket. Open and join directly."}
-                  </p>
-                </div>
-
-                <div className="ops-events-detail-grid">
-                  <div className="ops-events-detail-stat">
-                    <Users className="h-4 w-4" />
-                    <div>
-                      <p className="ops-events-detail-stat__label">Players</p>
-                      <p className="ops-events-detail-stat__value">
-                        {selectedTournament.participant_count ?? 0}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="ops-events-detail-stat">
-                    <Radio className="h-4 w-4" />
-                    <div>
-                      <p className="ops-events-detail-stat__label">Format</p>
-                      <p className="ops-events-detail-stat__value">
-                        {selectedTournament.format === "single_elimination" ? "Single" : "Round robin"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="ops-events-detail-stat">
-                    <Calendar className="h-4 w-4" />
-                    <div>
-                      <p className="ops-events-detail-stat__label">Start</p>
-                      <p className="ops-events-detail-stat__value">
-                        {formatStartLabel(selectedTournament.start_time)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="ops-events-detail-stat">
-                    <ShieldCheck className="h-4 w-4" />
-                    <div>
-                      <p className="ops-events-detail-stat__label">Board</p>
-                      <p className="ops-events-detail-stat__value">{selectedTournament.board_size}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ops-events-actions ops-events-actions--stack mt-6">
-                  <Button
-                    variant="hero"
-                    onClick={() => navigate(`/tournament/${selectedTournament.id}`)}
-                    className="ops-events-action ops-events-action--primary"
-                  >
-                    Open event
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/worlds")}
-                    className="ops-events-action ops-events-action--ghost"
-                  >
-                    Open worlds
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/play")}
-                    className="ops-events-action ops-events-action--ghost"
-                  >
-                    Local practice
-                  </Button>
-                </div>
-
-                {completedTournaments.length > 0 ? (
-                  <div className="ops-events-detail-foot mt-6">
-                    <p className="ops-events-detail-foot__label">Archive</p>
-                    <p className="ops-events-detail-foot__value">{completedTournaments.length} complete</p>
-                  </div>
-                ) : null}
-              </aside>
-            ) : null}
           </div>
         )}
 
