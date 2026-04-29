@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FintechDesignLab } from '@/components/board/FintechDesignLab';
 import { NavBar } from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,8 @@ function tryParseJwtRef(jwt: string): string | null {
 }
 
 export default function Debug() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const buildId = typeof __HEXLOGY_BUILD_ID__ === 'string' ? __HEXLOGY_BUILD_ID__ : '';
   const apiBase = envString(getPublicEnv('VITE_API_BASE_URL')).trim();
   const url = envString(getPublicEnv('VITE_SUPABASE_URL')).trim();
@@ -41,7 +45,35 @@ export default function Debug() {
   const [authHealth, setAuthHealth] = useState<{ ok: boolean; status?: number; error?: string } | null>(null);
   const [restHealth, setRestHealth] = useState<{ ok: boolean; status?: number; error?: string } | null>(null);
   const [sessionInfo, setSessionInfo] = useState<{ hasSession: boolean; userId?: string } | null>(null);
+  const modeFromSearch = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('mode') === 'lab' ? 'lab' : 'system';
+  }, [location.search]);
+  const [mode, setMode] = useState<'system' | 'lab'>(modeFromSearch);
   const knownBadRef = 'ptuxqfwicdpdslqwnswd';
+
+  useEffect(() => {
+    setMode(modeFromSearch);
+  }, [modeFromSearch]);
+
+  const setModeRoute = (nextMode: 'system' | 'lab') => {
+    const params = new URLSearchParams(location.search);
+
+    if (nextMode === 'lab') {
+      params.set('mode', 'lab');
+    } else {
+      params.delete('mode');
+    }
+
+    setMode(nextMode);
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : '',
+      },
+      { replace: true },
+    );
+  };
 
   const runChecks = async () => {
     setAuthHealth(null);
@@ -77,75 +109,135 @@ export default function Debug() {
 
   return (
     <div className="min-h-screen bg-background">
-      <NavBar />
-      <div className="container mx-auto px-4 pt-20 pb-12 max-w-4xl space-y-6">
-        <div>
-          <h1 className="text-4xl font-display font-bold">Debug</h1>
-          <p className="text-muted-foreground mt-2">
-            This page shows what the running frontend is actually using after Railway runtime env injection.
-          </p>
-        </div>
+      {mode === 'system' ? <NavBar /> : null}
+      <div
+        className={
+          mode === 'lab'
+            ? 'container mx-auto max-w-7xl px-4 pb-16 pt-10 space-y-8'
+            : 'container mx-auto max-w-4xl px-4 pb-12 pt-20 space-y-6'
+        }
+      >
+        {mode === 'system' ? (
+          <>
+            <div>
+              <h1 className="text-4xl font-display font-bold">Debug</h1>
+              <p className="text-muted-foreground mt-2">
+                This page shows what the running frontend is actually using after Railway runtime env injection.
+              </p>
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Supabase Env</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+            <div className="market-debug-toggle">
+              <button
+                type="button"
+                onClick={() => setModeRoute('system')}
+                className={mode === 'system' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
+              >
+                System
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeRoute('lab')}
+                className={mode === 'lab' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
+              >
+                Fintech Lab
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              Build ID: <span className="font-mono">{buildId || '(unknown)'}</span>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-black/45">
+                Interface Lab
+              </p>
+              <p className="mt-2 text-sm text-black/58">
+                Borderless venue study.
+              </p>
             </div>
-            <div>
-              VITE_API_BASE_URL: <span className="font-mono">{apiBase || '(same-origin /api)'}</span>
+            <div className="market-debug-toggle">
+              <button
+                type="button"
+                onClick={() => setModeRoute('system')}
+                className={mode === 'system' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
+              >
+                System
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeRoute('lab')}
+                className={mode === 'lab' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
+              >
+                Fintech Lab
+              </button>
             </div>
-            <div>
-              VITE_SUPABASE_URL: <span className="font-mono">{url || '(missing)'}</span>
-            </div>
-            <div>
-              VITE_SUPABASE_PROJECT_ID: <span className="font-mono">{pid || '(missing)'}</span>
-            </div>
-            <div>
-              Computed ref: <span className="font-mono">{computedRef || '(missing)'}</span>
-            </div>
-            <div>
-              Anon key ref: <span className="font-mono">{anonRef || '(unknown)'}</span>
-            </div>
-            <div>
-              Config error: <span className="font-mono">{configError || '(none)'}</span>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Known-bad ref (deleted project): <span className="font-mono">{knownBadRef}</span>
-            </div>
-            <div className="pt-2">
-              <Button onClick={runChecks} variant="outline">Re-run Checks</Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Network Checks</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div>
-              Auth health: <span className="font-mono">
-                {authHealth ? (authHealth.ok ? `OK (${authHealth.status})` : `FAIL (${authHealth.status ?? authHealth.error})`) : '...'}
-              </span>
-            </div>
-            <div>
-              REST root: <span className="font-mono">
-                {restHealth ? (restHealth.ok ? `OK (${restHealth.status})` : `FAIL (${restHealth.status ?? restHealth.error})`) : '...'}
-              </span>
-            </div>
-            <div>
-              Session: <span className="font-mono">
-                {sessionInfo ? (sessionInfo.hasSession ? `yes (${sessionInfo.userId})` : 'no') : '...'}
-              </span>
-            </div>
-            <div className="text-xs text-muted-foreground pt-2">
-              If you still see `ptuxqfwicdpdslqwnswd.supabase.co` anywhere here, you are on an old deployment or cached JS bundle.
-            </div>
-          </CardContent>
-        </Card>
+        {mode === 'system' ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Supabase Env</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div>
+                  Build ID: <span className="font-mono">{buildId || '(unknown)'}</span>
+                </div>
+                <div>
+                  VITE_API_BASE_URL: <span className="font-mono">{apiBase || '(same-origin /api)'}</span>
+                </div>
+                <div>
+                  VITE_SUPABASE_URL: <span className="font-mono">{url || '(missing)'}</span>
+                </div>
+                <div>
+                  VITE_SUPABASE_PROJECT_ID: <span className="font-mono">{pid || '(missing)'}</span>
+                </div>
+                <div>
+                  Computed ref: <span className="font-mono">{computedRef || '(missing)'}</span>
+                </div>
+                <div>
+                  Anon key ref: <span className="font-mono">{anonRef || '(unknown)'}</span>
+                </div>
+                <div>
+                  Config error: <span className="font-mono">{configError || '(none)'}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Known-bad ref (deleted project): <span className="font-mono">{knownBadRef}</span>
+                </div>
+                <div className="pt-2">
+                  <Button onClick={runChecks} variant="outline">Re-run Checks</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Network Checks</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div>
+                  Auth health: <span className="font-mono">
+                    {authHealth ? (authHealth.ok ? `OK (${authHealth.status})` : `FAIL (${authHealth.status ?? authHealth.error})`) : '...'}
+                  </span>
+                </div>
+                <div>
+                  REST root: <span className="font-mono">
+                    {restHealth ? (restHealth.ok ? `OK (${restHealth.status})` : `FAIL (${restHealth.status ?? restHealth.error})`) : '...'}
+                  </span>
+                </div>
+                <div>
+                  Session: <span className="font-mono">
+                    {sessionInfo ? (sessionInfo.hasSession ? `yes (${sessionInfo.userId})` : 'no') : '...'}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground pt-2">
+                  If you still see `ptuxqfwicdpdslqwnswd.supabase.co` anywhere here, you are on an old deployment or cached JS bundle.
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <FintechDesignLab />
+        )}
       </div>
     </div>
   );
