@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, User, Wrench } from "lucide-react";
 import { BoardLogo } from "@/components/BoardLogo";
 import { Button } from "@/components/ui/button";
-import { StateTag } from "@/components/board/StateTag";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAuthRoute } from "@/lib/authRedirect";
 import { useSurfaceCapabilities } from "@/lib/surfaces";
@@ -53,7 +52,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
 
   const currentLabel =
     ROUTE_LABELS.find((route) => route.match.test(location.pathname))?.label ?? "BOARD";
-  const showCurrentLabel = Boolean(user) || currentLabel !== "Enter";
+  const showCurrentLabel = Boolean(user) && currentLabel !== "Home";
 
   const isActive = (path: string) =>
     location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
@@ -62,10 +61,10 @@ export function NavBar({ variant = "default" }: NavBarProps) {
     const enterPath = user ? postAuthPath : buildAuthRoute(postAuthPath);
 
     return (
-      <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6">
+      <header className="fixed inset-x-0 top-0 z-50 bg-[#f6f4f0]/84 px-4 pt-4 backdrop-blur-[16px] md:px-6">
         <div className="mx-auto max-w-[1520px]">
-          <div className="landing-nav-shell">
-            <div className="landing-nav-row">
+          <div className="system-nav-shell system-nav-shell--landing">
+            <div className="system-nav-row">
               <button
                 onClick={() => navigate("/")}
                 className="shrink-0 w-[132px] text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257] sm:w-[142px] md:w-auto"
@@ -74,7 +73,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
                 <BoardLogo tone="dark" wordmarkClassName="text-[29px] md:text-[34px]" />
               </button>
 
-              <nav className="landing-nav-links" aria-label="Primary">
+              <nav className="system-nav-links" aria-label="Primary">
                 {primaryLinks.map((link) => (
                   <button
                     key={link.path}
@@ -91,14 +90,14 @@ export function NavBar({ variant = "default" }: NavBarProps) {
 
               <Button
                 variant="hero"
-                className="min-w-[98px] bg-[#0a0a0a] px-4 text-[#f8f6ef] hover:bg-[#23252b] md:min-w-[116px]"
+                className="system-nav-enter min-w-[92px] md:min-w-[108px]"
                 onClick={() => navigate(enterPath)}
               >
                 Enter
               </Button>
             </div>
 
-            <nav className="landing-nav-links-mobile" aria-label="Primary mobile">
+            <nav className="system-nav-links-mobile" aria-label="Primary mobile">
               {primaryLinks.map((link) => (
                 <button
                   key={link.path}
@@ -119,9 +118,10 @@ export function NavBar({ variant = "default" }: NavBarProps) {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6">
-      <div className="board-page-width mx-auto border border-[#0e0e0f] bg-[#f6f4f0]/90 backdrop-blur-[8px]">
-        <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 md:px-5">
+    <header className="fixed inset-x-0 top-0 z-50 bg-[#f6f4f0]/84 px-4 pt-4 backdrop-blur-[16px] md:px-6">
+      <div className="board-page-width mx-auto">
+        <div className="system-nav-shell">
+          <div className="system-nav-row">
           <button
             onClick={() => navigate("/")}
             className="min-w-0 shrink whitespace-nowrap text-[#0e0e0f] transition-colors duration-150 hover:text-[#525257]"
@@ -130,7 +130,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
             <BoardLogo tone="dark" wordmarkClassName="text-[1.5rem] sm:text-[1.8rem] md:text-[2.25rem]" />
           </button>
 
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="system-nav-links" aria-label="Primary">
             {primaryLinks.map((link) => (
               <button
                 key={link.path}
@@ -147,7 +147,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
 
           <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
             {showCurrentLabel ? (
-              <StateTag className="hidden md:inline-flex">{currentLabel}</StateTag>
+              <span className="system-nav-context hidden md:inline-flex">{currentLabel}</span>
             ) : null}
             {user ? (
               <>
@@ -172,7 +172,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
             ) : (
               <button
                 onClick={() => navigate(buildAuthRoute(postAuthPath))}
-                className="inline-flex h-9 items-center justify-center whitespace-nowrap bg-[#0e0e0f] px-2.5 text-[12px] font-medium text-[#f6f4f0] transition-colors duration-150 hover:bg-[#202124] sm:h-10 sm:px-3 sm:text-[13px] md:px-4 md:text-[14px]"
+                className="system-nav-enter"
               >
                 Enter
               </button>
@@ -180,7 +180,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 overflow-x-auto border-t border-[#0e0e0f]/12 px-4 py-3 md:hidden">
+        <div className="system-nav-links-mobile md:hidden">
           {primaryLinks.map((link) => (
             <button
               key={link.path}
@@ -193,6 +193,7 @@ export function NavBar({ variant = "default" }: NavBarProps) {
               {link.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
     </header>
@@ -212,7 +213,7 @@ function UtilityButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center border border-[#0e0e0f]/12 bg-white/62 text-[#0e0e0f] transition-colors duration-150 hover:bg-[#efebe3]"
+      className="system-nav-utility"
     >
       {children}
     </button>

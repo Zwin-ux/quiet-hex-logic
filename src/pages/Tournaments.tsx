@@ -82,6 +82,11 @@ function getEventMeta(tournament: Tournament, worldName?: string) {
   ].join(" / ");
 }
 
+function getEventFocusSummary(tournament: Tournament, worldName?: string) {
+  const format = tournament.format === "single_elimination" ? "Single" : "Round robin";
+  return `${format} / ${worldName ?? "Standalone"}`;
+}
+
 export default function Tournaments() {
   useDocumentTitle("Events");
 
@@ -209,7 +214,7 @@ export default function Tournaments() {
   }
 
   return (
-    <SiteFrame contentClassName="pb-16 pt-24 md:pt-28">
+    <SiteFrame contentClassName="pb-16 pt-32 md:pt-28">
       <div className="ops-events-shell">
         <section className="ops-events-head">
           <div className="ops-events-head__copy">
@@ -328,18 +333,9 @@ export default function Tournaments() {
 
                         {selected ? (
                           <div className="ops-events-focus">
-                            <div className="ops-events-focus__facts">
-                              <div className="ops-events-focus__fact">
-                                <span>Format</span>
-                                <strong>
-                                  {tournament.format === "single_elimination" ? "Single" : "Round robin"}
-                                </strong>
-                              </div>
-                              <div className="ops-events-focus__fact">
-                                <span>{worldName ? "World" : "Mode"}</span>
-                                <strong>{worldName ?? "Standalone"}</strong>
-                              </div>
-                            </div>
+                            <p className="ops-events-focus__summary">
+                              {getEventFocusSummary(tournament, worldName)}
+                            </p>
 
                             <div className="ops-events-focus__actions">
                               <Button

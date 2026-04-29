@@ -122,7 +122,7 @@ export default function Worlds() {
     filter === "joined" ? "joined" : filter === "public" ? "public" : "available";
 
   return (
-    <SiteFrame contentClassName="pb-16 pt-24 md:pt-28">
+    <SiteFrame contentClassName="pb-16 pt-32 md:pt-28">
       <div className="ops-directory-shell">
         <section className="ops-directory-head">
           <div className="ops-directory-head__copy">

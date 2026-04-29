@@ -369,6 +369,13 @@
     @apply relative min-h-screen overflow-hidden bg-background text-foreground;
   }
 
+  .board-shell[data-shell-variant="default"] {
+    background:
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.72), transparent 22%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 30%),
+      var(--public-canvas);
+  }
+
   .board-shell[data-shell-variant="landing"] {
     background:
       radial-gradient(circle at top left, rgba(255, 255, 255, 0.76), transparent 22%),
@@ -412,31 +419,92 @@
     border-top: 1px solid var(--public-divider);
   }
 
-  .landing-nav-shell {
-    border: 1px solid rgba(9, 9, 9, 0.1);
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(18px);
+  .system-nav-shell {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.05rem 0 0.2rem;
   }
 
-  .landing-nav-row {
+  .system-nav-shell--landing {
+    padding-bottom: 0.25rem;
+  }
+
+  .system-nav-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    min-height: 4.6rem;
+    gap: 0.9rem;
+    min-height: 3.7rem;
   }
 
-  .landing-nav-links {
+  .system-nav-links {
     display: none;
     align-items: center;
     gap: 1.75rem;
   }
 
-  .landing-nav-links-mobile {
+  .system-nav-links-mobile {
     display: flex;
+    align-items: center;
     gap: 1rem;
     overflow-x: auto;
-    padding: 0 0 0.9rem;
+    padding: 0 0 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .system-nav-links-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .system-nav-context {
+    color: rgba(9, 9, 9, 0.44);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .system-nav-enter {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border: 0;
+    border-radius: 999px;
+    background: #0a0a0a;
+    padding-inline: 0.95rem;
+    color: #f8f6ef;
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    transition: background-color 100ms steps(2, end), transform 100ms steps(2, end);
+  }
+
+  .system-nav-enter:hover {
+    background: #23252b;
+  }
+
+  .system-nav-enter:active {
+    transform: translateY(1px);
+  }
+
+  .system-nav-utility {
+    display: inline-flex;
+    height: 2.5rem;
+    width: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(9, 9, 9, 0.05);
+    color: #0e0e0f;
+    transition: background-color 100ms steps(2, end), color 100ms steps(2, end);
+  }
+
+  .system-nav-utility:hover {
+    background: rgba(9, 9, 9, 0.09);
   }
 
   .landing-stage {
@@ -2768,7 +2836,7 @@
   }
 
   .ops-events-entry.is-selected {
-    background: rgba(28, 100, 242, 0.08);
+    background: transparent;
   }
 
   .ops-events-row {
@@ -2788,7 +2856,7 @@
   }
 
   .ops-events-row.is-selected {
-    background: transparent;
+    background: rgba(28, 100, 242, 0.08);
   }
 
   .ops-events-row__main {
@@ -2853,8 +2921,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .ops-events-row__stat-label,
-  .ops-events-focus__fact span {
+  .ops-events-row__stat-label {
     color: rgba(9, 9, 9, 0.46);
     font-size: 0.72rem;
     font-weight: 700;
@@ -2873,28 +2940,15 @@
 
   .ops-events-focus {
     display: grid;
-    gap: 0.8rem;
-    padding: 0 0.95rem 0.95rem;
+    gap: 0.55rem;
+    padding: 0 0.9rem 0.9rem;
   }
 
-  .ops-events-focus__facts {
-    display: grid;
-    gap: 0.7rem 1rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ops-events-focus__fact {
-    display: flex;
-    flex-direction: column;
-    gap: 0.18rem;
-  }
-
-  .ops-events-focus__fact strong {
-    color: #090909;
-    font-size: 1rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 720;
-    letter-spacing: -0.02em;
+  .ops-events-focus__summary {
+    color: rgba(9, 9, 9, 0.56);
+    font-size: 0.86rem;
+    font-weight: 560;
+    letter-spacing: -0.01em;
   }
 
   .ops-events-focus__actions {
@@ -2952,9 +3006,6 @@
       text-align: right;
     }
 
-    .ops-events-focus__facts {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
   }
 
   @media (max-width: 767px) {
@@ -3186,11 +3237,11 @@
   }
 
   @media (min-width: 768px) {
-    .landing-nav-links {
+    .system-nav-links {
       display: flex;
     }
 
-    .landing-nav-links-mobile {
+    .system-nav-links-mobile {
       display: none;
     }
 
