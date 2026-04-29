@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Plus, Users } from "lucide-react";
+import { ArrowUpRight, Calendar, Loader2, Plus, Radio, ShieldCheck, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CounterBlock } from "@/components/board/CounterBlock";
-import { MetricLine } from "@/components/board/MetricLine";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
 import { Button } from "@/components/ui/button";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { toast } from "sonner";
@@ -35,6 +31,15 @@ interface Tournament {
   participant_count?: number;
 }
 
+type EventFilter = "all" | "open" | "live" | "hosted";
+
+const EVENT_FILTERS: Array<{ key: EventFilter; label: string }> = [
+  { key: "all", label: "All" },
+  { key: "open", label: "Open" },
+  { key: "live", label: "Live" },
+  { key: "hosted", label: "Worlds" },
+];
+
 const statusOrder: Record<string, number> = {
   registration: 0,
   seeding: 1,
@@ -42,50 +47,41 @@ const statusOrder: Record<string, number> = {
   completed: 3,
 };
 
-function EventRow({
-  tournament,
-  worldName,
-  onOpen,
-}: {
-  tournament: Tournament;
-  worldName?: string;
-  onOpen: (tournamentId: string) => void;
-}) {
-  const label =
-    tournament.status === "registration"
-      ? "queued"
-      : tournament.status === "active" || tournament.status === "seeding"
-        ? "running"
-        : "archive";
-  const metric = tournament.participant_count ?? 0;
+function getEventTone(tournament: Tournament) {
+  if (tournament.status === "active" || tournament.status === "seeding") {
+    return { label: "Live", tone: "is-live" as const };
+  }
 
+  if (tournament.status === "registration") {
+    return { label: "Open", tone: "is-warning" as const };
+  }
+
+  return { label: "Archive", tone: "is-neutral" as const };
+}
+
+function getEventCopy(tournament: Tournament) {
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(tournament.id)}
-      className="w-full border border-black bg-[#fbfaf8] px-4 py-4 text-left transition-colors hover:bg-[#efebe3] md:grid md:grid-cols-[minmax(0,1fr)_92px] md:items-center md:gap-6"
-    >
-      <div className="min-w-0">
-        <h3 className="board-section-title">{tournament.name}</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
-            {tournament.competitive_mode ? "competitive" : "casual"}
-          </StateTag>
-          {worldName ? <StateTag>{worldName}</StateTag> : null}
-        </div>
-        <p className="mt-3 text-sm leading-7 text-black/68">
-          {tournament.description ||
-            `${label === "archive" ? "Results posted. Replay ready." : "Seats open. Bracket ready."}`}
-        </p>
-      </div>
-      <div className="mt-4 space-y-2 text-left md:mt-0 md:text-right">
-        <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-black/55">{label}</p>
-        <p className="text-[2rem] font-extrabold leading-none tracking-[-0.07em] text-black">
-          {metric}
-        </p>
-      </div>
-    </button>
+    tournament.description ||
+    (tournament.status === "completed"
+      ? "Results posted. Replay and standings ready."
+      : "Seats open. Bracket and room state stay attached.")
   );
+}
+
+function formatStartLabel(value: string | null) {
+  if (!value) return "TBD";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "TBD";
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatSeatLabel(tournament: Tournament) {
+  return `${tournament.participant_count ?? 0}/${tournament.max_players}`;
 }
 
 export default function Tournaments() {
@@ -100,6 +96,8 @@ export default function Tournaments() {
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<EventFilter>("all");
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
   const sortedTournaments = useMemo(
     () =>
@@ -111,6 +109,15 @@ export default function Tournaments() {
     [tournaments],
   );
 
+  const filteredTournaments = useMemo(() => {
+    return sortedTournaments.filter((tournament) => {
+      if (filter === "open") return tournament.status === "registration";
+      if (filter === "live") return tournament.status === "active" || tournament.status === "seeding";
+      if (filter === "hosted") return Boolean(tournament.world_id);
+      return true;
+    });
+  }, [filter, sortedTournaments]);
+
   const openTournaments = useMemo(
     () => tournaments.filter((tournament) => tournament.status === "registration"),
     [tournaments],
@@ -119,20 +126,43 @@ export default function Tournaments() {
     () => tournaments.filter((tournament) => tournament.status === "active" || tournament.status === "seeding"),
     [tournaments],
   );
+  const completedTournaments = useMemo(
+    () => tournaments.filter((tournament) => tournament.status === "completed"),
+    [tournaments],
+  );
   const worldHostedCount = useMemo(
     () => tournaments.filter((tournament) => Boolean(tournament.world_id)).length,
     [tournaments],
   );
-  const standaloneCount = tournaments.length - worldHostedCount;
-  const featuredTournaments = sortedTournaments.slice(0, 3);
-  const primaryEvent = featuredTournaments[0] ?? null;
-  const remainingTournaments = sortedTournaments.slice(3);
-  const heroTitle = isAuthoringSurface
-    ? "Queue brackets. Run finals. Keep the room attached."
-    : "Open brackets. Join finals. Follow the room.";
+  const seatCount = useMemo(
+    () => tournaments.reduce((sum, tournament) => sum + tournament.max_players, 0),
+    [tournaments],
+  );
+
+  useEffect(() => {
+    if (!filteredTournaments.length) {
+      setSelectedTournamentId(null);
+      return;
+    }
+
+    setSelectedTournamentId((current) =>
+      current && filteredTournaments.some((tournament) => tournament.id === current)
+        ? current
+        : filteredTournaments[0].id,
+    );
+  }, [filteredTournaments]);
+
+  const selectedTournament =
+    filteredTournaments.find((tournament) => tournament.id === selectedTournamentId) ??
+    filteredTournaments[0] ??
+    null;
+  const selectedWorldName =
+    selectedTournament?.world_id ? worldNames[selectedTournament.world_id] : undefined;
+
+  const heroTitle = "Events";
   const heroDescription = isAuthoringSurface
-    ? "Registration, seats, and bracket state stay in one place."
-    : "Seats, start times, and live bracket state stay here.";
+    ? "Queue brackets, watch live rooms, and open the one that matters."
+    : "See which brackets are open, then jump in when a room goes live.";
 
   const loadTournaments = useCallback(async () => {
     try {
@@ -149,9 +179,9 @@ export default function Tournaments() {
       if (error) throw error;
 
       const tournamentsWithCount =
-        data?.map((t) => ({
-          ...t,
-          participant_count: t.tournament_participants?.[0]?.count || 0,
+        data?.map((tournament) => ({
+          ...tournament,
+          participant_count: tournament.tournament_participants?.[0]?.count || 0,
         })) || [];
 
       setTournaments(tournamentsWithCount);
@@ -202,191 +232,299 @@ export default function Tournaments() {
     return (
       <SiteFrame>
         <div className="flex min-h-[420px] items-center justify-center">
-          <Calendar className="h-10 w-10 animate-gentle-pulse text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </SiteFrame>
     );
   }
 
   return (
-    <SiteFrame>
-      <div className="space-y-8">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px] xl:items-start">
-          <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
-            <div className="flex flex-wrap gap-2">
-              <StateTag tone={openTournaments.length ? "warning" : "normal"}>
-                {openTournaments.length} open
-              </StateTag>
-              <StateTag tone={activeTournaments.length ? "success" : "normal"}>
-                {activeTournaments.length} live
-              </StateTag>
-            </div>
+    <SiteFrame contentClassName="pb-16 pt-24 md:pt-28">
+      <div className="ops-events-shell">
+        <section className="ops-events-head">
+          <div className="ops-events-head__copy">
+            <p className="ops-events-label">Events</p>
+            <h1 className="ops-events-title mt-4">{heroTitle}</h1>
+            <p className="ops-events-copy mt-4">{heroDescription}</p>
 
-            <div className="mt-6 max-w-[42rem]">
-              <h1 className="text-[clamp(3rem,5vw,5.2rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
-                {heroTitle}
-              </h1>
-              <p className="mt-5 max-w-[30rem] text-[17px] leading-8 text-white/72">
-                {heroDescription}
-              </p>
-            </div>
-
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">open</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  {openTournaments.length} registration live
-                </p>
-              </div>
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">running</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  {activeTournaments.length} brackets active
-                </p>
-              </div>
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">source</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  {worldHostedCount} tied to worlds
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <aside className="border border-black bg-[#fbfaf8] px-5 py-5">
-            <p className="board-rail-label text-black/55">First tournament</p>
-            <h2 className="mt-5 text-[2.3rem] font-black leading-[0.92] tracking-[-0.06em] text-black">
-              {primaryEvent?.name || FIRST_TOURNAMENT.title}
-            </h2>
-            <p className="mt-4 text-[16px] leading-7 text-black/68">
-              {primaryEvent?.description ||
-                FIRST_TOURNAMENT.detail}
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              <StateTag>{primaryEvent ? `board ${primaryEvent.board_size}` : FIRST_TOURNAMENT.shortDate}</StateTag>
-              <StateTag tone={primaryEvent?.competitive_mode ? "warning" : "normal"}>
-                {primaryEvent ? (primaryEvent.competitive_mode ? "competitive" : "casual") : FIRST_TOURNAMENT.time}
-              </StateTag>
-            </div>
-
-            {!primaryEvent ? (
-              <div className="mt-6 border border-black/12 bg-white/50 px-4 py-4">
-                <p className="board-rail-label text-black/55">Crew call</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-black">
-                  Need event coordinators.
-                </p>
-              </div>
-            ) : null}
-
-            <div className="mt-8 flex flex-col gap-3">
+            <div className="ops-events-actions">
               {user && !isGuest && isAuthoringSurface ? (
-                <Button variant={primaryEvent ? "outline" : "hero"} onClick={() => setShowCreateDialog(true)}>
+                <Button
+                  variant="hero"
+                  onClick={() => setShowCreateDialog(true)}
+                  className="ops-events-action ops-events-action--primary"
+                >
                   <Plus className="h-4 w-4" />
                   Create event
                 </Button>
               ) : user || isGuest ? (
-                <Button variant="outline" onClick={() => navigate("/play")}>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/play")}
+                  className="ops-events-action"
+                >
                   Open play
                 </Button>
               ) : (
                 <Button
                   variant="outline"
                   onClick={() => navigate(buildAuthRoute(isAuthoringSurface ? "/events" : "/play"))}
+                  className="ops-events-action"
                 >
                   {isAuthoringSurface ? "Enter to host" : "Enter to play"}
                 </Button>
               )}
-              {primaryEvent ? (
-                <Button variant="outline" onClick={() => navigate(`/tournament/${primaryEvent.id}`)}>
-                  Open featured event
-                </Button>
-              ) : null}
+
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/worlds")}
+                className="ops-events-action ops-events-action--ghost"
+              >
+                Open worlds
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
             </div>
+          </div>
 
-            <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <CounterBlock label="world-hosted" value={worldHostedCount} />
-              <CounterBlock label="standalone" value={standaloneCount} />
+          <div className="ops-events-summary" aria-label="Event summary">
+            <div className="ops-events-summary__item">
+              <p className="ops-events-summary__label">Open</p>
+              <p className="ops-events-summary__value">{openTournaments.length}</p>
             </div>
-
-            {isGuest ? (
-              <div className="retro-warning-strip mt-6">
-                Playing as {guestUsername}. Sign in to join host-run brackets.
-              </div>
-            ) : null}
-            {loadError ? <div className="retro-critical-strip mt-6">{loadError}</div> : null}
-          </aside>
-        </div>
-
-        <VenuePanel
-          eyebrow="Event queue"
-          title={featuredTournaments.length > 0 ? "Open brackets" : "No events live yet"}
-          description={
-            featuredTournaments.length > 0
-              ? "Open one. Check seats. Start rounds."
-              : isAuthoringSurface
-                ? "Create the first bracket."
-                : "Open play and check back when the next bracket goes live."
-          }
-        >
-          {featuredTournaments.length > 0 ? (
-            <div className="space-y-4">
-              {featuredTournaments.map((tournament) => (
-                <EventRow
-                  key={tournament.id}
-                  tournament={tournament}
-                  worldName={tournament.world_id ? worldNames[tournament.world_id] : undefined}
-                  onOpen={(tournamentId) => navigate(`/tournament/${tournamentId}`)}
-                />
-              ))}
+            <div className="ops-events-summary__item">
+              <p className="ops-events-summary__label">Live</p>
+              <p className="ops-events-summary__value">{activeTournaments.length}</p>
             </div>
-          ) : null}
-        </VenuePanel>
+            <div className="ops-events-summary__item">
+              <p className="ops-events-summary__label">Seats</p>
+              <p className="ops-events-summary__value">{seatCount}</p>
+            </div>
+            <div className="ops-events-summary__item">
+              <p className="ops-events-summary__label">Worlds</p>
+              <p className="ops-events-summary__value">{worldHostedCount}</p>
+            </div>
+          </div>
+        </section>
 
-        {remainingTournaments.length > 0 ? (
-          <VenuePanel
-            eyebrow="More brackets"
-            title="More events"
-            description="Jump into another bracket."
-            titleBarEnd={<StateTag>{remainingTournaments.length} more</StateTag>}
-          >
-            <div className="space-y-3">
-              {remainingTournaments.map((tournament) => (
-                <div
-                  key={tournament.id}
-                  className="border border-black bg-[#fbfaf8] px-4 py-4 md:grid md:grid-cols-[minmax(0,1fr)_220px] md:items-center md:gap-6"
+        {loadError ? <div className="ops-events-error">{loadError}</div> : null}
+        {isGuest ? (
+          <div className="ops-events-note">
+            Playing as {guestUsername}. Sign in to join host-run brackets.
+          </div>
+        ) : null}
+
+        {sortedTournaments.length === 0 ? (
+          <div className="ops-events-empty">
+            <p className="ops-events-section-title">
+              {isAuthoringSurface ? "No events yet." : "Nothing queued yet."}
+            </p>
+            <p className="ops-events-copy mt-3">
+              {isAuthoringSurface
+                ? "Create the first bracket, attach it to a room, and bring the queue online."
+                : FIRST_TOURNAMENT.detail}
+            </p>
+            <div className="ops-events-actions">
+              {user && !isGuest && isAuthoringSurface ? (
+                <Button
+                  variant="hero"
+                  onClick={() => setShowCreateDialog(true)}
+                  className="ops-events-action ops-events-action--primary"
                 >
-                  <div className="min-w-0">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <StateTag>{tournament.status}</StateTag>
-                      <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
-                        {tournament.competitive_mode ? "competitive" : "casual"}
-                      </StateTag>
-                      {tournament.world_id && worldNames[tournament.world_id] ? (
-                        <StateTag>{worldNames[tournament.world_id]}</StateTag>
-                      ) : null}
+                  <Plus className="h-4 w-4" />
+                  Create event
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/play")}
+                  className="ops-events-action"
+                >
+                  Open play
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="ops-events-grid">
+            <section className="ops-events-surface">
+              <div className="ops-events-section-head">
+                <div>
+                  <p className="ops-events-label">Queue</p>
+                  <h2 className="ops-events-section-title mt-3">Available brackets</h2>
+                </div>
+
+                <div className="ops-events-segmented">
+                  {EVENT_FILTERS.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setFilter(item.key)}
+                      className={
+                        filter === item.key
+                          ? "ops-events-segmented__item is-active"
+                          : "ops-events-segmented__item"
+                      }
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredTournaments.length === 0 ? (
+                <div className="ops-events-empty ops-events-empty--inline">
+                  <p className="ops-events-copy">No brackets match this filter.</p>
+                </div>
+              ) : (
+                <div className="ops-events-list mt-6">
+                  {filteredTournaments.map((tournament) => {
+                    const selected = tournament.id === selectedTournamentId;
+                    const worldName = tournament.world_id ? worldNames[tournament.world_id] : undefined;
+                    const tone = getEventTone(tournament);
+
+                    return (
+                      <button
+                        key={tournament.id}
+                        type="button"
+                        onClick={() => setSelectedTournamentId(tournament.id)}
+                        className={selected ? "ops-events-row is-selected" : "ops-events-row"}
+                      >
+                        <div className="ops-events-row__main">
+                          <div className="ops-events-row__titleline">
+                            <span className="ops-events-dot" aria-hidden="true" />
+                            <h3 className="ops-events-row__title">{tournament.name}</h3>
+                          </div>
+
+                          <p className="ops-events-row__copy">{getEventCopy(tournament)}</p>
+
+                          <div className="ops-events-chip-row">
+                            <span className={`ops-events-chip ${tone.tone}`}>{tone.label}</span>
+                            <span className="ops-events-chip">
+                              {tournament.competitive_mode ? "Competitive" : "Casual"}
+                            </span>
+                            {worldName ? <span className="ops-events-chip is-dark">{worldName}</span> : null}
+                          </div>
+                        </div>
+
+                        <div className="ops-events-row__stats">
+                          <div className="ops-events-row__stat">
+                            <p className="ops-events-row__stat-label">Seats</p>
+                            <p className="ops-events-row__stat-value">{formatSeatLabel(tournament)}</p>
+                          </div>
+                          <div className="ops-events-row__stat">
+                            <p className="ops-events-row__stat-label">Board</p>
+                            <p className="ops-events-row__stat-value">{tournament.board_size}</p>
+                          </div>
+                          <div className="ops-events-row__stat">
+                            <p className="ops-events-row__stat-label">Start</p>
+                            <p className="ops-events-row__stat-value">{formatStartLabel(tournament.start_time)}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {selectedTournament ? (
+              <aside className="ops-events-surface ops-events-surface--detail">
+                <div className="ops-events-detail-topline">
+                  <span className={`ops-events-chip ${getEventTone(selectedTournament).tone}`}>
+                    {getEventTone(selectedTournament).label}
+                  </span>
+                  <span className="ops-events-chip">
+                    {selectedTournament.competitive_mode ? "Competitive" : "Casual"}
+                  </span>
+                  {selectedWorldName ? (
+                    <span className="ops-events-chip is-dark">{selectedWorldName}</span>
+                  ) : null}
+                </div>
+
+                <h2 className="ops-events-detail-title mt-5">{selectedTournament.name}</h2>
+                <p className="ops-events-detail-copy mt-3">{getEventCopy(selectedTournament)}</p>
+
+                <div className="ops-events-detail-hero">
+                  <p className="ops-events-detail-hero__label">Seats</p>
+                  <p className="ops-events-detail-hero__value">{formatSeatLabel(selectedTournament)}</p>
+                  <p className="ops-events-detail-hero__foot">
+                    {selectedWorldName
+                      ? `${selectedWorldName}. Room and bracket stay attached.`
+                      : "Standalone bracket. Open and join directly."}
+                  </p>
+                </div>
+
+                <div className="ops-events-detail-grid">
+                  <div className="ops-events-detail-stat">
+                    <Users className="h-4 w-4" />
+                    <div>
+                      <p className="ops-events-detail-stat__label">Players</p>
+                      <p className="ops-events-detail-stat__value">
+                        {selectedTournament.participant_count ?? 0}
+                      </p>
                     </div>
-                    <h3 className="board-section-title">{tournament.name}</h3>
-                    {tournament.description ? (
-                      <p className="mt-3 text-sm leading-7 text-black/68">{tournament.description}</p>
-                    ) : null}
                   </div>
-                  <div className="mt-4 space-y-2 md:mt-0">
-                    <MetricLine icon={Users} label="Players" value={`${tournament.participant_count}/${tournament.max_players}`} />
-                    <MetricLine
-                      icon={Calendar}
-                      label="Start"
-                      value={tournament.start_time ? new Date(tournament.start_time).toLocaleDateString() : "TBD"}
-                    />
-                    <Button className="mt-3 w-full" variant="outline" onClick={() => navigate(`/tournament/${tournament.id}`)}>
-                      Open event
-                    </Button>
+                  <div className="ops-events-detail-stat">
+                    <Radio className="h-4 w-4" />
+                    <div>
+                      <p className="ops-events-detail-stat__label">Format</p>
+                      <p className="ops-events-detail-stat__value">
+                        {selectedTournament.format === "single_elimination" ? "Single" : "Round robin"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="ops-events-detail-stat">
+                    <Calendar className="h-4 w-4" />
+                    <div>
+                      <p className="ops-events-detail-stat__label">Start</p>
+                      <p className="ops-events-detail-stat__value">
+                        {formatStartLabel(selectedTournament.start_time)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="ops-events-detail-stat">
+                    <ShieldCheck className="h-4 w-4" />
+                    <div>
+                      <p className="ops-events-detail-stat__label">Board</p>
+                      <p className="ops-events-detail-stat__value">{selectedTournament.board_size}</p>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </VenuePanel>
-        ) : null}
+
+                <div className="ops-events-actions ops-events-actions--stack mt-6">
+                  <Button
+                    variant="hero"
+                    onClick={() => navigate(`/tournament/${selectedTournament.id}`)}
+                    className="ops-events-action ops-events-action--primary"
+                  >
+                    Open event
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/worlds")}
+                    className="ops-events-action ops-events-action--ghost"
+                  >
+                    Open worlds
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/play")}
+                    className="ops-events-action ops-events-action--ghost"
+                  >
+                    Local practice
+                  </Button>
+                </div>
+
+                {completedTournaments.length > 0 ? (
+                  <div className="ops-events-detail-foot mt-6">
+                    <p className="ops-events-detail-foot__label">Archive</p>
+                    <p className="ops-events-detail-foot__value">{completedTournaments.length} complete</p>
+                  </div>
+                ) : null}
+              </aside>
+            ) : null}
+          </div>
+        )}
 
         {showCreateDialog ? (
           <CreateTournamentDialog
@@ -394,7 +532,7 @@ export default function Tournaments() {
             onClose={() => setShowCreateDialog(false)}
             onSuccess={() => {
               setShowCreateDialog(false);
-              loadTournaments();
+              void loadTournaments();
             }}
           />
         ) : null}
