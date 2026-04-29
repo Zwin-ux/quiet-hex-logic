@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowLeft, Play, Trophy, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -271,9 +271,17 @@ export default function TournamentView() {
     }
   };
 
+  const decisionLabel = tournament
+    ? tournament.status === "registration"
+      ? participants.length < tournament.min_players
+        ? `Need ${tournament.min_players - participants.length} more player${tournament.min_players - participants.length === 1 ? "" : "s"}.`
+        : `${participants.length} players ready.`
+      : "Bracket is running. Open the current state."
+    : "";
+
   if (loading || !tournament) {
     return (
-      <SiteFrame>
+      <SiteFrame visualMode="mono">
         <div className="flex min-h-[420px] items-center justify-center">
           <Trophy className="h-10 w-10 animate-gentle-pulse text-muted-foreground" />
         </div>
@@ -303,16 +311,6 @@ export default function TournamentView() {
     tournament.competitive_mode && Boolean(user) && !viewerIsVerifiedHuman;
   const seatsLabel = `${participants.length}/${tournament.max_players} seats`;
   const phaseLabel = tournament.status === "registration" ? "join open" : "bracket live";
-  const decisionLabel = useMemo(() => {
-    if (tournament.status === "registration") {
-      if (participants.length < tournament.min_players) {
-        return `Need ${tournament.min_players - participants.length} more player${tournament.min_players - participants.length === 1 ? "" : "s"}.`;
-      }
-      return `${participants.length} players ready.`;
-    }
-
-    return "Bracket is running. Open the current state.";
-  }, [participants.length, tournament.min_players, tournament.status]);
 
   const openBracket = () => {
     bracketRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
