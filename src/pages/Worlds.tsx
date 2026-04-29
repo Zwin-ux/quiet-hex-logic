@@ -1,6 +1,6 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, Loader2, Plus, Radio, ShieldCheck, Users } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { CreateWorldDialog } from "@/components/CreateWorldDialog";
 import { Button } from "@/components/ui/button";
@@ -20,14 +20,6 @@ const WORLD_FILTERS: Array<{ key: WorldFilter; label: string }> = [
   { key: "public", label: "Public" },
 ];
 
-function getWorldCopy(world: WorldSummary) {
-  return (
-    world.description ||
-    world.tagline ||
-    `${world.visibility === "public" ? "Open venue" : "Private venue"} with rooms, events, and live tables.`
-  );
-}
-
 function getWorldActivity(world: WorldSummary) {
   if (world.instanceCount > 0) {
     return { label: "Live", tone: "is-live" as const };
@@ -38,6 +30,14 @@ function getWorldActivity(world: WorldSummary) {
   }
 
   return { label: "Quiet", tone: "is-neutral" as const };
+}
+
+function getWorldMeta(world: WorldSummary) {
+  return [
+    world.visibility === "public" ? "Public" : "Private",
+    world.userRole ?? "Guest",
+    `${world.memberCount} members`,
+  ].join(" / ");
 }
 
 export default function Worlds() {
@@ -114,16 +114,10 @@ export default function Worlds() {
 
   const selectedWorld =
     filteredWorlds.find((world) => world.id === selectedWorldId) ?? filteredWorlds[0] ?? null;
-  const joinedCount = orderedWorlds.filter((world) => Boolean(world.userRole)).length;
-  const publicCount = orderedWorlds.filter((world) => world.visibility === "public").length;
-  const liveTableCount = orderedWorlds.reduce((sum, world) => sum + world.instanceCount, 0);
-  const eventCount = orderedWorlds.reduce((sum, world) => sum + world.eventCount, 0);
-  const heroTitle = "Worlds";
+  const heroTitle = "Pick a world";
   const heroDescription = isAuthoringSurface
-    ? "Browse venues, see what is live, and move into the room that matters."
-    : "See which venues are active, then jump in when a table opens.";
-  const trailingMetricLabel = user && !isGuest ? "Joined" : "Public";
-  const trailingMetricValue = user && !isGuest ? joinedCount : publicCount;
+    ? "Choose one venue. Enter when the room matters."
+    : "Choose one venue. Enter when a table opens.";
   const emptyFilterLabel =
     filter === "joined" ? "joined" : filter === "public" ? "public" : "available";
 
@@ -135,65 +129,6 @@ export default function Worlds() {
             <p className="ops-directory-label">Worlds</p>
             <h1 className="ops-directory-title mt-4">{heroTitle}</h1>
             <p className="ops-directory-copy mt-4">{heroDescription}</p>
-
-            <div className="ops-directory-actions">
-              {user && !isGuest && isAuthoringSurface ? (
-                <Button
-                  variant="hero"
-                  onClick={() => setShowCreateDialog(true)}
-                  className="ops-directory-action ops-directory-action--primary"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create world
-                </Button>
-              ) : user && !isGuest ? (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/play")}
-                  className="ops-directory-action"
-                >
-                  Open play
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    navigate(buildAuthRoute(isAuthoringSurface ? "/worlds?create=true" : "/play"))
-                  }
-                  className="ops-directory-action"
-                >
-                  {isAuthoringSurface ? "Sign in to host" : "Enter to play"}
-                </Button>
-              )}
-
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/events")}
-                className="ops-directory-action ops-directory-action--ghost"
-              >
-                Open events
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="ops-directory-summary" aria-label="World summary">
-            <div className="ops-directory-summary__item">
-              <p className="ops-directory-summary__label">Worlds</p>
-              <p className="ops-directory-summary__value">{orderedWorlds.length}</p>
-            </div>
-            <div className="ops-directory-summary__item">
-              <p className="ops-directory-summary__label">Live tables</p>
-              <p className="ops-directory-summary__value">{liveTableCount}</p>
-            </div>
-            <div className="ops-directory-summary__item">
-              <p className="ops-directory-summary__label">Events</p>
-              <p className="ops-directory-summary__value">{eventCount}</p>
-            </div>
-            <div className="ops-directory-summary__item">
-              <p className="ops-directory-summary__label">{trailingMetricLabel}</p>
-              <p className="ops-directory-summary__value">{trailingMetricValue}</p>
-            </div>
           </div>
         </section>
 
@@ -210,7 +145,7 @@ export default function Worlds() {
             </p>
             <p className="ops-directory-copy mt-3">
               {isAuthoringSurface
-                ? "Create the first venue, then attach rooms and events to it."
+                ? "Create the first venue, then bring one room online."
                 : "Open quickplay now, or come back when a room goes live."}
             </p>
             <div className="ops-directory-actions">
@@ -238,7 +173,7 @@ export default function Worlds() {
           </div>
         ) : (
           <div className="ops-directory-grid">
-            <section className="ops-directory-surface">
+            <section className="ops-directory-surface ops-directory-surface--list">
               <div className="ops-directory-section-head">
                 <div>
                   <p className="ops-directory-label">Directory</p>
@@ -266,7 +201,7 @@ export default function Worlds() {
               {filteredWorlds.length === 0 ? (
                 <div className="ops-directory-empty ops-directory-empty--inline">
                   <p className="ops-directory-copy">
-                    No {emptyFilterLabel} worlds match this filter yet.
+                    No {emptyFilterLabel} worlds match this filter.
                   </p>
                 </div>
               ) : (
@@ -279,136 +214,68 @@ export default function Worlds() {
                     } as CSSProperties;
 
                     return (
-                      <button
+                      <div
                         key={world.id}
-                        type="button"
-                        onClick={() => setSelectedWorldId(world.id)}
-                        className={selected ? "ops-directory-row is-selected" : "ops-directory-row"}
+                        className={selected ? "ops-directory-entry is-selected" : "ops-directory-entry"}
                         style={rowStyle}
                       >
-                        <div className="ops-directory-row__main">
-                          <div className="ops-directory-row__titleline">
-                            <span className="ops-directory-dot" aria-hidden="true" />
-                            <h3 className="ops-directory-row__title">{world.name}</h3>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedWorldId(world.id)}
+                          className={selected ? "ops-directory-row is-selected" : "ops-directory-row"}
+                        >
+                          <div className="ops-directory-row__main">
+                            <div className="ops-directory-row__titleline">
+                              <span className={`ops-directory-chip ${activity.tone}`}>{activity.label}</span>
+                              <h3 className="ops-directory-row__title">{world.name}</h3>
+                            </div>
+
+                            <p className="ops-directory-row__meta">{getWorldMeta(world)}</p>
                           </div>
 
-                          <p className="ops-directory-row__copy">{getWorldCopy(world)}</p>
+                          <div className="ops-directory-row__decision">
+                            <div className="ops-directory-row__decision-block">
+                              <p className="ops-directory-row__stat-label">Live</p>
+                              <p className="ops-directory-row__stat-value">{world.instanceCount}</p>
+                            </div>
+                            <div className="ops-directory-row__decision-block">
+                              <p className="ops-directory-row__stat-label">Events</p>
+                              <p className="ops-directory-row__stat-value">{world.eventCount}</p>
+                            </div>
+                          </div>
+                        </button>
 
-                          <div className="ops-directory-chip-row">
-                            <span className={`ops-directory-chip ${activity.tone}`}>{activity.label}</span>
-                            <span className="ops-directory-chip">
-                              {world.visibility === "public" ? "Public" : "Private"}
-                            </span>
-                            {world.userRole ? (
-                              <span className="ops-directory-chip is-dark">{world.userRole}</span>
-                            ) : null}
-                          </div>
-                        </div>
+                        {selected ? (
+                          <div className="ops-directory-focus">
+                            <p className="ops-directory-focus__summary">
+                              {world.ownerName} / {world.memberCount} members
+                            </p>
 
-                        <div className="ops-directory-row__stats">
-                          <div className="ops-directory-row__stat">
-                            <p className="ops-directory-row__stat-label">Live</p>
-                            <p className="ops-directory-row__stat-value">{world.instanceCount}</p>
+                            <div className="ops-directory-focus__actions">
+                              <Button
+                                variant="hero"
+                                onClick={() => navigate(`/worlds/${world.id}`)}
+                                className="ops-directory-action ops-directory-action--primary"
+                              >
+                                Enter world
+                              </Button>
+
+                              <button
+                                type="button"
+                                onClick={() => navigate(world.eventCount > 0 ? "/events" : "/play")}
+                                className="ops-directory-inline-link"
+                              >
+                                {world.eventCount > 0 ? "Open events" : "Local practice"}
+                              </button>
+                            </div>
                           </div>
-                          <div className="ops-directory-row__stat">
-                            <p className="ops-directory-row__stat-label">Events</p>
-                            <p className="ops-directory-row__stat-value">{world.eventCount}</p>
-                          </div>
-                          <div className="ops-directory-row__stat">
-                            <p className="ops-directory-row__stat-label">Members</p>
-                            <p className="ops-directory-row__stat-value">{world.memberCount}</p>
-                          </div>
-                        </div>
-                      </button>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
               )}
             </section>
-
-            {selectedWorld ? (
-              <aside className="ops-directory-surface ops-directory-surface--detail">
-                <div className="ops-directory-detail-topline">
-                  <span className={`ops-directory-chip ${getWorldActivity(selectedWorld).tone}`}>
-                    {getWorldActivity(selectedWorld).label}
-                  </span>
-                  <span className="ops-directory-chip">{selectedWorld.visibility}</span>
-                  {selectedWorld.userRole ? (
-                    <span className="ops-directory-chip is-dark">{selectedWorld.userRole}</span>
-                  ) : null}
-                </div>
-
-                <h2 className="ops-directory-detail-title mt-5">{selectedWorld.name}</h2>
-                <p className="ops-directory-detail-copy mt-3">{getWorldCopy(selectedWorld)}</p>
-
-                <div className="ops-directory-detail-hero">
-                  <p className="ops-directory-detail-hero__label">Live tables</p>
-                  <p className="ops-directory-detail-hero__value">
-                    {String(selectedWorld.instanceCount).padStart(2, "0")}
-                  </p>
-                  <p className="ops-directory-detail-hero__foot">
-                    Hosted by {selectedWorld.ownerName}. {selectedWorld.eventCount} events attached.
-                  </p>
-                </div>
-
-                <div className="ops-directory-detail-grid">
-                  <div className="ops-directory-detail-stat">
-                    <Radio className="h-4 w-4" />
-                    <div>
-                      <p className="ops-directory-detail-stat__label">Live</p>
-                      <p className="ops-directory-detail-stat__value">{selectedWorld.instanceCount}</p>
-                    </div>
-                  </div>
-                  <div className="ops-directory-detail-stat">
-                    <ShieldCheck className="h-4 w-4" />
-                    <div>
-                      <p className="ops-directory-detail-stat__label">Events</p>
-                      <p className="ops-directory-detail-stat__value">{selectedWorld.eventCount}</p>
-                    </div>
-                  </div>
-                  <div className="ops-directory-detail-stat">
-                    <Users className="h-4 w-4" />
-                    <div>
-                      <p className="ops-directory-detail-stat__label">Members</p>
-                      <p className="ops-directory-detail-stat__value">{selectedWorld.memberCount}</p>
-                    </div>
-                  </div>
-                  <div className="ops-directory-detail-stat">
-                    <ArrowUpRight className="h-4 w-4" />
-                    <div>
-                      <p className="ops-directory-detail-stat__label">Access</p>
-                      <p className="ops-directory-detail-stat__value">
-                        {selectedWorld.visibility === "public" ? "Open" : "Private"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ops-directory-actions ops-directory-actions--stack mt-6">
-                  <Button
-                    variant="hero"
-                    onClick={() => navigate(`/worlds/${selectedWorld.id}`)}
-                    className="ops-directory-action ops-directory-action--primary"
-                  >
-                    Enter world
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/events")}
-                    className="ops-directory-action"
-                  >
-                    View events
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/play")}
-                    className="ops-directory-action"
-                  >
-                    Local practice
-                  </Button>
-                </div>
-              </aside>
-            ) : null}
           </div>
         )}
 
