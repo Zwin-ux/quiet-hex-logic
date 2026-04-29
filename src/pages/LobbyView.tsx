@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircle, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
+import {
+  SystemScreen,
+  SystemSection,
+  UtilityPill,
+  UtilityStrip,
+} from "@/components/board/SystemSurface";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { SectionRail } from "@/components/board/SectionRail";
-import { VenuePanel } from "@/components/board/VenuePanel";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { EnhancedChat } from "@/components/EnhancedChat";
+import { Button } from "@/components/ui/button";
 
 export default function LobbyView() {
   const { lobbyId } = useParams<{ lobbyId: string }>();
@@ -50,7 +55,7 @@ export default function LobbyView() {
 
   if (!user || !lobbyId) {
     return (
-      <SiteFrame>
+      <SiteFrame visualMode="mono">
         <div className="flex min-h-[420px] items-center justify-center text-muted-foreground">
           Loading room...
         </div>
@@ -59,47 +64,50 @@ export default function LobbyView() {
   }
 
   return (
-    <SiteFrame>
-      <div className="mb-5 flex flex-wrap items-center gap-4 text-sm font-semibold text-muted-foreground">
-        {worldContext ? (
-          <button onClick={() => navigate(`/worlds/${worldContext.id}`)} className="transition-colors hover:text-foreground">
-            Back to {worldContext.name}
-          </button>
-        ) : null}
-        <button onClick={() => navigate("/play")} className="transition-colors hover:text-foreground">
-          Back to play
-        </button>
-      </div>
-
-      <SectionRail
-        eyebrow="Room"
-        title={
-          <div className="flex items-center gap-3">
-            <span>Live lobby</span>
-            <span className="inline-flex items-center gap-2 rounded-md border border-black bg-black px-2 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-white">
-              <CheckCircle className="h-3 w-3" />
-              active
-            </span>
-          </div>
+    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+      <SystemScreen
+        label="Room"
+        title="Live lobby"
+        description="Ready, chat, then commit to the match."
+        actions={
+          <>
+            {worldContext ? (
+              <Button
+                variant="ghost"
+                className="border-0"
+                onClick={() => navigate(`/worlds/${worldContext.id}`)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to {worldContext.name}
+              </Button>
+            ) : null}
+            <Button variant="ghost" className="border-0" onClick={() => navigate("/play")}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to play
+            </Button>
+          </>
         }
-        description="Players, readiness, and chat stay attached to the room before the match turns live."
-      />
+      >
+        <UtilityStrip>
+          <UtilityPill strong>active</UtilityPill>
+          <UtilityPill>two seats</UtilityPill>
+          <UtilityPill>room chat attached</UtilityPill>
+        </UtilityStrip>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
-        <VenuePanel eyebrow="Room state" title="Seats and readiness">
+        <SystemSection label="Room state" title="Seats and readiness">
           <LobbyPanel lobbyId={lobbyId} userId={user.id} />
-        </VenuePanel>
+        </SystemSection>
 
-        <VenuePanel eyebrow="Room chat" title="Live conversation">
-          <div className="flex items-center gap-2 border-b border-black/10 pb-4">
+        <SystemSection label="Chat" title="Lobby conversation">
+          <div className="flex items-center gap-2 pb-4">
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Lobby channel</span>
+            <span className="text-sm font-medium text-foreground">Room channel</span>
           </div>
-          <div className="mt-4 h-[420px] overflow-hidden">
+          <div className="h-[420px] overflow-hidden">
             <EnhancedChat channelType="lobby" channelId={lobbyId} maxHeight="100%" showHeader={false} />
           </div>
-        </VenuePanel>
-      </div>
+        </SystemSection>
+      </SystemScreen>
     </SiteFrame>
   );
 }

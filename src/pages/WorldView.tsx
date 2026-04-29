@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, Copy, Loader2 } from "lucide-react";
-import { SiteFrame } from "@/components/board/SiteFrame";
-import { StateTag } from "@/components/board/StateTag";
-import { Button } from "@/components/ui/button";
-import { WebHandoffNotice } from "@/components/surfaces/WebSurfaceGate";
 import { CreateLobby } from "@/components/CreateLobby";
 import { CreateTournamentDialog } from "@/components/CreateTournamentDialog";
 import { LobbyCard } from "@/components/LobbyCard";
+import {
+  DecisionLane,
+  SystemScreen,
+  SystemSection,
+  UtilityPill,
+  UtilityStrip,
+} from "@/components/board/SystemSurface";
+import { SiteFrame } from "@/components/board/SiteFrame";
+import { Button } from "@/components/ui/button";
+import { WebHandoffNotice } from "@/components/surfaces/WebSurfaceGate";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestMode } from "@/hooks/useGuestMode";
-import { supabase } from "@/integrations/supabase/client";
-import { canManageWorld, joinWorld, loadWorldOverview, type WorldOverview } from "@/lib/worlds";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { supabase } from "@/integrations/supabase/client";
 import { buildAuthRoute } from "@/lib/authRedirect";
+import { canManageWorld, joinWorld, loadWorldOverview, type WorldOverview } from "@/lib/worlds";
 import { useSurfaceCapabilities } from "@/lib/surfaces";
 import { toast } from "sonner";
 
@@ -84,7 +90,7 @@ export default function WorldView() {
 
   if (loading || !overview) {
     return (
-      <SiteFrame>
+      <SiteFrame visualMode="mono">
         <div className="flex min-h-[420px] items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -102,16 +108,6 @@ export default function WorldView() {
     canManage &&
     setupMode &&
     (lobbies.length === 0 || events.length === 0 || (hasCompetitiveEvent && !competitiveReady));
-  const hostToolsTitle = canManage
-    ? isAuthoringSurface
-      ? "Run this room map"
-      : "Run the live room"
-    : "Enter this room map";
-  const hostToolsDescription = canManage
-    ? isAuthoringSurface
-      ? "Open rooms. Queue matches. Copy one invite."
-      : "Copy invites. Start live tables. Open web for setup."
-    : "Join to enter tables and brackets.";
   const setupSteps = [
     { label: "Create the first room", done: lobbies.length > 0 },
     { label: "Copy the invite link", done: inviteCopied },
@@ -160,187 +156,104 @@ export default function WorldView() {
   };
 
   return (
-    <SiteFrame>
-      <div className="board-page-width mx-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/worlds")}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to worlds
-        </Button>
+    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+      <SystemScreen
+        label="World"
+        title={world.name}
+        description={world.description || "Tables open. Finals live."}
+        actions={
+          <>
+            <Button variant="ghost" className="border-0" onClick={() => navigate("/worlds")}>
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            {!canManage ? (
+              <Button
+                variant="hero"
+                className="border-0"
+                onClick={handleJoin}
+                disabled={joining || Boolean(world.userRole)}
+              >
+                {joining ? "Joining..." : world.userRole ? "Already inside" : "Join world"}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <UtilityStrip>
+          <UtilityPill strong>{world.visibility}</UtilityPill>
+          <UtilityPill>{world.memberCount} members</UtilityPill>
+          <UtilityPill>{world.hostCount ?? 1} hosts</UtilityPill>
+          <UtilityPill>{world.instanceCount} tables</UtilityPill>
+          <UtilityPill>{world.eventCount} events</UtilityPill>
+          {!competitiveReady ? <UtilityPill strong>verify for ranked</UtilityPill> : null}
+        </UtilityStrip>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_318px] xl:items-start">
-          <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
-            <div className="flex flex-wrap gap-2">
-              <StateTag>{world.visibility}</StateTag>
-              <StateTag tone="success">{world.hostCount ?? 1} host{(world.hostCount ?? 1) === 1 ? "" : "s"}</StateTag>
-              <StateTag>{world.instanceCount} tables</StateTag>
-              <StateTag>{world.eventCount} events</StateTag>
-            </div>
-
-            <h1 className="mt-8 max-w-[620px] text-[clamp(3rem,5vw,4.8rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
-              {world.name}
-            </h1>
-            <p className="mt-5 max-w-[32rem] text-[17px] leading-8 text-white/72">
-              {world.description || "Tables open. Finals live."}
-            </p>
-
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">host</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  Open rooms. Start events.
-                </p>
-              </div>
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">watch</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  Follow live tables and finals.
-                </p>
-              </div>
-              <div className="border border-white/12 px-4 py-4">
-                <p className="board-rail-label text-white/56">ranked</p>
-                <p className="mt-2 text-[15px] font-semibold leading-7 text-[#f3efe6]">
-                  {competitiveReady ? "Ready now." : "Verify before entry."}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <aside className="border border-black bg-[#fbfaf8] p-5 md:p-6">
-            <p className="board-rail-label text-[11px] text-[#525257]">Host tools</p>
-            <h2 className="mt-4 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-              {hostToolsTitle}
-            </h2>
-            <p className="mt-4 text-[16px] leading-8 text-[#525257]">
-              {hostToolsDescription}
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <div className="retro-status-strip">
-                <span>members {world.memberCount}</span>
-                <span>hosts {world.hostCount ?? 1}</span>
-                <span>{competitiveReady ? "ranked ready" : "verify for ranked"}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-col gap-3">
-              {canManage ? (
-                <>
-                  {!hasLiveSurfaces || !user ? null : isAuthoringSurface ? (
-                    <CreateLobby userId={user.id} worldId={world.id} />
-                  ) : null}
-                  {isAuthoringSurface ? (
-                    <Button variant="outline" onClick={() => setShowCreateTournament(true)}>
-                      Create event
-                    </Button>
-                  ) : null}
-                  <Button variant="outline" onClick={copyInviteLink}>
-                    {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {inviteCopied ? "Invite link copied" : "Copy invite link"}
-                  </Button>
-                  {isAuthoringSurface ? (
-                    <>
-                      <Button variant="outline" onClick={() => navigate(`/worlds/${world.id}/variants`)}>
-                        Variants
-                      </Button>
-                      <Button variant="outline" onClick={() => navigate(`/worlds/${world.id}/settings`)}>
-                        Settings
-                      </Button>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                <Button
-                  variant="hero"
-                  onClick={handleJoin}
-                  disabled={joining || Boolean(world.userRole)}
-                >
-                  {joining ? "Joining..." : world.userRole ? "Already inside" : "Join world"}
+        {canManage ? (
+          <SystemSection
+            label="Host"
+            title={isAuthoringSurface ? "Run this venue" : "Run the live room"}
+            description={
+              isAuthoringSurface
+                ? "Open rooms. Copy one invite. Queue the next event."
+                : "Copy invites. Start live tables. Open web for deeper setup."
+            }
+            actions={
+              <div className="flex flex-wrap gap-3">
+                <Button variant="ghost" className="border-0" onClick={copyInviteLink}>
+                  {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {inviteCopied ? "Copied" : "Copy invite"}
                 </Button>
-              )}
-            </div>
+                {isAuthoringSurface ? (
+                  <Button variant="hero" className="border-0" onClick={() => setShowCreateTournament(true)}>
+                    Create event
+                  </Button>
+                ) : null}
+              </div>
+            }
+          >
+            <UtilityStrip>
+              <UtilityPill strong>{hasLiveSurfaces ? "live surfaces online" : "quiet venue"}</UtilityPill>
+              <UtilityPill>{competitiveReady ? "ranked ready" : "verification pending"}</UtilityPill>
+            </UtilityStrip>
 
-            {canManage && !isAuthoringSurface && !shouldShowSetupRail ? (
-              <div className="mt-6">
-                <WebHandoffNotice
-                  title="Venue setup stays on web."
-                  detail="Room creation, event setup, branding, and rules editing stay on the browser surface."
-                  to={`/worlds/${world.id}/settings`}
-                />
+            {shouldShowSetupRail ? (
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {setupSteps.map((step, index) => (
+                  <div key={step.label} className="system-section">
+                    <UtilityStrip>
+                      <UtilityPill>{String(index + 1).padStart(2, "0")}</UtilityPill>
+                      <UtilityPill strong={step.done}>{step.done ? "done" : step.optional ? "optional" : "open"}</UtilityPill>
+                    </UtilityStrip>
+                    <p className="ops-directory-row__title">{step.label}</p>
+                  </div>
+                ))}
               </div>
             ) : null}
 
-            <div className="mt-10">
-              <p className="text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
-                {world.instanceCount}
-              </p>
-              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">
-                open tables
-              </p>
-            </div>
-          </aside>
-        </div>
+            {hasCompetitiveEvent && !competitiveReady ? (
+              <p className="system-inline-note">Competitive event locked until verification is complete.</p>
+            ) : null}
 
-        <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_318px]">
-          <div>
-            <div className="space-y-4">
-              {shouldShowSetupRail ? (
-                <section className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StateTag tone="warning">{setupMode ? "setup mode" : "first world"}</StateTag>
-                    <StateTag>{lobbies.length === 0 ? "no rooms yet" : "next steps"}</StateTag>
-                  </div>
-                  <h2 className="mt-5 text-[2rem] font-black leading-[0.94] tracking-[-0.06em] text-[#0e0e0f]">
-                    Open tables. Queue first event.
-                  </h2>
-                  <p className="mt-4 max-w-[620px] text-[16px] leading-8 text-[#525257]">
-                    Create room. Copy link. Queue event.
-                  </p>
+            {!isAuthoringSurface ? (
+              <WebHandoffNotice
+                title="Venue setup stays on web."
+                detail="Room creation, event setup, branding, and rules editing stay on the browser surface."
+                to={`/worlds/${world.id}/settings`}
+              />
+            ) : null}
 
-                  <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {setupSteps.map((step, index) => (
-                      <div key={step.label} className="border border-[#0e0e0f]/12 bg-white px-4 py-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="board-rail-label text-[11px] text-[#525257]">
-                            {String(index + 1).padStart(2, "0")}
-                          </p>
-                          <StateTag tone={step.done ? "success" : step.optional ? "warning" : "normal"}>
-                            {step.done ? "done" : step.optional ? "optional" : "open"}
-                          </StateTag>
-                        </div>
-                        <p className="mt-2 text-[15px] font-semibold leading-7 text-[#0e0e0f]">{step.label}</p>
-                      </div>
-                    ))}
-                  </div>
+            {user && isAuthoringSurface ? <CreateLobby userId={user.id} worldId={world.id} /> : null}
+          </SystemSection>
+        ) : null}
 
-                  {hasCompetitiveEvent && !competitiveReady ? (
-                    <div className="mt-6 retro-warning-strip">
-                      Competitive event locked. Verify first.
-                    </div>
-                  ) : null}
-
-                  {!isAuthoringSurface && canManage ? (
-                    <div className="mt-8">
-                      <WebHandoffNotice
-                        title="Venue setup stays on web."
-                        detail="Mobile and Discord can run the live room, but room creation, branding, and rules editing stay on the browser surface."
-                        to={`/worlds/${world.id}/variants`}
-                      />
-                    </div>
-                  ) : null}
-
-                  {user && isAuthoringSurface ? (
-                    <div className="mt-8">
-                      <CreateLobby userId={user.id} worldId={world.id} />
-                    </div>
-                  ) : null}
-                </section>
-              ) : null}
-
+        <SystemSection
+          label="Rooms"
+          title={lobbies.length ? `${lobbies.length} waiting room${lobbies.length === 1 ? "" : "s"}` : "No waiting rooms"}
+          description="Choose one room when you are ready to enter."
+        >
+          {lobbies.length ? (
+            <DecisionLane className="mt-1">
               {lobbies.map((lobby) => (
                 <LobbyCard
                   key={lobby.id}
@@ -358,89 +271,64 @@ export default function WorldView() {
                   currentUserId={user?.id}
                 />
               ))}
+            </DecisionLane>
+          ) : (
+            <p className="system-empty">No rooms are waiting right now.</p>
+          )}
+        </SystemSection>
 
+        {matches.length ? (
+          <SystemSection label="Live boards" title={`${matches.length} active board${matches.length === 1 ? "" : "s"}`}>
+            <DecisionLane>
               {matches.map((match) => (
                 <button
                   key={match.id}
                   onClick={() => navigate(`/match/${match.id}`)}
-                  className="grid w-full gap-4 border border-[#0e0e0f]/16 bg-[#fbfaf8] px-4 py-4 text-left transition-colors duration-150 hover:bg-[#efebe3] md:grid-cols-[minmax(0,1fr)_72px]"
+                  className="decision-entry"
                 >
-                  <div>
-                    <h2 className="text-[1.6rem] font-black leading-[0.96] tracking-[-0.05em] text-[#0e0e0f]">
-                      {match.label ?? `${match.gameKey} match`}
-                    </h2>
-                    <p className="mt-2 text-[15px] leading-7 text-[#525257]">
-                      Live now. {match.size}x{match.size}. {match.allowSpectators ? "Spectators allowed." : "Players only."}
-                    </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <UtilityPill strong>{match.allowSpectators ? "open" : "locked"}</UtilityPill>
+                    <h3 className="ops-directory-row__title">{match.label ?? `${match.gameKey} live board`}</h3>
                   </div>
-                  <div className="border-l border-[#0e0e0f]/12 pl-4">
-                    <p className="board-rail-label text-[11px] text-[#525257]">LIVE</p>
-                    <p className="mt-2 text-[2.1rem] font-extrabold leading-none tracking-[-0.07em] text-[#0e0e0f]">
-                      {match.allowSpectators ? "OPEN" : "LOCK"}
-                    </p>
-                  </div>
+                  <p className="ops-directory-row__meta">
+                    {match.size}x{match.size}. {match.allowSpectators ? "Spectators allowed." : "Players only."}
+                  </p>
                 </button>
               ))}
+            </DecisionLane>
+          </SystemSection>
+        ) : null}
 
+        <SystemSection
+          label="Events"
+          title={events.length ? `${events.length} queued event${events.length === 1 ? "" : "s"}` : "No queued events"}
+          description="Open the current bracket only when the room matters."
+        >
+          {events.length ? (
+            <DecisionLane>
               {events.map((event) => (
                 <button
                   key={event.id}
                   onClick={() => navigate(`/tournament/${event.id}`)}
-                  className="grid w-full gap-4 border border-[#0e0e0f]/16 bg-[#fbfaf8] px-4 py-4 text-left transition-colors duration-150 hover:bg-[#efebe3] md:grid-cols-[minmax(0,1fr)_72px]"
+                  className="decision-entry"
                 >
-                  <div>
-                    <h2 className="text-[1.6rem] font-black leading-[0.96] tracking-[-0.05em] text-[#0e0e0f]">
-                      {event.name}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <StateTag tone={event.competitiveMode ? "warning" : "normal"}>
-                        {event.competitiveMode ? "competitive" : "casual"}
-                      </StateTag>
-                    </div>
-                    <p className="mt-2 text-[15px] leading-7 text-[#525257]">
-                      {event.description || `Starts ${event.status === "active" ? "now" : "soon"}. Open bracket.`}
-                    </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <UtilityPill strong>{event.competitiveMode ? "competitive" : "casual"}</UtilityPill>
+                    <h3 className="ops-directory-row__title">{event.name}</h3>
                   </div>
-                  <div className="border-l border-[#0e0e0f]/12 pl-4">
-                    <p className="board-rail-label text-[11px] text-[#525257]">
-                      {event.status.toUpperCase()}
-                    </p>
-                    <p className="mt-2 text-[2.1rem] font-extrabold leading-none tracking-[-0.07em] text-[#0e0e0f]">
-                      {String(event.participantCount).padStart(2, "0")}
-                    </p>
-                  </div>
+                  <p className="ops-directory-row__meta">
+                    {event.description || `Starts ${event.status === "active" ? "now" : "soon"}. Open bracket.`}
+                  </p>
                 </button>
               ))}
-
-              {!canManage && !hasLiveSurfaces ? (
-                <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-6">
-                  <p className="text-[16px] leading-7 text-[#525257]">
-                    No rooms. No events. Host has not opened play.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <aside className="space-y-4">
-            <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-5">
-              <p className="board-rail-label text-[11px] text-[#525257]">Room count</p>
-              <p className="mt-4 text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
-                {world.instanceCount}
-              </p>
-              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">open tables</p>
-            </div>
-
-            <div className="border border-[#0e0e0f] bg-[#fbfaf8] p-5">
-              <p className="board-rail-label text-[11px] text-[#525257]">Event count</p>
-              <p className="mt-4 text-[68px] font-extrabold leading-none tracking-[-0.08em] text-[#0e0e0f]">
-                {world.eventCount}
-              </p>
-              <p className="board-rail-label mt-2 text-[11px] text-[#525257]">events queued</p>
-            </div>
-          </aside>
-        </div>
-      </div>
+            </DecisionLane>
+          ) : (
+            <p className="system-empty">
+              {canManage ? "No events are queued yet." : "No rooms. No events. Host has not opened play."}
+            </p>
+          )}
+        </SystemSection>
+      </SystemScreen>
 
       {canManage ? (
         <CreateTournamentDialog

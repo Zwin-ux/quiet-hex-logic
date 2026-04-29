@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { supabase } from "@/integrations/supabase/client";
 import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
@@ -77,45 +78,58 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
   };
 
   return (
-    <div className="border border-black bg-[#fbfaf8] px-4 py-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6">
+    <div className="decision-entry" role="group" aria-label={`${lobby.code} room`}>
       <div className="min-w-0">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StateTag tone={isFull ? "warning" : "success"}>{isFull ? "full" : "open"}</StateTag>
           {isHost ? <StateTag>host</StateTag> : null}
           {lobby.world_name ? <StateTag>{lobby.world_name}</StateTag> : null}
-          <StateTag>{gameKey}</StateTag>
+          <StateTag>{gameKey.replace("connect4", "connect 4")}</StateTag>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <h3 className="board-section-title">{lobby.code} room</h3>
-          <span className="text-[11px] uppercase tracking-[0.16em] text-black/55">{timeText}</span>
+        <div className="mt-3 flex items-start gap-3">
+          <div className="system-onboarding-choice__glyph h-10 w-10">
+            <BoardScene game={gameKey as BoardSceneKey} state={isFull ? "static" : "idle"} decorative className="h-5 w-5 text-[#090909]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="ops-directory-row__title">{lobby.code} room</h3>
+              <span className="utility-pill">{timeText}</span>
+            </div>
+            <p className="mt-2 text-sm leading-7 text-black/68">
+              Hosted by <span className="font-semibold text-black">{hostUsername}</span>. {playerCount}/2 seats taken.
+            </p>
+          </div>
         </div>
-
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-black/68">
-          Hosted by <span className="font-semibold text-black">{hostUsername}</span>. {playerCount}/2 seats taken.
-        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="board-meta-chip">
+          <span className="utility-pill">
             {lobby.board_size}x{lobby.board_size}
           </span>
           {gameKey !== "chess" && gameKey !== "checkers" && gameKey !== "ttt" && lobby.pie_rule ? (
-            <span className="board-meta-chip">swap allowed</span>
+            <span className="utility-pill">swap allowed</span>
           ) : null}
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-0 md:justify-end">
-        <Button type="button" variant="quiet" size="icon" onClick={copyCode} className="h-11 w-11">
+      <div className="decision-entry__focus">
+        <p className="system-inline-note">
+          {isHost ? "Open the waiting room and start when both seats lock in." : isFull ? "Watch the room or wait for a seat to open." : "Commit to this room when you are ready."}
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="ghost" size="icon" onClick={copyCode} className="h-11 w-11 border-0">
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        </Button>
-        {isHost ? (
-          <Button onClick={enterLobby}>Enter room</Button>
-        ) : (
-          <Button onClick={joinLobby} disabled={joining || isFull} variant={isFull ? "destructive" : "hero"}>
-            {isFull ? "Room full" : joining ? "Joining..." : "Join room"}
           </Button>
-        )}
+          {isHost ? (
+            <Button onClick={enterLobby} variant="hero" className="border-0">
+              Enter room
+            </Button>
+          ) : (
+            <Button onClick={joinLobby} disabled={joining || isFull} variant={isFull ? "destructive" : "hero"} className="border-0">
+              {isFull ? "Room full" : joining ? "Joining..." : "Join room"}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

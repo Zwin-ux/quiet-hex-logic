@@ -1,10 +1,14 @@
 import React from "react";
 import { ArrowLeft, RefreshCw, Sparkles } from "lucide-react";
-import { AIThinkingIndicator } from "@/components/AIThinkingIndicator";
 import { AnimatedRatingChange } from "@/components/AnimatedRatingChange";
 import { VictoryConfetti } from "@/components/VictoryConfetti";
+import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
+import {
+  SystemSection,
+  UtilityPill,
+  UtilityStrip,
+} from "@/components/board/SystemSurface";
 import { Button } from "@/components/ui/button";
 import type { MatchData, Player, RatingResult } from "@/hooks/useMatchState";
 import type { BoardSkin } from "@/lib/boardSkins";
@@ -112,36 +116,47 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const resultTitle =
+    match.result === "draw"
+      ? "Draw"
+      : match.winner === userPlayer?.color
+        ? "Victory"
+        : isAIMatch && match.winner === 2
+          ? "Computer wins"
+          : "Game over";
+
   return (
-    <div className="w-full space-y-4">
+    <div className="space-y-4">
       {showAIReasoning && aiReasoning ? (
-        <VenuePanel
-          eyebrow="Reasoning"
-          title="Engine note"
+        <SystemSection
+          label="Engine note"
+          title="Why this move"
           description={aiReasoning}
-          className="w-full"
-          state="warning"
-          titleBarEnd={<StateTag tone="warning">expert only</StateTag>}
+          actions={<StateTag tone="warning">expert only</StateTag>}
         >
-          <div className="retro-status-strip justify-between bg-white">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span>Why this move</span>
-            </div>
-            <span>analysis open</span>
-          </div>
-        </VenuePanel>
+          <UtilityStrip>
+            <UtilityPill><Sparkles className="h-3.5 w-3.5" /> analysis open</UtilityPill>
+          </UtilityStrip>
+        </SystemSection>
       ) : null}
 
       {match.status === "active" ? (
-        <div className="retro-status-strip justify-between gap-3 bg-white px-4 py-4">
-          <span>{statusCopy}</span>
-          {timeRemaining != null ? <StateTag tone={timeRemaining <= 10 ? "critical" : timeRemaining <= 30 ? "warning" : "success"}>{formatTime(timeRemaining)}</StateTag> : null}
-        </div>
+        <UtilityStrip>
+          <UtilityPill strong>{statusCopy}</UtilityPill>
+          <UtilityPill>{`move ${Math.max(match.turn - 1, 0)}`}</UtilityPill>
+          <UtilityPill>
+            {currentColor === 1 ? `${player1?.username || "seat a"} to move` : `${player2?.username || "seat b"} to move`}
+          </UtilityPill>
+          {timeRemaining != null ? (
+            <StateTag tone={timeRemaining <= 10 ? "critical" : timeRemaining <= 30 ? "warning" : "success"}>
+              {formatTime(timeRemaining)}
+            </StateTag>
+          ) : null}
+        </UtilityStrip>
       ) : null}
 
-      <section className="border-2 border-black bg-[#fbfaf8] p-3 md:p-4">
-        <div className="aspect-square w-full border border-black bg-[#f6f4f0] p-2 md:p-3">
+      <section className="match-stage">
+        <div className="match-stage__inner">
           {Board ? (
             <Board
               engine={engine}
@@ -156,15 +171,16 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
               onSwapColors={onSwapColors}
             />
           ) : (
-            <div className="flex h-full items-center justify-center border border-black bg-white text-black">
-              <div className="space-y-2 p-6 text-center">
+            <div className="match-stage__missing">
+              <div className="space-y-3 p-6 text-center">
+                <BoardScene game={gameKey as BoardSceneKey} state="static" decorative className="mx-auto h-10 w-10 text-[#090909]" />
                 <div className="board-rail-label">Missing board UI</div>
                 <div className="board-section-title">{gameKey}</div>
                 <div className="text-xs">
                   Add a <span className="font-mono">boardComponent</span> in{" "}
                   <span className="font-mono">src/lib/engine/registry.ts</span>.
                 </div>
-                <Button variant="outline" size="sm" onClick={() => onNavigate("/docs")}>
+                <Button variant="ghost" size="sm" className="border-0" onClick={() => onNavigate("/docs")}>
                   Open docs
                 </Button>
               </div>
@@ -173,23 +189,11 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
         </div>
       </section>
 
-      <div className="retro-status-strip flex-wrap gap-3 bg-white px-4 py-4">
-        <StateTag>{`move ${Math.max(match.turn - 1, 0)}`}</StateTag>
-        <StateTag tone={match.status === "active" ? "success" : "warning"}>
-          {currentColor === 1 ? `${player1?.username || "seat a"} to move` : `${player2?.username || "seat b"} to move`}
-        </StateTag>
-        <StateTag>{match.status === "finished" ? "review ready" : "replay ready"}</StateTag>
-      </div>
-
-      {match.status === "active" && canSwap ? (
-        <div className="retro-warning-strip w-full text-center">Swap colors is available on this turn.</div>
-      ) : null}
-
-      {isAIMatch && currentColor === 2 && match.status === "active" ? (
-        <div className="w-full lg:hidden">
-          <AIThinkingIndicator isThinking={aiThinking} difficulty={match.ai_difficulty} />
-        </div>
-      ) : null}
+      <UtilityStrip>
+        <UtilityPill>{match.status === "finished" ? "review ready" : "replay ready"}</UtilityPill>
+        {canSwap ? <UtilityPill strong>swap available</UtilityPill> : null}
+        {isAIMatch && match.status === "active" ? <UtilityPill>{aiThinking ? "computer thinking" : "computer ready"}</UtilityPill> : null}
+      </UtilityStrip>
 
       {match.status === "finished" && (match.winner || match.result === "draw") ? (
         <>
@@ -198,32 +202,22 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
             winnerColor={(match.winner || 1) as 1 | 2}
           />
 
-          <VenuePanel
-            eyebrow="Instance result"
-            title={
-              match.result === "draw"
-                ? "Draw"
-                : match.winner === userPlayer?.color
-                  ? "Victory"
-                  : isAIMatch && match.winner === 2
-                    ? "Computer wins"
-                    : "Game over"
-            }
+          <SystemSection
+            label="Resolved"
+            title={resultTitle}
             description={
               match.result === "draw"
                 ? "The board closed level."
                 : `${match.winner === 1 ? player1?.username : player2?.username} closed the room.`
             }
-            className="w-full"
-            state={match.result === "draw" ? "warning" : match.winner === userPlayer?.color ? "normal" : "critical"}
-            titleBarEnd={
+            actions={
               <StateTag tone={match.result === "draw" ? "warning" : match.winner === userPlayer?.color ? "success" : "critical"}>
                 {match.result === "draw" ? "level" : match.winner === userPlayer?.color ? "won" : "closed"}
               </StateTag>
             }
           >
             {match.is_ranked && ratingResult ? (
-              <div className="space-y-3 border-t border-black pt-4">
+              <div className="space-y-3 pt-2">
                 <p className="board-rail-label">Rating changes</p>
                 {player1 && !player1.is_bot ? (
                   <AnimatedRatingChange
@@ -250,23 +244,23 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
 
             <div className="flex flex-wrap gap-3">
               {isAIMatch ? (
-                <Button onClick={onPlayAgainAI}>
+                <Button onClick={onPlayAgainAI} variant="hero" className="border-0">
                   <RefreshCw className="h-4 w-4" />
                   Play again
                 </Button>
               ) : isPlayer && !isLocalMatch ? (
-                <Button onClick={onRematch} disabled={requestingRematch}>
+                <Button onClick={onRematch} disabled={requestingRematch} variant="hero" className="border-0">
                   <RefreshCw className={`h-4 w-4 ${requestingRematch ? "animate-spin" : ""}`} />
                   {requestingRematch ? "Creating..." : "Rematch"}
                 </Button>
               ) : null}
 
-              <Button variant="outline" onClick={() => onNavigate("/play")}>
+              <Button variant="ghost" className="border-0" onClick={() => onNavigate("/play")}>
                 <ArrowLeft className="h-4 w-4" />
                 {isAIMatch ? "Back to play" : "Exit room"}
               </Button>
             </div>
-          </VenuePanel>
+          </SystemSection>
         </>
       ) : null}
     </div>

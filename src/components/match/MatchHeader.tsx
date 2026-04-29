@@ -1,8 +1,10 @@
 import { ArrowLeft, BookOpen, Eye, EyeOff, Flag, Handshake, RotateCcw, Sparkles } from "lucide-react";
+import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
 import { StateTag } from "@/components/board/StateTag";
-import { Button } from "@/components/ui/button";
+import { SystemScreen, UtilityPill, UtilityStrip } from "@/components/board/SystemSurface";
 import { MusicControls } from "@/components/MusicControls";
+import { Button } from "@/components/ui/button";
 import type { MatchData, Player } from "@/hooks/useMatchState";
 
 function matchDims(match: MatchData): string {
@@ -82,49 +84,41 @@ export function MatchHeader({
   onToggleAIReasoning,
 }: MatchHeaderProps) {
   const modeLabel = isAIMatch ? "practice" : isLocalMatch ? "local" : "network";
-  const title =
-    isAIMatch
-      ? "Practice surface"
-      : `Room ${match.id.slice(0, 4).toUpperCase()} · ${matchDims(match)}`;
+  const gameKey = (((match as any)?.game_key ?? "hex") as string) as BoardSceneKey;
+  const title = isAIMatch ? "Practice board" : `Room ${match.id.slice(0, 4).toUpperCase()}`;
   const subtitle = isAIMatch
-    ? "Single-board practice with full room chrome."
-    : "A live surface should answer what room this is, who owns it, and what state it is in before the user even looks at the moves.";
+    ? `${matchDims(match)} / local AI`
+    : `${matchDims(match)} / ${spectatorCount} watching`;
+  const activeState =
+    match.status === "active" ? "live" : match.result === "draw" ? "draw" : "closed";
+  const statusTone =
+    match.status === "active" ? "success" : match.result === "draw" ? "warning" : "critical";
+  const activeVariant = variantLabel(match);
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-5">
-          <BoardWordmark className="text-[42px] md:text-[56px]" />
-
-          <div className="retro-status-strip w-fit flex-wrap gap-3 bg-white px-4 py-4">
-            <StateTag>{`room ${match.id.slice(0, 4).toUpperCase()}`}</StateTag>
-            <StateTag tone={match.status === "active" ? "success" : match.result === "draw" ? "warning" : "critical"}>
-              {match.status === "active" ? "live" : match.result === "draw" ? "draw" : "closed"}
-            </StateTag>
-            {!isAIMatch ? <StateTag>{spectatorCount} watching</StateTag> : null}
-            <StateTag>{modeLabel}</StateTag>
-            {variantLabel(match) ? <StateTag>{variantLabel(match)}</StateTag> : null}
-          </div>
-
-          <div className="max-w-3xl space-y-3">
-            <h1 className="board-page-title max-w-[720px] text-[3rem] leading-[0.94] md:text-[4rem]">
-              {title}
-            </h1>
-            <p className="board-copy max-w-[620px] text-[17px] leading-8 text-black/68">{subtitle}</p>
-          </div>
-
-          {drawOfferedBy != null && match.status === "active" ? (
-            <div className="retro-warning-strip">Draw offer waiting on response.</div>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap gap-3 xl:max-w-[460px] xl:justify-end">
-          <Button variant="outline" size="icon" className="h-12 w-12" onClick={onBack}>
+    <SystemScreen
+      compact
+      label={modeLabel}
+      title={
+        <span className="inline-flex items-center gap-3">
+          <BoardScene
+            game={gameKey}
+            state={match.status === "active" ? "idle" : match.result === "draw" ? "static" : "success"}
+            decorative
+            className="h-8 w-8 text-[#090909]"
+          />
+          <span>{title}</span>
+        </span>
+      }
+      description={subtitle}
+      actions={
+        <>
+          <Button variant="ghost" size="icon" className="h-11 w-11 border-0" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
 
           {match.status === "finished" && !isAIMatch && isPlayer && !isLocalMatch ? (
-            <Button variant="outline" onClick={onRematch} disabled={requestingRematch}>
+            <Button variant="ghost" className="border-0" onClick={onRematch} disabled={requestingRematch}>
               <RotateCcw className="h-4 w-4" />
               Rematch
             </Button>
@@ -132,23 +126,23 @@ export function MatchHeader({
 
           {match.status === "active" && isPlayer && !isAIMatch && !isLocalMatch ? (
             <>
-              <Button variant="outline" onClick={onForfeit}>
+              <Button variant="ghost" className="border-0" onClick={onForfeit}>
                 <Flag className="h-4 w-4" />
                 Forfeit
               </Button>
               {drawOfferedBy == null ? (
-                <Button variant="outline" onClick={onOfferDraw}>
+                <Button variant="ghost" className="border-0" onClick={onOfferDraw}>
                   <Handshake className="h-4 w-4" />
                   Offer draw
                 </Button>
               ) : null}
               {drawOfferedBy != null && drawOfferedBy !== userPlayer?.color ? (
                 <>
-                  <Button onClick={onAcceptDraw}>
+                  <Button variant="hero" className="border-0" onClick={onAcceptDraw}>
                     <Handshake className="h-4 w-4" />
                     Accept draw
                   </Button>
-                  <Button variant="outline" onClick={onDeclineDraw}>
+                  <Button variant="ghost" className="border-0" onClick={onDeclineDraw}>
                     Decline
                   </Button>
                 </>
@@ -157,15 +151,15 @@ export function MatchHeader({
           ) : null}
 
           {!isAIMatch && !isPlayer && !isLocalMatch ? (
-            <Button variant={isSpectating ? "hero" : "outline"} onClick={onToggleSpectate}>
+            <Button variant={isSpectating ? "hero" : "ghost"} className="border-0" onClick={onToggleSpectate}>
               {isSpectating ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               {isSpectating ? "Leave watch" : "Watch room"}
             </Button>
           ) : null}
 
-          <Button variant="outline" onClick={onShowTutorial}>
+          <Button variant="ghost" className="border-0" onClick={onShowTutorial}>
             <BookOpen className="h-4 w-4" />
-            How to play
+            Rules
           </Button>
 
           <MusicControls
@@ -178,13 +172,28 @@ export function MatchHeader({
           />
 
           {isAIMatch && match.ai_difficulty === "expert" && aiReasoning ? (
-            <Button variant={showAIReasoning ? "hero" : "outline"} onClick={onToggleAIReasoning}>
+            <Button variant={showAIReasoning ? "hero" : "ghost"} className="border-0" onClick={onToggleAIReasoning}>
               <Sparkles className="h-4 w-4" />
               {showAIReasoning ? "Hide reasoning" : "Show reasoning"}
             </Button>
           ) : null}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <BoardWordmark className="text-[28px] md:text-[32px]" />
         </div>
+        <UtilityStrip>
+          <StateTag tone={statusTone}>{activeState}</StateTag>
+          {!isAIMatch ? <UtilityPill>{spectatorCount} watching</UtilityPill> : null}
+          <UtilityPill>{matchDims(match)}</UtilityPill>
+          {activeVariant ? <UtilityPill>{activeVariant}</UtilityPill> : null}
+        </UtilityStrip>
+        {drawOfferedBy != null && match.status === "active" ? (
+          <p className="system-inline-note">Draw offer waiting on response.</p>
+        ) : null}
       </div>
-    </section>
+    </SystemScreen>
   );
 }

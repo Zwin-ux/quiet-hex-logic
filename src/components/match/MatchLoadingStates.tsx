@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { SiteFrame } from '@/components/board/SiteFrame';
-import { SkeletalBoardScene } from '@/components/board/SkeletalBoardScene';
+import { BoardScene } from '@/components/board/BoardScene';
 import { Loader2 } from 'lucide-react';
 
 interface MatchLoadingProps {
@@ -9,10 +9,10 @@ interface MatchLoadingProps {
 
 export function MatchLoading() {
   return (
-    <SiteFrame showNav={false} contentClassName="flex min-h-screen items-center justify-center py-12">
+    <SiteFrame showNav={false} visualMode="mono" contentClassName="flex min-h-screen items-center justify-center py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center">
-        <div className="w-full max-w-2xl">
-          <SkeletalBoardScene variant="compact" className="min-h-[260px]" />
+        <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white">
+          <BoardScene game="hex" state="loading" decorative className="h-10 w-10 text-[#090909]" />
         </div>
         <div>
           <p className="board-rail-label">Instance loading</p>
@@ -29,10 +29,10 @@ export function MatchLoading() {
 
 export function MatchWaiting({ onCancel }: MatchLoadingProps) {
   return (
-    <SiteFrame showNav={false} contentClassName="flex min-h-screen items-center justify-center py-12">
+    <SiteFrame showNav={false} visualMode="mono" contentClassName="flex min-h-screen items-center justify-center py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center">
-        <div className="w-full max-w-2xl">
-          <SkeletalBoardScene variant="compact" className="min-h-[260px]" />
+        <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white">
+          <BoardScene game="hex" state="loading" decorative className="h-10 w-10 text-[#090909]" />
         </div>
         <div>
           <p className="board-rail-label">Queue state</p>

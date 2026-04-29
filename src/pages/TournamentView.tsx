@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { AlertCircle, Award, Play, Trophy, UserMinus, UserPlus, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, Play, Trophy, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { StateTag } from "@/components/board/StateTag";
-import { VenuePanel } from "@/components/board/VenuePanel";
-import { MetricLine } from "@/components/board/MetricLine";
+import {
+  DecisionLane,
+  SystemScreen,
+  SystemSection,
+  UtilityPill,
+  UtilityStrip,
+} from "@/components/board/SystemSurface";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -51,6 +55,7 @@ export default function TournamentView() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isWeb } = useSurfaceCapabilities();
+  const bracketRef = useRef<HTMLDivElement | null>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [worldContext, setWorldContext] = useState<{ id: string; name: string } | null>(null);
@@ -296,183 +301,193 @@ export default function TournamentView() {
     !isCreator;
   const shouldShowCompetitiveGate =
     tournament.competitive_mode && Boolean(user) && !viewerIsVerifiedHuman;
+  const seatsLabel = `${participants.length}/${tournament.max_players} seats`;
+  const phaseLabel = tournament.status === "registration" ? "join open" : "bracket live";
+  const decisionLabel = useMemo(() => {
+    if (tournament.status === "registration") {
+      if (participants.length < tournament.min_players) {
+        return `Need ${tournament.min_players - participants.length} more player${tournament.min_players - participants.length === 1 ? "" : "s"}.`;
+      }
+      return `${participants.length} players ready.`;
+    }
+
+    return "Bracket is running. Open the current state.";
+  }, [participants.length, tournament.min_players, tournament.status]);
+
+  const openBracket = () => {
+    bracketRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
-    <SiteFrame>
-      <div className="mb-5 flex flex-wrap items-center gap-4 text-sm font-semibold text-muted-foreground">
-        {worldContext ? (
-          <button onClick={() => navigate(`/worlds/${worldContext.id}`)} className="transition-colors hover:text-foreground">
-            Back to {worldContext.name}
-          </button>
+    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+      <SystemScreen
+        label="Event"
+        title={tournament.name}
+        description={
+          tournament.description || (tournament.competitive_mode ? "Competitive bracket." : "Open bracket.")
+        }
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              className="border-0"
+              onClick={() => navigate(worldContext ? `/worlds/${worldContext.id}` : "/events")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {worldContext ? `Back to ${worldContext.name}` : "Back to events"}
+            </Button>
+            {tournament.status !== "registration" ? (
+              <Button variant="hero" className="border-0" onClick={openBracket}>
+                Open bracket
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <UtilityStrip>
+          <UtilityPill strong>{tournament.status}</UtilityPill>
+          <UtilityPill>{tournament.competitive_mode ? "competitive" : "casual"}</UtilityPill>
+          <UtilityPill>{tournament.format === "single_elimination" ? "single elim" : "round robin"}</UtilityPill>
+          <UtilityPill>{seatsLabel}</UtilityPill>
+          <UtilityPill>
+            {tournament.access_type === "world_members"
+              ? "members"
+              : tournament.access_type === "access_code"
+                ? "code"
+                : "public"}
+          </UtilityPill>
+          {variantLabel ? <UtilityPill>{variantLabel}</UtilityPill> : null}
+        </UtilityStrip>
+
+        {shouldShowCompetitiveGate ? (
+          <SystemSection
+            label="Competitive gate"
+            title="Verify before you join."
+            description={competitiveJoinBlocked || "World ID required for ranked entry."}
+            actions={
+              <Button variant="hero" className="border-0" onClick={() => navigate("/profile#identity")}>
+                <AlertCircle className="h-4 w-4" />
+                Open trust settings
+              </Button>
+            }
+          />
         ) : null}
-        <button onClick={() => navigate("/events")} className="transition-colors hover:text-foreground">
-          Back to events
-        </button>
-      </div>
 
-      <section className="border border-[#090909] bg-[#090909] px-6 py-6 text-[#f3efe6] md:px-8 md:py-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <StateTag>{tournament.status}</StateTag>
-          <StateTag tone={tournament.competitive_mode ? "warning" : "normal"}>
-            {tournament.competitive_mode ? "competitive" : "casual"}
-          </StateTag>
-          <StateTag>{tournament.format === "single_elimination" ? "single elim" : "round robin"}</StateTag>
-          {variantLabel ? <StateTag>{variantLabel}</StateTag> : null}
-        </div>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
-          <div className="min-w-0">
-            <h1 className="text-[clamp(3rem,5vw,5rem)] font-black leading-[0.9] tracking-[-0.07em] text-[#f3efe6]">
-              {tournament.name}
-            </h1>
-            <p className="mt-5 max-w-[34rem] text-[17px] leading-8 text-white/72">
-              {tournament.description || (tournament.competitive_mode ? "Competitive bracket." : "Open bracket.")}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 xl:max-w-[280px] xl:justify-end">
-            {tournament.registration_url && isWeb ? (
-              <Button
-                variant="outline"
-                onClick={() => window.open(tournament.registration_url as string, "_blank", "noopener,noreferrer")}
-              >
-                Open signup link
-              </Button>
-            ) : null}
-            {canJoin ? (
-              <Button onClick={handleJoin} disabled={actionLoading}>
-                <UserPlus className="h-4 w-4" />
-                Join event
-              </Button>
-            ) : null}
-            {canLeave ? (
-              <Button variant="outline" onClick={handleLeave} disabled={actionLoading}>
-                <UserMinus className="h-4 w-4" />
-                Leave
-              </Button>
-            ) : null}
-            {canStart ? (
-              <Button onClick={handleStart} disabled={actionLoading}>
-                <Play className="h-4 w-4" />
-                Start
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {shouldShowCompetitiveGate ? (
-        <VenuePanel
-          className="mt-6"
-          eyebrow="Competitive gate"
-          title="Verify to join."
-          description={competitiveJoinBlocked || "World ID required."}
-          state="warning"
-          titleBarEnd={<StateTag tone="warning">verification required</StateTag>}
-        >
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={() => navigate("/profile#identity")}>
-              <AlertCircle className="h-4 w-4" />
-              Open trust settings
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/events")}>
-              Back to events
-            </Button>
-          </div>
-        </VenuePanel>
-      ) : null}
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <VenuePanel eyebrow="Participants" title={`${participants.length}/${tournament.max_players} seats`}>
-          {participants.length === 0 ? (
-            <div className="border-t border-black/10 pt-4 text-sm leading-7 text-muted-foreground">
-              No players yet.
+        <SystemSection
+          label="Commit"
+          title={phaseLabel}
+          description={decisionLabel}
+          actions={
+            <div className="flex flex-wrap gap-3">
+              {tournament.registration_url && isWeb ? (
+                <Button
+                  variant="ghost"
+                  className="border-0"
+                  onClick={() =>
+                    window.open(tournament.registration_url as string, "_blank", "noopener,noreferrer")
+                  }
+                >
+                  Open signup link
+                </Button>
+              ) : null}
+              {canJoin ? (
+                <Button variant="hero" className="border-0" onClick={handleJoin} disabled={actionLoading}>
+                  <UserPlus className="h-4 w-4" />
+                  Join event
+                </Button>
+              ) : null}
+              {canLeave ? (
+                <Button variant="ghost" className="border-0" onClick={handleLeave} disabled={actionLoading}>
+                  <UserMinus className="h-4 w-4" />
+                  Leave
+                </Button>
+              ) : null}
+              {canStart ? (
+                <Button variant="hero" className="border-0" onClick={handleStart} disabled={actionLoading}>
+                  <Play className="h-4 w-4" />
+                  Start
+                </Button>
+              ) : null}
             </div>
-          ) : (
-            <div className="divide-y divide-black/10 border-t border-black/10">
-              {participants.map((participant) => (
-                <div key={participant.player_id} className="flex items-center gap-3 py-4">
-                  <div className="board-rail-label w-8 text-[10px] text-black/45">
-                    {participant.seed ? `#${participant.seed}` : "--"}
-                  </div>
-                  <UserAvatar
-                    username={participant.profiles.username}
-                    color={participant.profiles.avatar_color}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{participant.profiles.username}</p>
-                    {participant.status !== "active" ? (
-                      <p className="text-xs text-muted-foreground">{participant.status}</p>
-                    ) : null}
-                  </div>
-                  {participant.player_id === tournament.created_by ? (
-                    <span className="board-rail-label rounded-md border border-black bg-black px-2 py-1 text-[10px] text-white">
-                      Host
-                    </span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </VenuePanel>
-
-        <VenuePanel
-          eyebrow="Competition state"
-          title={tournament.status === "registration" ? "Join open" : "Bracket live"}
-          description={
-            tournament.status === "registration"
-              ? participants.length < tournament.min_players
-                ? `Need ${tournament.min_players - participants.length} more player(s).`
-                : `${participants.length} ready.`
-              : "Bracket live."
           }
         >
-          <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="space-y-1 border-b border-black/10 pb-4 xl:border-b-0 xl:border-r xl:pb-0 xl:pr-5">
-              <MetricLine icon={Users} label="Players" value={`${participants.length}/${tournament.max_players}`} />
-              <MetricLine label="Board" value={`${tournament.board_size}x${tournament.board_size}`} />
-              <MetricLine label="Format" value={tournament.format === "single_elimination" ? "single elim" : "round robin"} />
-              <MetricLine label="Mode" value={tournament.competitive_mode ? "competitive" : "casual"} />
-              <MetricLine label="Access" value={tournament.access_type === "world_members" ? "members" : tournament.access_type === "access_code" ? "code" : "public"} />
-              <MetricLine label="Variant" value={variantLabel ?? "standard"} />
-              <MetricLine icon={Award} label="Host" value={isCreator ? "you" : "world owner"} />
+          <UtilityStrip>
+            <UtilityPill strong>{phaseLabel}</UtilityPill>
+            <UtilityPill>{tournament.board_size}x{tournament.board_size}</UtilityPill>
+            <UtilityPill>{tournament.turn_timer_seconds}s turn</UtilityPill>
+            <UtilityPill>{tournament.pie_rule ? "swap on" : "swap off"}</UtilityPill>
+          </UtilityStrip>
+
+          {tournament.access_type === "access_code" && tournament.status === "registration" ? (
+            <div className="mt-4 max-w-xs">
+              <Input
+                value={accessCode}
+                onChange={(event) => setAccessCode(event.target.value)}
+                placeholder="Paid or invite code"
+                className="border-black/10 bg-white"
+              />
             </div>
-            <div>
-              {tournament.status === "registration" ? (
-                <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
-                  <Trophy className="h-14 w-14 text-black/25" />
-                  <div>
-                    <p className="text-2xl font-bold tracking-[-0.04em] text-foreground">
-                      Need more players.
-                    </p>
-                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
-                      Fill seats. Start bracket.
-                    </p>
-                  </div>
-                  {tournament.access_type === "access_code" ? (
-                    <div className="w-full max-w-[260px] space-y-2">
-                      <Input
-                        value={accessCode}
-                        onChange={(event) => setAccessCode(event.target.value)}
-                        placeholder="Paid or invite code"
-                        className="border-black/10 bg-white"
-                      />
+          ) : null}
+
+          {tournament.registration_url && !isWeb ? (
+            <p className="system-inline-note">
+              Signup stays on web. Join here after the host clears or shares your seat.
+            </p>
+          ) : null}
+        </SystemSection>
+
+        <SystemSection label="Seats" title={seatsLabel}>
+          {participants.length ? (
+            <DecisionLane>
+              {participants.map((participant) => (
+                <div key={participant.player_id} className="decision-entry">
+                  <div className="flex items-center gap-3">
+                    <div className="board-rail-label w-8 text-[10px] text-black/45">
+                      {participant.seed ? `#${participant.seed}` : "--"}
                     </div>
-                  ) : null}
-                  {tournament.registration_url && !isWeb ? (
-                    <p className="max-w-xl text-sm leading-7 text-muted-foreground">
-                      Signup stays on web. Join here after the host clears or shares your seat.
-                    </p>
-                  ) : null}
+                    <UserAvatar
+                      username={participant.profiles.username}
+                      color={participant.profiles.avatar_color}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="ops-directory-row__title">{participant.profiles.username}</p>
+                      <p className="ops-directory-row__meta">
+                        {participant.player_id === tournament.created_by ? "Host." : participant.status !== "active" ? participant.status : "Ready."}
+                      </p>
+                    </div>
+                    <UtilityPill strong={participant.player_id === tournament.created_by}>
+                      {participant.player_id === tournament.created_by ? "host" : participant.status}
+                    </UtilityPill>
+                  </div>
                 </div>
-              ) : (
-                <BracketVisualization tournamentId={tournamentId!} />
-              )}
-            </div>
+              ))}
+            </DecisionLane>
+          ) : (
+            <p className="system-empty">No players yet.</p>
+          )}
+        </SystemSection>
+
+        <SystemSection
+          label="Bracket"
+          title={tournament.status === "registration" ? "Waiting to start" : "Current state"}
+          description={tournament.status === "registration" ? "Fill seats. Start bracket." : "Open the current competition state."}
+        >
+          <div ref={bracketRef}>
+            {tournament.status === "registration" ? (
+              <div className="system-empty flex min-h-[220px] flex-col items-center justify-center gap-4 text-center">
+                <Trophy className="h-10 w-10 text-black/35" />
+                <div>
+                  <p className="text-xl font-semibold tracking-[-0.04em] text-foreground">Need more players.</p>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">The bracket stays quiet until the room is full enough to commit.</p>
+                </div>
+              </div>
+            ) : (
+              <BracketVisualization tournamentId={tournamentId!} />
+            )}
           </div>
-        </VenuePanel>
-      </div>
+        </SystemSection>
+      </SystemScreen>
     </SiteFrame>
   );
 }

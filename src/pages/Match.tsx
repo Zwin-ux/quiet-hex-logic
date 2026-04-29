@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useMatchState } from "@/hooks/useMatchState";
 import { useMatchActions } from "@/hooks/useMatchActions";
@@ -7,30 +7,19 @@ import { useMatchTimer } from "@/hooks/useMatchTimer";
 import { useAmbientMusic } from "@/hooks/useAmbientMusic";
 import { TutorialOverlay } from "@/components/TutorialOverlay";
 import { AIThinkingIndicator } from "@/components/AIThinkingIndicator";
-import { BoardWordmark } from "@/components/board/BoardWordmark";
+import { LiveSurface, SystemSection, UtilityPill, UtilityStrip } from "@/components/board/SystemSurface";
 import { SiteFrame } from "@/components/board/SiteFrame";
-import { StateTag } from "@/components/board/StateTag";
 import { MatchHeader } from "@/components/match/MatchHeader";
 import { MatchBoard } from "@/components/match/MatchBoard";
 import { MatchLoading, MatchWaiting } from "@/components/match/MatchLoadingStates";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
-function RailBlock({
-  label,
-  value,
-  inverse = false,
-}: {
-  label: string;
-  value: string;
-  inverse?: boolean;
-}) {
-  return (
-    <div className={`border px-3 py-3 ${inverse ? "border-white text-[#f6f4f0]" : "border-black text-black"}`}>
-      <p className={`text-[11px] uppercase tracking-[0.16em] ${inverse ? "text-[#c7c7cc]" : "text-black/55"}`}>{label}</p>
-      <p className={`mt-2 text-[1.7rem] font-medium leading-tight tracking-[-0.04em] ${inverse ? "text-[#f6f4f0]" : "text-black"}`}>{value}</p>
-    </div>
-  );
+function formatClock(seconds: number | null) {
+  if (seconds == null) return "off";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export default function Match() {
@@ -66,7 +55,6 @@ export default function Match() {
     leaveAsSpectator,
     user,
     discordUser,
-    isDiscordEnvironment,
     loadMatch,
     navigate,
   } = state;
@@ -213,12 +201,8 @@ export default function Match() {
   if (!match || !engine) return <MatchLoading />;
   if (match.status === "waiting") return <MatchWaiting onCancel={() => navigate("/play")} />;
 
-  const discordAvatarUrl =
-    isDiscordLocalMatch && discordUser?.avatar
-      ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=128`
-      : undefined;
-
   const userIdForMoves = isLocalMatch || isLocalAIMatch ? currentPlayer?.profile_id : user?.id;
+
   const handleToggleSpectate = async () => {
     if (!user) return;
     try {
@@ -241,62 +225,51 @@ export default function Match() {
     setRequestingRematch(false);
   };
 
-  const formatClock = (seconds: number | null) => {
-    if (seconds == null) return "off";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const roomMode = isAIMatch ? "practice" : isDiscordLocalMatch || isLocalMatch || isLocalAIMatch ? "local" : "network";
 
   return (
-    <SiteFrame showNav={false} className="ios-safe-area" contentClassName="max-w-[1480px] pb-12 pt-6 md:pt-8">
+    <SiteFrame
+      showNav={false}
+      visualMode="mono"
+      className="ios-safe-area"
+      contentClassName="max-w-[1480px] pb-12 pt-6 md:pt-8"
+    >
       {showTutorial ? <TutorialOverlay onClose={() => setShowTutorial(false)} /> : null}
 
-      <div className="space-y-6">
-        <MatchHeader
-          match={match}
-          isAIMatch={isAIMatch}
-          isPlayer={isPlayer}
-          isSpectating={isSpectating}
-          isLocalMatch={isLocalMatch || isLocalAIMatch}
-          userPlayer={userPlayer}
-          showAIReasoning={showAIReasoning}
-          aiReasoning={ai.aiReasoning}
-          requestingRematch={requestingRematch}
-          drawOfferedBy={match.draw_offered_by}
-          spectatorCount={spectators.length}
-          musicControls={{
-            isPlaying: music.isPlaying,
-            volume: music.volume,
-            isMuted: music.isMuted,
-            toggleMusic: music.toggleMusic,
-            toggleMute: music.toggleMute,
-            updateVolume: music.updateVolume,
-          }}
-          onBack={() => navigate("/play")}
-          onRematch={handleRematch}
-          onForfeit={actions.handleForfeit}
-          onOfferDraw={actions.handleOfferDraw}
-          onAcceptDraw={() => actions.handleRespondDraw(true)}
-          onDeclineDraw={() => actions.handleRespondDraw(false)}
-          onToggleSpectate={handleToggleSpectate}
-          onShowTutorial={() => setShowTutorial(true)}
-          onToggleAIReasoning={() => setShowAIReasoning(!showAIReasoning)}
-        />
-
-        <div className="grid gap-6 xl:grid-cols-[238px_minmax(0,1fr)_238px] xl:items-start">
-          <aside className="space-y-4 border border-black bg-black px-4 py-4 text-[#f6f4f0] xl:sticky xl:top-6">
-            <BoardWordmark className="text-[30px] text-[#f6f4f0]" tone="light" />
-            <h2 className="font-display text-[2rem] font-bold leading-none tracking-[-0.04em]">Live Rail</h2>
-            <p className="text-[15px] leading-7 text-[#c7c7cc]">Seats. Watchers. Clock.</p>
-            <RailBlock inverse label="Seat A" value={player1?.username || "Unknown"} />
-            <RailBlock inverse label="Seat B" value={player2?.username || "Waiting"} />
-            <RailBlock inverse label="Watchers" value={!isAIMatch ? `${spectators.length} live now` : "practice"} />
-            <RailBlock inverse label="Clock" value={formatClock(timeRemaining)} />
-          </aside>
-
+      <LiveSurface
+        header={
+          <MatchHeader
+            match={match}
+            isAIMatch={isAIMatch}
+            isPlayer={isPlayer}
+            isSpectating={isSpectating}
+            isLocalMatch={isLocalMatch || isLocalAIMatch}
+            userPlayer={userPlayer}
+            showAIReasoning={showAIReasoning}
+            aiReasoning={ai.aiReasoning}
+            requestingRematch={requestingRematch}
+            drawOfferedBy={match.draw_offered_by}
+            spectatorCount={spectators.length}
+            musicControls={{
+              isPlaying: music.isPlaying,
+              volume: music.volume,
+              isMuted: music.isMuted,
+              toggleMusic: music.toggleMusic,
+              toggleMute: music.toggleMute,
+              updateVolume: music.updateVolume,
+            }}
+            onBack={() => navigate("/play")}
+            onRematch={handleRematch}
+            onForfeit={actions.handleForfeit}
+            onOfferDraw={actions.handleOfferDraw}
+            onAcceptDraw={() => actions.handleRespondDraw(true)}
+            onDeclineDraw={() => actions.handleRespondDraw(false)}
+            onToggleSpectate={handleToggleSpectate}
+            onShowTutorial={() => setShowTutorial(true)}
+            onToggleAIReasoning={() => setShowAIReasoning(!showAIReasoning)}
+          />
+        }
+        board={
           <MatchBoard
             match={match}
             gameKey={gameKey}
@@ -330,26 +303,50 @@ export default function Match() {
             onPlayAgainAI={actions.handlePlayAgainAI}
             onNavigate={navigate}
           />
+        }
+        rail={
+          <div className="space-y-4">
+            <SystemSection label="Seats" title="Current room">
+              <div className="space-y-3">
+                <div className="match-rail-metric">
+                  <p className="match-rail-metric__label">Seat A</p>
+                  <p className="match-rail-metric__value">{player1?.username || "Unknown"}</p>
+                </div>
+                <div className="match-rail-metric">
+                  <p className="match-rail-metric__label">Seat B</p>
+                  <p className="match-rail-metric__value">{player2?.username || "Waiting"}</p>
+                </div>
+                <div className="match-rail-metric">
+                  <p className="match-rail-metric__label">Watchers</p>
+                  <p className="match-rail-metric__value">
+                    {!isAIMatch ? `${spectators.length} live` : "practice"}
+                  </p>
+                </div>
+                <div className="match-rail-metric">
+                  <p className="match-rail-metric__label">Clock</p>
+                  <p className="match-rail-metric__value">{formatClock(timeRemaining)}</p>
+                </div>
+              </div>
+            </SystemSection>
 
-          <aside className="space-y-4 border border-black bg-[#fbfaf8] px-4 py-4 xl:sticky xl:top-6">
-            <h2 className="font-display text-[2rem] font-bold leading-none tracking-[-0.04em] text-black">
-              Control Rail
-            </h2>
-            <p className="text-[15px] leading-7 text-black/68">Replay. Chat. Actions.</p>
-            <RailBlock label="Mode" value={roomMode} />
-            <RailBlock label="Replay" value={match.status === "finished" ? "review mode ready" : "replay ready"} />
-            <RailBlock label="Chat" value={!isAIMatch && spectators.length > 0 ? "public / moderated" : "quiet room"} />
-            <RailBlock
-              label="Actions"
-              value={match.status === "finished" ? "rematch / exit" : isAIMatch ? "play / learn" : "forfeit / draw"}
-            />
+            <UtilityStrip>
+              <UtilityPill strong>{roomMode}</UtilityPill>
+              <UtilityPill>{match.status === "finished" ? "resolved" : "active"}</UtilityPill>
+              <UtilityPill>{match.status === "finished" ? "review ready" : "replay ready"}</UtilityPill>
+            </UtilityStrip>
+
             {isAIMatch && currentColor === 2 && match.status === "active" ? (
               <AIThinkingIndicator isThinking={ai.aiThinking} difficulty={match.ai_difficulty} />
             ) : null}
-            {discordAvatarUrl ? <StateTag>{discordUser?.username}</StateTag> : null}
-          </aside>
-        </div>
-      </div>
+
+            {discordUser?.username ? (
+              <UtilityStrip>
+                <UtilityPill strong>{discordUser.username}</UtilityPill>
+              </UtilityStrip>
+            ) : null}
+          </div>
+        }
+      />
     </SiteFrame>
   );
 }
