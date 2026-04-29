@@ -216,7 +216,7 @@ export function ConvertAccountModal({
                       }`}
                       disabled={converting}
                     >
-                      <UserAvatar username="A" color={color} size="sm" />
+                      <UserAvatar username="A" color={color} size="sm" className="grayscale" />
                     </button>
                   ))}
                 </div>

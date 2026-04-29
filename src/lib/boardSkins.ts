@@ -243,6 +243,10 @@ export const premiumSkins = boardSkins.filter(s => s.isPremium);
 
 export const getDefaultSkin = (): BoardSkin => boardSkins[0];
 
+export const getMonoBoardSkin = (): BoardSkin => {
+  return boardSkins.find((skin) => skin.id === "minimal") || getDefaultSkin();
+};
+
 export const getSkinById = (id: string): BoardSkin => {
   return boardSkins.find(s => s.id === id) || getDefaultSkin();
 };

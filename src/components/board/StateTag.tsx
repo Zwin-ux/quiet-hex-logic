@@ -12,9 +12,9 @@ export function StateTag({ tone = "normal", children, className }: StateTagProps
     <span
       className={cn(
         "retro-state-tag",
-        tone === "success" && "retro-state-tag--success",
-        tone === "warning" && "retro-state-tag--warning",
-        tone === "critical" && "retro-state-tag--critical",
+        tone === "success" && "retro-state-tag--strong",
+        tone === "critical" && "retro-state-tag--strong",
+        tone === "warning" && "retro-state-tag--quiet",
         className,
       )}
       data-tone={tone}

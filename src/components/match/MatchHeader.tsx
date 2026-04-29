@@ -1,7 +1,6 @@
 import { ArrowLeft, BookOpen, Eye, EyeOff, Flag, Handshake, RotateCcw, Sparkles } from "lucide-react";
 import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
-import { StateTag } from "@/components/board/StateTag";
 import { SystemScreen, UtilityPill, UtilityStrip } from "@/components/board/SystemSurface";
 import { MusicControls } from "@/components/MusicControls";
 import { Button } from "@/components/ui/button";
@@ -91,8 +90,6 @@ export function MatchHeader({
     : `${matchDims(match)} / ${spectatorCount} watching`;
   const activeState =
     match.status === "active" ? "live" : match.result === "draw" ? "draw" : "closed";
-  const statusTone =
-    match.status === "active" ? "success" : match.result === "draw" ? "warning" : "critical";
   const activeVariant = variantLabel(match);
 
   return (
@@ -185,7 +182,7 @@ export function MatchHeader({
           <BoardWordmark className="text-[28px] md:text-[32px]" />
         </div>
         <UtilityStrip>
-          <StateTag tone={statusTone}>{activeState}</StateTag>
+          <UtilityPill strong={match.status !== "finished" || match.result !== "draw"}>{activeState}</UtilityPill>
           {!isAIMatch ? <UtilityPill>{spectatorCount} watching</UtilityPill> : null}
           <UtilityPill>{matchDims(match)}</UtilityPill>
           {activeVariant ? <UtilityPill>{activeVariant}</UtilityPill> : null}

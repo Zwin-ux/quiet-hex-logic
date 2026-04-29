@@ -6,7 +6,7 @@ import { useDiscord } from '@/lib/discord/DiscordContext';
 import { usePresence } from '@/hooks/usePresence';
 import { useSpectators } from '@/hooks/useSpectators';
 import { AIDifficulty } from '@/lib/hex/simpleAI';
-import { BoardSkin, getSkinById } from '@/lib/boardSkins';
+import { BoardSkin, getMonoBoardSkin } from '@/lib/boardSkins';
 import { loadLocalMatch } from '@/lib/localMatches/storage';
 import { loadLocalAIMatch } from '@/lib/localAiMatch';
 import { getGame } from '@/lib/engine/registry';
@@ -69,7 +69,7 @@ export function useMatchState(matchId: string | undefined) {
   const [engine, setEngine] = useState<GameEngine<any> | null>(null);
   const [lastMove, setLastMove] = useState<any | null>(null);
   const [winningPath, setWinningPath] = useState<number[]>([]);
-  const [boardSkin, setBoardSkin] = useState<BoardSkin>(getSkinById('classic'));
+  const [boardSkin, setBoardSkin] = useState<BoardSkin>(getMonoBoardSkin());
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -129,20 +129,8 @@ export function useMatchState(matchId: string | undefined) {
   );
 
   const loadBoardSkin = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('board_skin')
-        .eq('id', user.id)
-        .single();
-      if (data && (data as any).board_skin) {
-        setBoardSkin(getSkinById((data as any).board_skin));
-      }
-    } catch (error) {
-      console.error('Failed to load board skin:', error);
-    }
-  }, [user]);
+    setBoardSkin(getMonoBoardSkin());
+  }, []);
 
   /** Clear all per-game last-move state. */
   const clearLastMoves = useCallback(() => {

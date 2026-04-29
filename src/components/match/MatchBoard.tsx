@@ -3,7 +3,6 @@ import { ArrowLeft, RefreshCw, Sparkles } from "lucide-react";
 import { AnimatedRatingChange } from "@/components/AnimatedRatingChange";
 import { VictoryConfetti } from "@/components/VictoryConfetti";
 import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
-import { StateTag } from "@/components/board/StateTag";
 import {
   SystemSection,
   UtilityPill,
@@ -132,7 +131,7 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
           label="Engine note"
           title="Why this move"
           description={aiReasoning}
-          actions={<StateTag tone="warning">expert only</StateTag>}
+          actions={<UtilityPill strong>expert only</UtilityPill>}
         >
           <UtilityStrip>
             <UtilityPill><Sparkles className="h-3.5 w-3.5" /> analysis open</UtilityPill>
@@ -148,9 +147,9 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
             {currentColor === 1 ? `${player1?.username || "seat a"} to move` : `${player2?.username || "seat b"} to move`}
           </UtilityPill>
           {timeRemaining != null ? (
-            <StateTag tone={timeRemaining <= 10 ? "critical" : timeRemaining <= 30 ? "warning" : "success"}>
+            <UtilityPill strong={timeRemaining <= 30}>
               {formatTime(timeRemaining)}
-            </StateTag>
+            </UtilityPill>
           ) : null}
         </UtilityStrip>
       ) : null}
@@ -211,9 +210,9 @@ export const MatchBoard = React.memo(function MatchBoard(props: MatchBoardProps)
                 : `${match.winner === 1 ? player1?.username : player2?.username} closed the room.`
             }
             actions={
-              <StateTag tone={match.result === "draw" ? "warning" : match.winner === userPlayer?.color ? "success" : "critical"}>
+              <UtilityPill strong={match.result !== "draw"}>
                 {match.result === "draw" ? "level" : match.winner === userPlayer?.color ? "won" : "closed"}
-              </StateTag>
+              </UtilityPill>
             }
           >
             {match.is_ranked && ratingResult ? (

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
+import { UtilityPill } from "@/components/board/SystemSurface";
 import { supabase } from "@/integrations/supabase/client";
-import { StateTag } from "@/components/board/StateTag";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { buildAuthRoute } from "@/lib/authRedirect";
@@ -81,10 +81,10 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
     <div className="decision-entry" role="group" aria-label={`${lobby.code} room`}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <StateTag tone={isFull ? "warning" : "success"}>{isFull ? "full" : "open"}</StateTag>
-          {isHost ? <StateTag>host</StateTag> : null}
-          {lobby.world_name ? <StateTag>{lobby.world_name}</StateTag> : null}
-          <StateTag>{gameKey.replace("connect4", "connect 4")}</StateTag>
+          <UtilityPill strong={!isFull}>{isFull ? "full" : "open"}</UtilityPill>
+          {isHost ? <UtilityPill>host</UtilityPill> : null}
+          {lobby.world_name ? <UtilityPill>{lobby.world_name}</UtilityPill> : null}
+          <UtilityPill>{gameKey.replace("connect4", "connect 4")}</UtilityPill>
         </div>
 
         <div className="mt-3 flex items-start gap-3">
@@ -125,7 +125,7 @@ export function LobbyCard({ lobby, playerCount, currentUserId }: LobbyCardProps)
               Enter room
             </Button>
           ) : (
-            <Button onClick={joinLobby} disabled={joining || isFull} variant={isFull ? "destructive" : "hero"} className="border-0">
+            <Button onClick={joinLobby} disabled={joining || isFull} variant={isFull ? "outline" : "hero"} className="border-0">
               {isFull ? "Room full" : joining ? "Joining..." : "Join room"}
             </Button>
           )}

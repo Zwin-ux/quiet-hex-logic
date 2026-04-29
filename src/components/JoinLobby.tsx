@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { StateTag } from "@/components/board/StateTag";
+import { SystemSection, UtilityPill, UtilityStrip } from "@/components/board/SystemSurface";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -72,43 +72,35 @@ export function JoinLobby({ userId }: JoinLobbyProps) {
   };
 
   return (
-    <section className="retro-window">
-      <div className="retro-window__titlebar">
+    <SystemSection
+      label="Direct access"
+      title="Enter room by code"
+      actions={<UtilityPill strong={code.length >= 4}>{code.length >= 4 ? "ready" : "await code"}</UtilityPill>}
+    >
+      <div className="space-y-4">
         <div>
-          <p className="retro-window__eyebrow">Direct access</p>
-          <h2 className="retro-window__title mt-1">Enter room by code</h2>
+          <p className="mb-2 board-rail-label">Room code</p>
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="ABC123"
+            maxLength={6}
+            className="h-12 border-black/10 bg-white text-center font-mono text-base tracking-[0.32em] uppercase"
+          />
         </div>
-        <StateTag tone={code.length >= 4 ? "success" : "warning"}>
-          {code.length >= 4 ? "ready" : "await code"}
-        </StateTag>
+
+        <UtilityStrip className="justify-between">
+          <UtilityPill>
+            <LogIn className="h-3.5 w-3.5" />
+            identity
+          </UtilityPill>
+          <UtilityPill strong={Boolean(userId)}>{userId ? "operator ready" : "sign in required"}</UtilityPill>
+        </UtilityStrip>
+
+        <Button onClick={() => joinLobby()} disabled={joining || code.length < 4} variant="hero" className="h-12 w-full">
+          {joining ? "Joining..." : "Join room"}
+        </Button>
       </div>
-
-      <div className="retro-window__body">
-        <div className="space-y-4">
-          <div>
-            <p className="mb-2 board-rail-label">Room code</p>
-            <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-              maxLength={6}
-              className="h-12 text-center font-mono text-base tracking-[0.32em] uppercase"
-            />
-          </div>
-
-          <div className="retro-status-strip justify-between bg-[#ffffcc]">
-            <div className="flex items-center gap-2">
-              <LogIn className="h-4 w-4" />
-              <span>Identity</span>
-            </div>
-            <span>{userId ? "operator ready" : "sign in required"}</span>
-          </div>
-
-          <Button onClick={() => joinLobby()} disabled={joining || code.length < 4} variant="hero" className="h-12 w-full">
-            {joining ? "Joining..." : "Join room"}
-          </Button>
-        </div>
-      </div>
-    </section>
+    </SystemSection>
   );
 }

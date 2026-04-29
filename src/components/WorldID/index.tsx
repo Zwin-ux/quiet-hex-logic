@@ -1,5 +1,10 @@
-import { useCallback } from "react";
-import { IDKitWidget, ISuccessResult, VerificationLevel } from "@worldcoin/idkit";
+import { useCallback, useMemo, useState } from "react";
+import {
+  CredentialRequest,
+  IDKitRequestWidget,
+  any as anyCredential,
+  type IDKitResult,
+} from "@worldcoin/idkit";
 import { AlertCircle, CheckCircle2, ExternalLink, Globe, Loader2, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +27,8 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
     verifiedAt,
     error,
     canVerify,
-    verifyProof,
+    requestRpContext,
+    verifyIdKitResult,
     clearError,
   } = useWorldID();
   const { isDiscordEnvironment } = useDiscord();
@@ -30,14 +36,46 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
   const worldIdAction = getWorldIdAction();
   const configurationIssue = getWorldIdConfigurationIssue();
   const isSupport = variant === "support";
+  const shellClassName = isSupport
+    ? "space-y-4 rounded-[1.6rem] bg-[#090909] px-4 py-4 text-[#f6f4f0]"
+    : "space-y-4 rounded-[1.6rem] bg-white px-4 py-4 text-[#090909]";
+  const labelClassName = isSupport ? "board-rail-label text-white/58" : "board-rail-label text-black/55";
+  const bodyClassName = isSupport ? "text-sm leading-6 text-white/70" : "text-sm leading-6 text-black/62";
+  const quietClassName = isSupport ? "text-xs leading-6 text-white/58" : "text-xs leading-6 text-black/55";
+  const iconClassName = isSupport ? "h-5 w-5 text-white/72" : "h-5 w-5 text-black/62";
+  const [widgetOpen, setWidgetOpen] = useState(false);
+  const [rpContext, setRpContext] = useState<any>(null);
+  const [preparing, setPreparing] = useState(false);
 
-  const handleSuccess = useCallback(async (result: ISuccessResult) => {
-    const { success, error } = await verifyProof({
-      merkle_root: result.merkle_root,
-      nullifier_hash: result.nullifier_hash,
-      proof: result.proof,
-      verification_level: result.verification_level as "orb" | "device",
-    });
+  const constraints = useMemo(() => {
+    return anyCredential(CredentialRequest("proof_of_human", { signal: user?.id || "" }));
+  }, [user?.id]);
+
+  const prepareAndOpen = useCallback(async () => {
+    setPreparing(true);
+
+    try {
+      const nextRpContext = await requestRpContext();
+      setRpContext({
+        sig: nextRpContext.sig,
+        nonce: nextRpContext.nonce,
+        createdAt: nextRpContext.createdAt,
+        expiresAt: nextRpContext.expiresAt,
+      });
+      setWidgetOpen(true);
+    } catch (prepareError) {
+      toast.error(
+        prepareError instanceof Error
+          ? prepareError.message
+          : "Could not start World ID verification.",
+      );
+    } finally {
+      setPreparing(false);
+    }
+  }, [requestRpContext]);
+
+  const handleSuccess = useCallback(async (result: IDKitResult) => {
+    const { success, error } = await verifyIdKitResult(result);
 
     if (success) {
       toast.success("Verification complete", {
@@ -47,11 +85,11 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
     }
 
     toast.error(error || "Verification failed. Please try again.");
-  }, [verifyProof]);
+  }, [verifyIdKitResult]);
 
   if (isLoading) {
     return (
-      <div className={isSupport ? "support-inline-card flex min-h-[132px] items-center justify-center" : "flex min-h-[132px] items-center justify-center border border-black bg-white px-4 py-4"}>
+      <div className={`${shellClassName} flex min-h-[132px] items-center justify-center`}>
         <Loader2 className={isSupport ? "h-5 w-5 animate-spin text-white/58" : "h-5 w-5 animate-spin text-black/55"} />
       </div>
     );
@@ -59,27 +97,24 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
 
   if (isVerified) {
     return (
-      <div className={isSupport ? "support-inline-card space-y-4" : "space-y-4 border border-black bg-white px-4 py-4"}>
+      <div className={shellClassName}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className={isSupport ? "support-mini-label text-white/60" : "board-rail-label text-black/55"}>Trust state</p>
+            <p className={labelClassName}>Trust state</p>
             <div className="mt-3 flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+              <CheckCircle2 className={iconClassName} />
               <div>
                 <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Human verification complete</p>
-                <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
-                  Ranked and competitive unlocked.
-                </p>
+                <p className={bodyClassName}>Ranked and competitive unlocked.</p>
               </div>
             </div>
           </div>
-          <div className={isSupport ? "support-chip support-chip--light" : "retro-status-strip"}>
-            <span>world id</span>
-            <span>verified</span>
-          </div>
+          <span className={isSupport ? "rounded-full bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#090909]" : "rounded-full bg-[#090909] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#f6f4f0]"}>
+            verified
+          </span>
         </div>
 
-        <p className={isSupport ? "text-xs leading-6 text-white/58" : "text-xs leading-6 text-black/55"}>
+        <p className={quietClassName}>
           Verified {verifiedAt ? new Date(verifiedAt).toLocaleDateString() : "recently"}.
         </p>
       </div>
@@ -88,21 +123,19 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
 
   if (isDiscordEnvironment) {
     return (
-      <div className={isSupport ? "support-inline-card space-y-4" : "space-y-4 border border-black bg-white px-4 py-4"}>
+      <div className={shellClassName}>
         <div className="flex items-center gap-3">
-          <Scan className="h-5 w-5 text-black/62" />
+          <Scan className={iconClassName} />
           <div>
-              <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify on the web</p>
-              <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
-                Open web. Scan in World App.
-              </p>
+            <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Verify on the web</p>
+            <p className={bodyClassName}>Open web. Scan in World App.</p>
           </div>
         </div>
         <a
           href={buildAppUrl("/profile#identity")}
           target="_blank"
           rel="noopener noreferrer"
-          className={isSupport ? "inline-flex items-center gap-2 text-sm font-medium text-[#00f5d4] underline underline-offset-2" : "inline-flex items-center gap-2 text-sm font-medium text-black underline underline-offset-2"}
+          className={isSupport ? "inline-flex items-center gap-2 text-sm font-medium text-white underline underline-offset-2" : "inline-flex items-center gap-2 text-sm font-medium text-black underline underline-offset-2"}
         >
           <ExternalLink className="h-4 w-4" />
           Open verification on the web
@@ -112,28 +145,25 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
   }
 
   return (
-    <div className={isSupport ? "support-inline-card space-y-4" : "space-y-4 border border-black bg-white px-4 py-4"}>
+    <div className={shellClassName}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className={isSupport ? "support-mini-label text-white/60" : "board-rail-label text-black/55"}>Trust & verification</p>
+          <p className={labelClassName}>Trust & verification</p>
           <div className="mt-3 flex items-center gap-3">
-            <Globe className={isSupport ? "h-5 w-5 text-[#00f5d4]" : "h-5 w-5 text-black/62"} />
+            <Globe className={iconClassName} />
             <div>
               <p className={isSupport ? "font-semibold text-white" : "font-semibold text-black"}>Competitive entry</p>
-              <p className={isSupport ? "text-sm leading-6 text-white/68" : "text-sm leading-6 text-black/62"}>
-                World ID required for ranked and competitive.
-              </p>
+              <p className={bodyClassName}>World ID required for ranked and competitive.</p>
             </div>
           </div>
         </div>
-        <div className={isSupport ? "support-chip support-chip--light" : "retro-status-strip"}>
-          <span>ranked gate</span>
-          <span>world id</span>
-        </div>
+        <span className={isSupport ? "rounded-full bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#090909]" : "rounded-full bg-[#090909] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#f6f4f0]"}>
+          ranked gate
+        </span>
       </div>
 
       {configurationIssue ? (
-        <div className={isSupport ? "flex items-start gap-2 rounded-[22px] border-2 border-dashed border-white/20 bg-white/6 px-3 py-3 text-sm text-white/68" : "flex items-start gap-2 border border-dashed border-black/20 bg-[#fbfaf8] px-3 py-3 text-sm text-black/62"}>
+        <div className={isSupport ? "flex items-start gap-2 rounded-[1.2rem] bg-white/10 px-3 py-3 text-sm text-white/70" : "flex items-start gap-2 rounded-[1.2rem] bg-[#f3efe6] px-3 py-3 text-sm text-black/62"}>
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p>{configurationIssue}</p>
@@ -145,7 +175,7 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
       ) : null}
 
       {error ? (
-        <div className={isSupport ? "flex items-start gap-2 rounded-[22px] border-2 border-[#ffe600] bg-[#ff6b35]/18 px-3 py-3 text-sm text-white" : "flex items-start gap-2 border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-700"}>
+        <div className={isSupport ? "flex items-start gap-2 rounded-[1.2rem] bg-white/12 px-3 py-3 text-sm text-white" : "flex items-start gap-2 rounded-[1.2rem] bg-[#f3efe6] px-3 py-3 text-sm text-black"}>
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p>{error}</p>
@@ -157,39 +187,41 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
       ) : null}
 
       {canVerify ? (
-        <IDKitWidget
-          app_id={worldIdAppId as `app_${string}`}
-          action={worldIdAction}
-          signal={user?.id || ""}
-          onSuccess={handleSuccess}
-          verification_level={VerificationLevel.Device}
-        >
-          {({ open }) => (
-            <Button
-              onClick={open}
-              disabled={isVerifying}
-              variant={isSupport ? "support" : "hero"}
-              className="w-full justify-between"
-            >
-              <span>{isVerifying ? "Verifying" : "Verify with World ID"}</span>
-              {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scan className="h-4 w-4" />}
-            </Button>
-          )}
-        </IDKitWidget>
+        <>
+          {rpContext ? (
+            <IDKitRequestWidget
+              open={widgetOpen}
+              onOpenChange={setWidgetOpen}
+              app_id={worldIdAppId as `app_${string}`}
+              action={worldIdAction}
+              rp_context={rpContext}
+              constraints={constraints}
+              allow_legacy_proofs={false}
+              onSuccess={handleSuccess}
+            />
+          ) : null}
+          <Button
+            onClick={prepareAndOpen}
+            disabled={isVerifying || preparing}
+            variant={isSupport ? "outline" : "hero"}
+            className={isSupport ? "w-full justify-between border-white/20 bg-white text-[#090909] hover:bg-[#f2f0ea]" : "w-full justify-between"}
+          >
+            <span>{isVerifying || preparing ? "Verifying" : "Verify with World ID"}</span>
+            {isVerifying || preparing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scan className="h-4 w-4" />}
+          </Button>
+        </>
       ) : (
         <Button
           disabled
-          variant={isSupport ? "supportOutline" : "outline"}
-          className="w-full justify-between"
+          variant="outline"
+          className={isSupport ? "w-full justify-between border-white/20 bg-transparent text-white" : "w-full justify-between"}
         >
           <span>World ID unavailable</span>
           <AlertCircle className="h-4 w-4" />
         </Button>
       )}
 
-      <p className={isSupport ? "text-xs leading-6 text-white/58" : "text-xs leading-6 text-black/55"}>
-        Scan in World App.
-      </p>
+      <p className={quietClassName}>Scan in World App.</p>
     </div>
   );
 }

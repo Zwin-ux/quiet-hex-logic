@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, RadioTower } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { UtilityPill, UtilityStrip } from "@/components/board/SystemSurface";
 import { supabase } from "@/integrations/supabase/client";
-import { StateTag } from "@/components/board/StateTag";
 import { getGame, listGames } from "@/lib/engine/registry";
 import { useManageableWorlds } from "@/hooks/useManageableWorlds";
 import { Button } from "@/components/ui/button";
@@ -108,23 +108,25 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
   const headerState = worldId ? "world-hosted" : resolvedWorldId ? "world-linked" : "standalone";
 
   return (
-    <section className="retro-window">
-      <div className="retro-window__titlebar">
-        <div>
-          <p className="retro-window__eyebrow">{worldId ? "World instance" : "Command window"}</p>
-          <h2 className="retro-window__title mt-1">{worldId ? "Stage live room" : "Create live room"}</h2>
+    <section className="system-section">
+      <div className="system-section__head">
+        <div className="system-section__copy">
+          <p className="system-section__label">{worldId ? "World instance" : "Command window"}</p>
+          <h2 className="system-section__title">{worldId ? "Stage live room" : "Create live room"}</h2>
         </div>
-        <StateTag tone="success">{headerState}</StateTag>
+        <div className="system-section__actions">
+          <UtilityPill strong>{headerState}</UtilityPill>
+        </div>
       </div>
 
-      <div className="retro-window__body retro-window__body--soft">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <StateTag>{gameDef.displayName}</StateTag>
-          <StateTag>{displayedSize} desk</StateTag>
-          <StateTag tone={gameDef.supportsPieRule && pieRule ? "warning" : "normal"}>
+      <div>
+        <UtilityStrip className="mb-4">
+          <UtilityPill>{gameDef.displayName}</UtilityPill>
+          <UtilityPill>{displayedSize} desk</UtilityPill>
+          <UtilityPill strong={gameDef.supportsPieRule && pieRule}>
             {gameDef.supportsPieRule && pieRule ? "swap on" : "swap off"}
-          </StateTag>
-        </div>
+          </UtilityPill>
+        </UtilityStrip>
 
         <div className="grid gap-4">
           {!worldId && manageableWorlds.length > 0 ? (
@@ -181,13 +183,15 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
             </Field>
           </div>
 
-          <div className="retro-status-strip justify-between gap-4 bg-[#ffffcc]">
+          <div className="flex items-center justify-between gap-4 rounded-[1.2rem] bg-[#f3efe6] px-4 py-4">
             <div className="flex items-center gap-2">
               <RadioTower className="h-4 w-4" />
-              <span>Swap rule</span>
+              <span className="text-sm font-medium text-foreground">Swap rule</span>
             </div>
             <div className="flex items-center gap-3">
-              <span>{gameDef.supportsPieRule ? "allow color swap" : "not used here"}</span>
+              <span className="text-xs uppercase tracking-[0.14em] text-black/58">
+                {gameDef.supportsPieRule ? "allow color swap" : "not used here"}
+              </span>
               <Switch
                 checked={gameDef.supportsPieRule ? pieRule : false}
                 onCheckedChange={setPieRule}
@@ -197,9 +201,13 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
           </div>
 
           {createdCode ? (
-            <div className="retro-critical-strip flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 rounded-[1.2rem] bg-[#090909] px-4 py-3 text-[#f6f4f0]">
               <span className="font-mono text-base tracking-[0.24em]">{createdCode}</span>
-              <Button variant="outline" onClick={copyCode}>
+              <Button
+                variant="outline"
+                onClick={copyCode}
+                className="border-white/20 bg-transparent text-[#f6f4f0] hover:bg-white/10"
+              >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied" : "Copy"}
               </Button>
