@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { BoardSceneLab } from '@/components/board/BoardSceneLab';
 import { FintechDesignLab } from '@/components/board/FintechDesignLab';
 import { NavBar } from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,20 +48,22 @@ export default function Debug() {
   const [sessionInfo, setSessionInfo] = useState<{ hasSession: boolean; userId?: string } | null>(null);
   const modeFromSearch = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('mode') === 'lab' ? 'lab' : 'system';
+    const mode = params.get('mode');
+    if (mode === 'lab' || mode === 'scenes') return mode;
+    return 'system';
   }, [location.search]);
-  const [mode, setMode] = useState<'system' | 'lab'>(modeFromSearch);
+  const [mode, setMode] = useState<'system' | 'lab' | 'scenes'>(modeFromSearch);
   const knownBadRef = 'ptuxqfwicdpdslqwnswd';
 
   useEffect(() => {
     setMode(modeFromSearch);
   }, [modeFromSearch]);
 
-  const setModeRoute = (nextMode: 'system' | 'lab') => {
+  const setModeRoute = (nextMode: 'system' | 'lab' | 'scenes') => {
     const params = new URLSearchParams(location.search);
 
-    if (nextMode === 'lab') {
-      params.set('mode', 'lab');
+    if (nextMode === 'lab' || nextMode === 'scenes') {
+      params.set('mode', nextMode);
     } else {
       params.delete('mode');
     }
@@ -113,6 +116,7 @@ export default function Debug() {
       <div
         className={
           mode === 'lab'
+            || mode === 'scenes'
             ? 'container mx-auto max-w-7xl px-4 pb-16 pt-10 space-y-8'
             : 'container mx-auto max-w-4xl px-4 pb-12 pt-20 space-y-6'
         }
@@ -141,6 +145,13 @@ export default function Debug() {
               >
                 Fintech Lab
               </button>
+              <button
+                type="button"
+                onClick={() => setModeRoute('scenes')}
+                className={mode === 'scenes' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
+              >
+                Board Scenes
+              </button>
             </div>
           </>
         ) : (
@@ -167,6 +178,13 @@ export default function Debug() {
                 className={mode === 'lab' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
               >
                 Fintech Lab
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeRoute('scenes')}
+                className={mode === 'scenes' ? 'market-debug-toggle__item is-active' : 'market-debug-toggle__item'}
+              >
+                Board Scenes
               </button>
             </div>
           </div>
@@ -235,8 +253,10 @@ export default function Debug() {
               </CardContent>
             </Card>
           </>
-        ) : (
+        ) : mode === 'lab' ? (
           <FintechDesignLab />
+        ) : (
+          <BoardSceneLab />
         )}
       </div>
     </div>

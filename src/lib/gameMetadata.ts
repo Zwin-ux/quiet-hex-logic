@@ -1,8 +1,15 @@
-import { Hexagon, Crown, Circle, Hash, Grid2x2 } from 'lucide-react';
+import type { ComponentType, SVGProps } from "react";
+import {
+  HexBoardMark,
+  ChessBoardMark,
+  CheckersBoardMark,
+  TttBoardMark,
+  Connect4BoardMark,
+} from "@/components/board/BoardScene";
 
 export type GameMeta = {
   key: string;
-  icon: typeof Hexagon;
+  icon: ComponentType<SVGProps<SVGSVGElement> & { decorative?: boolean; size?: number }>;
   tagline: string;
   accentVar: string;
   accentClass: string;
@@ -13,7 +20,7 @@ export type GameMeta = {
 export const GAME_METADATA: Record<string, GameMeta> = {
   hex: {
     key: 'hex',
-    icon: Hexagon,
+    icon: HexBoardMark,
     tagline: 'Bridge both sides',
     accentVar: '--game-hex',
     accentClass: 'text-game-hex',
@@ -22,7 +29,7 @@ export const GAME_METADATA: Record<string, GameMeta> = {
   },
   chess: {
     key: 'chess',
-    icon: Crown,
+    icon: ChessBoardMark,
     tagline: 'Force checkmate',
     accentVar: '--game-chess',
     accentClass: 'text-game-chess',
@@ -31,7 +38,7 @@ export const GAME_METADATA: Record<string, GameMeta> = {
   },
   checkers: {
     key: 'checkers',
-    icon: Circle,
+    icon: CheckersBoardMark,
     tagline: 'Jump pieces',
     accentVar: '--game-checkers',
     accentClass: 'text-game-checkers',
@@ -40,7 +47,7 @@ export const GAME_METADATA: Record<string, GameMeta> = {
   },
   ttt: {
     key: 'ttt',
-    icon: Hash,
+    icon: TttBoardMark,
     tagline: 'Make three',
     accentVar: '--game-ttt',
     accentClass: 'text-game-ttt',
@@ -49,7 +56,7 @@ export const GAME_METADATA: Record<string, GameMeta> = {
   },
   connect4: {
     key: 'connect4',
-    icon: Grid2x2,
+    icon: Connect4BoardMark,
     tagline: 'Drop four',
     accentVar: '--game-connect4',
     accentClass: 'text-game-connect4',

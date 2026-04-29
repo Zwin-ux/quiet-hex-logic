@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { BoardLogo } from "@/components/BoardLogo";
+import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { Button } from "@/components/ui/button";
 import { buildAuthRoute } from "@/lib/authRedirect";
@@ -39,6 +39,7 @@ export function WelcomeOnboarding({
 
   const selectedDefinition =
     games.find((game) => game.key === selectedGame) ?? displayedGames[0] ?? games[0];
+  const selectedSceneKey = (selectedDefinition?.key ?? "hex") as BoardSceneKey;
 
   const handleQuickStart = async () => {
     if (!selectedDefinition) return;
@@ -77,8 +78,8 @@ export function WelcomeOnboarding({
         <div className="system-onboarding-list" role="listbox" aria-label="Board choices">
           {displayedGames.map((game) => {
             const meta = getGameMeta(game.key);
-            const Icon = meta.icon;
             const selected = selectedGame === game.key;
+            const sceneState = selected ? "selected" : "static";
 
             return (
               <button
@@ -94,7 +95,12 @@ export function WelcomeOnboarding({
               >
                 <div className="system-onboarding-choice__main">
                   <div className="system-onboarding-choice__glyph">
-                    <Icon className="h-4 w-4 text-[#090909]" />
+                    <BoardScene
+                      game={game.key as BoardSceneKey}
+                      state={sceneState}
+                      decorative
+                      className="h-4 w-4 text-[#090909]"
+                    />
                   </div>
                   <div className="system-onboarding-choice__copy">
                     <h2 className="system-onboarding-choice__title">{game.displayName}</h2>
@@ -120,7 +126,12 @@ export function WelcomeOnboarding({
             <span>
               {selectedDefinition ? `Start ${selectedDefinition.displayName}` : "Start local"}
             </span>
-            {isStarting || isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+            <BoardScene
+              game={selectedSceneKey}
+              state={isStarting || isCreating ? "loading" : "static"}
+              decorative
+              className="h-5 w-5 text-current"
+            />
           </Button>
 
           <div className="system-onboarding-links">
