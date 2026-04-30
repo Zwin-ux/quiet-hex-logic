@@ -69,6 +69,7 @@ The script writes:
 - `store_assets/world/qa/<timestamp>/world-app-qa-url.txt`
 - `store_assets/world/qa/<timestamp>/device-qa-manifest.json`
 - `store_assets/world/qa/<timestamp>/device-qa-checklist.md`
+- `store_assets/world/qa/<timestamp>/device-qa-report.html`
 - `store_assets/world/qa/<timestamp>/*-ios.png`
 - `store_assets/world/qa/<timestamp>/*-android.png`
 
@@ -98,12 +99,13 @@ Latest automated attempt: 2026-04-29.
 - Deployed 375px browser evidence passes with only expected MiniKit warnings outside World App.
 - Railway deployment `43580326-17b5-4f0c-8a8b-512aec892ec7` is the current passing combined snapshot after the core-loop UI refactor and manual room-code join wiring.
 - Automated production checks pass against the Railway URL: smoke, strict readiness, anonymous Supabase auth, World nonce, RP signing, competitive Quickplay state, wallet-required ranked/resume/rematch gates, unauthenticated endpoint rejection, and QR artifact generation.
-- Deployed browser evidence for `/?surface=world`, `/play`, `/worlds`, and `/events` is captured under `store_assets/world/qa/railway-production-core-loop-20260428-213324/`.
-- Remaining blocker: physical iOS and Android World App QR/WebView QA.
-- Added mobile screenshot verification in the device harness. Latest deployed pass shows:
-  - `play`, `worlds`, and `events` render cleanly on iPhone and Android widths
-  - `world detail` still fails on the live Railway build and renders the error fallback instead of the venue surface
-  - the same `world detail` route is clean on the current local source build, which means the live failure is deployment drift, not a current source regression
+- Deployed browser evidence for `/?surface=world`, `/play`, `/worlds`, `/events`, `/worlds/:id`, and `/tournament/:id` is captured under `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/`.
+- Railway deployment `1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1` is the current passing live bundle after the redeploy that cleared the stale `/worlds/:id` error.
+- Added mobile screenshot verification in the device harness. The latest deployed pass verifies:
+  - auth-aware preflight succeeds against Railway
+  - iPhone 15 and Pixel 8 route captures are clean for `/?surface=world`, `/play`, `/worlds`, `/events`, `/worlds/:id`, and `/tournament/:id`
+  - only expected browser-only warnings remain: MiniKit not installed outside World App and one benign font preload warning
+- Remaining blocker: physical iOS and Android World App QR/WebView QA using the Developer Portal QR on the same Railway origin.
 - Public baseline against `https://hexology.me` failed because that origin is not serving the current Railway/World App build: `/api/health` and `/api/world/*` return 404, runtime env injection is absent, and the World App bundle labels are missing.
 - Earlier Railway domain baseline against `https://botbot-production-38b3.up.railway.app` failed before deploy because the service timed out on `/api/health`, `/?surface=world`, and all `/api/world/*` endpoint checks.
 
@@ -132,6 +134,9 @@ Evidence:
 - `store_assets/world/qa/railway-production-core-loop-20260428-213324/play-mobile.png`
 - `store_assets/world/qa/railway-production-core-loop-20260428-213324/worlds-mobile.png`
 - `store_assets/world/qa/railway-production-core-loop-20260428-213324/events-mobile.png`
+- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-manifest.json`
+- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-checklist.md`
+- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-report.html`
 - Latest mobile visual runs also write route screenshots and manifests under `store_assets/world/qa/<timestamp>/`.
 
 Do not mark REF-109 complete until a real staging/tunnel URL passes automated preflight and physical iOS/Android World App checks.

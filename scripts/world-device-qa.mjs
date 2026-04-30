@@ -606,10 +606,339 @@ Run this with the World App Dev Portal test QR when staging credentials are conf
 
 ## Current Gate
 
-${hardFailures.length ? `Blocked by ${hardFailures.length} automated failure(s).` : warnings.length ? `Automated preflight passed with ${warnings.length} warning(s). Manual device QA can proceed.` : 'Automated preflight passed. Manual device QA can proceed.'}
+${summarizeGate(checks)}
 `;
 
   fs.writeFileSync(path.join(outDir, 'device-qa-checklist.md'), checklist, 'utf8');
+}
+
+function summarizeGate(checks) {
+  const hardFailures = checks.filter((check) => check.status === 'fail');
+  const warnings = checks.filter((check) => check.status === 'warn');
+  if (hardFailures.length) {
+    return `Blocked by ${hardFailures.length} automated failure(s).`;
+  }
+
+  if (!warnings.length) {
+    return 'Automated preflight passed. Manual device QA can proceed.';
+  }
+
+  const expectedBrowserWarnings = warnings.every((check) =>
+    String(check.detail).includes('ignored console output:'),
+  );
+  if (expectedBrowserWarnings) {
+    return `Automated preflight passed. ${warnings.length} warning(s) are expected browser-only MiniKit or preload output outside the World App WebView. Manual device QA can proceed.`;
+  }
+
+  return `Automated preflight passed with ${warnings.length} warning(s). Manual device QA can proceed.`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function relativeAssetPath(outDir, targetPath) {
+  return path.relative(outDir, targetPath).split(path.sep).join('/');
+}
+
+function writeHtmlReport(outDir, manifest) {
+  const checks = manifest.checks ?? [];
+  const visualArtifacts = manifest.visualArtifacts ?? [];
+  const hardFailures = checks.filter((check) => check.status === 'fail');
+  const warnings = checks.filter((check) => check.status === 'warn');
+  const overallStatus = hardFailures.length ? 'Blocked' : warnings.length ? 'Manual device QA ready' : 'Ready';
+  const gateSummary = summarizeGate(checks);
+
+  const groupedVisuals = new Map();
+  for (const artifact of visualArtifacts) {
+    const key = artifact.route;
+    const list = groupedVisuals.get(key) ?? [];
+    list.push(artifact);
+    groupedVisuals.set(key, list);
+  }
+
+  const visualSections = visualArtifacts.length
+    ? [...groupedVisuals.values()]
+        .map((artifacts) => {
+          const label = artifacts[0]?.routeLabel ?? artifacts[0]?.route ?? 'Route';
+          const cards = artifacts
+            .map((artifact) => {
+              const relativePath = relativeAssetPath(outDir, artifact.path);
+              return `
+                <figure class="qa-shot">
+                  <img src="${escapeHtml(relativePath)}" alt="${escapeHtml(`${label} on ${artifact.deviceLabel}`)}" loading="lazy" />
+                  <figcaption>
+                    <strong>${escapeHtml(artifact.deviceLabel)}</strong>
+                    <span>${escapeHtml(artifact.consoleStatus.toUpperCase())}</span>
+                    <small>${escapeHtml(artifact.consoleDetail)}</small>
+                  </figcaption>
+                </figure>
+              `;
+            })
+            .join('');
+
+          return `
+            <section class="qa-route">
+              <header>
+                <h3>${escapeHtml(label)}</h3>
+              </header>
+              <div class="qa-grid">
+                ${cards}
+              </div>
+            </section>
+          `;
+        })
+        .join('')
+    : '<section class="qa-route"><p>No automated screenshots were generated for this run.</p></section>';
+
+  const checkRows = checks
+    .map(
+      (check) => `
+        <tr>
+          <td>${escapeHtml(check.name)}</td>
+          <td><span class="status status-${escapeHtml(check.status)}">${escapeHtml(check.status.toUpperCase())}</span></td>
+          <td>${escapeHtml(check.detail)}</td>
+        </tr>
+      `,
+    )
+    .join('');
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BOARD World App Device QA Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f6f2;
+        --surface: #ffffff;
+        --surface-muted: #f0eee8;
+        --ink: #101114;
+        --ink-muted: #5c5f66;
+        --line: rgba(16, 17, 20, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.5 "IBM Plex Sans", system-ui, sans-serif;
+      }
+      main {
+        width: min(1160px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+      .hero, .panel, .qa-route {
+        background: var(--surface);
+        border-radius: 22px;
+        padding: 24px;
+      }
+      .hero {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      h1, h2, h3, p {
+        margin: 0;
+      }
+      h1 { font: 600 28px/1.1 "IBM Plex Sans", system-ui, sans-serif; }
+      h2 { font: 600 18px/1.2 "IBM Plex Sans", system-ui, sans-serif; }
+      h3 { font: 600 16px/1.2 "IBM Plex Sans", system-ui, sans-serif; }
+      .hero-meta, .summary-grid, .check-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .hero-meta {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-bottom: 20px;
+      }
+      .summary-card {
+        background: var(--surface);
+        border-radius: 18px;
+        padding: 18px 20px;
+      }
+      .summary-card strong {
+        display: block;
+        font: 600 24px/1.1 "IBM Plex Sans", system-ui, sans-serif;
+        margin-top: 6px;
+      }
+      .panel {
+        margin-bottom: 20px;
+      }
+      .panel + .panel {
+        margin-top: 20px;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font: 600 11px/1 "IBM Plex Sans", system-ui, sans-serif;
+        letter-spacing: 0.08em;
+      }
+      .status-pass, .status-warn {
+        background: #101114;
+        color: #fff;
+      }
+      .status-fail {
+        background: #fff;
+        color: #101114;
+        outline: 1px solid rgba(16, 17, 20, 0.22);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        text-align: left;
+        vertical-align: top;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--ink-muted);
+        font: 600 12px/1.1 "IBM Plex Sans", system-ui, sans-serif;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .qa-route {
+        margin-bottom: 20px;
+      }
+      .qa-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .qa-shot {
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .qa-shot img {
+        width: 100%;
+        display: block;
+        border-radius: 18px;
+        background: var(--surface-muted);
+      }
+      figcaption {
+        display: grid;
+        gap: 4px;
+        color: var(--ink-muted);
+      }
+      figcaption strong {
+        color: var(--ink);
+      }
+      code {
+        font: 500 12px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+      }
+      ul {
+        margin: 14px 0 0;
+        padding-left: 18px;
+      }
+      li + li {
+        margin-top: 8px;
+      }
+      a {
+        color: inherit;
+      }
+      @media (max-width: 720px) {
+        main {
+          width: min(100vw - 20px, 100%);
+          padding-top: 20px;
+        }
+        .hero, .panel, .qa-route {
+          border-radius: 18px;
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <span class="status ${hardFailures.length ? 'status-fail' : 'status-pass'}">${escapeHtml(overallStatus)}</span>
+        <h1>BOARD World App Device QA Report</h1>
+        <p>${escapeHtml(gateSummary)}</p>
+        <div class="hero-meta">
+          <div>
+            <h2>App origin</h2>
+            <p><a href="${escapeHtml(manifest.appUrl)}">${escapeHtml(manifest.appUrl)}</a></p>
+          </div>
+          <div>
+            <h2>World surface</h2>
+            <p><a href="${escapeHtml(manifest.worldUrl)}">${escapeHtml(manifest.worldUrl)}</a></p>
+          </div>
+          <div>
+            <h2>Generated</h2>
+            <p>${escapeHtml(manifest.generatedAt)}</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>Automated checks</span>
+          <strong>${checks.length}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Hard failures</span>
+          <strong>${hardFailures.length}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Warnings</span>
+          <strong>${warnings.length}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Screenshots</span>
+          <strong>${visualArtifacts.length}</strong>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2>Manual device gate</h2>
+        <ul>
+          <li>Use the World Developer Portal QR for the same Railway origin, not the browser QR alone.</li>
+          <li>Confirm iOS and Android both open inside the World App WebView.</li>
+          <li>Verify wallet bind, IDKit, ranked gate, room share, and background/resume behavior on real devices.</li>
+          <li>Attach raw screenshots and screen recordings without cropping out World App chrome.</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Automated checks</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Status</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${checkRows}
+          </tbody>
+        </table>
+      </section>
+
+      ${visualSections}
+    </main>
+  </body>
+</html>
+`;
+
+  fs.writeFileSync(path.join(outDir, 'device-qa-report.html'), html, 'utf8');
 }
 
 async function main() {
@@ -735,6 +1064,7 @@ async function main() {
 
   fs.writeFileSync(path.join(outDir, 'device-qa-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   writeChecklist(outDir, appUrl, worldUrl, qrUrl, checks, visualArtifacts);
+  writeHtmlReport(outDir, manifest);
 
   const failed = checks.filter((check) => check.status === 'fail');
   console.log(`QA artifacts: ${outDir}`);

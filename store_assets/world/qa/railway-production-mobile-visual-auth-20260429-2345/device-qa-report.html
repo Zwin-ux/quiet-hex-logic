@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BOARD World App Device QA Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f6f2;
+        --surface: #ffffff;
+        --surface-muted: #f0eee8;
+        --ink: #101114;
+        --ink-muted: #5c5f66;
+        --line: rgba(16, 17, 20, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.5 "IBM Plex Sans", system-ui, sans-serif;
+      }
+      main {
+        width: min(1160px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+      .hero, .panel, .qa-route {
+        background: var(--surface);
+        border-radius: 22px;
+        padding: 24px;
+      }
+      .hero {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      h1, h2, h3, p {
+        margin: 0;
+      }
+      h1 { font: 600 28px/1.1 "IBM Plex Sans", system-ui, sans-serif; }
+      h2 { font: 600 18px/1.2 "IBM Plex Sans", system-ui, sans-serif; }
+      h3 { font: 600 16px/1.2 "IBM Plex Sans", system-ui, sans-serif; }
+      .hero-meta, .summary-grid, .check-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .hero-meta {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-bottom: 20px;
+      }
+      .summary-card {
+        background: var(--surface);
+        border-radius: 18px;
+        padding: 18px 20px;
+      }
+      .summary-card strong {
+        display: block;
+        font: 600 24px/1.1 "IBM Plex Sans", system-ui, sans-serif;
+        margin-top: 6px;
+      }
+      .panel {
+        margin-bottom: 20px;
+      }
+      .panel + .panel {
+        margin-top: 20px;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font: 600 11px/1 "IBM Plex Sans", system-ui, sans-serif;
+        letter-spacing: 0.08em;
+      }
+      .status-pass, .status-warn {
+        background: #101114;
+        color: #fff;
+      }
+      .status-fail {
+        background: #fff;
+        color: #101114;
+        outline: 1px solid rgba(16, 17, 20, 0.22);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        text-align: left;
+        vertical-align: top;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--ink-muted);
+        font: 600 12px/1.1 "IBM Plex Sans", system-ui, sans-serif;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .qa-route {
+        margin-bottom: 20px;
+      }
+      .qa-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .qa-shot {
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .qa-shot img {
+        width: 100%;
+        display: block;
+        border-radius: 18px;
+        background: var(--surface-muted);
+      }
+      figcaption {
+        display: grid;
+        gap: 4px;
+        color: var(--ink-muted);
+      }
+      figcaption strong {
+        color: var(--ink);
+      }
+      code {
+        font: 500 12px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+      }
+      ul {
+        margin: 14px 0 0;
+        padding-left: 18px;
+      }
+      li + li {
+        margin-top: 8px;
+      }
+      a {
+        color: inherit;
+      }
+      @media (max-width: 720px) {
+        main {
+          width: min(100vw - 20px, 100%);
+          padding-top: 20px;
+        }
+        .hero, .panel, .qa-route {
+          border-radius: 18px;
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <span class="status status-pass">Manual device QA ready</span>
+        <h1>BOARD World App Device QA Report</h1>
+        <p>Automated preflight passed. 12 warning(s) are expected browser-only MiniKit or preload output outside the World App WebView. Manual device QA can proceed.</p>
+        <div class="hero-meta">
+          <div>
+            <h2>App origin</h2>
+            <p><a href="https://botbot-production-38b3.up.railway.app">https://botbot-production-38b3.up.railway.app</a></p>
+          </div>
+          <div>
+            <h2>World surface</h2>
+            <p><a href="https://botbot-production-38b3.up.railway.app/?surface=world">https://botbot-production-38b3.up.railway.app/?surface=world</a></p>
+          </div>
+          <div>
+            <h2>Generated</h2>
+            <p>2026-04-30T05:22:25.281Z</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>Automated checks</span>
+          <strong>32</strong>
+        </article>
+        <article class="summary-card">
+          <span>Hard failures</span>
+          <strong>0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Warnings</span>
+          <strong>12</strong>
+        </article>
+        <article class="summary-card">
+          <span>Screenshots</span>
+          <strong>12</strong>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2>Manual device gate</h2>
+        <ul>
+          <li>Use the World Developer Portal QR for the same Railway origin, not the browser QR alone.</li>
+          <li>Confirm iOS and Android both open inside the World App WebView.</li>
+          <li>Verify wallet bind, IDKit, ranked gate, room share, and background/resume behavior on real devices.</li>
+          <li>Attach raw screenshots and screen recordings without cropping out World App chrome.</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Automated checks</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Status</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+        <tr>
+          <td>public_url_protocol</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>https://botbot-production-38b3.up.railway.app</td>
+        </tr>
+      
+        <tr>
+          <td>health</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>{&quot;ok&quot;:true,&quot;service&quot;:&quot;hexology-railway-server&quot;,&quot;hasAiProvider&quot;:false,&quot;hasSupabaseConfig&quot;:true,&quot;hasWorldAppConfig&quot;:true}</td>
+        </tr>
+      
+        <tr>
+          <td>world_server_config</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>hasWorldAppConfig=true</td>
+        </tr>
+      
+        <tr>
+          <td>world_surface_html</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=200</td>
+        </tr>
+      
+        <tr>
+          <td>runtime_env</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>VITE_WORLD_APP_ID, VITE_WORLD_ID_ACTION, VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY</td>
+        </tr>
+      
+        <tr>
+          <td>auth_anonymous_session</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>anonymous Supabase session created</td>
+        </tr>
+      
+        <tr>
+          <td>auth_POST_/api/world/nonce</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=200 payload=nonce issued</td>
+        </tr>
+      
+        <tr>
+          <td>auth_POST_/api/world/rp-signature</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=200 payload=signed</td>
+        </tr>
+      
+        <tr>
+          <td>auth_GET_/api/world/quickplay/state</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=200 walletBound=false canOpenRoom=false canEnterRanked=false competitiveGate=wallet_required</td>
+        </tr>
+      
+        <tr>
+          <td>auth_POST_/api/world/quickplay_ranked_wallet_gate</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=409 errorCode=world_wallet_required</td>
+        </tr>
+      
+        <tr>
+          <td>auth_POST_/api/world/quickplay_resume_wallet_gate</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=409 errorCode=world_wallet_required</td>
+        </tr>
+      
+        <tr>
+          <td>auth_POST_/api/world/quickplay_rematch_wallet_gate</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=409 errorCode=world_wallet_required</td>
+        </tr>
+      
+        <tr>
+          <td>world_bundle_labels</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>5 labels found</td>
+        </tr>
+      
+        <tr>
+          <td>POST_/api/world/nonce_rejects_unauthenticated</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=401</td>
+        </tr>
+      
+        <tr>
+          <td>POST_/api/world/complete-wallet-auth_rejects_unauthenticated</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=401</td>
+        </tr>
+      
+        <tr>
+          <td>POST_/api/world/rp-signature_rejects_unauthenticated</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=401</td>
+        </tr>
+      
+        <tr>
+          <td>POST_/api/world/verify-id_rejects_unauthenticated</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=401</td>
+        </tr>
+      
+        <tr>
+          <td>GET_/api/world/quickplay/state_rejects_unauthenticated</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=401</td>
+        </tr>
+      
+        <tr>
+          <td>POST_/api/world/quickplay_rejects_unauthenticated</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>status=401</td>
+        </tr>
+      
+        <tr>
+          <td>visual_world-surface_ios</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>World surface on iPhone 15; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\world-surface-ios.png; console=ignored console output: [2026-04-30T05:21:20.146Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:21:20.407Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:21:22.200Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | [2026-04-30T05:21:22.476Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_play_ios</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Play on iPhone 15; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\play-ios.png; console=ignored console output: [2026-04-30T05:21:26.354Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_worlds_ios</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Worlds on iPhone 15; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\worlds-ios.png; console=ignored console output: [2026-04-30T05:21:31.711Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_events_ios</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Events on iPhone 15; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\events-ios.png; console=ignored console output: [2026-04-30T05:21:35.522Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_world-detail_ios</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>World detail on iPhone 15; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\world-detail-ios.png; console=ignored console output: [2026-04-30T05:21:39.161Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_tournament-detail_ios</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Tournament detail on iPhone 15; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\tournament-detail-ios.png; console=ignored console output: [2026-04-30T05:21:56.951Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:21:58.111Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_world-surface_android</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>World surface on Pixel 8; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\world-surface-android.png; console=ignored console output: [2026-04-30T05:22:04.405Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:22:04.656Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_play_android</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Play on Pixel 8; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\play-android.png; console=ignored console output: [2026-04-30T05:22:08.677Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:22:09.376Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_worlds_android</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Worlds on Pixel 8; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\worlds-android.png; console=ignored console output: [2026-04-30T05:22:12.480Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | [2026-04-30T05:22:12.666Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_events_android</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Events on Pixel 8; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\events-android.png; console=ignored console output: [2026-04-30T05:22:15.877Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_world-detail_android</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>World detail on Pixel 8; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\world-detail-android.png; console=ignored console output: [2026-04-30T05:22:18.931Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>visual_tournament-detail_android</td>
+          <td><span class="status status-warn">WARN</span></td>
+          <td>Tournament detail on Pixel 8; screenshot=store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\tournament-detail-android.png; console=ignored console output: [2026-04-30T05:22:23.376Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App; content=route text loaded</td>
+        </tr>
+      
+        <tr>
+          <td>qr_svg</td>
+          <td><span class="status status-pass">PASS</span></td>
+          <td>C:\Users\mzwin\Documents\hexoogy\store_assets\world\qa\railway-production-mobile-visual-auth-20260429-2345\world-app-qa-url.svg</td>
+        </tr>
+      
+          </tbody>
+        </table>
+      </section>
+
+      
+            <section class="qa-route">
+              <header>
+                <h3>World surface</h3>
+              </header>
+              <div class="qa-grid">
+                
+                <figure class="qa-shot">
+                  <img src="world-surface-ios.png" alt="World surface on iPhone 15" loading="lazy" />
+                  <figcaption>
+                    <strong>iPhone 15</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:21:20.146Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:21:20.407Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:21:22.200Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | [2026-04-30T05:21:22.476Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.</small>
+                  </figcaption>
+                </figure>
+              
+                <figure class="qa-shot">
+                  <img src="world-surface-android.png" alt="World surface on Pixel 8" loading="lazy" />
+                  <figcaption>
+                    <strong>Pixel 8</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:22:04.405Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:22:04.656Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+              </div>
+            </section>
+          
+            <section class="qa-route">
+              <header>
+                <h3>Play</h3>
+              </header>
+              <div class="qa-grid">
+                
+                <figure class="qa-shot">
+                  <img src="play-ios.png" alt="Play on iPhone 15" loading="lazy" />
+                  <figcaption>
+                    <strong>iPhone 15</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:21:26.354Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+                <figure class="qa-shot">
+                  <img src="play-android.png" alt="Play on Pixel 8" loading="lazy" />
+                  <figcaption>
+                    <strong>Pixel 8</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:22:08.677Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:22:09.376Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.</small>
+                  </figcaption>
+                </figure>
+              
+              </div>
+            </section>
+          
+            <section class="qa-route">
+              <header>
+                <h3>Worlds</h3>
+              </header>
+              <div class="qa-grid">
+                
+                <figure class="qa-shot">
+                  <img src="worlds-ios.png" alt="Worlds on iPhone 15" loading="lazy" />
+                  <figcaption>
+                    <strong>iPhone 15</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:21:31.711Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+                <figure class="qa-shot">
+                  <img src="worlds-android.png" alt="Worlds on Pixel 8" loading="lazy" />
+                  <figcaption>
+                    <strong>Pixel 8</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:22:12.480Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | [2026-04-30T05:22:12.666Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+              </div>
+            </section>
+          
+            <section class="qa-route">
+              <header>
+                <h3>Events</h3>
+              </header>
+              <div class="qa-grid">
+                
+                <figure class="qa-shot">
+                  <img src="events-ios.png" alt="Events on iPhone 15" loading="lazy" />
+                  <figcaption>
+                    <strong>iPhone 15</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:21:35.522Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+                <figure class="qa-shot">
+                  <img src="events-android.png" alt="Events on Pixel 8" loading="lazy" />
+                  <figcaption>
+                    <strong>Pixel 8</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:22:15.877Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+              </div>
+            </section>
+          
+            <section class="qa-route">
+              <header>
+                <h3>World detail</h3>
+              </header>
+              <div class="qa-grid">
+                
+                <figure class="qa-shot">
+                  <img src="world-detail-ios.png" alt="World detail on iPhone 15" loading="lazy" />
+                  <figcaption>
+                    <strong>iPhone 15</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:21:39.161Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+                <figure class="qa-shot">
+                  <img src="world-detail-android.png" alt="World detail on Pixel 8" loading="lazy" />
+                  <figcaption>
+                    <strong>Pixel 8</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:22:18.931Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+              </div>
+            </section>
+          
+            <section class="qa-route">
+              <header>
+                <h3>Tournament detail</h3>
+              </header>
+              <div class="qa-grid">
+                
+                <figure class="qa-shot">
+                  <img src="tournament-detail-ios.png" alt="Tournament detail on iPhone 15" loading="lazy" />
+                  <figcaption>
+                    <strong>iPhone 15</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:21:56.951Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App | [2026-04-30T05:21:58.111Z] [warning] The resource https://fonts.gstatic.com/s/ibmplexserif/v19/jizDREVNn1dOx-zrZ2X3pZvkTiUQ6SF-lPKgqWVL.woff2 was preloaded using link preload but not used within a few seconds from the window&#39;s load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.</small>
+                  </figcaption>
+                </figure>
+              
+                <figure class="qa-shot">
+                  <img src="tournament-detail-android.png" alt="Tournament detail on Pixel 8" loading="lazy" />
+                  <figcaption>
+                    <strong>Pixel 8</strong>
+                    <span>WARN</span>
+                    <small>ignored console output: [2026-04-30T05:22:23.376Z] [warning] MiniKit is not installed. Make sure you&#39;re running the application inside of World App</small>
+                  </figcaption>
+                </figure>
+              
+              </div>
+            </section>
+          
+    </main>
+  </body>
+</html>
