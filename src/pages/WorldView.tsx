@@ -90,7 +90,7 @@ export default function WorldView() {
 
   if (loading || !overview) {
     return (
-      <SiteFrame visualMode="mono">
+      <SiteFrame visualMode="world">
         <div className="flex min-h-[420px] items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -156,8 +156,9 @@ export default function WorldView() {
   };
 
   return (
-    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+    <SiteFrame visualMode="world" contentClassName="pb-16 pt-32 md:pt-28">
       <SystemScreen
+        variant="world"
         label="World"
         title={world.name}
         description={world.description || "Tables open. Finals live."}
@@ -191,6 +192,7 @@ export default function WorldView() {
 
         {canManage ? (
           <SystemSection
+            variant="world"
             label="Host"
             title={isAuthoringSurface ? "Run this venue" : "Run the live room"}
             description={
@@ -248,6 +250,7 @@ export default function WorldView() {
         ) : null}
 
         <SystemSection
+          variant="world"
           label="Rooms"
           title={lobbies.length ? `${lobbies.length} waiting room${lobbies.length === 1 ? "" : "s"}` : "No waiting rooms"}
           description="Choose one room when you are ready to enter."
@@ -278,12 +281,20 @@ export default function WorldView() {
         </SystemSection>
 
         {matches.length ? (
-          <SystemSection label="Live boards" title={`${matches.length} active board${matches.length === 1 ? "" : "s"}`}>
+          <SystemSection
+            variant="world"
+            label="Live boards"
+            title={`${matches.length} active board${matches.length === 1 ? "" : "s"}`}
+          >
             <DecisionLane>
               {matches.map((match) => (
                 <button
                   key={match.id}
-                  onClick={() => navigate(`/match/${match.id}`)}
+                  onClick={() =>
+                    navigate(`/match/${match.id}`, {
+                      state: { worldId: world.id, worldName: world.name },
+                    })
+                  }
                   className="decision-entry"
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -300,6 +311,7 @@ export default function WorldView() {
         ) : null}
 
         <SystemSection
+          variant="world"
           label="Events"
           title={events.length ? `${events.length} queued event${events.length === 1 ? "" : "s"}` : "No queued events"}
           description="Open the current bracket only when the room matters."

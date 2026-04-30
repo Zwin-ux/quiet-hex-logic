@@ -30,6 +30,8 @@ function variantLabel(match: MatchData): string | null {
 
 interface MatchHeaderProps {
   match: MatchData;
+  systemVariant?: "default" | "world";
+  contextLabel?: string | null;
   isAIMatch: boolean;
   isPlayer: boolean;
   isSpectating: boolean;
@@ -61,6 +63,8 @@ interface MatchHeaderProps {
 
 export function MatchHeader({
   match,
+  systemVariant = "default",
+  contextLabel,
   isAIMatch,
   isPlayer,
   isSpectating,
@@ -95,6 +99,7 @@ export function MatchHeader({
   return (
     <SystemScreen
       compact
+      variant={systemVariant}
       label={modeLabel}
       title={
         <span className="inline-flex items-center gap-3">
@@ -182,6 +187,7 @@ export function MatchHeader({
           <BoardWordmark className="text-[28px] md:text-[32px]" />
         </div>
         <UtilityStrip>
+          {contextLabel ? <UtilityPill>{contextLabel}</UtilityPill> : null}
           <UtilityPill strong={match.status !== "finished" || match.result !== "draw"}>{activeState}</UtilityPill>
           {!isAIMatch ? <UtilityPill>{spectatorCount} watching</UtilityPill> : null}
           <UtilityPill>{matchDims(match)}</UtilityPill>

@@ -10,7 +10,7 @@ type SiteFrameProps = {
   navVariant?: "default" | "landing";
   contentMode?: "contained" | "full";
   shellVariant?: "default" | "landing";
-  visualMode?: "default" | "mono";
+  visualMode?: "default" | "mono" | "world";
 };
 
 export function SiteFrame({

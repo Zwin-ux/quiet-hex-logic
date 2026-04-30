@@ -5,17 +5,19 @@ import { Loader2 } from 'lucide-react';
 
 interface MatchLoadingProps {
   onCancel: () => void;
+  visualMode?: "mono" | "world";
+  label?: string;
 }
 
-export function MatchLoading() {
+export function MatchLoading({ visualMode = "mono", label = "Instance loading" }: Partial<MatchLoadingProps>) {
   return (
-    <SiteFrame showNav={false} visualMode="mono" contentClassName="flex min-h-screen items-center justify-center py-12">
+    <SiteFrame showNav={false} visualMode={visualMode} contentClassName="flex min-h-screen items-center justify-center py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center">
         <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white">
           <BoardScene game="hex" state="loading" decorative className="h-10 w-10 text-[#090909]" />
         </div>
         <div>
-          <p className="board-rail-label">Instance loading</p>
+          <p className="board-rail-label">{label}</p>
           <p className="mt-3 text-4xl font-black tracking-[-0.08em] text-foreground">Preparing board</p>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Pulling the room state, seats, and board engine into place.
@@ -27,15 +29,15 @@ export function MatchLoading() {
   );
 }
 
-export function MatchWaiting({ onCancel }: MatchLoadingProps) {
+export function MatchWaiting({ onCancel, visualMode = "mono", label = "Queue state" }: MatchLoadingProps) {
   return (
-    <SiteFrame showNav={false} visualMode="mono" contentClassName="flex min-h-screen items-center justify-center py-12">
+    <SiteFrame showNav={false} visualMode={visualMode} contentClassName="flex min-h-screen items-center justify-center py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 text-center">
         <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white">
           <BoardScene game="hex" state="loading" decorative className="h-10 w-10 text-[#090909]" />
         </div>
         <div>
-          <p className="board-rail-label">Queue state</p>
+          <p className="board-rail-label">{label}</p>
           <h2 className="mt-3 text-4xl font-black tracking-[-0.08em] text-foreground">Searching for an opponent</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             The queue is active. BOARD will open the instance as soon as another seat locks in.

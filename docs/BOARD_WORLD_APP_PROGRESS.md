@@ -1,18 +1,18 @@
 # BOARD World App Progress Ledger
 
-Last updated: 2026-04-29
+Last updated: 2026-04-30
 
 ## Current Release Score
 
-Overall readiness: 94/100
+Overall readiness: 95/100
 
 | Area | Score | Status |
 | --- | ---: | --- |
 | Product scope | 9/10 | V1 is tight: verified play rooms, quickplay, rooms, events, profile. No prizes, tokens, or host workbench in World App. |
 | Architecture | 9/10 | Vite/React/Supabase/Railway preserved. World App auth routes, Quickplay command/read model, competitive read model, and Supabase identity storage are implemented. |
 | Identity and verification | 9/10 | MiniKit wallet auth and IDKit 4 flow are wired, Railway env is loaded, remote schema is applied, anonymous auth is enabled, and authenticated backend gates pass. Needs real World App device verification. |
-| World App UX | 8/10 | Mobile play console now follows a Coinbase/Kalshi/Uber Base-informed mono system direction: warm paper shell, black utility chrome, white planes, monochrome verification state, and visible bottom nav. Needs screenshot QA on iOS/Android. |
-| Web regression safety | 8/10 | Typecheck, lint, tests, production build, server build, endpoint harness, and local World surface smoke pass. Needs browser pass on normal web routes after final polish. |
+| World App UX | 9/10 | World console, world detail, tournament detail, and lobby entry now share one CDS-style mono system contract: semantic shell modes, segmented controls, utility strips, and compact decision rows. Needs screenshot QA on iOS/Android. |
+| Web regression safety | 9/10 | Typecheck, lint, tests, production build, server build, endpoint harness, and local World-flow browser smoke pass. Remaining QA gap is authenticated World App device verification, not route instability. |
 | Submission readiness | 7/10 | World-specific metadata, review notes, icon, content card, local layout screenshots, and passing deployed QR preflight exist. Needs real World App WebView screenshots and final upload review. |
 | Observability and operations | 9/10 | Health reports World config presence. Deploy smoke, release readiness, unauth/auth device preflight, structured `/api/world/*` logs, Quickplay competitive state, request-id tracing, Railway env, deployed URL, and remote migration are now validated. |
 
@@ -86,6 +86,11 @@ Overall readiness: 94/100
 - Added `npm run assets:world` and generated World App icon, content card, safe-area check, review notes, and PNG previews under `store_assets/world/`.
 - Captured local 375x812 layout screenshots for Play, Rooms, Events, and Profile tabs under `store_assets/world/screenshots/`.
 - Verified `npm run lint`, `npm run typecheck`, `npm test`, `npm run build:server`, and `npm run build`.
+- Promoted the World App console primitives into a shared World-first CDS system layer: `SiteFrame visualMode="world"`, `SystemScreen`/`SystemSection` world variants, shared segmented controls, and shared metadata strips.
+- Rebuilt `WorldAppHome` onto the shared system contract so it is now the reference World surface instead of a page-local mini design system.
+- Migrated `WorldView`, `TournamentView`, `LobbyView`, and world-context match loading/state chrome onto the same World system language.
+- Verified the World flow against a local Railway-style runtime with injected public env: `/?surface=world`, `/worlds/:id`, `/tournament/:id`, and `/lobby/:id` now render without console errors under the built server contract.
+- Confirmed the local World console needs `SUPABASE_SERVICE_ROLE_KEY` to fully populate `/api/world/quickplay/state`; public-key-only local smoke is enough for shell/UI validation but not for live Quickplay data.
 
 ## Current Verification
 
@@ -124,6 +129,7 @@ Overall readiness: 94/100
 | `npm run qa:world-device -- https://botbot-production-38b3.up.railway.app --auth-check --out store_assets/world/qa/railway-production-resume-rematch-20260428-211315` | Pass | Anonymous Supabase session, World nonce, RP signing, competitive Quickplay state, wallet-required ranked/resume/rematch gates, unauthenticated endpoint rejection, QR artifact generation, and deployed contract pass. |
 | `npm run typecheck` | Pass | Client/server TypeScript pass after Play scene competitive state wiring. |
 | `npm run build` | Pass | Vite production build succeeds after Play scene competitive state wiring; existing Rollup annotation and large chunk warnings remain. |
+| `npm run build:railway` | Pass | Combined client/server production build succeeds after the World-first CDS system pass. |
 | `railway up --detach --service botbot --environment production --message "REF-109 Wire Quickplay resume rematch UI"` | Pass | Deployment `98b2b537-479c-4460-a1b1-a21f45309629` succeeded. |
 | `npm run smoke:world -- https://botbot-production-38b3.up.railway.app` | Pass | Deployed World route/runtime env/compiled labels pass after Play scene wiring. |
 | `railway run node scripts/check-world-release-readiness.mjs --strict-env` | Pass | Rechecked after Play scene deploy: 0 failures, 1 optional warning for `WORLD_DEV_PORTAL_API_KEY`. |
@@ -137,6 +143,8 @@ Overall readiness: 94/100
 | `railway run node scripts/check-world-release-readiness.mjs --strict-env` | Pass | 0 failures, 1 optional warning for `WORLD_DEV_PORTAL_API_KEY`. |
 | `npm run qa:world-device -- https://botbot-production-38b3.up.railway.app --auth-check --out store_assets/world/qa/railway-production-core-loop-20260428-213324` | Pass | Anonymous Supabase session, World nonce, RP signing, competitive Quickplay state, wallet-required ranked/resume/rematch gates, unauthenticated endpoint rejection, QR artifact generation, and deployed contract pass. |
 | gstack browser, deployed 375x812 | Pass | `/?surface=world`, `/play`, `/worlds`, and `/events` render on mobile. Console only shows expected MiniKit warnings outside World App. Screenshots are in `store_assets/world/qa/railway-production-core-loop-20260428-213324/`. |
+| Local Railway-style browser smoke, 127.0.0.1 | Pass | With runtime env injected by the built Express server, `/?surface=world`, `/worlds/:id`, `/tournament/:id`, and `/lobby/:id` render on the new World system without console errors. |
+| Local Railway-style Quickplay data, public keys only | Expected partial | `POST /auth/v1/signup` succeeds and the shell renders, but `/api/world/quickplay/state` returns 400 until `SUPABASE_SERVICE_ROLE_KEY` is present locally. This is a local-env limitation, not a UI regression. |
 
 ## Active Risks
 
@@ -149,6 +157,7 @@ Overall readiness: 94/100
 | Bundle size is high because web3/wallet/IDKit code is pulled into the app. | Medium | Split World ID and wallet-heavy code into lazy chunks after functional QA. |
 | Migration changes play-account gating for anonymous World-bound users. | Medium | Test ranked, unranked, lobby, tournament, and legacy web auth flows against staging Supabase. |
 | Device screenshots are not production-ready. | Medium | Replace local layout screenshots with iOS/Android World App WebView captures after staging QR test. |
+| Local World console smoke can look broken if only public Supabase keys are loaded. | Low | For local built-server smoke, load `SUPABASE_SERVICE_ROLE_KEY` when validating live Quickplay data. Use public-key-only smoke for shell/UI checks only. |
 | Parallel frontend/design changes are active in the worktree. | Medium | Keep backend/system work out of design-owned files and reconcile before ship. |
 
 ## Operating Loop
@@ -169,10 +178,10 @@ npm run build
 
 ## Next Actions
 
-1. Open the World Developer Portal test QR for `https://botbot-production-38b3.up.railway.app`.
-2. Run real device World App QR QA on iOS and Android.
-3. Verify wallet auth binding, IDKit proof, `/api/world/quickplay/state`, competitive gate state, `ranked`, `resume-ranked`, `ranked-rematch`, and room commands with real wallet-bound and verified users.
-4. Capture iOS/Android World App screenshots for Play, Rooms, Events, Profile, verification gate, and share sheet.
-5. Replace local dummy-env screenshots with staging iOS/Android World App captures.
-6. Split World ID/wallet-heavy code if device QA shows first-load pressure.
-7. Browser-pass normal web routes after final World App polish.
+1. Load `SUPABASE_SERVICE_ROLE_KEY` into the local built-server smoke path if live Quickplay data needs to be validated outside Railway.
+2. Open the World Developer Portal test QR for `https://botbot-production-38b3.up.railway.app`.
+3. Run real device World App QR QA on iOS and Android.
+4. Verify wallet auth binding, IDKit proof, `/api/world/quickplay/state`, competitive gate state, `ranked`, `resume-ranked`, `ranked-rematch`, and room commands with real wallet-bound and verified users.
+5. Capture iOS/Android World App screenshots for Play, Rooms, Events, Profile, verification gate, and share sheet.
+6. Replace local dummy-env screenshots with staging iOS/Android World App captures.
+7. Split World ID/wallet-heavy code if device QA shows first-load pressure.

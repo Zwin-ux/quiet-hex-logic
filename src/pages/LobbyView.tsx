@@ -56,7 +56,7 @@ export default function LobbyView() {
 
   if (!lobbyId) {
     return (
-      <SiteFrame visualMode="mono">
+      <SiteFrame visualMode="world">
         <div className="flex min-h-[420px] items-center justify-center text-muted-foreground">
           Loading room...
         </div>
@@ -66,7 +66,7 @@ export default function LobbyView() {
 
   if (loading) {
     return (
-      <SiteFrame visualMode="mono">
+      <SiteFrame visualMode="world">
         <div className="flex min-h-[420px] items-center justify-center text-muted-foreground">
           Loading room...
         </div>
@@ -76,13 +76,14 @@ export default function LobbyView() {
 
   if (!user) {
     return (
-      <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+      <SiteFrame visualMode="world" contentClassName="pb-16 pt-32 md:pt-28">
         <SystemScreen
+          variant="world"
           label="Room"
           title="Sign in to enter"
           description="Live rooms need an account so readiness, presence, and match routing stay attached to you."
         >
-          <SystemSection label="Access" title="Room access is account-bound">
+          <SystemSection variant="world" label="Access" title="Room access is account-bound">
             <div className="grid gap-4">
               <p className="system-inline-note">
                 The room exists. Sign in, then BOARD will drop you back into this exact room.
@@ -107,8 +108,9 @@ export default function LobbyView() {
   }
 
   return (
-    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+    <SiteFrame visualMode="world" contentClassName="pb-16 pt-32 md:pt-28">
       <SystemScreen
+        variant="world"
         label="Room"
         title="Live lobby"
         description="Ready, chat, then commit to the match."
@@ -137,11 +139,11 @@ export default function LobbyView() {
           <UtilityPill>room chat attached</UtilityPill>
         </UtilityStrip>
 
-        <SystemSection label="Room state" title="Seats and readiness">
+        <SystemSection variant="world" label="Room state" title="Seats and readiness">
           <LobbyPanel lobbyId={lobbyId} userId={user.id} />
         </SystemSection>
 
-        <SystemSection label="Chat" title="Lobby conversation">
+        <SystemSection variant="world" label="Chat" title="Lobby conversation">
           <div className="flex items-center gap-2 pb-4">
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Room channel</span>

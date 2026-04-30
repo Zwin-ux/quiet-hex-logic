@@ -18,7 +18,7 @@ import {
 } from "@/lib/worldIdConfig";
 import { toast } from "sonner";
 
-export default function WorldIDWidget({ variant = "default" }: { variant?: "default" | "support" }) {
+export default function WorldIDWidget({ variant = "default" }: { variant?: "default" | "world" | "support" }) {
   const { user } = useAuth();
   const {
     isVerified,
@@ -38,7 +38,7 @@ export default function WorldIDWidget({ variant = "default" }: { variant?: "defa
   const isSupport = variant === "support";
   const shellClassName = isSupport
     ? "space-y-4 rounded-[1.6rem] bg-[#090909] px-4 py-4 text-[#f6f4f0]"
-    : "space-y-4 rounded-[1.6rem] bg-white px-4 py-4 text-[#090909]";
+    : "space-y-4 rounded-[1.4rem] bg-white px-4 py-4 text-[#090909]";
   const labelClassName = isSupport ? "board-rail-label text-white/58" : "board-rail-label text-black/55";
   const bodyClassName = isSupport ? "text-sm leading-6 text-white/70" : "text-sm leading-6 text-black/62";
   const quietClassName = isSupport ? "text-xs leading-6 text-white/58" : "text-xs leading-6 text-black/55";

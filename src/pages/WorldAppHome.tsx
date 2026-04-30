@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
@@ -16,8 +16,22 @@ import {
 import WorldIDWidget from "@/components/WorldID";
 import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
+import {
+  DecisionEntry,
+  DecisionEntryFocus,
+  DecisionLane,
+  SystemMetaGrid,
+  SystemMetaItem,
+  SystemScreen,
+  SystemSection,
+  SystemSegmented,
+  SystemSegmentedItem,
+  UtilityPill,
+  UtilityStrip,
+} from "@/components/board/SystemSurface";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useWorldAppAuth } from "@/hooks/useWorldAppAuth";
 import { useWorldShare } from "@/hooks/useWorldShare";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +40,6 @@ import { buildWebUrl } from "@/lib/surfaces";
 import { loadWorldQuickplayState, runWorldQuickplay } from "@/lib/worldApp/quickplay";
 import type { WorldQuickplayState } from "@/lib/worldApp/quickplay";
 import type { WorldSummary } from "@/lib/worlds";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type ConsoleTab = "play" | "rooms" | "events" | "profile";
@@ -106,7 +119,6 @@ export default function WorldAppHome() {
   const activeRankedMatch = competitive?.activeMatch ?? null;
   const recentResult = competitive?.recentResults[0] ?? null;
   const selectedRankedGame = competitive?.games.find((game) => game.gameKey === selectedGame) ?? null;
-
   const selectedGameMeta = useMemo(() => getGameMeta(selectedGame), [selectedGame]);
   const selectedSceneKey = selectedGameMeta.key as BoardSceneKey;
 
@@ -140,7 +152,7 @@ export default function WorldAppHome() {
   }, [worldAuth.supabaseSession]);
 
   useEffect(() => {
-    loadConsoleData();
+    void loadConsoleData();
   }, [loadConsoleData]);
 
   const ensureWorldSeat = useCallback(async () => {
@@ -359,292 +371,285 @@ export default function WorldAppHome() {
   return (
     <SiteFrame
       showNav={false}
-      visualMode="mono"
+      visualMode="world"
       contentMode="full"
       className="ios-safe-area"
       contentClassName="pb-0 pt-0"
     >
-      <main className="world-console-shell">
-        <div className="world-console-app">
-          <header className="world-console-topbar">
-            <div className="flex items-center justify-between gap-3">
-              <BoardWordmark className="text-[#101114]" />
-              <div className="world-console-seat">
-                World seat
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/48">
-                  {isWalletBound ? worldHandle : "Seat not bound"}
-                </p>
-                <h1 className="mt-1 text-[2.35rem] font-black leading-[0.9] tracking-[-0.075em]">
-                  Enter a human room.
-                </h1>
-              </div>
-              <button
-                type="button"
-                onClick={loadConsoleData}
-                className="world-console-refresh"
-                aria-label="Refresh World App console"
-              >
-                <CircleDot className={cn("h-5 w-5", loadingData && "animate-spin")} />
-              </button>
-            </div>
-          </header>
-
-          <section className="world-console-scroll">
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              <StatusTile
-                label="Wallet"
-                value={isWalletBound ? "bound" : "bind"}
-                active={isWalletBound}
-              />
-              <StatusTile
-                label="Ranked"
-                value={isHumanVerified ? "human" : "locked"}
-                active={isHumanVerified}
-              />
-            </div>
-
-          {activeTab === "play" ? (
-            <div className="space-y-4">
-              {activeRankedMatch ? (
-                <CompetitiveActionCard
-                  eyebrow="Resume ranked"
-                  title={`${gameLabel(activeRankedMatch.gameKey)} match`}
-                  body={activeRankedMatch.status === "waiting" ? "Seat is waiting. Keep the queue alive." : "Match is live. Continue from the board."}
-                  meta={activeRankedMatch.status}
-                  action={starting === "resume" ? "Resuming" : "Resume"}
-                  icon={PlayCircle}
-                  disabled={Boolean(starting)}
-                  onClick={resumeRanked}
-                />
-              ) : null}
-
-              <section className="world-console-card text-[#101114]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/44">
-                      Quick entry
-                    </p>
-                    <h2 className="mt-2 text-[2.15rem] font-black leading-[0.9] tracking-[-0.065em]">
-                      {gameLabel(selectedGame)}
-                    </h2>
-                  </div>
-                  <div className="grid h-12 w-12 place-items-center rounded-[18px] bg-[#090909] text-white">
-                    <BoardScene game={selectedSceneKey} state="selected" decorative className="h-6 w-6 text-[#f6f4f0]" />
-                  </div>
+      <main className="world-flow-shell">
+        <div className="world-flow-app">
+          <section className="world-flow-scroll">
+            <SystemScreen
+              variant="world"
+              compact
+              label={isWalletBound ? worldHandle : "Seat not bound"}
+              title="Enter a human room."
+              description={
+                isWalletBound
+                  ? "World seat active. Pick one lane and commit."
+                  : "Bind a World seat, then enter ranked, rooms, or events."
+              }
+              actions={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 border-0"
+                  onClick={loadConsoleData}
+                  aria-label="Refresh World App console"
+                >
+                  <CircleDot className={loadingData ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
+                </Button>
+              }
+              utility={
+                <UtilityStrip>
+                  <UtilityPill strong>world seat</UtilityPill>
+                  <UtilityPill>{isWalletBound ? "wallet bound" : "bind wallet"}</UtilityPill>
+                  <UtilityPill>{isHumanVerified ? "human verified" : "verification pending"}</UtilityPill>
+                  {activeRankedMatch ? <UtilityPill>resume ready</UtilityPill> : null}
+                </UtilityStrip>
+              }
+            >
+              <div className="flex items-center justify-between gap-3">
+                <BoardWordmark className="text-[#101114]" />
+                <div className="system-onboarding-choice__glyph h-11 w-11">
+                  <BoardScene game={selectedSceneKey} state="selected" decorative className="h-5 w-5 text-[#090909]" />
                 </div>
+              </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {SHOWCASE_GAME_KEYS.map((gameKey) => {
-                    const meta = getGameMeta(gameKey);
-                    return (
-                      <button
-                        key={gameKey}
+              {activeTab === "play" ? (
+                <div className="world-flow-stack">
+                  {activeRankedMatch ? (
+                    <CompetitiveActionCard
+                      eyebrow="Resume ranked"
+                      title={`${gameLabel(activeRankedMatch.gameKey)} match`}
+                      body={
+                        activeRankedMatch.status === "waiting"
+                          ? "Seat is waiting. Keep the queue alive."
+                          : "Match is live. Continue from the board."
+                      }
+                      meta={activeRankedMatch.status}
+                      action={starting === "resume" ? "Resuming" : "Resume"}
+                      icon={PlayCircle}
+                      disabled={Boolean(starting)}
+                      onClick={resumeRanked}
+                    />
+                  ) : null}
+
+                  <SystemSection
+                    variant="world"
+                    label="Quick entry"
+                    title={gameLabel(selectedGame)}
+                    description={selectedGameMeta.tagline || "Pick one game. Commit once."}
+                    utility={
+                      <UtilityStrip>
+                        <UtilityPill strong={isHumanVerified}>ranked</UtilityPill>
+                        <UtilityPill>{isWalletBound ? "seat bound" : "seat needed"}</UtilityPill>
+                        <UtilityPill>{selectedRankedGame?.queue.waiting ?? 0} waiting</UtilityPill>
+                      </UtilityStrip>
+                    }
+                  >
+                    <SystemSegmented>
+                      {SHOWCASE_GAME_KEYS.map((gameKey) => {
+                        const meta = getGameMeta(gameKey);
+                        return (
+                          <SystemSegmentedItem
+                            key={gameKey}
+                            selected={selectedGame === gameKey}
+                            className="system-segmented__item--compact"
+                            onClick={() => setSelectedGame(gameKey)}
+                          >
+                            {gameLabel(meta.key)}
+                          </SystemSegmentedItem>
+                        );
+                      })}
+                    </SystemSegmented>
+
+                    <RankedGameStats game={selectedRankedGame} />
+
+                    <div className="world-row-action">
+                      <Button
                         type="button"
-                        onClick={() => setSelectedGame(gameKey)}
-                        className={cn(
-                          "rounded-[18px] px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] transition-colors",
-                          selectedGame === gameKey
-                            ? "bg-[#090909] text-white"
-                            : "bg-[#f3efe6] text-black/58",
-                        )}
+                        variant="hero"
+                        onClick={startRanked}
+                        disabled={Boolean(starting)}
+                        className="min-h-[3.2rem] justify-between border-0"
                       >
-                        {gameLabel(meta.key)}
-                      </button>
-                    );
-                  })}
+                        <span>{starting === "ranked" ? "Entering ranked" : "Quick ranked"}</span>
+                        <ShieldCheck className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={startRankedRematch}
+                        disabled={Boolean(starting)}
+                        className="min-h-[3.2rem] justify-between border-0"
+                      >
+                        <span>{starting === "rematch" ? "Finding rematch" : "Rematch ranked"}</span>
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={openUnrankedRoom}
+                        disabled={Boolean(starting)}
+                        className="min-h-[3.2rem] justify-between border-0"
+                      >
+                        <span>{starting === "room" ? "Opening room" : "Open unranked room"}</span>
+                        <Swords className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </SystemSection>
+
+                  {recentResult ? (
+                    <RecentResultStrip
+                      result={recentResult}
+                      onRematch={startRankedRematch}
+                      disabled={Boolean(starting)}
+                    />
+                  ) : null}
+
+                  <ConsoleStrip
+                    title={primaryRoom ? `Room ${primaryRoom.code}` : "No room open"}
+                    label={primaryRoom ? `${primaryRoom.playerCount}/2 seats` : "Open one"}
+                    action={primaryRoom ? "Join" : "Rooms"}
+                    onClick={() => (primaryRoom ? joinRoom(primaryRoom) : setActiveTab("rooms"))}
+                  />
+
+                  <ConsoleStrip
+                    title={liveWorld?.name ?? "Public worlds"}
+                    label={liveWorld ? `${liveWorld.instanceCount} live` : "Directory"}
+                    action="Open"
+                    onClick={() => (liveWorld ? navigate(`/worlds/${liveWorld.id}`) : navigate("/worlds"))}
+                  />
                 </div>
-
-                <RankedGameStats game={selectedRankedGame} />
-
-                <div className="mt-4 grid gap-2">
-                  <Button
-                    type="button"
-                    variant="hero"
-                    onClick={startRanked}
-                    disabled={Boolean(starting)}
-                    className="h-14 justify-between rounded-[18px] bg-[#101114] text-white"
-                  >
-                    <span>{starting === "ranked" ? "Entering ranked" : "Quick ranked"}</span>
-                    <ShieldCheck className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={startRankedRematch}
-                    disabled={Boolean(starting)}
-                    className="h-14 justify-between rounded-[18px]"
-                  >
-                    <span>{starting === "rematch" ? "Finding rematch" : "Rematch ranked"}</span>
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={openUnrankedRoom}
-                    disabled={Boolean(starting)}
-                    className="h-14 justify-between rounded-[18px]"
-                  >
-                    <span>{starting === "room" ? "Opening room" : "Open unranked room"}</span>
-                    <Swords className="h-4 w-4" />
-                  </Button>
-                </div>
-              </section>
-
-              {recentResult ? (
-                <RecentResultStrip result={recentResult} onRematch={startRankedRematch} disabled={Boolean(starting)} />
               ) : null}
 
-              <ConsoleStrip
-                title={primaryRoom ? `Room ${primaryRoom.code}` : "No room open"}
-                label={primaryRoom ? `${primaryRoom.playerCount}/2 seats` : "Open one"}
-                action={primaryRoom ? "Join" : "Rooms"}
-                onClick={() => (primaryRoom ? joinRoom(primaryRoom) : setActiveTab("rooms"))}
-              />
-              <ConsoleStrip
-                title={liveWorld?.name ?? "Public worlds"}
-                label={liveWorld ? `${liveWorld.instanceCount} live` : "Directory"}
-                action="Open"
-                onClick={() => (liveWorld ? navigate(`/worlds/${liveWorld.id}`) : navigate("/worlds"))}
-              />
-            </div>
-          ) : null}
-
-          {activeTab === "rooms" ? (
-            <div className="space-y-3">
-              <JoinCodePanel
-                value={roomCode}
-                busy={starting === "join"}
-                onChange={updateRoomCode}
-                onJoin={joinRoomByCode}
-              />
-              {rooms.length ? (
-                rooms.map((room) => (
-                  <RoomCard
-                    key={room.id}
-                    room={room}
-                    onJoin={() => joinRoom(room)}
-                    onShare={() => shareRoom(room)}
+              {activeTab === "rooms" ? (
+                <div className="world-flow-stack">
+                  <JoinCodePanel
+                    value={roomCode}
                     busy={starting === "join"}
+                    onChange={updateRoomCode}
+                    onJoin={joinRoomByCode}
                   />
-                ))
-              ) : (
-                <EmptyPanel title="No public rooms" body="Open a room and share it from here." />
-              )}
-            </div>
-          ) : null}
-
-          {activeTab === "events" ? (
-            <div className="space-y-3">
-              {events.length ? (
-                events.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    onClick={() => navigate(`/tournament/${event.id}`)}
-                    className="world-console-row"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-black/44">
-                          {event.competitive_mode ? "competitive" : "open event"}
-                        </p>
-                        <h3 className="mt-2 text-[1.55rem] font-black leading-none tracking-[-0.05em] text-[#101114]">
-                          {event.name}
-                        </h3>
-                      </div>
-                      <span className="world-console-chip">
-                        {event.status}
-                      </span>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <EmptyPanel title="No events live" body="Scheduled rooms will show here." />
-              )}
-            </div>
-          ) : null}
-
-          {activeTab === "profile" ? (
-            <div className="space-y-4">
-              <section className="world-console-card">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-black/44">
-                  World profile
-                </p>
-                <h2 className="mt-2 text-[2rem] font-black leading-none tracking-[-0.07em] text-[#101114]">
-                  {worldHandle}
-                </h2>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-[#101114]">
-                  <StatusTile label="Wallet" value={isWalletBound ? "bound" : "needed"} active={isWalletBound} />
-                  <StatusTile label="Human" value={isHumanVerified ? "verified" : "not yet"} active={isHumanVerified} />
+                  {rooms.length ? (
+                    <DecisionLane>
+                      {rooms.map((room) => (
+                        <RoomCard
+                          key={room.id}
+                          room={room}
+                          onJoin={() => joinRoom(room)}
+                          onShare={() => shareRoom(room)}
+                          busy={starting === "join"}
+                        />
+                      ))}
+                    </DecisionLane>
+                  ) : (
+                    <EmptyPanel title="No public rooms" body="Open a room and share it from here." />
+                  )}
                 </div>
-                {!isWalletBound ? (
-                  <Button
-                    type="button"
-                    variant="hero"
-                    onClick={() => worldAuth.connectWallet().then(() => loadConsoleData())}
-                    disabled={worldAuth.status === "connecting" || worldAuth.status === "creating-session"}
-                    className="mt-4 w-full justify-between rounded-[18px] bg-[#101114] text-white"
+              ) : null}
+
+              {activeTab === "events" ? (
+                <div className="world-flow-stack">
+                  {events.length ? (
+                    <DecisionLane>
+                      {events.map((event) => (
+                        <DecisionEntry
+                          key={event.id}
+                          selected={event.status === "active"}
+                          onClick={() => navigate(`/tournament/${event.id}`)}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="system-screen__label">
+                                {event.competitive_mode ? "competitive" : "open event"}
+                              </p>
+                              <h3 className="ops-directory-row__title">{event.name}</h3>
+                              <p className="ops-directory-row__meta">
+                                {event.start_time
+                                  ? `Starts ${new Date(event.start_time).toLocaleDateString()}.`
+                                  : "Open the bracket when the room matters."}
+                              </p>
+                            </div>
+                            <UtilityPill strong={event.status === "active"}>{event.status}</UtilityPill>
+                          </div>
+                        </DecisionEntry>
+                      ))}
+                    </DecisionLane>
+                  ) : (
+                    <EmptyPanel title="No events live" body="Scheduled rooms will show here." />
+                  )}
+                </div>
+              ) : null}
+
+              {activeTab === "profile" ? (
+                <div className="world-flow-stack">
+                  <SystemSection
+                    variant="world"
+                    label="World profile"
+                    title={worldHandle}
+                    description="Wallet, trust, and ranked entry stay tied to this seat."
                   >
-                    <span>
-                      {worldAuth.status === "connecting" ? "Binding wallet" : "Bind World wallet"}
-                    </span>
-                    <CheckCircle2 className="h-4 w-4" />
-                  </Button>
-                ) : null}
-                {worldAuth.error ? (
-                  <p className="mt-3 text-sm leading-6 text-black/68">{worldAuth.error}</p>
-                ) : null}
-              </section>
+                    <SystemMetaGrid>
+                      <SystemMetaItem
+                        label="Wallet"
+                        value={isWalletBound ? "bound" : "needed"}
+                        note={isWalletBound ? "Seat attached." : "Bind before entry."}
+                        strong={isWalletBound}
+                      />
+                      <SystemMetaItem
+                        label="Human"
+                        value={isHumanVerified ? "verified" : "not yet"}
+                        note={isHumanVerified ? "Ranked ready." : "Ranked stays locked."}
+                        strong={isHumanVerified}
+                      />
+                    </SystemMetaGrid>
 
-              <WorldIDWidget />
-            </div>
-          ) : null}
-        </section>
+                    {!isWalletBound ? (
+                      <Button
+                        type="button"
+                        variant="hero"
+                        onClick={() => worldAuth.connectWallet().then(() => loadConsoleData())}
+                        disabled={worldAuth.status === "connecting" || worldAuth.status === "creating-session"}
+                        className="min-h-[3.2rem] w-full justify-between border-0"
+                      >
+                        <span>{worldAuth.status === "connecting" ? "Binding wallet" : "Bind World wallet"}</span>
+                        <CheckCircle2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
 
-          <nav className="z-30 shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-            <div className="grid grid-cols-4 gap-2">
+                    {worldAuth.error ? <p className="system-inline-note">{worldAuth.error}</p> : null}
+                  </SystemSection>
+
+                  <WorldIDWidget variant="world" />
+                </div>
+              ) : null}
+            </SystemScreen>
+          </section>
+
+          <nav className="world-flow-footer">
+            <SystemSegmented className="world-flow-tabs">
               {tabItems.map((tab) => {
                 const Icon = tab.icon;
-                const selected = activeTab === tab.id;
                 return (
-                  <button
+                  <SystemSegmentedItem
                     key={tab.id}
-                    type="button"
+                    selected={activeTab === tab.id}
+                    className="system-segmented__item--stacked"
                     onClick={() => setActiveTab(tab.id)}
-                    className={cn("world-console-tab", selected && "is-selected")}
                   >
                     <Icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
+                    <span>{tab.label}</span>
+                  </SystemSegmentedItem>
                 );
               })}
-            </div>
+            </SystemSegmented>
           </nav>
         </div>
       </main>
     </SiteFrame>
-  );
-}
-
-function StatusTile({ label, value, active }: { label: string; value: string; active: boolean }) {
-  return (
-    <div
-      className={cn(
-        "rounded-[20px] px-3 py-3",
-        active ? "bg-[#090909] text-[#f6f4f0]" : "bg-white text-[#101114]",
-      )}
-    >
-      <p className={cn("text-[10px] font-black uppercase tracking-[0.18em]", active ? "text-white/54" : "text-black/44")}>
-        {label}
-      </p>
-      <p className={cn("mt-1 text-[1.2rem] font-black uppercase leading-none tracking-[-0.04em]", active ? "text-[#f6f4f0]" : "text-[#101114]")}>
-        {value}
-      </p>
-    </div>
   );
 }
 
@@ -660,19 +665,15 @@ function ConsoleStrip({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="world-console-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
-    >
-      <div className="min-w-0">
-        <p className="truncate text-[1.35rem] font-black leading-none tracking-[-0.05em] text-[#101114]">{title}</p>
-        <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-black/44">{label}</p>
+    <DecisionEntry onClick={onClick}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="ops-directory-row__title">{title}</h3>
+          <p className="ops-directory-row__meta">{label}</p>
+        </div>
+        <UtilityPill strong>{action}</UtilityPill>
       </div>
-      <span className="world-console-chip">
-        {action}
-      </span>
-    </button>
+    </DecisionEntry>
   );
 }
 
@@ -682,22 +683,12 @@ function RankedGameStats({ game }: { game: RankedGameState | null }) {
   const active = game?.queue.active ?? 0;
 
   return (
-    <div className="mt-4 grid grid-cols-3 gap-2">
-      <MiniStat label="Rating" value={String(game?.rating ?? 1200)} />
-      <MiniStat label="Rank" value={rank} />
-      <MiniStat label="Queue" value={`${waiting}/${active}`} />
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[18px] bg-[#f3efe6] px-3 py-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-black/44">{label}</p>
-      <p className="mt-1 font-mono text-[1.1rem] font-black leading-none tracking-[-0.04em] text-[#101114]">
-        {value}
-      </p>
-    </div>
+    <SystemMetaGrid>
+      <SystemMetaItem label="Rating" value={String(game?.rating ?? 1200)} note="Current board rating." />
+      <SystemMetaItem label="Rank" value={rank} note="Live ladder slot." />
+      <SystemMetaItem label="Waiting" value={String(waiting)} note="Seats waiting now." />
+      <SystemMetaItem label="Active" value={String(active)} note="Boards already live." />
+    </SystemMetaGrid>
   );
 }
 
@@ -721,28 +712,29 @@ function CompetitiveActionCard({
   onClick: () => void;
 }) {
   return (
-    <section className="world-console-card world-console-card--inverse">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">{eyebrow}</p>
-          <h2 className="mt-2 text-[2rem] font-black leading-none tracking-[-0.065em]">{title}</h2>
-          <p className="mt-2 max-w-[18rem] text-sm leading-6 text-white/70">{body}</p>
-        </div>
-        <span className="rounded-full bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#090909]">
-          {meta}
-        </span>
-      </div>
+    <SystemSection
+      variant="world"
+      className="world-section--strong"
+      label={eyebrow}
+      title={title}
+      description={body}
+      utility={
+        <UtilityStrip>
+          <UtilityPill strong>{meta}</UtilityPill>
+        </UtilityStrip>
+      }
+    >
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         onClick={onClick}
         disabled={disabled}
-        className="mt-4 h-14 w-full justify-between rounded-[18px] border-transparent bg-white text-[#101114]"
+        className="min-h-[3.2rem] w-full justify-between border-0 bg-white text-[#101114] hover:bg-[#f2f0ea]"
       >
         <span>{action}</span>
         <Icon className="h-4 w-4" />
       </Button>
-    </section>
+    </SystemSection>
   );
 }
 
@@ -758,24 +750,15 @@ function RecentResultStrip({
   const ratingChange = result.ratingChange > 0 ? `+${result.ratingChange}` : String(result.ratingChange);
 
   return (
-    <button
-      type="button"
-      onClick={onRematch}
-      disabled={disabled}
-      className="world-console-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 disabled:opacity-60"
-    >
-      <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-black/44">
-          Last ranked / {gameLabel(result.gameKey)}
-        </p>
-        <p className="mt-2 text-[1.35rem] font-black capitalize leading-none tracking-[-0.05em] text-[#101114]">
-          {result.outcome} {ratingChange}
-        </p>
+    <DecisionEntry onClick={onRematch} disabled={disabled}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="system-screen__label">Last ranked / {gameLabel(result.gameKey)}</p>
+          <h3 className="ops-directory-row__title">{result.outcome} {ratingChange}</h3>
+        </div>
+        <UtilityPill>rematch</UtilityPill>
       </div>
-      <span className="world-console-chip">
-        Rematch
-      </span>
-    </button>
+    </DecisionEntry>
   );
 }
 
@@ -791,20 +774,19 @@ function JoinCodePanel({
   onJoin: () => void;
 }) {
   return (
-    <section className="world-console-card">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-black/44">Room code</p>
-          <h2 className="mt-2 text-[1.8rem] font-black leading-none tracking-[-0.06em] text-[#101114]">
-            Join direct
-          </h2>
-        </div>
-        <span className="world-console-chip">
-          Invite
-        </span>
-      </div>
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-        <input
+    <SystemSection
+      variant="world"
+      label="Room code"
+      title="Join direct"
+      description="Paste one code and enter the room."
+      utility={
+        <UtilityStrip>
+          <UtilityPill>invite</UtilityPill>
+        </UtilityStrip>
+      }
+    >
+      <div className="world-inline-field">
+        <Input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
@@ -815,7 +797,7 @@ function JoinCodePanel({
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}
-          className="world-console-input font-mono text-[1.25rem] font-black uppercase tracking-[0.12em]"
+          className="world-input border-0 bg-[#f3efe6] font-mono text-[1.1rem] font-black uppercase tracking-[0.12em]"
           aria-label="Room code"
         />
         <Button
@@ -823,12 +805,12 @@ function JoinCodePanel({
           variant="hero"
           onClick={onJoin}
           disabled={busy || value.length < 4}
-          className="h-14 rounded-[18px] bg-[#101114] px-5 text-white"
+          className="min-h-[3.25rem] border-0 px-5"
         >
           {busy ? "Joining" : "Join"}
         </Button>
       </div>
-    </section>
+    </SystemSection>
   );
 }
 
@@ -844,45 +826,48 @@ function RoomCard({
   busy: boolean;
 }) {
   const gameMeta = getGameMeta(room.game_key ?? "hex");
+  const isFull = room.playerCount >= 2;
 
   return (
-    <article className="world-console-card">
+    <DecisionEntry as="div" selected={!isFull && room.status === "waiting"}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-black/44">
+          <p className="system-screen__label">
             {gameLabel(gameMeta.key)} / {timeAgo(room.created_at)}
           </p>
-          <h3 className="mt-2 text-[2rem] font-black leading-none tracking-[-0.07em] text-[#101114]">
-            {room.code}
-          </h3>
+          <h3 className="ops-directory-row__title">{room.code}</h3>
+          <p className="ops-directory-row__meta">
+            {room.board_size}x{room.board_size}. {isFull ? "Room full." : "Seat open."}
+          </p>
         </div>
-        <span className="world-console-chip">
-          {room.playerCount}/2
-        </span>
+        <UtilityPill strong={!isFull}>{room.playerCount}/2</UtilityPill>
       </div>
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-        <Button
-          type="button"
-          variant="hero"
-          onClick={onJoin}
-          disabled={busy || room.playerCount >= 2}
-          className="rounded-[18px] bg-[#101114] text-white"
-        >
-          {busy ? "Joining" : room.playerCount >= 2 ? "Room full" : "Join room"}
-        </Button>
-        <Button type="button" variant="outline" onClick={onShare} className="rounded-[18px]">
-          <Share2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </article>
+
+      <DecisionEntryFocus>
+        <p className="system-inline-note">
+          {isFull ? "Watch the board or wait for a seat to open." : "Commit when the room is right."}
+        </p>
+        <div className="world-row-action">
+          <Button
+            type="button"
+            variant={isFull ? "outline" : "hero"}
+            onClick={onJoin}
+            disabled={busy || isFull}
+            className="min-h-[3rem] border-0"
+          >
+            {busy ? "Joining" : isFull ? "Room full" : "Join room"}
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onShare} className="h-11 w-11 border-0">
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </DecisionEntryFocus>
+    </DecisionEntry>
   );
 }
 
 function EmptyPanel({ title, body }: { title: string; body: string }) {
   return (
-    <div className="world-console-card">
-      <p className="text-[1.8rem] font-black leading-none tracking-[-0.06em] text-[#101114]">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-black/56">{body}</p>
-    </div>
+    <SystemSection variant="world" title={title} description={body} />
   );
 }

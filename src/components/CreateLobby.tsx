@@ -108,7 +108,7 @@ export function CreateLobby({ userId, worldId }: CreateLobbyProps) {
   const headerState = worldId ? "world-hosted" : resolvedWorldId ? "world-linked" : "standalone";
 
   return (
-    <section className="system-section">
+    <section className="system-section" data-system-variant="world">
       <div className="system-section__head">
         <div className="system-section__copy">
           <p className="system-section__label">{worldId ? "World instance" : "Command window"}</p>

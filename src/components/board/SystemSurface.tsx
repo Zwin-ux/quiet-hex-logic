@@ -1,14 +1,18 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+type SystemVariant = "default" | "world";
+
 type SystemScreenProps = {
   label?: ReactNode;
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  utility?: ReactNode;
   children: ReactNode;
   className?: string;
   compact?: boolean;
+  variant?: SystemVariant;
 };
 
 export function SystemScreen({
@@ -16,12 +20,17 @@ export function SystemScreen({
   title,
   description,
   actions,
+  utility,
   children,
   className,
   compact = false,
+  variant = "default",
 }: SystemScreenProps) {
   return (
-    <section className={cn("system-screen", compact && "system-screen--compact", className)}>
+    <section
+      className={cn("system-screen", compact && "system-screen--compact", className)}
+      data-system-variant={variant}
+    >
       <div className="system-screen__head">
         <div className="system-screen__copy">
           {label ? <p className="system-screen__label">{label}</p> : null}
@@ -30,6 +39,7 @@ export function SystemScreen({
         </div>
         {actions ? <div className="system-screen__actions">{actions}</div> : null}
       </div>
+      {utility ? <div className="system-screen__utility">{utility}</div> : null}
       {children}
     </section>
   );
@@ -40,8 +50,10 @@ type SystemSectionProps = {
   title?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  utility?: ReactNode;
   children: ReactNode;
   className?: string;
+  variant?: SystemVariant;
 };
 
 export function SystemSection({
@@ -49,11 +61,13 @@ export function SystemSection({
   title,
   description,
   actions,
+  utility,
   children,
   className,
+  variant = "default",
 }: SystemSectionProps) {
   return (
-    <section className={cn("system-section", className)}>
+    <section className={cn("system-section", className)} data-system-variant={variant}>
       {(label || title || description || actions) ? (
         <div className="system-section__head">
           <div className="system-section__copy">
@@ -64,6 +78,7 @@ export function SystemSection({
           {actions ? <div className="system-section__actions">{actions}</div> : null}
         </div>
       ) : null}
+      {utility ? <div className="system-section__utility">{utility}</div> : null}
       {children}
     </section>
   );
@@ -151,6 +166,77 @@ export function DecisionEntryFocus({
   return (
     <div className={cn("decision-entry__focus", className)} {...props}>
       {children}
+    </div>
+  );
+}
+
+export function SystemSegmented({
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("system-segmented", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+type SystemSegmentedItemProps = {
+  selected?: boolean;
+  children: ReactNode;
+  className?: string;
+} & ButtonHTMLAttributes<HTMLButtonElement>;
+
+export function SystemSegmentedItem({
+  selected = false,
+  children,
+  className,
+  ...props
+}: SystemSegmentedItemProps) {
+  return (
+    <button
+      type={props.type ?? "button"}
+      className={cn("system-segmented__item", selected && "is-selected", className)}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function SystemMetaGrid({
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("system-meta-grid", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+type SystemMetaItemProps = HTMLAttributes<HTMLDivElement> & {
+  label: ReactNode;
+  value: ReactNode;
+  note?: ReactNode;
+  strong?: boolean;
+};
+
+export function SystemMetaItem({
+  label,
+  value,
+  note,
+  strong = false,
+  className,
+  ...props
+}: SystemMetaItemProps) {
+  return (
+    <div className={cn("system-meta-item", strong && "system-meta-item--strong", className)} {...props}>
+      <p className="system-meta-item__label">{label}</p>
+      <p className="system-meta-item__value">{value}</p>
+      {note ? <p className="system-meta-item__note">{note}</p> : null}
     </div>
   );
 }

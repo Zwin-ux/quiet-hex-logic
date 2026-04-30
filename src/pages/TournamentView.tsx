@@ -281,7 +281,7 @@ export default function TournamentView() {
 
   if (loading || !tournament) {
     return (
-      <SiteFrame visualMode="mono">
+      <SiteFrame visualMode="world">
         <div className="flex min-h-[420px] items-center justify-center">
           <Trophy className="h-10 w-10 animate-gentle-pulse text-muted-foreground" />
         </div>
@@ -317,8 +317,9 @@ export default function TournamentView() {
   };
 
   return (
-    <SiteFrame visualMode="mono" contentClassName="pb-16 pt-32 md:pt-28">
+    <SiteFrame visualMode="world" contentClassName="pb-16 pt-32 md:pt-28">
       <SystemScreen
+        variant="world"
         label="Event"
         title={tournament.name}
         description={
@@ -359,6 +360,7 @@ export default function TournamentView() {
 
         {shouldShowCompetitiveGate ? (
           <SystemSection
+            variant="world"
             label="Competitive gate"
             title="Verify before you join."
             description={competitiveJoinBlocked || "World ID required for ranked entry."}
@@ -372,6 +374,7 @@ export default function TournamentView() {
         ) : null}
 
         <SystemSection
+          variant="world"
           label="Commit"
           title={phaseLabel}
           description={decisionLabel}
@@ -434,7 +437,7 @@ export default function TournamentView() {
           ) : null}
         </SystemSection>
 
-        <SystemSection label="Seats" title={seatsLabel}>
+        <SystemSection variant="world" label="Seats" title={seatsLabel}>
           {participants.length ? (
             <DecisionLane>
               {participants.map((participant) => (
@@ -467,6 +470,7 @@ export default function TournamentView() {
         </SystemSection>
 
         <SystemSection
+          variant="world"
           label="Bracket"
           title={tournament.status === "registration" ? "Waiting to start" : "Current state"}
           description={tournament.status === "registration" ? "Fill seats. Start bracket." : "Open the current competition state."}

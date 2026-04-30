@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useMatchState } from "@/hooks/useMatchState";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { useAIOpponent } from "@/hooks/useAIOpponent";
@@ -25,6 +25,7 @@ function formatClock(seconds: number | null) {
 export default function Match() {
   useDocumentTitle("Match");
   const { matchId } = useParams();
+  const location = useLocation();
   const [showTutorial, setShowTutorial] = useState(false);
   const [showAIReasoning, setShowAIReasoning] = useState(false);
   const [requestingRematch, setRequestingRematch] = useState(false);
@@ -109,6 +110,8 @@ export default function Match() {
   const isAIMatch = match?.ai_difficulty != null;
   const isAITurn = isAIMatch && currentColor === 2;
   const gameKey = (match?.game_key ?? "hex") as string;
+  const worldContext = (location.state as { worldId?: string; worldName?: string } | null) ?? null;
+  const isWorldContext = Boolean(worldContext?.worldId);
 
   useEffect(() => {
     if (!match || !engine || isDiscordLocalMatch || isLocalMatch || isLocalAIMatch) return;
@@ -198,8 +201,18 @@ export default function Match() {
     [actions, handleLocalAIMove, isDiscordLocalMatch, isLocalAIMatch],
   );
 
-  if (!match || !engine) return <MatchLoading />;
-  if (match.status === "waiting") return <MatchWaiting onCancel={() => navigate("/play")} />;
+  if (!match || !engine) {
+    return <MatchLoading visualMode={isWorldContext ? "world" : "mono"} label={isWorldContext ? "World board" : "Instance loading"} />;
+  }
+  if (match.status === "waiting") {
+    return (
+      <MatchWaiting
+        onCancel={() => navigate(isWorldContext && worldContext?.worldId ? `/worlds/${worldContext.worldId}` : "/play")}
+        visualMode={isWorldContext ? "world" : "mono"}
+        label={isWorldContext ? "World queue" : "Queue state"}
+      />
+    );
+  }
 
   const userIdForMoves = isLocalMatch || isLocalAIMatch ? currentPlayer?.profile_id : user?.id;
 
@@ -230,7 +243,7 @@ export default function Match() {
   return (
     <SiteFrame
       showNav={false}
-      visualMode="mono"
+      visualMode={isWorldContext ? "world" : "mono"}
       className="ios-safe-area"
       contentClassName="max-w-[1480px] pb-12 pt-6 md:pt-8"
     >
@@ -240,6 +253,8 @@ export default function Match() {
         header={
           <MatchHeader
             match={match}
+            systemVariant={isWorldContext ? "world" : "default"}
+            contextLabel={worldContext?.worldName ?? null}
             isAIMatch={isAIMatch}
             isPlayer={isPlayer}
             isSpectating={isSpectating}
@@ -258,7 +273,7 @@ export default function Match() {
               toggleMute: music.toggleMute,
               updateVolume: music.updateVolume,
             }}
-            onBack={() => navigate("/play")}
+            onBack={() => navigate(isWorldContext && worldContext?.worldId ? `/worlds/${worldContext.worldId}` : "/play")}
             onRematch={handleRematch}
             onForfeit={actions.handleForfeit}
             onOfferDraw={actions.handleOfferDraw}

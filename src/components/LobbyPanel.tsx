@@ -51,6 +51,8 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       ? "3x3"
       : "standard";
   const turnTimerLabel = lobby?.turn_timer_seconds ? `${lobby.turn_timer_seconds}s clock` : "untimed";
+  const worldId = ((lobby as any)?.world_id as string | undefined) ?? undefined;
+  const worldName = ((lobby as any)?.worlds?.name as string | undefined) ?? undefined;
 
   useEffect(() => {
     if (!lobby || hasNavigated) return;
@@ -72,7 +74,9 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
 
             if (match?.id) {
               toast.success("Match starting");
-              navigate(`/match/${match.id}`);
+              navigate(`/match/${match.id}`, {
+                state: worldId ? { worldId, worldName } : undefined,
+              });
               return;
             }
 
@@ -159,7 +163,9 @@ export function LobbyPanel({ lobbyId, userId }: LobbyPanelProps) {
       if (data?.matchId) {
         toast.success("Match starting");
         setHasNavigated(true);
-        navigate(`/match/${data.matchId}`);
+        navigate(`/match/${data.matchId}`, {
+          state: worldId ? { worldId, worldName } : undefined,
+        });
         return;
       }
 

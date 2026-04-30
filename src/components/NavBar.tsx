@@ -40,7 +40,7 @@ const ROUTE_LABELS: Array<{ match: RegExp; label: string }> = [
 
 type NavBarProps = {
   variant?: "default" | "landing";
-  visualMode?: "default" | "mono";
+  visualMode?: "default" | "mono" | "world";
 };
 
 export function NavBar({ variant = "default", visualMode = "default" }: NavBarProps) {
@@ -54,6 +54,7 @@ export function NavBar({ variant = "default", visualMode = "default" }: NavBarPr
   const currentLabel =
     ROUTE_LABELS.find((route) => route.match.test(location.pathname))?.label ?? "BOARD";
   const showCurrentLabel = Boolean(user) && currentLabel !== "Home";
+  const isFlatVisual = visualMode === "mono" || visualMode === "world";
 
   const isActive = (path: string) =>
     location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
@@ -65,7 +66,7 @@ export function NavBar({ variant = "default", visualMode = "default" }: NavBarPr
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6",
-          visualMode === "mono"
+          isFlatVisual
             ? "bg-[#f7f4ed] md:bg-[#f7f4ed]/98"
             : "bg-[#f6f4f0]/84 backdrop-blur-[16px]",
         )}
@@ -141,7 +142,7 @@ export function NavBar({ variant = "default", visualMode = "default" }: NavBarPr
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6",
-        visualMode === "mono"
+        isFlatVisual
           ? "bg-[#f7f4ed] md:bg-[#f7f4ed]/98"
           : "bg-[#f6f4f0]/84 backdrop-blur-[16px]",
       )}
@@ -257,13 +258,16 @@ function UtilityButton({
   children: ReactNode;
   label: string;
   onClick: () => void;
-  visualMode?: "default" | "mono";
+  visualMode?: "default" | "mono" | "world";
 }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
-      className={cn("system-nav-utility", visualMode === "mono" && "system-nav-utility--mono")}
+      className={cn(
+        "system-nav-utility",
+        (visualMode === "mono" || visualMode === "world") && "system-nav-utility--mono",
+      )}
     >
       {children}
     </button>
