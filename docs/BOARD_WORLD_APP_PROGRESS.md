@@ -96,6 +96,7 @@ Overall readiness: 95/100
 - Redeployed `main` to Railway deployment `1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1`, confirmed new live JS/CSS asset hashes, and cleared the stale `/worlds/:id` deployment drift.
 - Reran the full live device harness with `--auth-check --visual-check` and produced the current handoff bundle under `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/`, including the reviewer-facing `device-qa-report.html`.
 - Extended the same bundle with `physical-qa-freeze.md`, `physical-qa-results-template.md`, and `physical-qa-failure-template.md` so the phone pass is tied to one locked deployment and one structured evidence set.
+- Added `scripts/build-world-submission-packet.mjs` so submission now hard-fails until the physical results template is filled and the required iPhone/Android screenshots plus iPhone proof video exist.
 
 ## Current Verification
 
@@ -138,6 +139,7 @@ Overall readiness: 95/100
 | `node scripts/smoke-world-local.mjs --build` | Pass | Boots the built server locally, verifies runtime env injection, validates the main World routes, creates an anonymous Supabase session, and warns cleanly when Quickplay state is missing `SUPABASE_SERVICE_ROLE_KEY`. |
 | `node scripts/world-device-qa.mjs https://botbot-production-38b3.up.railway.app --auth-check --visual-check --out store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345` | Pass | Live Railway iPhone/Android visual matrix plus auth-aware preflight pass. Only expected browser-only MiniKit/preload warnings remain outside the real World App container. |
 | `node scripts/world-device-qa.mjs https://botbot-production-38b3.up.railway.app --deployment-id 1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1 --auth-check --visual-check --out store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345` | Pass | Regenerated the frozen physical QA packet with live asset fingerprints plus structured manual results/failure templates for the real device pass. |
+| `node scripts/build-world-submission-packet.mjs` | Expected fail | Generates the final World submission packet and blocks until the physical results template is completed and required real-device screenshots/video are present. |
 | `railway up --detach --service botbot --environment production --message "REF-109 Wire Quickplay resume rematch UI"` | Pass | Deployment `98b2b537-479c-4460-a1b1-a21f45309629` succeeded. |
 | `npm run smoke:world -- https://botbot-production-38b3.up.railway.app` | Pass | Deployed World route/runtime env/compiled labels pass after Play scene wiring. |
 | `railway run node scripts/check-world-release-readiness.mjs --strict-env` | Pass | Rechecked after Play scene deploy: 0 failures, 1 optional warning for `WORLD_DEV_PORTAL_API_KEY`. |
@@ -165,6 +167,7 @@ Overall readiness: 95/100
 | Bundle size is high because web3/wallet/IDKit code is pulled into the app. | Medium | Split World ID and wallet-heavy code into lazy chunks after functional QA. |
 | Migration changes play-account gating for anonymous World-bound users. | Medium | Test ranked, unranked, lobby, tournament, and legacy web auth flows against staging Supabase. |
 | Device screenshots are not production-ready. | Medium | Replace local layout screenshots with iOS/Android World App WebView captures after staging QR test. |
+| Submission packet cannot be marked ready until physical evidence exists. | Medium | Use `node scripts/build-world-submission-packet.mjs` after the QR pass; it will fail until the results template and required screenshots/video are present. |
 | Local World console smoke can look broken if only public Supabase keys are loaded. | Low | For local built-server smoke, load `SUPABASE_SERVICE_ROLE_KEY` when validating live Quickplay data. Use public-key-only smoke for shell/UI checks only. |
 | Parallel frontend/design changes are active in the worktree. | Medium | Keep backend/system work out of design-owned files and reconcile before ship. |
 
@@ -193,3 +196,4 @@ npm run build
 5. Verify wallet auth binding, IDKit proof, `/api/world/quickplay/state`, competitive gate state, `ranked`, `resume-ranked`, `ranked-rematch`, and room commands with real wallet-bound and verified users.
 6. Capture iOS/Android World App screenshots for Play, Rooms, Events, Profile, verification gate, and share sheet.
 7. Replace local dummy-env screenshots with staging iOS/Android World App captures.
+8. Run `node scripts/build-world-submission-packet.mjs` and use the generated packet in `store_assets/world/submission/` for the Developer Portal submission.

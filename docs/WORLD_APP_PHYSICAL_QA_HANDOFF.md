@@ -66,6 +66,14 @@ If anything fails, duplicate and complete:
 
 - [physical-qa-failure-template.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-failure-template.md)
 
+After the results template is filled and the real device evidence is saved under `store_assets/world/screenshots/`, run:
+
+```bash
+node scripts/build-world-submission-packet.mjs
+```
+
+That command generates the final portal packet from the canonical metadata and fails if the QA results or required evidence are incomplete.
+
 ## Evidence to capture
 
 - `ios-play.png`

@@ -1,112 +1,107 @@
-# App Store Submission Metadata
+# BOARD World App Submission Metadata
+
+This file replaces the old Hexology native app copy for the World App release. Do not use prize, subscription, WLD, token, yield, or rewards language for this Mini App submission.
 
 ## App Information
 
-**App Name**: Hexology
-**Subtitle**: Five Strategy Games, One Platform
-**Category**: Games > Strategy
+**App Name**: BOARD
 
----
+**Category**: Games / Strategy
 
-## Description (4000 char limit)
+**Positioning**: Verified human play rooms for fast board games inside World App.
 
-**Hexology** is a deep, strategic board game platform featuring five classic games: Hex, Chess, Checkers, Tic Tac Toe, and Connect 4. Connect your sides of the board, checkmate your opponent, or line up four in a row in these beautifully crafted digital adaptations.
+## Short Description
 
-🏆 **FEATURES**
-• Ranked Multiplayer - Climb the global leaderboard
-• AI Practice - Train against multiple difficulty levels
-• Tournament System - Compete for real prizes
-• Friends & Chat - Challenge your friends directly
-• Replay System - Review and learn from every game
-• Premium Skins - Customize your board with exclusive themes
-• Cross-Platform - Play on iPhone, iPad, Mac, and Vision Pro
+Play real people in fast board-game rooms. Verify once, enter ranked, rematch, or share a room.
 
-🧠 **STRATEGIC DEPTH**
-Hexology is easy to learn but impossible to master. Each game presents unique tactical challenges as you balance offense and defense, control key positions, and outmaneuver your opponent.
+## Full Description
 
-💎 **HEXOLOGY+ SUBSCRIPTION**
-Unlock the full experience with our auto-renewable monthly subscription at $5.00/month:
+BOARD is a compact play room for classic board games inside World App.
 
-- Exclusive premium board skins (Galaxy, Royal, Retro & Aurora)
-- Unlimited AI practice games
-- Advanced post-game analysis
-- Priority matchmaking
-- Export your replays
+Open the app, bind your World wallet, verify human status, and enter skill-based rooms without an email-first signup. Start a quick ranked match, open an unranked room, join live rooms, or share a room with another player.
 
-Subscription auto-renews monthly unless canceled. Manage or cancel anytime from your App Store account settings.
+Included games:
 
-Join thousands of players in the ultimate test of strategic thinking!
+- Hex
+- Chess
+- Checkers
+- Tic-Tac-Toe
+- Connect 4
 
-**Terms of Use**: https://hexology.me/terms
-**Privacy Policy**: https://hexology.me/privacy
+Ranked and competitive entry requires human verification. Unranked rooms stay lightweight so players can get into a match quickly.
 
----
+BOARD does not include WLD prizes, paid competitive rewards, token mechanics, yield, NFT unlocks, randomized rewards, or chance-based competition.
 
-## Keywords (100 char limit)
+## Review Notes
 
-hex,strategy,board game,multiplayer,tournament,puzzle,logic,chess,checkers,connect4
-
----
-
-## What's New (4000 char limit)
-
-**Version 1.0 - Grand Launch**
-
-Welcome to Hexology! This is our official launch with:
-
-- Full multiplayer matchmaking system
-- Tournament support
-- Friends system and in-game chat
-- Premium board skins and customization
-- Global leaderboards and ranking system
-- Multiple AI difficulty levels
-- Native iOS experience with Sign In with Apple
-- Five games: Hex, Chess, Checkers, Tic Tac Toe, Connect 4
-
----
-
-## Promotional Text (170 char limit)
-
-Five strategy games, one platform. Play Hex, Chess, Checkers, TTT & Connect 4 with ranked multiplayer, AI opponents, and tournaments. Download Hexology today!
-
----
+- MiniKit wallet auth identifies the World App account.
+- IDKit verifies human uniqueness for ranked entry.
+- Existing Supabase game state, lobbies, matches, ratings, and realtime flows stay in place.
+- Railway owns the `/api/world/*` auth and verification endpoints.
+- No Notion or Linear content is visible to users.
 
 ## Support Information
 
 **Support URL**: https://hexology.me/support
+
 **Privacy Policy URL**: https://hexology.me/privacy
-**Terms of Service URL**: https://hexology.me/terms
 
----
+**Terms URL**: https://hexology.me/terms
 
-## Age Rating
+## Asset Checklist
 
-**Rating**: 4+ (No objectionable content)
+- App icon source: `store_assets/world/app-icon.svg`
+- App icon raster: `store_assets/world/app-icon.png`
+- Content card source: `store_assets/world/content-card.svg`
+- Content card raster: `store_assets/world/content-card.png`
+- Content card safe-area check: `store_assets/world/content-card-safe-check.svg`
+- Review notes: `store_assets/world/REVIEW_NOTES.md`
+- Device QA run artifacts: `store_assets/world/qa/<timestamp>/`
+- Final submission packet: `store_assets/world/submission/world-app-submission-packet.md`
 
----
+## Submission Command
 
-## Screenshot Requirements
+After the physical World App pass is complete and the screenshot/video evidence is stored under `store_assets/world/screenshots/`, run:
 
-You need:
+```bash
+node scripts/build-world-submission-packet.mjs
+```
 
-- 3-10 screenshots for iPhone 6.5" (1284 x 2778)
-- 3-10 screenshots for iPhone 6.7" (1290 x 2796)
-- 3-10 screenshots for iPad Pro 12.9" (2048 x 2732)
+This command reads the canonical metadata in this file, the review notes, the frozen QA bundle, and the physical results template, then generates:
 
-**Recommended Screenshots:**
+- `store_assets/world/submission/world-app-submission-packet.md`
+- `store_assets/world/submission/world-app-submission-packet.json`
 
-1. Main game board in action (show multiple games)
-2. Premium page showing Plus features
-3. Tournament/Leaderboard page
-4. Friends/Social features
-5. Premium skin showcase
+It fails until the real device results and required evidence are present.
 
----
+## Screenshot Order
 
-## App Preview Video (Optional but Recommended)
+1. Play console with quick ranked and unranked room actions.
+2. Verification gate before ranked entry.
+3. Profile after World wallet binding and human verification.
+4. Rooms tab with join/share actions.
+5. Events tab with scheduled or empty state.
+6. Native share sheet evidence inside World App.
 
-15-30 second video showing:
+## Copy Rules
 
-- Quick gameplay clips across multiple games
-- Tournament announcement
-- Premium features
+Use:
+
+- "Verify to enter ranked"
+- "World seat"
+- "Room open"
+- "Quick ranked"
+- "Open unranked room"
+- "Share room"
+
+Avoid:
+
+- official
+- seamless
+- empower
+- revolutionary
+- earn
+- yield
+- rewards
+- prize
+- WLD payouts

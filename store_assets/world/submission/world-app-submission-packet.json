@@ -1,0 +1,173 @@
+{
+  "generatedAt": "2026-04-30T05:41:44.290Z",
+  "ready": false,
+  "blockers": [
+    "physical QA results template is not complete",
+    "missing required screenshot matching *ios-play.png",
+    "missing required screenshot matching *ios-profile-wallet-bound.png",
+    "missing required screenshot matching *ios-ranked-blocked.png",
+    "missing required screenshot matching *ios-profile-verified.png",
+    "missing required screenshot matching *ios-room-share-sheet.png",
+    "missing required screenshot matching *android-play.png",
+    "missing required screenshot matching *android-profile-wallet-bound.png",
+    "missing required screenshot matching *android-ranked-blocked.png",
+    "missing required screenshot matching *android-room-share-sheet.png",
+    "missing required iPhone wallet-bind or IDKit proof video"
+  ],
+  "metadata": {
+    "filePath": "store_assets/APP_STORE_METADATA.md",
+    "content": "# BOARD World App Submission Metadata\n\nThis file replaces the old Hexology native app copy for the World App release. Do not use prize, subscription, WLD, token, yield, or rewards language for this Mini App submission.\n\n## App Information\n\n**App Name**: BOARD\n\n**Category**: Games / Strategy\n\n**Positioning**: Verified human play rooms for fast board games inside World App.\n\n## Short Description\n\nPlay real people in fast board-game rooms. Verify once, enter ranked, rematch, or share a room.\n\n## Full Description\n\nBOARD is a compact play room for classic board games inside World App.\n\nOpen the app, bind your World wallet, verify human status, and enter skill-based rooms without an email-first signup. Start a quick ranked match, open an unranked room, join live rooms, or share a room with another player.\n\nIncluded games:\n\n- Hex\n- Chess\n- Checkers\n- Tic-Tac-Toe\n- Connect 4\n\nRanked and competitive entry requires human verification. Unranked rooms stay lightweight so players can get into a match quickly.\n\nBOARD does not include WLD prizes, paid competitive rewards, token mechanics, yield, NFT unlocks, randomized rewards, or chance-based competition.\n\n## Review Notes\n\n- MiniKit wallet auth identifies the World App account.\n- IDKit verifies human uniqueness for ranked entry.\n- Existing Supabase game state, lobbies, matches, ratings, and realtime flows stay in place.\n- Railway owns the `/api/world/*` auth and verification endpoints.\n- No Notion or Linear content is visible to users.\n\n## Support Information\n\n**Support URL**: https://hexology.me/support\n\n**Privacy Policy URL**: https://hexology.me/privacy\n\n**Terms URL**: https://hexology.me/terms\n\n## Asset Checklist\n\n- App icon source: `store_assets/world/app-icon.svg`\n- App icon raster: `store_assets/world/app-icon.png`\n- Content card source: `store_assets/world/content-card.svg`\n- Content card raster: `store_assets/world/content-card.png`\n- Content card safe-area check: `store_assets/world/content-card-safe-check.svg`\n- Review notes: `store_assets/world/REVIEW_NOTES.md`\n- Device QA run artifacts: `store_assets/world/qa/<timestamp>/`\n- Final submission packet: `store_assets/world/submission/world-app-submission-packet.md`\n\n## Submission Command\n\nAfter the physical World App pass is complete and the screenshot/video evidence is stored under `store_assets/world/screenshots/`, run:\n\n```bash\nnode scripts/build-world-submission-packet.mjs\n```\n\nThis command reads the canonical metadata in this file, the review notes, the frozen QA bundle, and the physical results template, then generates:\n\n- `store_assets/world/submission/world-app-submission-packet.md`\n- `store_assets/world/submission/world-app-submission-packet.json`\n\nIt fails until the real device results and required evidence are present.\n\n## Screenshot Order\n\n1. Play console with quick ranked and unranked room actions.\n2. Verification gate before ranked entry.\n3. Profile after World wallet binding and human verification.\n4. Rooms tab with join/share actions.\n5. Events tab with scheduled or empty state.\n6. Native share sheet evidence inside World App.\n\n## Copy Rules\n\nUse:\n\n- \"Verify to enter ranked\"\n- \"World seat\"\n- \"Room open\"\n- \"Quick ranked\"\n- \"Open unranked room\"\n- \"Share room\"\n\nAvoid:\n\n- official\n- seamless\n- empower\n- revolutionary\n- earn\n- yield\n- rewards\n- prize\n- WLD payouts\n",
+    "appName": "BOARD",
+    "category": "Games / Strategy",
+    "positioning": "Verified human play rooms for fast board games inside World App.",
+    "supportUrl": "https://hexology.me/support",
+    "privacyUrl": "https://hexology.me/privacy",
+    "termsUrl": "https://hexology.me/terms",
+    "shortDescription": "Play real people in fast board-game rooms. Verify once, enter ranked, rematch, or share a room.",
+    "fullDescription": "BOARD is a compact play room for classic board games inside World App.\n\nOpen the app, bind your World wallet, verify human status, and enter skill-based rooms without an email-first signup. Start a quick ranked match, open an unranked room, join live rooms, or share a room with another player.\n\nIncluded games:\n\n- Hex\n- Chess\n- Checkers\n- Tic-Tac-Toe\n- Connect 4\n\nRanked and competitive entry requires human verification. Unranked rooms stay lightweight so players can get into a match quickly.\n\nBOARD does not include WLD prizes, paid competitive rewards, token mechanics, yield, NFT unlocks, randomized rewards, or chance-based competition.",
+    "reviewNotes": "- MiniKit wallet auth identifies the World App account.\n- IDKit verifies human uniqueness for ranked entry.\n- Existing Supabase game state, lobbies, matches, ratings, and realtime flows stay in place.\n- Railway owns the `/api/world/*` auth and verification endpoints.\n- No Notion or Linear content is visible to users.",
+    "screenshotOrder": [
+      "Play console with quick ranked and unranked room actions.",
+      "Verification gate before ranked entry.",
+      "Profile after World wallet binding and human verification.",
+      "Rooms tab with join/share actions.",
+      "Events tab with scheduled or empty state.",
+      "Native share sheet evidence inside World App."
+    ],
+    "copyRulesUse": [
+      "\"Verify to enter ranked\"",
+      "\"World seat\"",
+      "\"Room open\"",
+      "\"Quick ranked\"",
+      "\"Open unranked room\"",
+      "\"Share room\""
+    ],
+    "copyRulesAvoid": [
+      "official",
+      "seamless",
+      "empower",
+      "revolutionary",
+      "earn",
+      "yield",
+      "rewards",
+      "prize",
+      "WLD payouts"
+    ]
+  },
+  "reviewNotes": {
+    "filePath": "store_assets/world/REVIEW_NOTES.md",
+    "content": "# BOARD World App Review Notes\n\n## App Position\n\nBOARD is a verified play room for fast board games inside World App.\n\nThe Mini App lets a World App user bind their World wallet, verify human status with IDKit, enter ranked or unranked board-game rooms, and share room links.\n\n## V1 Scope\n\n- Skill-based board games: Hex, Chess, Checkers, Tic-Tac-Toe, and Connect 4.\n- Wallet auth is used to identify the World App account.\n- IDKit is used only to prove human uniqueness for ranked and competitive entry.\n- Supabase stores rooms, matches, profiles, ratings, and realtime state.\n- Railway serves the React app and `/api/world/*` auth/verification endpoints.\n\n## Explicit Non-Scope\n\n- No WLD rewards.\n- No prize pools.\n- No token sale.\n- No yield, staking, NFT unlocks, randomized rewards, or chance-based competition.\n- No paid competitive rewards inside World App.\n- No user-facing Notion or Linear integration.\n\n## Review Copy\n\nShort description:\nPlay real people in fast board-game rooms. Verify once, enter ranked, rematch, or share a room.\n\nSupport note:\nIf wallet auth or verification fails, the user can continue browsing rooms and play unranked after wallet binding. Ranked entry stays locked until IDKit verification succeeds.\n\n## Asset Paths\n\n- App icon source: `store_assets/world/app-icon.svg`\n- App icon raster: `store_assets/world/app-icon.png`\n- Content card source: `store_assets/world/content-card.svg`\n- Content card raster: `store_assets/world/content-card.png`\n- Content card safe-area check: `store_assets/world/content-card-safe-check.svg`\n\n## QA Evidence To Attach\n\n- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-report.html`\n- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-results-template.md`\n- iOS World App WebView screenshots: Play, Rooms, Profile, verification gate, share sheet\n- Android World App WebView screenshots: Play, Rooms, Profile, verification gate, share sheet\n- one iPhone wallet-bind or IDKit proof video\n- Confirmation that `/api/world/*` rejects unauthenticated requests\n- Confirmation that no raw wallet address appears in UI\n",
+    "appPosition": "BOARD is a verified play room for fast board games inside World App.\n\nThe Mini App lets a World App user bind their World wallet, verify human status with IDKit, enter ranked or unranked board-game rooms, and share room links.",
+    "v1Scope": [
+      "Skill-based board games: Hex, Chess, Checkers, Tic-Tac-Toe, and Connect 4.",
+      "Wallet auth is used to identify the World App account.",
+      "IDKit is used only to prove human uniqueness for ranked and competitive entry.",
+      "Supabase stores rooms, matches, profiles, ratings, and realtime state.",
+      "Railway serves the React app and `/api/world/*` auth/verification endpoints."
+    ],
+    "explicitNonScope": [
+      "No WLD rewards.",
+      "No prize pools.",
+      "No token sale.",
+      "No yield, staking, NFT unlocks, randomized rewards, or chance-based competition.",
+      "No paid competitive rewards inside World App.",
+      "No user-facing Notion or Linear integration."
+    ],
+    "reviewCopy": "Short description:\nPlay real people in fast board-game rooms. Verify once, enter ranked, rematch, or share a room.\n\nSupport note:\nIf wallet auth or verification fails, the user can continue browsing rooms and play unranked after wallet binding. Ranked entry stays locked until IDKit verification succeeds.",
+    "qaEvidence": [
+      "`store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-report.html`",
+      "`store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-results-template.md`",
+      "iOS World App WebView screenshots: Play, Rooms, Profile, verification gate, share sheet",
+      "Android World App WebView screenshots: Play, Rooms, Profile, verification gate, share sheet",
+      "one iPhone wallet-bind or IDKit proof video",
+      "Confirmation that `/api/world/*` rejects unauthenticated requests",
+      "Confirmation that no raw wallet address appears in UI"
+    ]
+  },
+  "results": {
+    "filePath": "store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-results-template.md",
+    "content": "# BOARD World App Physical QA Results\n\nTarget deployment: `1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1`\nApp origin: `https://botbot-production-38b3.up.railway.app`\nWorld surface: `https://botbot-production-38b3.up.railway.app/?surface=world`\n\n## Device inventory\n\n| Device | Model | OS | World App version | Tester |\n| --- | --- | --- | --- | --- |\n| iPhone | Fill in | Fill in | Fill in | Fill in |\n| Android | Fill in | Fill in | Fill in | Fill in |\n\n## iPhone canonical pass\n\n| Step | Result | Evidence | Notes |\n| --- | --- | --- | --- |\n| QR opens inside World App WebView | Pending |  |  |\n| Play / Rooms / Events / Profile initial screens captured | Pending |  |  |\n| Wallet bind succeeds | Pending |  |  |\n| Ranked blocked before verification | Pending |  |  |\n| IDKit verification succeeds | Pending |  |  |\n| Ranked unlocks after verification | Pending |  |  |\n| Unranked room opens or joins correctly | Pending |  |  |\n| Native share sheet opens | Pending |  |  |\n| Background / resume preserves session and bottom nav | Pending |  |  |\n\n## Android compatibility pass\n\n| Step | Result | Evidence | Notes |\n| --- | --- | --- | --- |\n| QR opens inside World App WebView | Pending |  |  |\n| Play / Rooms / Events / Profile initial screens captured | Pending |  |  |\n| Wallet bind succeeds | Pending |  |  |\n| Ranked remains correctly gated if verification is not repeated | Pending |  |  |\n| Unranked room opens or joins correctly | Pending |  |  |\n| Native share sheet opens | Pending |  |  |\n| Background / resume preserves session and bottom nav | Pending |  |  |\n\n## Required evidence\n\n- `YYYYMMDD-ios-play.png`\n- `YYYYMMDD-ios-profile-wallet-bound.png`\n- `YYYYMMDD-ios-ranked-blocked.png`\n- `YYYYMMDD-ios-profile-verified.png`\n- `YYYYMMDD-ios-room-share-sheet.png`\n- `YYYYMMDD-android-play.png`\n- `YYYYMMDD-android-profile-wallet-bound.png`\n- `YYYYMMDD-android-ranked-blocked.png`\n- `YYYYMMDD-android-room-share-sheet.png`\n- one short iPhone video for wallet bind or IDKit proof\n\n## Release decision\n\n- Final result: Pending\n- Blockers found: Fill in\n- Follow-up issues created: Fill in\n",
+    "pendingCount": 17,
+    "fillInCount": 10,
+    "finalResult": "Pending",
+    "blockers": "Fill in",
+    "followUps": "Fill in",
+    "isCompleted": false
+  },
+  "evidence": {
+    "screenshots": [
+      {
+        "suffix": "ios-play.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "ios-profile-wallet-bound.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "ios-ranked-blocked.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "ios-profile-verified.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "ios-room-share-sheet.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "android-play.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "android-profile-wallet-bound.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "android-ranked-blocked.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      },
+      {
+        "suffix": "android-room-share-sheet.png",
+        "found": false,
+        "fileName": "",
+        "relativePath": ""
+      }
+    ],
+    "videos": []
+  },
+  "qa": {
+    "qaDir": "store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345",
+    "appUrl": "https://botbot-production-38b3.up.railway.app",
+    "worldUrl": "https://botbot-production-38b3.up.railway.app/?surface=world",
+    "deploymentId": "1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1",
+    "bundleAssets": {
+      "js": [
+        "https://botbot-production-38b3.up.railway.app/assets/index-u3G7YaBT.js"
+      ],
+      "css": [
+        "https://botbot-production-38b3.up.railway.app/assets/index-CZTVS8K3.css"
+      ]
+    },
+    "reportPath": "store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-report.html",
+    "freezePath": "store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-freeze.md",
+    "failureTemplatePath": "store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-failure-template.md"
+  }
+}
