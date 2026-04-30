@@ -95,6 +95,7 @@ Overall readiness: 95/100
 - Added `scripts/smoke-world-local.mjs` so the built-server World smoke can be run from one command instead of manual multi-process shell setup, with public Supabase config fallback through the authenticated CLI when shell env is absent.
 - Redeployed `main` to Railway deployment `1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1`, confirmed new live JS/CSS asset hashes, and cleared the stale `/worlds/:id` deployment drift.
 - Reran the full live device harness with `--auth-check --visual-check` and produced the current handoff bundle under `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/`, including the reviewer-facing `device-qa-report.html`.
+- Extended the same bundle with `physical-qa-freeze.md`, `physical-qa-results-template.md`, and `physical-qa-failure-template.md` so the phone pass is tied to one locked deployment and one structured evidence set.
 
 ## Current Verification
 
@@ -136,6 +137,7 @@ Overall readiness: 95/100
 | `npm run build:railway` | Pass | Combined client/server production build succeeds after the World-first CDS system pass. |
 | `node scripts/smoke-world-local.mjs --build` | Pass | Boots the built server locally, verifies runtime env injection, validates the main World routes, creates an anonymous Supabase session, and warns cleanly when Quickplay state is missing `SUPABASE_SERVICE_ROLE_KEY`. |
 | `node scripts/world-device-qa.mjs https://botbot-production-38b3.up.railway.app --auth-check --visual-check --out store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345` | Pass | Live Railway iPhone/Android visual matrix plus auth-aware preflight pass. Only expected browser-only MiniKit/preload warnings remain outside the real World App container. |
+| `node scripts/world-device-qa.mjs https://botbot-production-38b3.up.railway.app --deployment-id 1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1 --auth-check --visual-check --out store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345` | Pass | Regenerated the frozen physical QA packet with live asset fingerprints plus structured manual results/failure templates for the real device pass. |
 | `railway up --detach --service botbot --environment production --message "REF-109 Wire Quickplay resume rematch UI"` | Pass | Deployment `98b2b537-479c-4460-a1b1-a21f45309629` succeeded. |
 | `npm run smoke:world -- https://botbot-production-38b3.up.railway.app` | Pass | Deployed World route/runtime env/compiled labels pass after Play scene wiring. |
 | `railway run node scripts/check-world-release-readiness.mjs --strict-env` | Pass | Rechecked after Play scene deploy: 0 failures, 1 optional warning for `WORLD_DEV_PORTAL_API_KEY`. |
@@ -157,7 +159,7 @@ Overall readiness: 95/100
 | Risk | Severity | Mitigation |
 | --- | --- | --- |
 | World App auth cannot be fully verified outside a real World App WebView. | High | Run tunnel/QR test on iOS and Android before submission. |
-| Real World App WebView behavior still unverified on physical devices. | High | Use the current handoff bundle in `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/`, scan the World Developer Portal QR on iOS and Android, and record screenshots/videos for wallet auth, IDKit, quickplay, and share. |
+| Real World App WebView behavior still unverified on physical devices. | High | Use the frozen packet in `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/`, scan the World Developer Portal QR on iOS and Android, and fill `physical-qa-results-template.md` plus failure reports as needed. |
 | `https://hexology.me` is not serving the current Railway/World App build. | High | Deploy current branch to the World App staging origin before using it for QR/device QA. |
 | IDKit verification path depends on exact World API response shape. | Medium | Endpoint harness now covers expected success/failure handling; validate with staging credentials before submission. |
 | Bundle size is high because web3/wallet/IDKit code is pulled into the app. | Medium | Split World ID and wallet-heavy code into lazy chunks after functional QA. |

@@ -56,6 +56,7 @@ function parseArgs(argv) {
     appUrl: '',
     qrUrl: '',
     outDir: '',
+    deploymentId: '',
     authCheck: false,
     visualCheck: false,
     visualOnly: false,
@@ -65,6 +66,9 @@ function parseArgs(argv) {
     const value = argv[index];
     if (value === '--out') {
       args.outDir = argv[index + 1] || '';
+      index += 1;
+    } else if (value === '--deployment-id') {
+      args.deploymentId = argv[index + 1] || '';
       index += 1;
     } else if (value === '--qr-url') {
       args.qrUrl = argv[index + 1] || '';
@@ -174,17 +178,26 @@ function extractRuntimeEnv(html) {
   return JSON.parse(match[1]);
 }
 
-function extractJsAssetUrls(origin, html) {
-  const urls = new Set();
-  const assetPattern = /(?:src|href)=["']([^"']+\.js(?:\?[^"']*)?)["']/g;
+function extractAssetUrls(origin, html) {
+  const jsUrls = new Set();
+  const cssUrls = new Set();
+  const assetPattern = /(?:src|href)=["']([^"']+\.(?:js|css)(?:\?[^"']*)?)["']/g;
 
   let match = assetPattern.exec(html);
   while (match) {
-    urls.add(toAbsoluteUrl(origin, match[1]));
+    const url = toAbsoluteUrl(origin, match[1]);
+    if (/\.css(?:\?|$)/i.test(match[1])) {
+      cssUrls.add(url);
+    } else {
+      jsUrls.add(url);
+    }
     match = assetPattern.exec(html);
   }
 
-  return [...urls];
+  return {
+    js: [...jsUrls],
+    css: [...cssUrls],
+  };
 }
 
 function record(checks, name, status, detail) {
@@ -633,6 +646,152 @@ function summarizeGate(checks) {
   return `Automated preflight passed with ${warnings.length} warning(s). Manual device QA can proceed.`;
 }
 
+function writePhysicalFreeze(outDir, manifest) {
+  const deploymentId = manifest.deploymentId || 'not recorded';
+  const jsAssets = manifest.bundleAssets?.js ?? [];
+  const cssAssets = manifest.bundleAssets?.css ?? [];
+  const markdown = `# BOARD World App Physical QA Freeze
+
+Generated: ${manifest.generatedAt}
+
+## Locked target
+
+- App origin: \`${manifest.appUrl}\`
+- World surface: \`${manifest.worldUrl}\`
+- Deployment id: \`${deploymentId}\`
+
+## Live asset fingerprints
+
+### JavaScript
+${jsAssets.length ? jsAssets.map((asset) => `- \`${asset}\``).join('\n') : '- not recorded'}
+
+### CSS
+${cssAssets.length ? cssAssets.map((asset) => `- \`${asset}\``).join('\n') : '- not recorded'}
+
+## Frozen evidence bundle
+
+- \`device-qa-report.html\`
+- \`device-qa-checklist.md\`
+- \`device-qa-manifest.json\`
+- route screenshots for iPhone 15 and Pixel 8
+
+## Manual gate rule
+
+Do not use Expo Go, the normal mobile browser, or \`https://hexology.me\` as authoritative for this pass.
+Use the World Developer Portal QR for the Railway origin above.
+Do not redeploy during the physical device pass.
+`;
+
+  fs.writeFileSync(path.join(outDir, 'physical-qa-freeze.md'), markdown, 'utf8');
+}
+
+function writePhysicalResultsTemplate(outDir, manifest) {
+  const markdown = `# BOARD World App Physical QA Results
+
+Target deployment: \`${manifest.deploymentId || 'not recorded'}\`
+App origin: \`${manifest.appUrl}\`
+World surface: \`${manifest.worldUrl}\`
+
+## Device inventory
+
+| Device | Model | OS | World App version | Tester |
+| --- | --- | --- | --- | --- |
+| iPhone | Fill in | Fill in | Fill in | Fill in |
+| Android | Fill in | Fill in | Fill in | Fill in |
+
+## iPhone canonical pass
+
+| Step | Result | Evidence | Notes |
+| --- | --- | --- | --- |
+| QR opens inside World App WebView | Pending |  |  |
+| Play / Rooms / Events / Profile initial screens captured | Pending |  |  |
+| Wallet bind succeeds | Pending |  |  |
+| Ranked blocked before verification | Pending |  |  |
+| IDKit verification succeeds | Pending |  |  |
+| Ranked unlocks after verification | Pending |  |  |
+| Unranked room opens or joins correctly | Pending |  |  |
+| Native share sheet opens | Pending |  |  |
+| Background / resume preserves session and bottom nav | Pending |  |  |
+
+## Android compatibility pass
+
+| Step | Result | Evidence | Notes |
+| --- | --- | --- | --- |
+| QR opens inside World App WebView | Pending |  |  |
+| Play / Rooms / Events / Profile initial screens captured | Pending |  |  |
+| Wallet bind succeeds | Pending |  |  |
+| Ranked remains correctly gated if verification is not repeated | Pending |  |  |
+| Unranked room opens or joins correctly | Pending |  |  |
+| Native share sheet opens | Pending |  |  |
+| Background / resume preserves session and bottom nav | Pending |  |  |
+
+## Required evidence
+
+- \`YYYYMMDD-ios-play.png\`
+- \`YYYYMMDD-ios-profile-wallet-bound.png\`
+- \`YYYYMMDD-ios-ranked-blocked.png\`
+- \`YYYYMMDD-ios-profile-verified.png\`
+- \`YYYYMMDD-ios-room-share-sheet.png\`
+- \`YYYYMMDD-android-play.png\`
+- \`YYYYMMDD-android-profile-wallet-bound.png\`
+- \`YYYYMMDD-android-ranked-blocked.png\`
+- \`YYYYMMDD-android-room-share-sheet.png\`
+- one short iPhone video for wallet bind or IDKit proof
+
+## Release decision
+
+- Final result: Pending
+- Blockers found: Fill in
+- Follow-up issues created: Fill in
+`;
+
+  fs.writeFileSync(path.join(outDir, 'physical-qa-results-template.md'), markdown, 'utf8');
+}
+
+function writePhysicalFailureTemplate(outDir, manifest) {
+  const markdown = `# BOARD World App Physical QA Failure Report
+
+Target deployment: \`${manifest.deploymentId || 'not recorded'}\`
+App origin: \`${manifest.appUrl}\`
+
+## Failure summary
+
+- Failure type:
+- Device:
+- OS:
+- World App version:
+- Step number:
+- Exact screen:
+
+## Reproduction
+
+1. 
+2. 
+3. 
+
+## Expected
+
+- 
+
+## Actual
+
+- 
+
+## Evidence
+
+- Screenshot path:
+- Video path:
+- Whether retry after relaunch changes the result:
+
+## Release impact
+
+- Blocks REF-109: Yes / No
+- Suggested follow-up issue:
+`;
+
+  fs.writeFileSync(path.join(outDir, 'physical-qa-failure-template.md'), markdown, 'utf8');
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -653,6 +812,8 @@ function writeHtmlReport(outDir, manifest) {
   const warnings = checks.filter((check) => check.status === 'warn');
   const overallStatus = hardFailures.length ? 'Blocked' : warnings.length ? 'Manual device QA ready' : 'Ready';
   const gateSummary = summarizeGate(checks);
+  const jsAssets = manifest.bundleAssets?.js ?? [];
+  const cssAssets = manifest.bundleAssets?.css ?? [];
 
   const groupedVisuals = new Map();
   for (const artifact of visualArtifacts) {
@@ -884,6 +1045,10 @@ function writeHtmlReport(outDir, manifest) {
             <h2>Generated</h2>
             <p>${escapeHtml(manifest.generatedAt)}</p>
           </div>
+          <div>
+            <h2>Deployment</h2>
+            <p><code>${escapeHtml(manifest.deploymentId || 'not recorded')}</code></p>
+          </div>
         </div>
       </section>
 
@@ -914,6 +1079,28 @@ function writeHtmlReport(outDir, manifest) {
           <li>Verify wallet bind, IDKit, ranked gate, room share, and background/resume behavior on real devices.</li>
           <li>Attach raw screenshots and screen recordings without cropping out World App chrome.</li>
         </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Frozen build</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Asset type</th>
+              <th>Paths</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>JavaScript</td>
+              <td>${jsAssets.length ? jsAssets.map((asset) => `<code>${escapeHtml(asset)}</code>`).join('<br />') : 'not recorded'}</td>
+            </tr>
+            <tr>
+              <td>CSS</td>
+              <td>${cssAssets.length ? cssAssets.map((asset) => `<code>${escapeHtml(asset)}</code>`).join('<br />') : 'not recorded'}</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section class="panel">
@@ -975,6 +1162,7 @@ async function main() {
 
   let worldHtml = '';
   let runtimeEnv = null;
+  let bundleAssets = { js: [], css: [] };
   if (!args.visualOnly) {
     try {
       const health = await fetchJson(`${appUrl}/api/health`);
@@ -1015,8 +1203,8 @@ async function main() {
     }
 
     try {
-      const assetUrls = extractJsAssetUrls(appUrl, worldHtml);
-      const assetText = (await Promise.all(assetUrls.map((url) => fetchText(url).then((result) => result.text)))).join('\n');
+      bundleAssets = extractAssetUrls(appUrl, worldHtml);
+      const assetText = (await Promise.all(bundleAssets.js.map((url) => fetchText(url).then((result) => result.text)))).join('\n');
       const missing = WORLD_BUNDLE_LABELS.filter((label) => !assetText.includes(label));
       record(
         checks,
@@ -1058,6 +1246,8 @@ async function main() {
     appUrl,
     worldUrl,
     qrUrl,
+    deploymentId: args.deploymentId,
+    bundleAssets,
     checks,
     visualArtifacts,
   };
@@ -1065,6 +1255,9 @@ async function main() {
   fs.writeFileSync(path.join(outDir, 'device-qa-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   writeChecklist(outDir, appUrl, worldUrl, qrUrl, checks, visualArtifacts);
   writeHtmlReport(outDir, manifest);
+  writePhysicalFreeze(outDir, manifest);
+  writePhysicalResultsTemplate(outDir, manifest);
+  writePhysicalFailureTemplate(outDir, manifest);
 
   const failed = checks.filter((check) => check.status === 'fail');
   console.log(`QA artifacts: ${outDir}`);

@@ -13,10 +13,14 @@ This is the final release gate for the World App flow. Browser-based mobile emul
   - [device-qa-report.html](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-report.html)
   - [device-qa-checklist.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-checklist.md)
   - [device-qa-manifest.json](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-manifest.json)
+  - [physical-qa-freeze.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-freeze.md)
+  - [physical-qa-results-template.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-results-template.md)
+  - [physical-qa-failure-template.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-failure-template.md)
 
 ## What is already proven
 
 - Railway health and runtime env are valid.
+- The physical QA packet is now frozen to deployment `1f44dd16-2bd6-4635-a6ac-1b9390a9f9a1` with live asset fingerprints recorded.
 - World auth endpoints reject unauthenticated requests.
 - Auth-aware preflight passes with anonymous Supabase session, nonce issuance, RP signing, Quickplay state, and ranked/resume/rematch wallet gates.
 - Browser-based iPhone 15 and Pixel 8 screenshots pass for:
@@ -53,6 +57,14 @@ This is the final release gate for the World App flow. Browser-based mobile emul
 8. Open or join an unranked room and capture the lobby path.
 9. Trigger room share and capture the native share sheet.
 10. Background the app, resume, and confirm the session survives.
+
+Fill the results directly into:
+
+- [physical-qa-results-template.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-results-template.md)
+
+If anything fails, duplicate and complete:
+
+- [physical-qa-failure-template.md](/C:/Users/mzwin/Documents/hexoogy/store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-failure-template.md)
 
 ## Evidence to capture
 

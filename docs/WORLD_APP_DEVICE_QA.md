@@ -70,6 +70,9 @@ The script writes:
 - `store_assets/world/qa/<timestamp>/device-qa-manifest.json`
 - `store_assets/world/qa/<timestamp>/device-qa-checklist.md`
 - `store_assets/world/qa/<timestamp>/device-qa-report.html`
+- `store_assets/world/qa/<timestamp>/physical-qa-freeze.md`
+- `store_assets/world/qa/<timestamp>/physical-qa-results-template.md`
+- `store_assets/world/qa/<timestamp>/physical-qa-failure-template.md`
 - `store_assets/world/qa/<timestamp>/*-ios.png`
 - `store_assets/world/qa/<timestamp>/*-android.png`
 
@@ -137,6 +140,9 @@ Evidence:
 - `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-manifest.json`
 - `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-checklist.md`
 - `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/device-qa-report.html`
+- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-freeze.md`
+- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-results-template.md`
+- `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/physical-qa-failure-template.md`
 - Latest mobile visual runs also write route screenshots and manifests under `store_assets/world/qa/<timestamp>/`.
 
 Do not mark REF-109 complete until a real staging/tunnel URL passes automated preflight and physical iOS/Android World App checks.
