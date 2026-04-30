@@ -15,7 +15,9 @@ import * as InAppPurchases from 'expo-in-app-purchases';
 
 SplashScreen.preventAutoHideAsync();
 
-const PRODUCTION_URL = "https://hexology.me/";
+const DEFAULT_NATIVE_WEB_URL = "https://botbot-production-38b3.up.railway.app/";
+const NATIVE_SHELL_BG = "#f7f6f2";
+const PRODUCTION_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || DEFAULT_NATIVE_WEB_URL;
 const SUBSCRIPTION_ID = "openboard_plus_monthly";
 const APP_VERSION = "1.0.1";
 
@@ -148,7 +150,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="dark-content" backgroundColor={NATIVE_SHELL_BG} />
       <WebView
         ref={webViewRef}
         source={{ uri: PRODUCTION_URL }}
@@ -171,10 +173,10 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: NATIVE_SHELL_BG,
   },
   webview: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: NATIVE_SHELL_BG,
   },
 });

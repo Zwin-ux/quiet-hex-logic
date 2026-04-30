@@ -82,6 +82,7 @@ Overall readiness: 95/100
 - Recorded Railway-domain blocker evidence under `store_assets/world/qa/railway-production-20260428-200525/`.
 - Added `npm run check:world-release` for file, env, copy, script, asset, and mobile handoff readiness checks.
 - Added `docs/IOS_ANDROID_AFTER_WORLD.md`, `worldPreview` EAS profile, production auto-increment, and `EXPO_PUBLIC_WEB_APP_URL` WebView configuration for post-World native release prep.
+- Repointed Expo `preview` and `worldPreview` builds, plus the native wrapper fallback URL, to the current Railway deployment so internal iOS/Android QA no longer defaults to the stale `hexology.me` origin.
 - Replaced old Hexology native App Store copy with World App-specific BOARD metadata that removes prize/subscription/WLD/token language.
 - Added `npm run assets:world` and generated World App icon, content card, safe-area check, review notes, and PNG previews under `store_assets/world/`.
 - Captured local 375x812 layout screenshots for Play, Rooms, Events, and Profile tabs under `store_assets/world/screenshots/`.

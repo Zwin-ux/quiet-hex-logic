@@ -5,9 +5,23 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_WEB_APP_URL": "https://botbot-production-38b3.up.railway.app/"
+      }
     },
-    "production": {}
+    "worldPreview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_WEB_APP_URL": "https://botbot-production-38b3.up.railway.app/?surface=world"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_WEB_APP_URL": "https://hexology.me/"
+      }
+    }
   },
   "submit": {
     "production": {}
