@@ -40,7 +40,11 @@ const VISUAL_ROUTES = [
   { id: 'tournament-detail', label: 'Tournament detail', path: '/tournament/80f33dd3-3595-4465-85f4-d0861fe026b1' },
 ];
 
-const IGNORED_CONSOLE_PATTERNS = [/MiniKit is not installed/i, /React Router Future Flag Warning/i];
+const IGNORED_CONSOLE_PATTERNS = [
+  /MiniKit is not installed/i,
+  /React Router Future Flag Warning/i,
+  /was preloaded using link preload but not used within a few seconds/i,
+];
 const BLOCKED_VISUAL_TEXT_PATTERNS = [
   { pattern: /Deployment Config Missing/i, reason: 'deployment-config shell rendered instead of the product surface' },
   { pattern: /World failed to load/i, reason: 'world detail error fallback rendered instead of the product surface' },
