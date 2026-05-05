@@ -122,7 +122,7 @@ export default function WorldAppHome() {
 
   const isWalletBound = worldAuth.isWalletBound || Boolean(profile?.world_app_bound_at);
   const isHumanVerified = worldAuth.isHumanVerified || Boolean(profile?.is_verified_human);
-  const worldHandle = worldAuth.identity?.world_username || profile?.world_username || worldAuth.user?.username || "World player";
+  const worldHandle = worldAuth.identity?.world_username || profile?.world_username || worldAuth.user?.username || "Player";
   const primaryRoom = rooms.find((room) => room.playerCount < 2) ?? rooms[0] ?? null;
   const liveWorld = worlds.find((world) => world.instanceCount > 0) ?? worlds[0] ?? null;
   const activeRankedMatch = competitive?.activeMatch ?? null;
@@ -135,7 +135,7 @@ export default function WorldAppHome() {
     hasSeasonPass: false,
     accessMode: "pass_required" as const,
     title: "Link Solana wallet",
-    body: "World proves the human. Solana carries access and receipts.",
+    body: "World proves the human. Solana proves room access and match history.",
   };
   const linkedSolanaWallet = competitiveIdentity?.linkedWallet ?? null;
   const roomPasses = competitiveIdentity?.roomPasses ?? [];
@@ -221,7 +221,7 @@ export default function WorldAppHome() {
       await ensureWorldSeat();
       await solanaCompetitive.activateSeasonPass(selectedGame);
       await haptic("success");
-      toast.success("Season pass active");
+      toast.success("Ranked pass active");
     } catch (error) {
       toast.error("Could not activate pass", {
         description: error instanceof Error ? error.message : "Try again.",
@@ -245,7 +245,7 @@ export default function WorldAppHome() {
       if (!linkedSolanaWallet) {
         setActiveTab("profile");
         await haptic("invalid");
-        toast.error("Link Solana to enter the receipt-backed lane");
+        toast.error("Link Solana to enter the pass-backed lane");
         return;
       }
 
@@ -291,7 +291,7 @@ export default function WorldAppHome() {
       await ensureWorldSeat();
       await solanaCompetitive.sealReceipt(recentResult.matchId);
       await haptic("success");
-      toast.success("Match receipt issued");
+      toast.success("Match receipt sealed");
     } catch (error) {
       toast.error("Could not issue receipt", {
         description: error instanceof Error ? error.message : "Try again.",
@@ -510,11 +510,11 @@ export default function WorldAppHome() {
               variant="world"
               compact
               label={isWalletBound ? worldHandle : "Seat not bound"}
-              title="Enter a verified room."
+              title="Enter a competitive room."
               description={
                 isWalletBound
-                  ? "World proves the human. Solana carries the pass and receipt."
-                  : "Bind a World seat, then choose your lane."
+                  ? "World proves the human. Solana proves access and results."
+                  : "Bind your human seat, then link a wallet for pass-backed play."
               }
               actions={
                 <Button
@@ -530,7 +530,7 @@ export default function WorldAppHome() {
               }
               utility={
                 <UtilityStrip>
-                  <UtilityPill strong>world seat</UtilityPill>
+                  <UtilityPill strong>human proof</UtilityPill>
                   <UtilityPill>{isWalletBound ? "wallet bound" : "bind wallet"}</UtilityPill>
                   <UtilityPill>{isHumanVerified ? "human verified" : "verification pending"}</UtilityPill>
                   <UtilityPill>{linkedSolanaWallet ? "solana linked" : "solana optional"}</UtilityPill>
@@ -565,7 +565,7 @@ export default function WorldAppHome() {
                   ) : null}
 
                   <CompetitiveActionCard
-                    eyebrow="Solana lane"
+                    eyebrow="Wallet lane"
                     title={solanaLane.title}
                     body={solanaLane.body}
                     meta={
@@ -586,7 +586,7 @@ export default function WorldAppHome() {
                             : "Activate pass"
                           : starting === "ranked"
                             ? "Entering"
-                            : "Receipt-backed ranked"
+                            : "Pass-backed ranked"
                     }
                     icon={!linkedSolanaWallet ? Coins : !hasIssuedSeasonPass(roomPasses, selectedGame) ? CheckCircle2 : ShieldCheck}
                     disabled={Boolean(starting) || solanaCompetitive.action !== null}
@@ -601,7 +601,7 @@ export default function WorldAppHome() {
 
                   <SystemSection
                     variant="world"
-                    label="World lane"
+                    label="Human lane"
                     title={gameLabel(selectedGame)}
                     description={selectedGameMeta.tagline || "Pick one game. Commit once."}
                     utility={
@@ -754,9 +754,9 @@ export default function WorldAppHome() {
                 <div className="world-flow-stack">
                   <SystemSection
                     variant="world"
-                    label="World profile"
+                    label="Human proof"
                     title={worldHandle}
-                    description="World keeps the human seat. Solana carries room access and receipts."
+                    description="World confirms the player. Solana carries entry rights and sealed results."
                   >
                     <SystemMetaGrid>
                       <SystemMetaItem
@@ -791,12 +791,12 @@ export default function WorldAppHome() {
 
                   <SystemSection
                     variant="world"
-                    label="Competitive identity"
+                    label="Wallet proof"
                     title={linkedSolanaWallet ? shortenWalletAddress(linkedSolanaWallet.address) : "Solana not linked"}
                     description={
                       linkedSolanaWallet
-                        ? "This wallet holds room passes and match receipts."
-                        : "Link once, then carry pass-backed ranked access."
+                        ? "This wallet holds room passes and sealed match history."
+                        : "Link once, then carry pass-backed competitive access."
                     }
                   >
                     <SystemMetaGrid>
@@ -809,7 +809,7 @@ export default function WorldAppHome() {
                       <SystemMetaItem
                         label="Passes"
                         value={String(competitiveIdentity?.profile.passCount ?? 0)}
-                        note={hasIssuedSeasonPass(roomPasses, selectedGame) ? "Season pass live." : "Activate one for ranked."}
+                        note={hasIssuedSeasonPass(roomPasses, selectedGame) ? "Ranked pass live." : "Activate one for ranked."}
                         strong={hasIssuedSeasonPass(roomPasses, selectedGame)}
                       />
                       <SystemMetaItem
@@ -842,10 +842,10 @@ export default function WorldAppHome() {
                         >
                           <span>
                             {hasIssuedSeasonPass(roomPasses, selectedGame)
-                              ? "Season pass active"
-                              : solanaCompetitive.action === "pass"
-                                ? "Activating pass"
-                                : "Activate season pass"}
+                              ? "Ranked pass active"
+                                : solanaCompetitive.action === "pass"
+                                  ? "Activating pass"
+                                : "Activate ranked pass"}
                           </span>
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
@@ -1048,7 +1048,7 @@ function ReceiptRow({ receipt }: { receipt: MatchReceipt }) {
         <UtilityPill strong>{receipt.status}</UtilityPill>
       </div>
       <DecisionEntryFocus>
-        <p className="system-inline-note">Portable proof for match {receipt.matchId.slice(0, 8)}.</p>
+        <p className="system-inline-note">Portable record for match {receipt.matchId.slice(0, 8)}.</p>
       </DecisionEntryFocus>
     </DecisionEntry>
   );

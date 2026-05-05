@@ -2,6 +2,18 @@
 
 Last updated: 2026-04-30
 
+## Strategic Direction
+
+BOARD now has a second submission lane beyond the World App release:
+
+- `World` remains the human-proof and distribution layer
+- `Solana` now carries competitive access and sealed match history
+
+The active product framing for hackathon use is no longer “mini app board game.”
+It is:
+
+`competitive room identity, access, and receipts for real-time games`
+
 ## Current Release Score
 
 Overall readiness: 95/100
@@ -30,6 +42,9 @@ Overall readiness: 95/100
 - Migrated World ID UI to IDKit 4 request widget with backend RP signing.
 - Added regression tests for World App client detection, MiniKit install, wallet auth, native share fallback, haptic commands, and `VITE_WORLD_APP_ID` config fallback.
 - Added `npm run smoke:world` for deployed `/?surface=world` route/runtime-env/bundle-label checks.
+- Added a thin Solana competitive layer on top of the World flow: linked wallet, ranked pass issuance, pass-backed ranked entry, and sealed match receipts.
+- Reframed the World console around human proof plus wallet proof instead of a World-only story.
+- Added a Colosseum submission packet under `docs/BOARD_COLOSSEUM_SUBMISSION_PACKET.md` and `store_assets/colosseum/PROJECT_SUBMISSION.md`.
 - Fixed the runtime env parser in both deploy smoke scripts to accept the semicolon emitted by Railway HTML injection.
 - Shifted the World App UI from dark arcade shell to a cleaner market-app surface, then converged it again into the mono system used by the core play loop: warm paper shell, white planes, black decision states, and monochrome trust feedback.
 - Fixed bottom navigation placement by making it a real flex-shell footer instead of fixed positioning.
