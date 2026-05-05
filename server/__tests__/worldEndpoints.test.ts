@@ -11,6 +11,7 @@ type TableName =
   | 'lobby_players'
   | 'match_players'
   | 'tournaments'
+  | 'tournament_participants'
   | 'worlds'
   | 'matches'
   | 'player_ratings'
@@ -26,6 +27,7 @@ const mocks = vi.hoisted(() => ({
     lobby_players: [] as Row[],
     match_players: [] as Row[],
     tournaments: [] as Row[],
+    tournament_participants: [] as Row[],
     worlds: [] as Row[],
     matches: [] as Row[],
     player_ratings: [] as Row[],
@@ -231,6 +233,7 @@ function resetState() {
   mocks.state.lobby_players = [];
   mocks.state.match_players = [];
   mocks.state.tournaments = [];
+  mocks.state.tournament_participants = [];
   mocks.state.worlds = [];
   mocks.state.matches = [];
   mocks.state.player_ratings = [];
@@ -819,8 +822,10 @@ describe('World App API routes', () => {
             matchId: 'match-old',
           }),
         ],
+        tournamentEntries: [],
         profile: {
           passCount: 1,
+          eventEntryCount: 0,
           receiptCount: 1,
           latestReceiptAt: '2026-04-29T00:30:00.000Z',
         },

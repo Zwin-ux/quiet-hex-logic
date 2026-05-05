@@ -78,6 +78,33 @@ export function useSolanaCompetitive(
     [ensureSession, onState],
   );
 
+  const activateEventPass = useCallback(
+    async (tournamentId: string, gameKey?: string | null) => {
+      setAction('pass');
+      setError(null);
+
+      try {
+        const currentSession = ensureSession();
+        const result = await issueCompetitiveRoomPass(currentSession, {
+          scope: 'event_series',
+          accessMode: 'pass_required',
+          tournamentId,
+          gameKey: gameKey ?? null,
+          label: 'Competitive event pass',
+        });
+        onState(result);
+        return result;
+      } catch (passError) {
+        const message = passError instanceof Error ? passError.message : 'Could not activate event pass.';
+        setError(message);
+        throw passError;
+      } finally {
+        setAction(null);
+      }
+    },
+    [ensureSession, onState],
+  );
+
   const sealReceipt = useCallback(
     async (matchId: string) => {
       setAction('receipt');
@@ -107,8 +134,9 @@ export function useSolanaCompetitive(
       walletLabel: getSolanaProviderLabel(getInjectedSolanaProvider()),
       connectWallet,
       activateSeasonPass,
+      activateEventPass,
       sealReceipt,
     }),
-    [action, activateSeasonPass, connectWallet, error, sealReceipt],
+    [action, activateEventPass, activateSeasonPass, connectWallet, error, sealReceipt],
   );
 }

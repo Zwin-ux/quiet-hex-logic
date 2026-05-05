@@ -38,8 +38,18 @@ export type MatchReceipt = {
 
 export type CompetitiveProfile = {
   passCount: number;
+  eventEntryCount: number;
   receiptCount: number;
   latestReceiptAt: string | null;
+};
+
+export type TournamentEntry = {
+  tournamentId: string;
+  name: string;
+  gameKey: string | null;
+  status: 'pass_required' | 'pass_ready' | 'joined' | 'receipt_issued';
+  startTime: string | null;
+  receiptCount: number;
 };
 
 export type SolanaCompetitiveLane = {
@@ -54,6 +64,7 @@ export type CompetitiveIdentityState = {
   linkedWallet: LinkedCompetitiveWallet | null;
   roomPasses: RoomPass[];
   recentReceipts: MatchReceipt[];
+  tournamentEntries: TournamentEntry[];
   profile: CompetitiveProfile;
   solanaLane: SolanaCompetitiveLane;
 };
@@ -61,7 +72,7 @@ export type CompetitiveIdentityState = {
 export function shortenWalletAddress(address: string | null | undefined) {
   if (!address) return 'not linked';
   if (address.length <= 10) return address;
-  return `${address.slice(0, 4)}…${address.slice(-4)}`;
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
 export function hasIssuedSeasonPass(
@@ -75,5 +86,20 @@ export function hasIssuedSeasonPass(
     if (pass.accessMode !== accessMode) return false;
     if (!gameKey || !pass.gameKey) return true;
     return pass.gameKey === gameKey;
+  });
+}
+
+export function hasIssuedTournamentPass(
+  passes: RoomPass[] | null | undefined,
+  tournamentId: string | null | undefined,
+  accessMode: CompetitiveAccessMode = 'pass_required',
+) {
+  if (!tournamentId) return false;
+
+  return (passes ?? []).some((pass) => {
+    if (pass.scope !== 'event_series') return false;
+    if (pass.status !== 'issued' && pass.status !== 'finalized') return false;
+    if (pass.accessMode !== accessMode) return false;
+    return pass.tournamentId === tournamentId;
   });
 }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import {
   hasIssuedSeasonPass,
+  hasIssuedTournamentPass,
   shortenWalletAddress,
   type MatchReceipt,
 } from "@/lib/competitiveIdentity";
@@ -66,8 +67,10 @@ type RoomRow = {
 type EventRow = {
   id: string;
   name: string;
+  game_key: string | null;
   status: string;
   competitive_mode: boolean | null;
+  access_type: string | null;
   start_time: string | null;
   max_players: number | null;
 };
@@ -140,7 +143,22 @@ export default function WorldAppHome() {
   const linkedSolanaWallet = competitiveIdentity?.linkedWallet ?? null;
   const roomPasses = competitiveIdentity?.roomPasses ?? [];
   const recentReceipts = competitiveIdentity?.recentReceipts ?? [];
+  const tournamentEntries = competitiveIdentity?.tournamentEntries ?? [];
+  const tournamentEntryById = useMemo(
+    () => new Map(tournamentEntries.map((entry) => [entry.tournamentId, entry])),
+    [tournamentEntries],
+  );
   const receiptMatchIds = useMemo(() => new Set(recentReceipts.map((receipt) => receipt.matchId)), [recentReceipts]);
+  const featuredCompetitiveEvent =
+    events.find((event) => event.access_type === "pass_required") ??
+    events.find((event) => event.competitive_mode) ??
+    null;
+  const featuredTournamentEntry =
+    featuredCompetitiveEvent
+      ? tournamentEntries.find((entry) => entry.tournamentId === featuredCompetitiveEvent.id) ?? null
+      : null;
+  const hasFeaturedTournamentPass =
+    featuredCompetitiveEvent ? hasIssuedTournamentPass(roomPasses, featuredCompetitiveEvent.id) : false;
 
   const loadConsoleData = useCallback(async () => {
     setLoadingData(true);
@@ -228,6 +246,21 @@ export default function WorldAppHome() {
       });
     }
   }, [ensureWorldSeat, haptic, selectedGame, solanaCompetitive]);
+
+  const activateFeaturedEventPass = useCallback(async () => {
+    if (!featuredCompetitiveEvent) return;
+
+    try {
+      await ensureWorldSeat();
+      await solanaCompetitive.activateEventPass(featuredCompetitiveEvent.id, featuredCompetitiveEvent.game_key);
+      await haptic("success");
+      toast.success("Event pass active");
+    } catch (error) {
+      toast.error("Could not activate event pass", {
+        description: error instanceof Error ? error.message : "Try again.",
+      });
+    }
+  }, [ensureWorldSeat, featuredCompetitiveEvent, haptic, solanaCompetitive]);
 
   const startSolanaRanked = useCallback(async () => {
     setStarting("ranked");
@@ -595,9 +628,45 @@ export default function WorldAppHome() {
                         ? linkSolanaWallet
                         : !hasIssuedSeasonPass(roomPasses, selectedGame)
                           ? activateSeasonPass
-                          : startSolanaRanked
+                        : startSolanaRanked
                     }
                   />
+
+                  {featuredCompetitiveEvent ? (
+                    <CompetitiveActionCard
+                      eyebrow="Featured event"
+                      title={featuredCompetitiveEvent.name}
+                      body={
+                        featuredCompetitiveEvent.access_type === "pass_required"
+                          ? hasFeaturedTournamentPass
+                            ? "Pass ready. Open the bracket and commit."
+                            : "This event uses pass-backed entry and sealed match history."
+                          : "Open the current competitive bracket."
+                      }
+                      meta={
+                        featuredTournamentEntry?.status ??
+                        (featuredCompetitiveEvent.access_type === "pass_required"
+                          ? hasFeaturedTournamentPass
+                            ? "pass ready"
+                            : "pass needed"
+                          : "open")
+                      }
+                      action={
+                        featuredCompetitiveEvent.access_type === "pass_required" && !hasFeaturedTournamentPass
+                          ? solanaCompetitive.action === "pass"
+                            ? "Activating"
+                            : "Activate event pass"
+                          : "Open event"
+                      }
+                      icon={featuredCompetitiveEvent.access_type === "pass_required" ? Stamp : CalendarDays}
+                      disabled={Boolean(starting) || solanaCompetitive.action !== null}
+                      onClick={() =>
+                        featuredCompetitiveEvent.access_type === "pass_required" && !hasFeaturedTournamentPass
+                          ? activateFeaturedEventPass()
+                          : navigate(`/tournament/${featuredCompetitiveEvent.id}`)
+                      }
+                    />
+                  ) : null}
 
                   <SystemSection
                     variant="world"
@@ -730,7 +799,11 @@ export default function WorldAppHome() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="system-screen__label">
-                                {event.competitive_mode ? "competitive" : "open event"}
+                                {event.access_type === "pass_required"
+                                  ? "pass-backed event"
+                                  : event.competitive_mode
+                                    ? "competitive"
+                                    : "open event"}
                               </p>
                               <h3 className="ops-directory-row__title">{event.name}</h3>
                               <p className="ops-directory-row__meta">
@@ -813,6 +886,12 @@ export default function WorldAppHome() {
                         strong={hasIssuedSeasonPass(roomPasses, selectedGame)}
                       />
                       <SystemMetaItem
+                        label="Events"
+                        value={String(competitiveIdentity?.profile.eventEntryCount ?? 0)}
+                        note={featuredTournamentEntry ? `${featuredTournamentEntry.name}.` : "Event history stays here."}
+                        strong={Boolean(competitiveIdentity?.profile.eventEntryCount)}
+                      />
+                      <SystemMetaItem
                         label="Receipts"
                         value={String(competitiveIdentity?.profile.receiptCount ?? 0)}
                         note={competitiveIdentity?.profile.latestReceiptAt ? `Last ${timeAgo(competitiveIdentity.profile.latestReceiptAt)}` : "Seal after matches."}
@@ -858,10 +937,26 @@ export default function WorldAppHome() {
 
                     {solanaCompetitive.error ? <p className="system-inline-note">{solanaCompetitive.error}</p> : null}
 
+                    {tournamentEntries.length ? (
+                      <DecisionLane>
+                        {tournamentEntries.map((entry) => (
+                          <TournamentEntryRow key={entry.tournamentId} entry={entry} />
+                        ))}
+                      </DecisionLane>
+                    ) : null}
+
                     {recentReceipts.length ? (
                       <DecisionLane>
                         {recentReceipts.map((receipt) => (
-                          <ReceiptRow key={receipt.id} receipt={receipt} />
+                          <ReceiptRow
+                            key={receipt.id}
+                            receipt={receipt}
+                            tournamentLabel={
+                              receipt.tournamentId
+                                ? tournamentEntryById.get(receipt.tournamentId)?.name ?? "Competitive event"
+                                : null
+                            }
+                          />
                         ))}
                       </DecisionLane>
                     ) : null}
@@ -1030,12 +1125,41 @@ function RecentResultStrip({
   );
 }
 
-function ReceiptRow({ receipt }: { receipt: MatchReceipt }) {
+function TournamentEntryRow({
+  entry,
+}: {
+  entry: NonNullable<WorldQuickplayState["competitiveIdentity"]>["tournamentEntries"][number];
+}) {
+  return (
+    <DecisionEntry as="div" selected={entry.status === "joined" || entry.status === "receipt_issued"}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="system-screen__label">Event entry</p>
+          <h3 className="ops-directory-row__title">{entry.name}</h3>
+          <p className="ops-directory-row__meta">
+            {entry.status}. {entry.receiptCount} sealed result{entry.receiptCount === 1 ? "" : "s"}.
+          </p>
+        </div>
+        <UtilityPill strong>{entry.status}</UtilityPill>
+      </div>
+      <DecisionEntryFocus>
+        <p className="system-inline-note">
+          {entry.startTime ? `Starts ${new Date(entry.startTime).toLocaleDateString()}.` : "Carry the pass into the bracket, then seal the result."}
+        </p>
+      </DecisionEntryFocus>
+    </DecisionEntry>
+  );
+}
+
+function ReceiptRow({ receipt, tournamentLabel }: { receipt: MatchReceipt; tournamentLabel: string | null }) {
   return (
     <DecisionEntry as="div" selected={receipt.status === "issued" || receipt.status === "finalized"}>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="system-screen__label">Receipt / {gameLabel(receipt.gameKey)}</p>
+          <p className="system-screen__label">
+            Receipt / {gameLabel(receipt.gameKey)}
+            {tournamentLabel ? ` / ${tournamentLabel}` : ""}
+          </p>
           <h3 className="ops-directory-row__title">{receipt.status}</h3>
           <p className="ops-directory-row__meta">
             {receipt.outcome ? `${receipt.outcome}. ` : ""}
@@ -1048,7 +1172,9 @@ function ReceiptRow({ receipt }: { receipt: MatchReceipt }) {
         <UtilityPill strong>{receipt.status}</UtilityPill>
       </div>
       <DecisionEntryFocus>
-        <p className="system-inline-note">Portable record for match {receipt.matchId.slice(0, 8)}.</p>
+        <p className="system-inline-note">
+          {tournamentLabel ? `${tournamentLabel}. ` : ""}Portable record for match {receipt.matchId.slice(0, 8)}.
+        </p>
       </DecisionEntryFocus>
     </DecisionEntry>
   );

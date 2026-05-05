@@ -43,7 +43,7 @@ const createTournamentSchema = z.object({
   modVersionId: z.string().uuid('Invalid variant ID').optional().nullable(),
   variantSeed: z.string().trim().max(128).optional().nullable(),
   registrationUrl: z.string().trim().url('Invalid registration URL').optional().nullable().or(z.literal('')),
-  accessType: z.enum(['public', 'world_members', 'access_code']).optional(),
+  accessType: z.enum(['public', 'world_members', 'access_code', 'pass_required']).optional(),
   accessCode: z.string().trim().min(2, 'Access code must be at least 2 characters').max(64).optional().nullable(),
   registrationDeadline: z.string()
     .datetime('Invalid registration deadline format')

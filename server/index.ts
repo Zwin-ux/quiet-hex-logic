@@ -226,6 +226,15 @@ type SolanaCompetitiveMetadata = {
   matchReceipts: SolanaMatchReceipt[];
 };
 
+type SolanaTournamentEntry = {
+  tournamentId: string;
+  name: string;
+  gameKey: string | null;
+  status: 'pass_required' | 'pass_ready' | 'joined' | 'receipt_issued';
+  startTime: string | null;
+  receiptCount: number;
+};
+
 function decodeBase58(value: string) {
   if (!value.trim()) {
     throw new Error('Empty base58 value.');
@@ -381,6 +390,147 @@ function hasIssuedSeasonPass(
     if (!gameKey || !pass.gameKey) return true;
     return pass.gameKey === gameKey;
   });
+}
+
+function hasIssuedTournamentPass(
+  roomPasses: SolanaRoomPass[],
+  tournamentId?: string | null,
+  accessMode: SolanaCompetitiveAccessMode = 'pass_required',
+) {
+  if (!tournamentId) return false;
+
+  return roomPasses.some((pass) => {
+    if (pass.scope !== 'event_series') return false;
+    if (pass.accessMode !== accessMode) return false;
+    if (pass.status !== 'issued' && pass.status !== 'finalized') return false;
+    return pass.tournamentId === tournamentId;
+  });
+}
+
+type ViewerTournamentEntryRow = {
+  status: string;
+  tournaments:
+    | {
+        id: string;
+        name: string;
+        game_key: string | null;
+        start_time: string | null;
+      }
+    | Array<{
+        id: string;
+        name: string;
+        game_key: string | null;
+        start_time: string | null;
+      }>
+    | null;
+};
+
+function normalizeTournamentJoin(
+  value: ViewerTournamentEntryRow['tournaments'],
+): { id: string; name: string; game_key: string | null; start_time: string | null } | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function buildTournamentEntries(
+  roomPasses: SolanaRoomPass[],
+  matchReceipts: SolanaMatchReceipt[],
+  joinedEntries: ViewerTournamentEntryRow[] = [],
+) {
+  const byTournament = new Map<string, SolanaTournamentEntry>();
+
+  for (const pass of roomPasses) {
+    if (pass.scope !== 'event_series' || !pass.tournamentId) continue;
+    byTournament.set(pass.tournamentId, {
+      tournamentId: pass.tournamentId,
+      name: pass.label || 'Competitive event',
+      gameKey: pass.gameKey,
+      status: 'pass_ready',
+      startTime: null,
+      receiptCount: 0,
+    });
+  }
+
+  for (const row of joinedEntries) {
+    const tournament = normalizeTournamentJoin(row.tournaments);
+    if (!tournament?.id) continue;
+    const current = byTournament.get(tournament.id);
+    byTournament.set(tournament.id, {
+      tournamentId: tournament.id,
+      name: tournament.name,
+      gameKey: tournament.game_key,
+      status: current?.receiptCount ? 'receipt_issued' : 'joined',
+      startTime: tournament.start_time,
+      receiptCount: current?.receiptCount ?? 0,
+    });
+  }
+
+  for (const receipt of matchReceipts) {
+    if (!receipt.tournamentId) continue;
+    const current = byTournament.get(receipt.tournamentId);
+    byTournament.set(receipt.tournamentId, {
+      tournamentId: receipt.tournamentId,
+      name: current?.name ?? 'Competitive event',
+      gameKey: receipt.gameKey,
+      status: 'receipt_issued',
+      startTime: current?.startTime ?? null,
+      receiptCount: (current?.receiptCount ?? 0) + 1,
+    });
+  }
+
+  return [...byTournament.values()].sort((a, b) => {
+    if (a.status === b.status) {
+      return (b.startTime ?? '').localeCompare(a.startTime ?? '');
+    }
+    if (a.status === 'receipt_issued') return -1;
+    if (b.status === 'receipt_issued') return 1;
+    if (a.status === 'joined') return -1;
+    if (b.status === 'joined') return 1;
+    return 0;
+  });
+}
+
+function buildCompetitiveIdentityPayload(
+  currentCompetitive: SolanaCompetitiveMetadata,
+  joinedEntries: ViewerTournamentEntryRow[] = [],
+  lane?: Partial<{
+    title: string;
+    body: string;
+    hasSeasonPass: boolean;
+  }>,
+) {
+  const tournamentEntries = buildTournamentEntries(
+    currentCompetitive.roomPasses,
+    currentCompetitive.matchReceipts,
+    joinedEntries,
+  );
+  const hasSeasonPass = lane?.hasSeasonPass ?? hasIssuedSeasonPass(currentCompetitive.roomPasses);
+
+  return {
+    linkedWallet: currentCompetitive.linkedWallet,
+    roomPasses: currentCompetitive.roomPasses,
+    recentReceipts: currentCompetitive.matchReceipts.slice(0, 6),
+    tournamentEntries,
+    profile: {
+      passCount: currentCompetitive.roomPasses.length,
+      eventEntryCount: tournamentEntries.length,
+      receiptCount: currentCompetitive.matchReceipts.length,
+      latestReceiptAt: currentCompetitive.matchReceipts[0]?.issuedAt ?? null,
+    },
+    solanaLane: {
+      walletLinked: Boolean(currentCompetitive.linkedWallet),
+      hasSeasonPass,
+      accessMode: 'pass_required' as const,
+      title:
+        lane?.title ??
+        (hasSeasonPass ? 'Receipt-backed ranked' : 'Activate room pass'),
+      body:
+        lane?.body ??
+        (hasSeasonPass
+          ? 'Solana pass ready. Enter ranked and seal match receipts after play.'
+          : 'Issue a room pass to enter the receipt-backed lane.'),
+    },
+  };
 }
 
 function verifySolanaSignature(address: string, message: string, signatureBase64: string) {
@@ -684,8 +834,10 @@ type WorldQuickplayRoomRow = {
 type WorldQuickplayEventRow = {
   id: string;
   name: string;
+  game_key: string | null;
   status: string;
   competitive_mode: boolean | null;
+  access_type: string | null;
   start_time: string | null;
   max_players: number | null;
 };
@@ -1008,7 +1160,13 @@ function buildWorldCompetitiveState(args: {
           : 'Issue a season pass before entering the Solana-ranked lane.'
         : 'Link Solana once to carry room access and match receipts.',
     },
-    events: args.events.filter((event) => event.competitive_mode === true),
+    events: args.events
+      .filter((event) => event.competitive_mode === true)
+      .map((event) => ({
+        ...event,
+        gameKey: normalizeWorldQuickplayGameKey(event.game_key),
+        accessType: event.access_type ?? 'public',
+      })),
   };
 }
 
@@ -1021,6 +1179,7 @@ async function getWorldQuickplayState(viewerId: string) {
     roomsResult,
     eventsResult,
     worldsResult,
+    tournamentEntriesResult,
     ratingsResult,
     leaderboardResult,
     ratingHistoryResult,
@@ -1045,7 +1204,7 @@ async function getWorldQuickplayState(viewerId: string) {
       .limit(8),
     supabase
       .from('tournaments')
-      .select('id, name, status, competitive_mode, start_time, max_players')
+      .select('id, name, game_key, status, competitive_mode, access_type, start_time, max_players')
       .in('status', ['registration', 'scheduled', 'active'])
       .order('created_at', { ascending: false })
       .limit(6),
@@ -1055,6 +1214,11 @@ async function getWorldQuickplayState(viewerId: string) {
       .eq('visibility', 'public')
       .order('created_at', { ascending: false })
       .limit(8),
+    supabase
+      .from('tournament_participants')
+      .select('status, tournaments!inner(id, name, game_key, start_time)')
+      .eq('player_id', viewerId)
+      .limit(12),
     supabase
       .from('player_ratings')
       .select('profile_id, game_key, elo_rating, games_rated, updated_at')
@@ -1091,6 +1255,7 @@ async function getWorldQuickplayState(viewerId: string) {
   if (roomsResult.error) throw roomsResult.error;
   if (eventsResult.error) throw eventsResult.error;
   if (worldsResult.error) throw worldsResult.error;
+  if (tournamentEntriesResult.error) throw tournamentEntriesResult.error;
   if (ratingsResult.error) throw ratingsResult.error;
   if (leaderboardResult.error) throw leaderboardResult.error;
   if (ratingHistoryResult.error) throw ratingHistoryResult.error;
@@ -1143,6 +1308,7 @@ async function getWorldQuickplayState(viewerId: string) {
   const identity = identityResult.data ?? null;
   const profile = profileResult.data ?? null;
   const solanaCompetitive = readSolanaCompetitiveMetadata(identity?.verification_metadata);
+  const joinedTournamentEntries = (tournamentEntriesResult.data ?? []) as ViewerTournamentEntryRow[];
   const isWalletBound = Boolean(identity?.wallet_auth_at || profile?.world_app_bound_at);
   const isHumanVerified = Boolean(identity?.idkit_verified_at || profile?.is_verified_human);
   const events = (eventsResult.data ?? []) as WorldQuickplayEventRow[];
@@ -1173,18 +1339,7 @@ async function getWorldQuickplayState(viewerId: string) {
       canEnterRanked: isWalletBound && isHumanVerified,
     },
     competitiveIdentity: {
-      linkedWallet: solanaCompetitive.linkedWallet,
-      roomPasses: solanaCompetitive.roomPasses,
-      recentReceipts: solanaCompetitive.matchReceipts.slice(0, 6),
-      profile: {
-        passCount: solanaCompetitive.roomPasses.length,
-        receiptCount: solanaCompetitive.matchReceipts.length,
-        latestReceiptAt: solanaCompetitive.matchReceipts[0]?.issuedAt ?? null,
-      },
-      solanaLane: {
-        walletLinked: Boolean(solanaCompetitive.linkedWallet),
-        hasSeasonPass: hasIssuedSeasonPass(solanaCompetitive.roomPasses),
-        accessMode: 'pass_required',
+      ...buildCompetitiveIdentityPayload(solanaCompetitive, joinedTournamentEntries, {
         title: Boolean(solanaCompetitive.linkedWallet)
           ? hasIssuedSeasonPass(solanaCompetitive.roomPasses)
             ? 'Receipt-backed ranked'
@@ -1195,7 +1350,7 @@ async function getWorldQuickplayState(viewerId: string) {
             ? 'Solana pass ready. Enter ranked and seal match receipts after play.'
             : 'Issue a room pass to enter the receipt-backed lane.'
           : 'World proves the human. Solana carries access and receipts.',
-      },
+      }),
     },
     rooms: rooms.map((room) => ({
       ...room,
@@ -1765,25 +1920,12 @@ app.post('/api/world/solana/complete-link', async (req, res) => {
 
     res.json({
       ok: true,
-      competitiveIdentity: {
-        linkedWallet: nextCompetitive.linkedWallet,
-        roomPasses: nextCompetitive.roomPasses,
-        recentReceipts: nextCompetitive.matchReceipts.slice(0, 6),
-        profile: {
-          passCount: nextCompetitive.roomPasses.length,
-          receiptCount: nextCompetitive.matchReceipts.length,
-          latestReceiptAt: nextCompetitive.matchReceipts[0]?.issuedAt ?? null,
-        },
-        solanaLane: {
-          walletLinked: true,
-          hasSeasonPass: hasIssuedSeasonPass(nextCompetitive.roomPasses),
-          accessMode: 'pass_required',
-          title: hasIssuedSeasonPass(nextCompetitive.roomPasses) ? 'Receipt-backed ranked' : 'Activate room pass',
-          body: hasIssuedSeasonPass(nextCompetitive.roomPasses)
-            ? 'Solana pass ready. Enter ranked and seal match receipts after play.'
-            : 'Issue a room pass to enter the receipt-backed lane.',
-        },
-      },
+      competitiveIdentity: buildCompetitiveIdentityPayload(nextCompetitive, [], {
+        title: hasIssuedSeasonPass(nextCompetitive.roomPasses) ? 'Receipt-backed ranked' : 'Activate room pass',
+        body: hasIssuedSeasonPass(nextCompetitive.roomPasses)
+          ? 'Solana pass ready. Enter ranked and seal match receipts after play.'
+          : 'Issue a room pass to enter the receipt-backed lane.',
+      }),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not complete Solana wallet link.';
@@ -1910,23 +2052,14 @@ app.post('/api/world/competitive/issue-room-pass', async (req, res) => {
     res.json({
       ok: true,
       roomPass,
-      competitiveIdentity: {
-        linkedWallet: nextCompetitive.linkedWallet,
-        roomPasses: nextCompetitive.roomPasses,
-        recentReceipts: nextCompetitive.matchReceipts.slice(0, 6),
-        profile: {
-          passCount: nextCompetitive.roomPasses.length,
-          receiptCount: nextCompetitive.matchReceipts.length,
-          latestReceiptAt: nextCompetitive.matchReceipts[0]?.issuedAt ?? null,
-        },
-        solanaLane: {
-          walletLinked: Boolean(nextCompetitive.linkedWallet),
-          hasSeasonPass: hasIssuedSeasonPass(nextCompetitive.roomPasses, roomPass.gameKey),
-          accessMode: 'pass_required',
-          title: 'Receipt-backed ranked',
-          body: 'Season pass active. Enter ranked and seal receipts after the board resolves.',
-        },
-      },
+      competitiveIdentity: buildCompetitiveIdentityPayload(nextCompetitive, [], {
+        hasSeasonPass: hasIssuedSeasonPass(nextCompetitive.roomPasses, roomPass.gameKey),
+        title: roomPass.scope === 'event_series' ? 'Event pass active' : 'Receipt-backed ranked',
+        body:
+          roomPass.scope === 'event_series'
+            ? 'Event pass ready. Join the competitive bracket from the event page.'
+            : 'Season pass active. Enter ranked and seal receipts after the board resolves.',
+      }),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not issue room pass.';
@@ -2109,23 +2242,12 @@ app.post('/api/world/competitive/issue-match-receipt', async (req, res) => {
     res.json({
       ok: true,
       receipt,
-      competitiveIdentity: {
-        linkedWallet: nextCompetitive.linkedWallet,
-        roomPasses: nextCompetitive.roomPasses,
-        recentReceipts: nextCompetitive.matchReceipts.slice(0, 6),
-        profile: {
-          passCount: nextCompetitive.roomPasses.length,
-          receiptCount: nextCompetitive.matchReceipts.length,
-          latestReceiptAt: nextCompetitive.matchReceipts[0]?.issuedAt ?? null,
-        },
-        solanaLane: {
-          walletLinked: Boolean(nextCompetitive.linkedWallet),
-          hasSeasonPass: hasIssuedSeasonPass(nextCompetitive.roomPasses),
-          accessMode: 'pass_required',
-          title: 'Receipt-backed ranked',
-          body: 'Receipt issued. Competitive history is now portable.',
-        },
-      },
+      competitiveIdentity: buildCompetitiveIdentityPayload(nextCompetitive, [], {
+        title: receipt.tournamentId ? 'Event receipt sealed' : 'Receipt-backed ranked',
+        body: receipt.tournamentId
+          ? 'Event result sealed. Competitive history is now portable.'
+          : 'Receipt issued. Competitive history is now portable.',
+      }),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not issue match receipt.';

@@ -1,8 +1,20 @@
 # BOARD World App Progress Ledger
 
-Last updated: 2026-04-30
+Last updated: 2026-05-04
 
 ## Strategic Direction
+
+The repo now has two explicit shipping lanes:
+
+- `World App release lane`
+  - focused on World App submission, QR QA, and release operations
+- `Colosseum submission lane`
+  - focused on pass-gated competitive events, Solana-linked access, and portable receipts
+
+The Colosseum lane is now event-first, not ranked-first.
+The demo spine is:
+
+`human proof -> linked wallet -> event pass -> tournament entry -> bracket state -> sealed receipt`
 
 BOARD now has a second submission lane beyond the World App release:
 
@@ -45,6 +57,8 @@ Overall readiness: 95/100
 - Added a thin Solana competitive layer on top of the World flow: linked wallet, ranked pass issuance, pass-backed ranked entry, and sealed match receipts.
 - Reframed the World console around human proof plus wallet proof instead of a World-only story.
 - Added a Colosseum submission packet under `docs/BOARD_COLOSSEUM_SUBMISSION_PACKET.md` and `store_assets/colosseum/PROJECT_SUBMISSION.md`.
+- Shifted the Colosseum story from ranked-first to tournament-first: pass-gated events, event entries, and event-linked receipts now form the primary demo spine.
+- Added `npm run capture:colosseum` plus `store_assets/colosseum/DEMO_CAPTURE_RUNBOOK.md` for deterministic demo capture packets keyed to one tournament id.
 - Fixed the runtime env parser in both deploy smoke scripts to accept the semicolon emitted by Railway HTML injection.
 - Shifted the World App UI from dark arcade shell to a cleaner market-app surface, then converged it again into the mono system used by the core play loop: warm paper shell, white planes, black decision states, and monochrome trust feedback.
 - Fixed bottom navigation placement by making it a real flex-shell footer instead of fixed positioning.
@@ -177,6 +191,7 @@ Overall readiness: 95/100
 | --- | --- | --- |
 | World App auth cannot be fully verified outside a real World App WebView. | High | Run tunnel/QR test on iOS and Android before submission. |
 | Real World App WebView behavior still unverified on physical devices. | High | Use the frozen packet in `store_assets/world/qa/railway-production-mobile-visual-auth-20260429-2345/`, scan the World Developer Portal QR on iOS and Android, and fill `physical-qa-results-template.md` plus failure reports as needed. |
+| Colosseum demo still depends on one seeded pass-required tournament id being fixed for the submission path. | Medium | Use `npm run capture:colosseum -- --tournament-id <id> --event-name "<name>" --game <game>` and keep that packet as the single source of truth for event screenshots and demo order. |
 | `https://hexology.me` is not serving the current Railway/World App build. | High | Deploy current branch to the World App staging origin before using it for QR/device QA. |
 | IDKit verification path depends on exact World API response shape. | Medium | Endpoint harness now covers expected success/failure handling; validate with staging credentials before submission. |
 | Bundle size is high because web3/wallet/IDKit code is pulled into the app. | Medium | Split World ID and wallet-heavy code into lazy chunks after functional QA. |

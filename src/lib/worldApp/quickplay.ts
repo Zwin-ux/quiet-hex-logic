@@ -95,8 +95,10 @@ export type WorldQuickplayState = {
   events: Array<{
     id: string;
     name: string;
+    game_key: string | null;
     status: string;
     competitive_mode: boolean | null;
+    access_type: string | null;
     start_time: string | null;
     max_players: number | null;
   }>;
@@ -166,8 +168,10 @@ export type WorldQuickplayState = {
     events: Array<{
       id: string;
       name: string;
+      gameKey: string | null;
       status: string;
       competitive_mode: boolean | null;
+      accessType: string | null;
       start_time: string | null;
       max_players: number | null;
     }>;

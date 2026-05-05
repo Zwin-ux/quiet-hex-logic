@@ -4,11 +4,11 @@ Last updated: 2026-05-04
 
 ## One-line Pitch
 
-BOARD is a competitive room network for real-time strategy games where World proves the human and Solana carries room access plus match receipts.
+BOARD is a competitive event network for real-time strategy games where World proves the human and Solana carries tournament access plus portable match receipts.
 
 ## Short Description
 
-BOARD lets real players enter competitive rooms, hold pass-backed access, play offchain in a fast game runtime, and leave with portable match receipts.
+BOARD lets real players activate pass-backed event access, play offchain in a fast game runtime, and leave with sealed competitive receipts that can travel beyond one session.
 
 ## The Primitive
 
@@ -17,13 +17,15 @@ BOARD is not trying to put the whole game onchain.
 The narrow Solana primitive is:
 
 - `RoomPass`
+- `TournamentEntry`
 - `MatchReceipt`
 
 That gives a clean answer to `why Solana`:
 
 - passes can gate ranked or event access
+- entries can prove who was admitted into a competitive bracket
 - receipts can prove participation and outcomes
-- both artifacts can travel beyond one app session
+- all three artifacts can travel beyond one app session
 
 ## Role Split
 
@@ -31,16 +33,17 @@ Use the dual stack deliberately.
 
 - `World`
   - distribution inside World App
-  - wallet-auth inside the World container
+  - wallet auth inside the World container
   - proof-of-human gate for competitive entry
 - `Solana`
   - linked wallet identity for competitive state
-  - room and season passes
+  - room and tournament passes
+  - event entries
   - match receipts
   - portable player history
 
 World is the human layer.
-Solana is the competitive asset and history layer.
+Solana is the competitive access and history layer.
 
 ## Problem
 
@@ -49,11 +52,12 @@ Competitive consumer games have weak portable identity.
 - rooms are easy to spoof
 - match participation rarely leaves a usable record
 - event entry and match history are trapped inside one app
-- “wallet game” products usually over-index on tokens instead of competition
+- "wallet game" products usually over-index on tokens instead of competition
 
 BOARD focuses on the real coordination problem:
 
 - who is allowed in
+- who actually entered the event
 - who actually played
 - what happened
 
@@ -62,23 +66,23 @@ BOARD focuses on the real coordination problem:
 Within one minute, the demo should make these points obvious:
 
 1. This is a real consumer game loop, not a token wrapper.
-2. Human verification matters because ranked rooms need anti-sybil trust.
-3. Solana matters because passes and receipts become portable competitive artifacts.
+2. Human verification matters because competitive rooms need anti-sybil trust.
+3. Solana matters because passes, event entries, and receipts become portable competitive artifacts.
 4. The gameplay stays fast because execution remains offchain.
 
 ## Demo Script
 
 ### 1. Open BOARD
 
-Show the core Play surface.
+Show the core World surface with the featured event card.
 
 Say:
 
-`World proves the player is human. Solana proves access and match history.`
+`World proves the player is human. Solana proves competitive access and match history.`
 
 ### 2. Bind human proof
 
-Use World wallet auth / verification gate.
+Use World wallet auth and the verification gate.
 
 Show:
 
@@ -92,29 +96,39 @@ Use the wallet lane.
 Show:
 
 - linked wallet
-- no pass yet
+- no event pass yet
 
-### 4. Activate a ranked pass
+### 4. Activate a tournament pass
 
-Issue one pass-backed competitive access artifact.
+Issue one event-scoped access artifact.
 
 Show:
 
-- ranked pass active
+- event pass active
 - pass count increments
 
-### 5. Enter a pass-backed ranked room
+### 5. Enter a pass-backed event
 
-Use the Solana lane, not the plain ranked button.
+Use the tournament lane, not the generic event join flow.
 
 Show:
 
 - player can enter only after
   - human verification
   - wallet link
-  - ranked pass
+  - event pass
 
-### 6. Complete a match
+### 6. Open the bracket
+
+Use the tournament screen as the event command surface.
+
+Show:
+
+- pass state
+- joined state
+- bracket/open event action
+
+### 7. Complete a match
 
 Keep the match runtime fast and ordinary.
 
@@ -122,7 +136,7 @@ Say:
 
 `The game is still server-authoritative and offchain. Solana is only used where portability matters.`
 
-### 7. Seal the receipt
+### 8. Seal the receipt
 
 Issue a match receipt after the result.
 
@@ -130,16 +144,17 @@ Show:
 
 - receipt count increments
 - latest receipt timestamp updates
-- receipt row appears in the profile
+- receipt row appears in the profile with the event label
 
-### 8. Close on the profile
+### 9. Close on the profile
 
 Show the competitive profile as the punchline:
 
 - human proof
 - linked wallet
 - pass count
-- sealed receipts
+- event entry count
+- sealed event receipts
 
 ## Architecture Summary
 
@@ -159,11 +174,14 @@ Add only a thin Solana competitive layer.
 - live gameplay
 - match execution
 - ranking updates
+- bracket orchestration
 
 ### Solana-linked layer
 
 - linked competitive wallet
 - room pass issuance
+- tournament pass issuance
+- tournament entry state
 - match receipt issuance
 
 ### World-linked layer
@@ -177,8 +195,8 @@ Add only a thin Solana competitive layer.
 ### In scope
 
 - one linked Solana wallet
-- one season or room pass flow
-- one ranked or tournament room flow
+- one event pass flow
+- one tournament room flow
 - one match receipt flow
 - one profile/history surface
 
@@ -198,14 +216,16 @@ Already implemented in repo:
 - World-bound identity and verification flow
 - Solana wallet link challenge and signed completion
 - ranked pass issuance
-- pass-backed ranked entry path
+- tournament pass issuance
+- pass-backed tournament entry path
 - sealed match receipt issuance
-- profile surface for pass and receipt history
+- profile surface for event and receipt history
 
 Primary files:
 
 - [server/index.ts](C:/Users/mzwin/Documents/hexoogy/server/index.ts)
 - [src/pages/WorldAppHome.tsx](C:/Users/mzwin/Documents/hexoogy/src/pages/WorldAppHome.tsx)
+- [src/pages/TournamentView.tsx](C:/Users/mzwin/Documents/hexoogy/src/pages/TournamentView.tsx)
 - [src/lib/competitiveIdentity.ts](C:/Users/mzwin/Documents/hexoogy/src/lib/competitiveIdentity.ts)
 - [src/hooks/useSolanaCompetitive.ts](C:/Users/mzwin/Documents/hexoogy/src/hooks/useSolanaCompetitive.ts)
 - [src/lib/worldApp/competitive.ts](C:/Users/mzwin/Documents/hexoogy/src/lib/worldApp/competitive.ts)
@@ -215,6 +235,7 @@ Primary files:
 BOARD uses Solana where competitive software actually benefits from portability:
 
 - entry rights
+- event admissions
 - participation proof
 - outcome records
 
@@ -224,11 +245,11 @@ That creates a stronger competitive identity layer without slowing down the game
 
 ### Narrative risk
 
-If the demo talks too much about World App or wallet auth, judges may hear “mini app” instead of “competitive identity protocol.”
+If the demo talks too much about World App or wallet auth, judges may hear "mini app" instead of "competitive identity infrastructure."
 
 Mitigation:
 
-- lead with passes and receipts
+- lead with passes, entries, and receipts
 - keep World as the trust/distribution layer, not the headline
 
 ### Product risk
@@ -239,7 +260,7 @@ Mitigation:
 
 - human proof first
 - wallet proof second
-- one clear pass-backed lane
+- one clear pass-backed event lane
 
 ### Scope risk
 
@@ -248,28 +269,5 @@ Adding tokenomics would dilute the product.
 Mitigation:
 
 - no rewards
-- no emissions
-- no speculative mechanics
-
-## Submission Positioning
-
-Recommended framing:
-
-- category: consumer gaming infrastructure
-- secondary framing: social coordination protocol for competitive rooms
-
-Avoid framing it as:
-
-- “a board game on Solana”
-- “a World mini app ported to Solana”
-- “play-to-earn”
-
-## Final Submission Copy
-
-### 140-char version
-
-Competitive rooms for real players, with Solana-backed room passes and match receipts.
-
-### 1-paragraph version
-
-BOARD is a competitive room network for real-time strategy games. World proves the player is human, Solana carries pass-backed access and sealed match receipts, and the game runtime stays fast by remaining offchain.
+- no staking
+- no price/speculation story

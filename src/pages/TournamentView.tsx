@@ -3,8 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowLeft, Play, Trophy, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSolanaCompetitive } from "@/hooks/useSolanaCompetitive";
+import { useWorldAppAuth } from "@/hooks/useWorldAppAuth";
 import { SiteFrame } from "@/components/board/SiteFrame";
 import {
+  DecisionEntry,
+  DecisionEntryFocus,
   DecisionLane,
   SystemScreen,
   SystemSection,
@@ -15,7 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
 import { BracketVisualization } from "@/components/BracketVisualization";
+import { hasIssuedTournamentPass } from "@/lib/competitiveIdentity";
 import { useSurfaceCapabilities } from "@/lib/surfaces";
+import { loadWorldQuickplayState } from "@/lib/worldApp/quickplay";
 import { toast } from "sonner";
 
 interface Tournament {
@@ -33,7 +39,7 @@ interface Tournament {
   pie_rule: boolean;
   turn_timer_seconds: number;
   registration_url?: string | null;
-  access_type?: "public" | "world_members" | "access_code";
+  access_type?: "public" | "world_members" | "access_code" | "pass_required";
   created_by: string;
   created_at: string;
 }
@@ -54,7 +60,8 @@ export default function TournamentView() {
   const { tournamentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isWeb } = useSurfaceCapabilities();
+  const { isWeb, isWorld } = useSurfaceCapabilities();
+  const worldAuth = useWorldAppAuth();
   const bracketRef = useRef<HTMLDivElement | null>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -63,8 +70,26 @@ export default function TournamentView() {
   const [accessCode, setAccessCode] = useState("");
   const [viewerIsVerifiedHuman, setViewerIsVerifiedHuman] = useState(false);
   const [competitiveJoinBlocked, setCompetitiveJoinBlocked] = useState<string | null>(null);
+  const [competitiveIdentity, setCompetitiveIdentity] = useState<Awaited<ReturnType<typeof loadWorldQuickplayState>>["competitiveIdentity"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const refreshCompetitiveIdentity = useCallback(async () => {
+    const currentSession = worldAuth.supabaseSession ?? (await supabase.auth.getSession()).data.session;
+    if (!currentSession) {
+      setCompetitiveIdentity(null);
+      return null;
+    }
+
+    const state = await loadWorldQuickplayState(currentSession);
+    setCompetitiveIdentity(state.competitiveIdentity ?? null);
+    return state.competitiveIdentity ?? null;
+  }, [worldAuth.supabaseSession]);
+
+  const solanaCompetitive = useSolanaCompetitive(worldAuth.supabaseSession, (response) => {
+    setCompetitiveIdentity(response.competitiveIdentity);
+    void refreshCompetitiveIdentity();
+  });
 
   const loadTournament = useCallback(async () => {
     if (!tournamentId) return;
@@ -195,11 +220,27 @@ export default function TournamentView() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    void refreshCompetitiveIdentity();
+  }, [refreshCompetitiveIdentity]);
+
+  const ensureWorldSeat = useCallback(async () => {
+    if (worldAuth.isWalletBound) return true;
+    await worldAuth.connectWallet();
+    await worldAuth.reloadIdentity();
+    await refreshCompetitiveIdentity();
+    return true;
+  }, [refreshCompetitiveIdentity, worldAuth]);
+
   const handleJoin = async () => {
     if (!tournamentId) return;
     setActionLoading(true);
 
     try {
+      if (tournament?.access_type === "pass_required") {
+        await ensureWorldSeat();
+      }
+
       const { data, error } = await supabase.functions.invoke("join-tournament", {
         body: { tournamentId, accessCode: accessCode.trim() || null },
       });
@@ -291,6 +332,12 @@ export default function TournamentView() {
 
   const isParticipant = participants.some((p) => p.player_id === user?.id);
   const isCreator = tournament.created_by === user?.id;
+  const isPassRequiredEvent = tournament.access_type === "pass_required";
+  const linkedSolanaWallet = competitiveIdentity?.linkedWallet ?? null;
+  const roomPasses = competitiveIdentity?.roomPasses ?? [];
+  const tournamentEntries = competitiveIdentity?.tournamentEntries ?? [];
+  const activeTournamentEntry = tournamentEntries.find((entry) => entry.tournamentId === tournament.id) ?? null;
+  const hasTournamentPass = hasIssuedTournamentPass(roomPasses, tournament.id);
   const canStart =
     isCreator &&
     tournament.status === "registration" &&
@@ -301,6 +348,7 @@ export default function TournamentView() {
     tournament.status === "registration" &&
     participants.length < tournament.max_players &&
     !(tournament.competitive_mode && !viewerIsVerifiedHuman) &&
+    (!isPassRequiredEvent || hasTournamentPass) &&
     (tournament.access_type !== "access_code" || Boolean(accessCode.trim()));
   const canLeave =
     user &&
@@ -309,8 +357,39 @@ export default function TournamentView() {
     !isCreator;
   const shouldShowCompetitiveGate =
     tournament.competitive_mode && Boolean(user) && !viewerIsVerifiedHuman;
+  const shouldShowPassGate =
+    isPassRequiredEvent &&
+    tournament.status === "registration" &&
+    (!worldAuth.isWalletBound || !linkedSolanaWallet || !hasTournamentPass);
   const seatsLabel = `${participants.length}/${tournament.max_players} seats`;
   const phaseLabel = tournament.status === "registration" ? "join open" : "bracket live";
+
+  const linkSolanaWallet = async () => {
+    try {
+      await ensureWorldSeat();
+      await solanaCompetitive.connectWallet();
+      toast.success("Solana wallet linked");
+    } catch (error: any) {
+      toast.error("Could not link Solana wallet", {
+        description: error?.message || "Try again.",
+      });
+    }
+  };
+
+  const activateEventPass = async () => {
+    if (!tournamentId) return;
+
+    try {
+      await ensureWorldSeat();
+      await solanaCompetitive.activateEventPass(tournamentId, (tournament as any).game_key ?? null);
+      toast.success("Event pass active");
+      await refreshCompetitiveIdentity();
+    } catch (error: any) {
+      toast.error("Could not activate event pass", {
+        description: error?.message || "Try again.",
+      });
+    }
+  };
 
   const openBracket = () => {
     bracketRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -323,7 +402,8 @@ export default function TournamentView() {
         label="Event"
         title={tournament.name}
         description={
-          tournament.description || (tournament.competitive_mode ? "Competitive bracket." : "Open bracket.")
+          tournament.description ||
+          (isPassRequiredEvent ? "Pass-gated competitive bracket." : tournament.competitive_mode ? "Competitive bracket." : "Open bracket.")
         }
         actions={
           <>
@@ -353,10 +433,71 @@ export default function TournamentView() {
               ? "members"
               : tournament.access_type === "access_code"
                 ? "code"
+                : tournament.access_type === "pass_required"
+                  ? "pass required"
                 : "public"}
           </UtilityPill>
           {variantLabel ? <UtilityPill>{variantLabel}</UtilityPill> : null}
         </UtilityStrip>
+
+        {shouldShowPassGate ? (
+          <SystemSection
+            variant="world"
+            label="Competitive access"
+            title={
+              !worldAuth.isWalletBound
+                ? "Bind your human seat."
+                : !linkedSolanaWallet
+                  ? "Link Solana wallet."
+                  : "Activate event pass."
+            }
+            description={
+              !worldAuth.isWalletBound
+                ? "Pass-gated events require a bound World wallet first."
+                : !linkedSolanaWallet
+                  ? "This event uses wallet-backed entry and sealed match history."
+                  : "Activate the event pass before you join the bracket."
+            }
+            actions={
+              !worldAuth.isWalletBound ? (
+                <Button variant="hero" className="border-0" onClick={() => void ensureWorldSeat()}>
+                  Bind World wallet
+                </Button>
+              ) : !linkedSolanaWallet ? (
+                <Button
+                  variant="hero"
+                  className="border-0"
+                  onClick={() => void linkSolanaWallet()}
+                  disabled={solanaCompetitive.action !== null}
+                >
+                  Link Solana wallet
+                </Button>
+              ) : (
+                <Button
+                  variant="hero"
+                  className="border-0"
+                  onClick={() => void activateEventPass()}
+                  disabled={solanaCompetitive.action !== null || hasTournamentPass}
+                >
+                  {hasTournamentPass ? "Event pass active" : "Activate event pass"}
+                </Button>
+              )
+            }
+          >
+            <UtilityStrip>
+              <UtilityPill strong>{worldAuth.isWalletBound ? "human proof ready" : "human proof needed"}</UtilityPill>
+              <UtilityPill>{linkedSolanaWallet ? "wallet linked" : "wallet needed"}</UtilityPill>
+              <UtilityPill>{hasTournamentPass ? "pass ready" : "pass needed"}</UtilityPill>
+              {activeTournamentEntry ? <UtilityPill>{activeTournamentEntry.status}</UtilityPill> : null}
+            </UtilityStrip>
+            {!isWorld ? (
+              <p className="system-inline-note">
+                The cleanest path for pass-gated entry is inside the World surface where wallet bind and human proof are already in flow.
+              </p>
+            ) : null}
+            {solanaCompetitive.error ? <p className="system-inline-note">{solanaCompetitive.error}</p> : null}
+          </SystemSection>
+        ) : null}
 
         {shouldShowCompetitiveGate ? (
           <SystemSection
@@ -377,7 +518,13 @@ export default function TournamentView() {
           variant="world"
           label="Commit"
           title={phaseLabel}
-          description={decisionLabel}
+          description={
+            isPassRequiredEvent && tournament.status === "registration"
+              ? hasTournamentPass
+                ? "Pass active. Join the event when your seat matters."
+                : "This bracket stays locked until the event pass is active."
+              : decisionLabel
+          }
           actions={
             <div className="flex flex-wrap gap-3">
               {tournament.registration_url && isWeb ? (
@@ -389,6 +536,31 @@ export default function TournamentView() {
                   }
                 >
                   Open signup link
+                </Button>
+              ) : null}
+              {isPassRequiredEvent && !worldAuth.isWalletBound ? (
+                <Button variant="hero" className="border-0" onClick={() => void ensureWorldSeat()}>
+                  Bind World wallet
+                </Button>
+              ) : null}
+              {isPassRequiredEvent && worldAuth.isWalletBound && !linkedSolanaWallet ? (
+                <Button
+                  variant="hero"
+                  className="border-0"
+                  onClick={() => void linkSolanaWallet()}
+                  disabled={solanaCompetitive.action !== null}
+                >
+                  Link Solana wallet
+                </Button>
+              ) : null}
+              {isPassRequiredEvent && linkedSolanaWallet && !hasTournamentPass ? (
+                <Button
+                  variant="hero"
+                  className="border-0"
+                  onClick={() => void activateEventPass()}
+                  disabled={solanaCompetitive.action !== null}
+                >
+                  Activate event pass
                 </Button>
               ) : null}
               {canJoin ? (
@@ -417,6 +589,7 @@ export default function TournamentView() {
             <UtilityPill>{tournament.board_size}x{tournament.board_size}</UtilityPill>
             <UtilityPill>{tournament.turn_timer_seconds}s turn</UtilityPill>
             <UtilityPill>{tournament.pie_rule ? "swap on" : "swap off"}</UtilityPill>
+            {activeTournamentEntry ? <UtilityPill>{activeTournamentEntry.receiptCount} receipts</UtilityPill> : null}
           </UtilityStrip>
 
           {tournament.access_type === "access_code" && tournament.status === "registration" ? (
@@ -438,6 +611,40 @@ export default function TournamentView() {
         </SystemSection>
 
         <SystemSection variant="world" label="Seats" title={seatsLabel}>
+          {isPassRequiredEvent || activeTournamentEntry ? (
+            <DecisionLane>
+              <DecisionEntry as="div" selected={Boolean(activeTournamentEntry)}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="system-screen__label">Competitive state</p>
+                    <h3 className="ops-directory-row__title">
+                      {!linkedSolanaWallet
+                        ? "Wallet not linked"
+                        : !hasTournamentPass
+                          ? "Pass not active"
+                          : isParticipant
+                            ? "Joined event"
+                            : "Pass ready"}
+                    </h3>
+                    <p className="ops-directory-row__meta">
+                      {activeTournamentEntry
+                        ? `${activeTournamentEntry.status}. ${activeTournamentEntry.receiptCount} sealed result${activeTournamentEntry.receiptCount === 1 ? "" : "s"}.`
+                        : "Link wallet, activate pass, then join the bracket."}
+                    </p>
+                  </div>
+                  <UtilityPill strong>
+                    {isParticipant ? "joined" : hasTournamentPass ? "ready" : "locked"}
+                  </UtilityPill>
+                </div>
+                <DecisionEntryFocus>
+                  <p className="system-inline-note">
+                    This event uses pass-backed entry and sealed receipts instead of open competitive access.
+                  </p>
+                </DecisionEntryFocus>
+              </DecisionEntry>
+            </DecisionLane>
+          ) : null}
+
           {participants.length ? (
             <DecisionLane>
               {participants.map((participant) => (

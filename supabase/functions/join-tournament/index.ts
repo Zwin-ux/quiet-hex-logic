@@ -12,6 +12,27 @@ const joinTournamentSchema = z.object({
   accessCode: z.string().trim().max(64).optional().nullable(),
 });
 
+function hasIssuedTournamentPass(verificationMetadata: unknown, tournamentId: string) {
+  const root = verificationMetadata && typeof verificationMetadata === 'object'
+    ? verificationMetadata as Record<string, unknown>
+    : {};
+  const solanaCompetitive = root.solanaCompetitive && typeof root.solanaCompetitive === 'object'
+    ? root.solanaCompetitive as Record<string, unknown>
+    : {};
+  const roomPasses = Array.isArray(solanaCompetitive.roomPasses) ? solanaCompetitive.roomPasses : [];
+
+  return roomPasses.some((pass) => {
+    if (!pass || typeof pass !== 'object') return false;
+    const record = pass as Record<string, unknown>;
+    return (
+      record.scope === 'event_series' &&
+      record.accessMode === 'pass_required' &&
+      record.tournamentId === tournamentId &&
+      (record.status === 'issued' || record.status === 'finalized')
+    );
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -27,6 +48,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
+    );
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -50,6 +76,37 @@ Deno.serve(async (req) => {
     }
     
     const { tournamentId, accessCode } = validationResult.data;
+
+    const { data: tournament, error: tournamentLookupError } = await admin
+      .from('tournaments')
+      .select('id, name, access_type, competitive_mode')
+      .eq('id', tournamentId)
+      .maybeSingle();
+
+    if (tournamentLookupError) throw tournamentLookupError;
+    if (!tournament) throw new Error('Tournament not found');
+
+    if (tournament.access_type === 'pass_required') {
+      const { data: identity, error: identityError } = await admin
+        .from('world_app_identities')
+        .select('verification_metadata, wallet_auth_at, idkit_verified_at')
+        .eq('profile_id', user.id)
+        .maybeSingle();
+
+      if (identityError) throw identityError;
+
+      if (!identity?.wallet_auth_at) {
+        throw new Error('Pass-gated events require a bound World wallet');
+      }
+
+      if (tournament.competitive_mode && !identity?.idkit_verified_at) {
+        throw new Error('Competitive events require human verification');
+      }
+
+      if (!hasIssuedTournamentPass(identity?.verification_metadata, tournamentId)) {
+        throw new Error('Activate the event pass before joining this event');
+      }
+    }
 
     const { error: joinError } = await supabase.rpc('join_tournament_atomic', {
       p_tournament_id: tournamentId,
