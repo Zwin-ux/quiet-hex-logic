@@ -220,6 +220,7 @@ Already implemented in repo:
 - pass-backed tournament entry path
 - sealed match receipt issuance
 - profile surface for event and receipt history
+- deterministic showcase-event preparation and capture packet generation by stable tournament name
 
 Primary files:
 
@@ -229,6 +230,20 @@ Primary files:
 - [src/lib/competitiveIdentity.ts](C:/Users/mzwin/Documents/hexoogy/src/lib/competitiveIdentity.ts)
 - [src/hooks/useSolanaCompetitive.ts](C:/Users/mzwin/Documents/hexoogy/src/hooks/useSolanaCompetitive.ts)
 - [src/lib/worldApp/competitive.ts](C:/Users/mzwin/Documents/hexoogy/src/lib/worldApp/competitive.ts)
+- [scripts/prepare-colosseum-showcase.mjs](C:/Users/mzwin/Documents/hexoogy/scripts/prepare-colosseum-showcase.mjs)
+- [scripts/build-colosseum-capture-packet.mjs](C:/Users/mzwin/Documents/hexoogy/scripts/build-colosseum-capture-packet.mjs)
+
+## Operator Workflow
+
+Use one exact prep sequence for the Colosseum lane:
+
+```bash
+npm run qa:auth:seed -- --password "replace-with-a-strong-test-password"
+npm run prepare:colosseum -- prepare --json
+npm run capture:colosseum -- --prepare
+```
+
+This removes the manual "find a tournament id" step. The stable logical identifier is the showcase tournament name `BOARD Colosseum Invitational`, and the UUID is resolved at prepare time.
 
 ## Judging Message
 

@@ -169,3 +169,69 @@ where not exists (
   from public.tournaments existing
   where existing.name = 'Foundry Warmup Cup'
 );
+
+update public.tournaments
+set
+  description = 'Pass-backed invitational bracket. Human proof, event pass, sealed receipts.',
+  format = 'single_elimination',
+  status = 'registration',
+  max_players = 16,
+  min_players = 4,
+  board_size = 11,
+  pie_rule = true,
+  turn_timer_seconds = 45,
+  registration_deadline = now() + interval '7 days',
+  start_time = now() + interval '8 days',
+  world_id = (select id from public.worlds where slug = 'founding-floor'),
+  game_key = 'hex',
+  competitive_mode = true,
+  access_type = 'pass_required',
+  registration_url = null,
+  access_code_hash = null,
+  updated_at = now()
+where name = 'BOARD Colosseum Invitational';
+
+insert into public.tournaments (
+  name,
+  description,
+  format,
+  status,
+  max_players,
+  min_players,
+  board_size,
+  pie_rule,
+  turn_timer_seconds,
+  registration_deadline,
+  start_time,
+  created_by,
+  world_id,
+  game_key,
+  competitive_mode,
+  access_type,
+  registration_url,
+  access_code_hash
+)
+select
+  'BOARD Colosseum Invitational',
+  'Pass-backed invitational bracket. Human proof, event pass, sealed receipts.',
+  'single_elimination',
+  'registration',
+  16,
+  4,
+  11,
+  true,
+  45,
+  now() + interval '7 days',
+  now() + interval '8 days',
+  null,
+  (select id from public.worlds where slug = 'founding-floor'),
+  'hex',
+  true,
+  'pass_required',
+  null,
+  null
+where not exists (
+  select 1
+  from public.tournaments existing
+  where existing.name = 'BOARD Colosseum Invitational'
+);

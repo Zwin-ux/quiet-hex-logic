@@ -1,5 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 function parseArgs(argv) {
   const args = {};
@@ -59,6 +61,7 @@ function buildManifest({
   gameKey,
   accountLabel,
   createdAt,
+  resolutionMode,
 }) {
   return {
     createdAt,
@@ -67,6 +70,7 @@ function buildManifest({
     eventName,
     gameKey,
     accountLabel,
+    resolutionMode,
     routes: buildRoutes(origin, tournamentId),
     files: buildFiles(),
     acceptance: [
@@ -93,6 +97,7 @@ Created: ${manifest.createdAt}
 - Event name: ${manifest.eventName}
 - Game: \`${manifest.gameKey}\`
 - Account: ${manifest.accountLabel}
+- Resolution mode: ${manifest.resolutionMode}
 
 ## Routes
 
@@ -128,6 +133,7 @@ Created: ${manifest.createdAt}
 - Game: \`${manifest.gameKey}\`
 - Account: ${manifest.accountLabel}
 - Origin: ${manifest.origin}
+- Resolution mode: ${manifest.resolutionMode}
 
 ## Results
 
@@ -152,23 +158,49 @@ Created: ${manifest.createdAt}
 `;
 }
 
+function resolveShowcaseEvent(args) {
+  const scriptPath = fileURLToPath(new URL("./prepare-colosseum-showcase.mjs", import.meta.url));
+  const command = args.prepare ? "prepare" : "inspect";
+  const result = spawnSync(process.execPath, [scriptPath, command, "--json"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+
+  if (result.status !== 0) {
+    const failure = result.stderr.trim() || result.stdout.trim() || "Showcase resolution failed.";
+    throw new Error(`Could not resolve showcase event: ${failure}`);
+  }
+
+  const payload = JSON.parse(result.stdout);
+  if (payload.accessType !== "pass_required") {
+    throw new Error("Resolved showcase event is not pass_required.");
+  }
+
+  return payload;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const tournamentId = required(args, "tournament-id");
-  const eventName = required(args, "event-name");
-  const gameKey = required(args, "game");
   const origin = args.origin ?? "https://botbot-production-38b3.up.railway.app";
   const accountLabel = args.account ?? "qa+player@board.test";
   const createdAt = new Date().toISOString();
+
+  const explicitTournamentId = args["tournament-id"];
+  const resolved = explicitTournamentId
+    ? {
+        tournamentId: explicitTournamentId,
+        name: required(args, "event-name"),
+        gameKey: required(args, "game"),
+        accessType: "pass_required",
+      }
+    : resolveShowcaseEvent({ prepare: Boolean(args.prepare) });
+
+  const tournamentId = resolved.tournamentId;
+  const eventName = resolved.name;
+  const gameKey = resolved.gameKey;
   const outDir =
     args.out ??
-    path.join(
-      process.cwd(),
-      "store_assets",
-      "colosseum",
-      "capture",
-      tournamentId,
-    );
+    path.join(process.cwd(), "store_assets", "colosseum", "capture", tournamentId);
 
   const manifest = buildManifest({
     origin,
@@ -177,6 +209,7 @@ async function main() {
     gameKey,
     accountLabel,
     createdAt,
+    resolutionMode: explicitTournamentId ? "explicit" : args.prepare ? "prepared" : "resolved",
   });
 
   await fs.mkdir(outDir, { recursive: true });

@@ -30,6 +30,7 @@
     "qa:auth:session": "node scripts/qa-auth.mjs session",
     "qa:world-device": "node scripts/world-device-qa.mjs",
     "capture:colosseum": "node scripts/build-colosseum-capture-packet.mjs",
+    "prepare:colosseum": "node scripts/prepare-colosseum-showcase.mjs",
     "assets:world": "node scripts/generate-world-store-assets.mjs",
     "check:world-release": "node scripts/check-world-release-readiness.mjs",
     "check:world-submit": "node scripts/build-world-submission-packet.mjs",

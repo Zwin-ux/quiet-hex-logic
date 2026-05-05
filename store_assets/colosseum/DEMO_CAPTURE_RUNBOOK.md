@@ -17,10 +17,14 @@ This packet is the source of truth for:
 
 Required:
 
-- `tournamentId`
-- `eventName`
-- `gameKey`
 - app origin
+- env with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` when using the deterministic showcase path
+
+Optional:
+
+- explicit `tournamentId`
+- explicit `eventName`
+- explicit `gameKey`
 
 Recommended origin:
 
@@ -41,6 +45,31 @@ Canonical demo account should have:
 - no tournament entry at the start of the capture run
 
 If you cannot reset state cleanly, use a fresh seeded account instead of reusing a dirty profile.
+
+## Canonical Workflow
+
+This is the exact operator sequence for the Colosseum lane:
+
+1. Seed QA personas if needed
+2. Prepare the deterministic showcase event
+3. Inspect or confirm the resolved tournament id
+4. Generate the capture packet
+5. Run the event-first capture flow
+6. Use ranked only if the event path is unavailable
+
+Commands:
+
+```bash
+npm run qa:auth:seed -- --password "replace-with-a-strong-test-password"
+npm run prepare:colosseum -- prepare --json
+npm run capture:colosseum -- --prepare
+```
+
+Optional manual override:
+
+```bash
+npm run capture:colosseum -- --tournament-id <id> --event-name "<name>" --game <gameKey>
+```
 
 ## Capture Order
 
@@ -147,7 +176,13 @@ Generate the concrete packet under:
 
 - `store_assets/colosseum/capture/<tournamentId>/`
 
-Use the packet generator:
+Default deterministic flow:
+
+```bash
+npm run capture:colosseum -- --prepare
+```
+
+Manual override:
 
 ```bash
 npm run capture:colosseum -- --tournament-id <id> --event-name "<name>" --game <gameKey>
@@ -161,3 +196,10 @@ The packet is complete when:
 - the results template is filled
 - the event path works without fallback
 - the product reads as `competitive identity / access / receipts`, not `mini app`
+
+## Lane Distinction
+
+- `World App release lane`
+  - QR, device QA, and Developer Portal submission
+- `Colosseum submission lane`
+  - deterministic pass-gated showcase event, event-first capture flow, and tournament-linked receipts
