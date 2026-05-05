@@ -4,15 +4,22 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleDot,
+  Coins,
   PlayCircle,
   RotateCcw,
   Share2,
   ShieldCheck,
+  Stamp,
   Swords,
   UserRound,
   UsersRound,
   Zap,
 } from "lucide-react";
+import {
+  hasIssuedSeasonPass,
+  shortenWalletAddress,
+  type MatchReceipt,
+} from "@/lib/competitiveIdentity";
 import WorldIDWidget from "@/components/WorldID";
 import { BoardScene, type BoardSceneKey } from "@/components/board/BoardScene";
 import { BoardWordmark } from "@/components/board/BoardWordmark";
@@ -32,6 +39,7 @@ import {
 import { SiteFrame } from "@/components/board/SiteFrame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSolanaCompetitive } from "@/hooks/useSolanaCompetitive";
 import { useWorldAppAuth } from "@/hooks/useWorldAppAuth";
 import { useWorldShare } from "@/hooks/useWorldShare";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +114,7 @@ export default function WorldAppHome() {
   const [worlds, setWorlds] = useState<WorldSummary[]>([]);
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [competitive, setCompetitive] = useState<CompetitiveState | null>(null);
+  const [competitiveIdentity, setCompetitiveIdentity] = useState<WorldQuickplayState["competitiveIdentity"]>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [selectedGame, setSelectedGame] = useState<(typeof SHOWCASE_GAME_KEYS)[number]>("hex");
   const [roomCode, setRoomCode] = useState("");
@@ -121,6 +130,17 @@ export default function WorldAppHome() {
   const selectedRankedGame = competitive?.games.find((game) => game.gameKey === selectedGame) ?? null;
   const selectedGameMeta = useMemo(() => getGameMeta(selectedGame), [selectedGame]);
   const selectedSceneKey = selectedGameMeta.key as BoardSceneKey;
+  const solanaLane = competitiveIdentity?.solanaLane ?? competitive?.solanaLane ?? {
+    walletLinked: false,
+    hasSeasonPass: false,
+    accessMode: "pass_required" as const,
+    title: "Link Solana wallet",
+    body: "World proves the human. Solana carries access and receipts.",
+  };
+  const linkedSolanaWallet = competitiveIdentity?.linkedWallet ?? null;
+  const roomPasses = competitiveIdentity?.roomPasses ?? [];
+  const recentReceipts = competitiveIdentity?.recentReceipts ?? [];
+  const receiptMatchIds = useMemo(() => new Set(recentReceipts.map((receipt) => receipt.matchId)), [recentReceipts]);
 
   const loadConsoleData = useCallback(async () => {
     setLoadingData(true);
@@ -142,6 +162,7 @@ export default function WorldAppHome() {
       setEvents(state.events as EventRow[]);
       setProfile((state.profile ?? null) as ProfileState | null);
       setCompetitive(state.competitive);
+      setCompetitiveIdentity(state.competitiveIdentity ?? null);
     } catch (error) {
       toast.error("World console data failed to load", {
         description: error instanceof Error ? error.message : "Try again.",
@@ -154,6 +175,16 @@ export default function WorldAppHome() {
   useEffect(() => {
     void loadConsoleData();
   }, [loadConsoleData]);
+
+  const handleCompetitiveState = useCallback(
+    (result: { competitiveIdentity: WorldQuickplayState["competitiveIdentity"] }) => {
+      setCompetitiveIdentity(result.competitiveIdentity ?? null);
+      void loadConsoleData();
+    },
+    [loadConsoleData],
+  );
+
+  const solanaCompetitive = useSolanaCompetitive(worldAuth.supabaseSession, handleCompetitiveState);
 
   const ensureWorldSeat = useCallback(async () => {
     if (isWalletBound) return true;
@@ -171,6 +202,102 @@ export default function WorldAppHome() {
     }
     return currentSession;
   }, [worldAuth.supabaseSession]);
+
+  const linkSolanaWallet = useCallback(async () => {
+    try {
+      await ensureWorldSeat();
+      await solanaCompetitive.connectWallet();
+      await haptic("success");
+      toast.success("Solana wallet linked");
+    } catch (error) {
+      toast.error("Could not link Solana wallet", {
+        description: error instanceof Error ? error.message : "Try again.",
+      });
+    }
+  }, [ensureWorldSeat, haptic, solanaCompetitive]);
+
+  const activateSeasonPass = useCallback(async () => {
+    try {
+      await ensureWorldSeat();
+      await solanaCompetitive.activateSeasonPass(selectedGame);
+      await haptic("success");
+      toast.success("Season pass active");
+    } catch (error) {
+      toast.error("Could not activate pass", {
+        description: error instanceof Error ? error.message : "Try again.",
+      });
+    }
+  }, [ensureWorldSeat, haptic, selectedGame, solanaCompetitive]);
+
+  const startSolanaRanked = useCallback(async () => {
+    setStarting("ranked");
+
+    try {
+      await ensureWorldSeat();
+
+      if (!isHumanVerified) {
+        setActiveTab("profile");
+        await haptic("invalid");
+        toast.error("Verify to enter ranked");
+        return;
+      }
+
+      if (!linkedSolanaWallet) {
+        setActiveTab("profile");
+        await haptic("invalid");
+        toast.error("Link Solana to enter the receipt-backed lane");
+        return;
+      }
+
+      if (!hasIssuedSeasonPass(roomPasses, selectedGame)) {
+        setActiveTab("profile");
+        await haptic("invalid");
+        toast.error("Activate a room pass first");
+        return;
+      }
+
+      const session = await getQuickplaySession();
+      const result = await runWorldQuickplay(session, {
+        mode: "ranked",
+        gameKey: selectedGame,
+        competitiveAccessMode: "pass_required",
+        walletProvider: "solana",
+      });
+
+      await haptic("selection");
+      navigate(result.destination);
+    } catch (error) {
+      toast.error("Solana-ranked entry failed", {
+        description: error instanceof Error ? error.message : "Try again.",
+      });
+    } finally {
+      setStarting(null);
+    }
+  }, [
+    ensureWorldSeat,
+    getQuickplaySession,
+    haptic,
+    isHumanVerified,
+    linkedSolanaWallet,
+    navigate,
+    roomPasses,
+    selectedGame,
+  ]);
+
+  const sealRecentReceipt = useCallback(async () => {
+    if (!recentResult?.matchId) return;
+
+    try {
+      await ensureWorldSeat();
+      await solanaCompetitive.sealReceipt(recentResult.matchId);
+      await haptic("success");
+      toast.success("Match receipt issued");
+    } catch (error) {
+      toast.error("Could not issue receipt", {
+        description: error instanceof Error ? error.message : "Try again.",
+      });
+    }
+  }, [ensureWorldSeat, haptic, recentResult?.matchId, solanaCompetitive]);
 
   const startRanked = useCallback(async () => {
     setStarting("ranked");
@@ -383,11 +510,11 @@ export default function WorldAppHome() {
               variant="world"
               compact
               label={isWalletBound ? worldHandle : "Seat not bound"}
-              title="Enter a human room."
+              title="Enter a verified room."
               description={
                 isWalletBound
-                  ? "World seat active. Pick one lane and commit."
-                  : "Bind a World seat, then enter ranked, rooms, or events."
+                  ? "World proves the human. Solana carries the pass and receipt."
+                  : "Bind a World seat, then choose your lane."
               }
               actions={
                 <Button
@@ -406,6 +533,7 @@ export default function WorldAppHome() {
                   <UtilityPill strong>world seat</UtilityPill>
                   <UtilityPill>{isWalletBound ? "wallet bound" : "bind wallet"}</UtilityPill>
                   <UtilityPill>{isHumanVerified ? "human verified" : "verification pending"}</UtilityPill>
+                  <UtilityPill>{linkedSolanaWallet ? "solana linked" : "solana optional"}</UtilityPill>
                   {activeRankedMatch ? <UtilityPill>resume ready</UtilityPill> : null}
                 </UtilityStrip>
               }
@@ -436,16 +564,51 @@ export default function WorldAppHome() {
                     />
                   ) : null}
 
+                  <CompetitiveActionCard
+                    eyebrow="Solana lane"
+                    title={solanaLane.title}
+                    body={solanaLane.body}
+                    meta={
+                      linkedSolanaWallet
+                        ? hasIssuedSeasonPass(roomPasses, selectedGame)
+                          ? "pass ready"
+                          : "pass needed"
+                        : "wallet needed"
+                    }
+                    action={
+                      !linkedSolanaWallet
+                        ? solanaCompetitive.action === "connect"
+                          ? "Linking"
+                          : "Link Solana"
+                        : !hasIssuedSeasonPass(roomPasses, selectedGame)
+                          ? solanaCompetitive.action === "pass"
+                            ? "Activating"
+                            : "Activate pass"
+                          : starting === "ranked"
+                            ? "Entering"
+                            : "Receipt-backed ranked"
+                    }
+                    icon={!linkedSolanaWallet ? Coins : !hasIssuedSeasonPass(roomPasses, selectedGame) ? CheckCircle2 : ShieldCheck}
+                    disabled={Boolean(starting) || solanaCompetitive.action !== null}
+                    onClick={
+                      !linkedSolanaWallet
+                        ? linkSolanaWallet
+                        : !hasIssuedSeasonPass(roomPasses, selectedGame)
+                          ? activateSeasonPass
+                          : startSolanaRanked
+                    }
+                  />
+
                   <SystemSection
                     variant="world"
-                    label="Quick entry"
+                    label="World lane"
                     title={gameLabel(selectedGame)}
                     description={selectedGameMeta.tagline || "Pick one game. Commit once."}
                     utility={
                       <UtilityStrip>
-                        <UtilityPill strong={isHumanVerified}>ranked</UtilityPill>
-                        <UtilityPill>{isWalletBound ? "seat bound" : "seat needed"}</UtilityPill>
-                        <UtilityPill>{selectedRankedGame?.queue.waiting ?? 0} waiting</UtilityPill>
+                      <UtilityPill strong={isHumanVerified}>ranked</UtilityPill>
+                      <UtilityPill>{isWalletBound ? "seat bound" : "seat needed"}</UtilityPill>
+                      <UtilityPill>{selectedRankedGame?.queue.waiting ?? 0} waiting</UtilityPill>
                       </UtilityStrip>
                     }
                   >
@@ -505,6 +668,9 @@ export default function WorldAppHome() {
                     <RecentResultStrip
                       result={recentResult}
                       onRematch={startRankedRematch}
+                      onSealReceipt={recentResult.matchId && !receiptMatchIds.has(recentResult.matchId) ? sealRecentReceipt : null}
+                      receiptIssued={Boolean(recentResult.matchId && receiptMatchIds.has(recentResult.matchId))}
+                      receiptBusy={solanaCompetitive.action === "receipt"}
                       disabled={Boolean(starting)}
                     />
                   ) : null}
@@ -590,7 +756,7 @@ export default function WorldAppHome() {
                     variant="world"
                     label="World profile"
                     title={worldHandle}
-                    description="Wallet, trust, and ranked entry stay tied to this seat."
+                    description="World keeps the human seat. Solana carries room access and receipts."
                   >
                     <SystemMetaGrid>
                       <SystemMetaItem
@@ -621,6 +787,84 @@ export default function WorldAppHome() {
                     ) : null}
 
                     {worldAuth.error ? <p className="system-inline-note">{worldAuth.error}</p> : null}
+                  </SystemSection>
+
+                  <SystemSection
+                    variant="world"
+                    label="Competitive identity"
+                    title={linkedSolanaWallet ? shortenWalletAddress(linkedSolanaWallet.address) : "Solana not linked"}
+                    description={
+                      linkedSolanaWallet
+                        ? "This wallet holds room passes and match receipts."
+                        : "Link once, then carry pass-backed ranked access."
+                    }
+                  >
+                    <SystemMetaGrid>
+                      <SystemMetaItem
+                        label="Wallet"
+                        value={linkedSolanaWallet ? "linked" : "needed"}
+                        note={linkedSolanaWallet ? shortenWalletAddress(linkedSolanaWallet.address) : solanaCompetitive.walletLabel}
+                        strong={Boolean(linkedSolanaWallet)}
+                      />
+                      <SystemMetaItem
+                        label="Passes"
+                        value={String(competitiveIdentity?.profile.passCount ?? 0)}
+                        note={hasIssuedSeasonPass(roomPasses, selectedGame) ? "Season pass live." : "Activate one for ranked."}
+                        strong={hasIssuedSeasonPass(roomPasses, selectedGame)}
+                      />
+                      <SystemMetaItem
+                        label="Receipts"
+                        value={String(competitiveIdentity?.profile.receiptCount ?? 0)}
+                        note={competitiveIdentity?.profile.latestReceiptAt ? `Last ${timeAgo(competitiveIdentity.profile.latestReceiptAt)}` : "Seal after matches."}
+                        strong={Boolean(competitiveIdentity?.profile.receiptCount)}
+                      />
+                    </SystemMetaGrid>
+
+                    <div className="world-row-action">
+                      {!linkedSolanaWallet ? (
+                        <Button
+                          type="button"
+                          variant="hero"
+                          onClick={linkSolanaWallet}
+                          disabled={solanaCompetitive.action !== null}
+                          className="min-h-[3.2rem] justify-between border-0"
+                        >
+                          <span>{solanaCompetitive.action === "connect" ? "Linking Solana" : "Link Solana wallet"}</span>
+                          <Coins className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="hero"
+                          onClick={activateSeasonPass}
+                          disabled={solanaCompetitive.action !== null || hasIssuedSeasonPass(roomPasses, selectedGame)}
+                          className="min-h-[3.2rem] justify-between border-0"
+                        >
+                          <span>
+                            {hasIssuedSeasonPass(roomPasses, selectedGame)
+                              ? "Season pass active"
+                              : solanaCompetitive.action === "pass"
+                                ? "Activating pass"
+                                : "Activate season pass"}
+                          </span>
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {!solanaCompetitive.walletAvailable ? (
+                      <p className="system-inline-note">Install Phantom or Backpack to link a Solana wallet in browser.</p>
+                    ) : null}
+
+                    {solanaCompetitive.error ? <p className="system-inline-note">{solanaCompetitive.error}</p> : null}
+
+                    {recentReceipts.length ? (
+                      <DecisionLane>
+                        {recentReceipts.map((receipt) => (
+                          <ReceiptRow key={receipt.id} receipt={receipt} />
+                        ))}
+                      </DecisionLane>
+                    ) : null}
                   </SystemSection>
 
                   <WorldIDWidget variant="world" />
@@ -741,23 +985,71 @@ function CompetitiveActionCard({
 function RecentResultStrip({
   result,
   onRematch,
+  onSealReceipt,
+  receiptIssued,
+  receiptBusy,
   disabled,
 }: {
   result: RecentResultState;
   onRematch: () => void;
+  onSealReceipt: (() => void) | null;
+  receiptIssued: boolean;
+  receiptBusy: boolean;
   disabled: boolean;
 }) {
   const ratingChange = result.ratingChange > 0 ? `+${result.ratingChange}` : String(result.ratingChange);
 
   return (
-    <DecisionEntry onClick={onRematch} disabled={disabled}>
+    <DecisionEntry as="div" disabled={disabled}>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="system-screen__label">Last ranked / {gameLabel(result.gameKey)}</p>
           <h3 className="ops-directory-row__title">{result.outcome} {ratingChange}</h3>
         </div>
-        <UtilityPill>rematch</UtilityPill>
+        <UtilityPill>{receiptIssued ? "receipt sealed" : "receipt open"}</UtilityPill>
       </div>
+      <DecisionEntryFocus>
+        <div className="world-row-action">
+          <Button type="button" variant="hero" onClick={onRematch} disabled={disabled} className="min-h-[3rem] border-0">
+            Rematch
+          </Button>
+          {onSealReceipt ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onSealReceipt}
+              disabled={receiptBusy}
+              className="min-h-[3rem] border-0"
+            >
+              {receiptBusy ? "Sealing" : "Seal receipt"}
+            </Button>
+          ) : null}
+        </div>
+      </DecisionEntryFocus>
+    </DecisionEntry>
+  );
+}
+
+function ReceiptRow({ receipt }: { receipt: MatchReceipt }) {
+  return (
+    <DecisionEntry as="div" selected={receipt.status === "issued" || receipt.status === "finalized"}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="system-screen__label">Receipt / {gameLabel(receipt.gameKey)}</p>
+          <h3 className="ops-directory-row__title">{receipt.status}</h3>
+          <p className="ops-directory-row__meta">
+            {receipt.outcome ? `${receipt.outcome}. ` : ""}
+            {typeof receipt.ratingChange === "number"
+              ? `${receipt.ratingChange > 0 ? "+" : ""}${receipt.ratingChange} rating. `
+              : ""}
+            {timeAgo(receipt.issuedAt)}
+          </p>
+        </div>
+        <UtilityPill strong>{receipt.status}</UtilityPill>
+      </div>
+      <DecisionEntryFocus>
+        <p className="system-inline-note">Portable proof for match {receipt.matchId.slice(0, 8)}.</p>
+      </DecisionEntryFocus>
     </DecisionEntry>
   );
 }

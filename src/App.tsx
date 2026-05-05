@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MiniKitProvider } from "@worldcoin/minikit-js/minikit-provider";
 import { AchievementToast } from "@/components/AchievementToast";
 import { DeploymentConfigScreen } from "@/components/DeploymentConfigScreen";
 import { DiscordActivityWrapper } from "@/components/DiscordActivityWrapper";
@@ -14,6 +15,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BaseProvider } from "@/lib/base/BaseProvider";
 import { DiscordProvider } from "@/lib/discord/DiscordContext";
+import { getWorldAppId } from "@/lib/worldApp/client";
 import { getSupabaseConfigError, supabase } from "@/integrations/supabase/client";
 
 import Index from "./pages/Index";
@@ -93,7 +95,8 @@ const App = () => {
     <DiscordProvider>
       <AuthPrefetcher />
       <QueryClientProvider client={queryClient}>
-        <BaseProvider>
+        <MiniKitProvider props={{ appId: getWorldAppId() || undefined }}>
+          <BaseProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -355,7 +358,8 @@ const App = () => {
               </ErrorBoundary>
             </BrowserRouter>
           </TooltipProvider>
-        </BaseProvider>
+          </BaseProvider>
+        </MiniKitProvider>
       </QueryClientProvider>
     </DiscordProvider>
   );

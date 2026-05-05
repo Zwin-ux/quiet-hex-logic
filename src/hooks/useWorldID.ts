@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { IDKitResult } from '@worldcoin/idkit';
 import { useAuth } from '@/hooks/useAuth';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { supabase } from '@/integrations/supabase/client';
-import { getWorldIdAppId, isWorldIdConfigured } from '@/lib/worldIdConfig';
-
-export type VerificationLevel = 'orb' | 'device';
-
-export interface WorldIDProof {
-  merkle_root: string;
-  nullifier_hash: string;
-  proof: string;
-  verification_level: VerificationLevel;
-}
+import { getAppApiUrl } from '@/lib/appApi';
+import {
+  getWorldIdAction,
+  getWorldIdAppId,
+  isWorldIdConfigured,
+} from '@/lib/worldIdConfig';
 
 export interface WorldIDState {
   isVerified: boolean;
@@ -23,11 +20,46 @@ export interface WorldIDState {
   canVerify: boolean;
 }
 
+export type WorldIdRpContext = {
+  rp_id: string;
+  action: string;
+  sig: string;
+  nonce: string;
+  createdAt: number;
+  expiresAt: number;
+};
+
+async function getAccessToken() {
+  const session = (await supabase.auth.getSession()).data.session;
+  if (!session?.access_token) {
+    throw new Error('Sign in before verifying human status.');
+  }
+
+  return session.access_token;
+}
+
+async function worldPost<T>(path: string, body: unknown): Promise<T> {
+  const token = await getAccessToken();
+  const response = await fetch(getAppApiUrl(path), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || 'World ID request failed.');
+  }
+
+  return payload as T;
+}
+
 /**
- * Hook for World ID integration across all platforms
- * - Web: Uses IDKit widget
- * - Discord: Shows info card (verification available on web/native)
- * - Native (iOS/Android): Uses native IDKit SDK
+ * Current World ID integration for web/World App.
+ * IDKit v4 uses backend-signed RP context and server verification against /api/v4/verify/{rp_id}.
  */
 export function useWorldID() {
   const { user } = useAuth();
@@ -43,7 +75,6 @@ export function useWorldID() {
     canVerify: false,
   });
 
-  // Detect platform
   useEffect(() => {
     const isNative = typeof window !== 'undefined' &&
       (window as unknown as { isNativeApp?: boolean }).isNativeApp === true;
@@ -55,17 +86,14 @@ export function useWorldID() {
       platform = 'discord';
     }
 
-    // Web and native can verify when the deployment is configured.
     const canVerify = platform !== 'discord' && isWorldIdConfigured() && Boolean(user?.id);
-
-    setState(prev => ({ ...prev, platform, canVerify }));
+    setState((prev) => ({ ...prev, platform, canVerify }));
   }, [isDiscordEnvironment, user?.id]);
 
-  // Load verification status from database
   useEffect(() => {
     async function loadVerificationStatus() {
       if (!user?.id) {
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
         return;
       }
 
@@ -78,15 +106,15 @@ export function useWorldID() {
 
         if (error) {
           console.error('[useWorldID] Failed to load status:', error);
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
             isLoading: false,
-            error: 'Failed to load verification status'
+            error: 'Failed to load verification status',
           }));
           return;
         }
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isVerified: data?.is_verified_human ?? false,
           verifiedAt: data?.world_id_verified_at ?? null,
@@ -95,10 +123,10 @@ export function useWorldID() {
         }));
       } catch (err) {
         console.error('[useWorldID] Error:', err);
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: 'Failed to load verification status'
+          error: 'Failed to load verification status',
         }));
       }
     }
@@ -106,71 +134,77 @@ export function useWorldID() {
     loadVerificationStatus();
   }, [user?.id]);
 
-  // Submit proof to backend for verification
-  const verifyProof = useCallback(async (proof: WorldIDProof): Promise<{ success: boolean; error?: string }> => {
+  const requestRpContext = useCallback(async (): Promise<WorldIdRpContext> => {
     if (!user?.id) {
-      return { success: false, error: 'Not authenticated' };
+      throw new Error('Not authenticated.');
     }
 
     if (!getWorldIdAppId()) {
-      return { success: false, error: 'World ID is not configured for this deployment.' };
+      throw new Error('World ID is not configured for this deployment.');
     }
 
-    setState(prev => ({ ...prev, isVerifying: true, error: null }));
-
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-world-id', {
-        body: proof,
-      });
-
-      if (error) {
-        console.error('[useWorldID] Verification error:', error);
-        setState(prev => ({
-          ...prev,
-          isVerifying: false,
-          error: error.message || 'Verification failed'
-        }));
-        return { success: false, error: error.message };
-      }
-
-      if (data?.success) {
-        setState(prev => ({
-          ...prev,
-          isVerified: true,
-          isVerifying: false,
-          verifiedAt: new Date().toISOString(),
-          error: null,
-        }));
-        return { success: true };
-      }
-
-      const errorMsg = data?.error || 'Verification failed';
-      setState(prev => ({
-        ...prev,
-        isVerifying: false,
-        error: errorMsg
-      }));
-      return { success: false, error: errorMsg };
-
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[useWorldID] Error:', err);
-      setState(prev => ({
-        ...prev,
-        isVerifying: false,
-        error: errorMsg
-      }));
-      return { success: false, error: errorMsg };
-    }
+    return worldPost<WorldIdRpContext>('/api/world/rp-signature', {
+      action: getWorldIdAction(),
+    });
   }, [user?.id]);
 
+  const verifyIdKitResult = useCallback(
+    async (idkitResponse: IDKitResult): Promise<{ success: boolean; error?: string }> => {
+      if (!user?.id) {
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      if (!getWorldIdAppId()) {
+        return { success: false, error: 'World ID is not configured for this deployment.' };
+      }
+
+      setState((prev) => ({ ...prev, isVerifying: true, error: null }));
+
+      try {
+        const data = await worldPost<{ ok: boolean; verified: boolean }>('/api/world/verify-id', {
+          action: getWorldIdAction(),
+          idkitResponse,
+        });
+
+        if (data?.verified) {
+          setState((prev) => ({
+            ...prev,
+            isVerified: true,
+            isVerifying: false,
+            verifiedAt: new Date().toISOString(),
+            error: null,
+          }));
+          return { success: true };
+        }
+
+        setState((prev) => ({
+          ...prev,
+          isVerifying: false,
+          error: 'Verification failed',
+        }));
+        return { success: false, error: 'Verification failed' };
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('[useWorldID] Error:', err);
+        setState((prev) => ({
+          ...prev,
+          isVerifying: false,
+          error: errorMsg,
+        }));
+        return { success: false, error: errorMsg };
+      }
+    },
+    [user?.id],
+  );
+
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {
     ...state,
-    verifyProof,
+    requestRpContext,
+    verifyIdKitResult,
     clearError,
   };
 }

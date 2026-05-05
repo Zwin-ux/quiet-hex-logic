@@ -2,6 +2,7 @@ import { ReactNode, createContext, useContext, useEffect, useMemo, useState } fr
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDiscord } from '@/lib/discord/DiscordContext';
 import { getBooleanPublicEnv, getPublicEnv } from '@/lib/runtimeEnv';
+import { isLikelyWorldApp } from '@/lib/worldApp/client';
 
 // Load OnchainKit styles dynamically and bundle them with the app so production
 // behavior does not depend on a third-party CDN.
@@ -32,7 +33,7 @@ interface BaseContextValue {
    * are successfully loaded. Most of Hexology should work without it.
    */
   isBaseAvailable: boolean;
-  platform: 'web' | 'discord' | 'mobile';
+  platform: 'web' | 'discord' | 'mobile' | 'world';
 }
 
 const BaseContext = createContext<BaseContextValue>({
@@ -70,7 +71,8 @@ export function BaseProvider({ children }: BaseProviderProps) {
   const { isDiscordEnvironment } = useDiscord();
 
   // Detect platform.
-  const platform: 'web' | 'discord' | 'mobile' = useMemo(() => {
+  const platform: 'web' | 'discord' | 'mobile' | 'world' = useMemo(() => {
+    if (isLikelyWorldApp()) return 'world' as const;
     if (isDiscordEnvironment) return 'discord' as const;
     if (typeof window !== 'undefined' && (window as any).isNativeApp) return 'mobile' as const;
     return 'web' as const;

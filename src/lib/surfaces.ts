@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useBaseContext } from "@/lib/base/BaseProvider";
 import { getPublicEnv } from "@/lib/runtimeEnv";
 
-export type PlatformSurface = "web" | "mobile" | "discord";
+export type PlatformSurface = "web" | "mobile" | "discord" | "world";
 
 export type Capability =
   | "playQuick"
@@ -55,6 +55,18 @@ const CAPABILITY_MATRIX: Record<PlatformSurface, CapabilityMap> = {
     useWorkbench: false,
     useArena: false,
   },
+  world: {
+    playQuick: true,
+    playLive: true,
+    spectate: true,
+    hostLite: true,
+    editSurfaceRules: false,
+    uploadPackages: false,
+    publishVariants: false,
+    editWorldSettings: false,
+    useWorkbench: false,
+    useArena: false,
+  },
 };
 
 export function buildWebUrl(path = "/") {
@@ -79,6 +91,7 @@ export function useSurfaceCapabilities() {
       isWeb: platform === "web",
       isMobile: platform === "mobile",
       isDiscord: platform === "discord",
+      isWorld: platform === "world",
       isAuthoringSurface: platform === "web",
       can(capability: Capability) {
         return capabilities[capability];

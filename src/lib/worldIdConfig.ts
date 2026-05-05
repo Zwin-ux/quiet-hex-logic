@@ -1,9 +1,9 @@
 import { getPublicEnv } from "@/lib/runtimeEnv";
 
-export const DEFAULT_WORLD_ID_ACTION = "verify-account";
+export const DEFAULT_WORLD_ID_ACTION = "verify-board-player";
 
 export function getWorldIdAppId(): string {
-  return getPublicEnv("VITE_WORLD_ID_APP_ID");
+  return getPublicEnv("VITE_WORLD_ID_APP_ID") || getPublicEnv("VITE_WORLD_APP_ID");
 }
 
 export function getWorldIdAction(): string {
