@@ -1,6 +1,6 @@
-# Hexology
+# BOARD
 
-An open-source board game engine and platform: play classic games, mod the rules, and plug in your own AI to fight in the Bot Arena.
+BOARD is a host-owned board-game world prototype built from the Quiet Hex Logic / Hexology engine lineage. The current product direction is chess-first worlds, clean auth and return paths, world-scoped rooms and events, and production-safe deployment.
 
 [![CI](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -55,7 +55,7 @@ supabase/
 
 ### Adding a New Game
 
-Hexology uses a **game registry pattern**. To add a new game, you need:
+BOARD uses a **game registry pattern**. To add a new game, you need:
 
 ```bash
 npm run scaffold:game -- --key centerwin --name "Center Win"
