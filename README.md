@@ -1,6 +1,6 @@
 # BOARD
 
-BOARD is a host-owned board-game world prototype built from the Quiet Hex Logic / Hexology engine lineage. The current product direction is chess-first worlds, clean auth and return paths, world-scoped rooms and events, and production-safe deployment.
+BOARD is a host-owned board-game world. It features chess-first worlds, clean auth paths, world-scoped rooms, and production-safe deployment.
 
 [![CI](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -101,7 +101,7 @@ npm run test:watch  # Run tests in watch mode
 
 ## Railway
 
-Hexology now ships with a Railway-first web server:
+BOARD now ships with a Railway-first web server:
 
 - static Vite bundle serving
 - `POST /api/chat` powered by the AI SDK
