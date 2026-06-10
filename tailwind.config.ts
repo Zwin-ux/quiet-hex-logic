@@ -14,9 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['"MS Sans Serif"', '"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
-        display: ['"Arial Black"', 'Impact', 'Haettenschweiler', 'sans-serif'],
-        mono: ['"Courier New"', 'Courier', 'monospace'],
+        body: ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -122,8 +122,8 @@ export default {
         "glow-pulse": "glow-pulse 3s ease-in-out infinite",
       },
       boxShadow: {
-        'soft': 'var(--shadow-soft)',
-        'medium': 'var(--shadow-medium)',
+        'soft': '0 0 0 0 transparent',
+        'medium': '0 0 0 0 transparent',
       },
       transitionTimingFunction: {
         'gentle': 'cubic-bezier(0.4, 0, 0.2, 1)',
