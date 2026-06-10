@@ -2,6 +2,8 @@
 
 BOARD is a host-owned board-game world. It features chess-first worlds, clean auth paths, world-scoped rooms, and production-safe deployment.
 
+![Showcase](showcase/hexology.gif)
+
 [![CI](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
