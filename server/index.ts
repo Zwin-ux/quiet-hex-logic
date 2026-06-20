@@ -1149,12 +1149,12 @@ function buildWorldCompetitiveState(args: {
       walletLinked: Boolean(args.solanaCompetitive.linkedWallet),
       hasSeasonPass,
       accessMode: 'pass_required',
-      title: Boolean(args.solanaCompetitive.linkedWallet)
+      title: args.solanaCompetitive.linkedWallet
         ? hasSeasonPass
           ? 'Receipt-backed ranked'
           : 'Activate room pass'
         : 'Link Solana wallet',
-      body: Boolean(args.solanaCompetitive.linkedWallet)
+      body: args.solanaCompetitive.linkedWallet
         ? hasSeasonPass
           ? 'Enter ranked with a Solana-backed pass and receipt trail.'
           : 'Issue a season pass before entering the Solana-ranked lane.'
@@ -1340,12 +1340,12 @@ async function getWorldQuickplayState(viewerId: string) {
     },
     competitiveIdentity: {
       ...buildCompetitiveIdentityPayload(solanaCompetitive, joinedTournamentEntries, {
-        title: Boolean(solanaCompetitive.linkedWallet)
+        title: solanaCompetitive.linkedWallet
           ? hasIssuedSeasonPass(solanaCompetitive.roomPasses)
             ? 'Receipt-backed ranked'
             : 'Activate room pass'
           : 'Link Solana wallet',
-        body: Boolean(solanaCompetitive.linkedWallet)
+        body: solanaCompetitive.linkedWallet
           ? hasIssuedSeasonPass(solanaCompetitive.roomPasses)
             ? 'Solana pass ready. Enter ranked and seal match receipts after play.'
             : 'Issue a room pass to enter the receipt-backed lane.'
