@@ -1,13 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-function stubBrowser(search = '') {
+function stubBrowser(search = '', runtimeEnv: Record<string, string> = { VITE_WORLD_APP_ID: 'app_test_board' }) {
   vi.stubGlobal('window', {
     location: {
       search,
     },
-    __HEXLOGY_RUNTIME_ENV__: {
-      VITE_WORLD_APP_ID: 'app_test_board',
-    },
+    __HEXLOGY_RUNTIME_ENV__: runtimeEnv,
   });
 }
 
@@ -62,8 +60,22 @@ describe('worldApp client', () => {
       isInstalled: vi.fn(() => false),
     });
 
+    expect(client.hasWorldAppSurfaceHint()).toBe(true);
     expect(client.isLikelyWorldApp()).toBe(true);
     expect(miniKit.install).not.toHaveBeenCalled();
+    expect(miniKit.isInstalled).not.toHaveBeenCalled();
+  });
+
+  it('does not probe MiniKit while detecting a plain web surface', async () => {
+    stubBrowser();
+    const { client, miniKit } = await loadClient({
+      isInstalled: vi.fn(() => false),
+    });
+
+    expect(client.hasWorldAppSurfaceHint()).toBe(false);
+    expect(client.isLikelyWorldApp()).toBe(false);
+    expect(miniKit.install).not.toHaveBeenCalled();
+    expect(miniKit.isInstalled).not.toHaveBeenCalled();
   });
 
   it('installs MiniKit once and returns the SDK installed state', async () => {
@@ -76,6 +88,17 @@ describe('worldApp client', () => {
     expect(client.installWorldApp()).toBe(true);
     expect(miniKit.install).toHaveBeenCalledTimes(1);
     expect(miniKit.install).toHaveBeenCalledWith('app_test_board');
+  });
+
+  it('does not install MiniKit without a configured app id', async () => {
+    stubBrowser('?surface=world', {});
+    const { client, miniKit } = await loadClient({
+      isInstalled: vi.fn(() => true),
+    });
+
+    expect(client.installWorldApp()).toBe(false);
+    expect(miniKit.install).not.toHaveBeenCalled();
+    expect(miniKit.isInstalled).not.toHaveBeenCalled();
   });
 
   it('runs wallet auth only when MiniKit is installed', async () => {

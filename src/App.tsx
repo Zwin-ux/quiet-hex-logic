@@ -15,7 +15,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BaseProvider } from "@/lib/base/BaseProvider";
 import { DiscordProvider } from "@/lib/discord/DiscordContext";
-import { getWorldAppId } from "@/lib/worldApp/client";
+import { getWorldAppId, hasWorldAppSurfaceHint } from "@/lib/worldApp/client";
 import { getSupabaseConfigError, supabase } from "@/integrations/supabase/client";
 
 import Index from "./pages/Index";
@@ -83,6 +83,16 @@ function webOnly(
   );
 }
 
+function WorldAppProviderGate({ children }: { children: ReactNode }) {
+  const worldAppId = getWorldAppId();
+
+  if (!worldAppId || !hasWorldAppSurfaceHint()) {
+    return <>{children}</>;
+  }
+
+  return <MiniKitProvider props={{ appId: worldAppId }}>{children}</MiniKitProvider>;
+}
+
 const App = () => {
   const allowDebugRoute =
     typeof window !== "undefined" && window.location.pathname.startsWith("/debug");
@@ -95,7 +105,7 @@ const App = () => {
     <DiscordProvider>
       <AuthPrefetcher />
       <QueryClientProvider client={queryClient}>
-        <MiniKitProvider props={{ appId: getWorldAppId() || undefined }}>
+        <WorldAppProviderGate>
           <BaseProvider>
           <TooltipProvider>
             <Toaster />
@@ -359,7 +369,7 @@ const App = () => {
             </BrowserRouter>
           </TooltipProvider>
           </BaseProvider>
-        </MiniKitProvider>
+        </WorldAppProviderGate>
       </QueryClientProvider>
     </DiscordProvider>
   );

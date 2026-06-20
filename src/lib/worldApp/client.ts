@@ -33,9 +33,12 @@ export function installWorldApp() {
   if (typeof window === 'undefined') return false;
 
   try {
+    const appId = getWorldAppId();
+    if (!appId) return false;
+
     if (!installAttempted) {
       installAttempted = true;
-      MiniKit.install(getWorldAppId() || undefined);
+      MiniKit.install(appId);
     }
 
     return MiniKit.isInstalled();
@@ -44,7 +47,7 @@ export function installWorldApp() {
   }
 }
 
-export function isLikelyWorldApp() {
+export function hasWorldAppSurfaceHint() {
   if (typeof window === 'undefined') return false;
 
   if ((window as any).WorldApp) return true;
@@ -58,11 +61,11 @@ export function isLikelyWorldApp() {
     // Ignore malformed test URLs.
   }
 
-  try {
-    return MiniKit.isInstalled();
-  } catch {
-    return false;
-  }
+  return false;
+}
+
+export function isLikelyWorldApp() {
+  return hasWorldAppSurfaceHint();
 }
 
 export function getWorldAppUser(): WorldAppUser | null {

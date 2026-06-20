@@ -2,16 +2,22 @@ import { useEffect, useState } from 'react';
 import {
   getWorldAppDeviceProperties,
   getWorldAppUser,
+  hasWorldAppSurfaceHint,
   installWorldApp,
   isLikelyWorldApp,
 } from '@/lib/worldApp/client';
 
 export function useWorldApp() {
   const [installed, setInstalled] = useState(false);
-  const [detected, setDetected] = useState(() => isLikelyWorldApp());
+  const [detected, setDetected] = useState(() => hasWorldAppSurfaceHint());
   const [, setTick] = useState(0);
 
   useEffect(() => {
+    const surfaceHint = hasWorldAppSurfaceHint();
+    setDetected(surfaceHint);
+
+    if (!surfaceHint) return;
+
     const nextInstalled = installWorldApp();
     setInstalled(nextInstalled);
     setDetected(isLikelyWorldApp());
@@ -25,12 +31,13 @@ export function useWorldApp() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const deviceProperties = getWorldAppDeviceProperties();
+  const isWorldApp = detected || installed;
+  const deviceProperties = isWorldApp ? getWorldAppDeviceProperties() : null;
 
   return {
-    isWorldApp: detected || installed,
+    isWorldApp,
     isInstalled: installed,
-    user: getWorldAppUser(),
+    user: isWorldApp ? getWorldAppUser() : null,
     deviceProperties,
     safeAreaInsets: deviceProperties?.safeAreaInsets,
   };
