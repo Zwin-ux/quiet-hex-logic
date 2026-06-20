@@ -34,7 +34,7 @@ export const LandingHero = memo(
             initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.32, delay: 0.06, ease }}
-            className="max-w-[14ch] text-balance text-[clamp(2.2rem,5vw,4.8rem)] font-bold leading-[0.92] tracking-[-0.04em] text-[#090909]"
+            className="max-w-[14ch] text-balance text-[clamp(2.2rem,5vw,4.8rem)] font-bold leading-[0.92] tracking-normal text-[#090909]"
           >
             A host-owned board game venue
           </motion.h1>
@@ -56,7 +56,7 @@ export const LandingHero = memo(
           >
             <Button
               variant="hero"
-              className="h-12 rounded-none border-2 border-[#090909] bg-[#090909] px-8 text-[0.95rem] font-semibold tracking-tight text-white transition-colors hover:bg-[#23252B]"
+              className="h-12 rounded-none border-2 border-[#090909] bg-[#090909] px-8 text-[0.95rem] font-semibold tracking-normal text-white transition-colors hover:bg-[#23252B]"
               onClick={() => navigate("/play")}
             >
               Start playing
@@ -64,7 +64,7 @@ export const LandingHero = memo(
             </Button>
             <Button
               variant="ghost"
-              className="h-12 rounded-none border-2 border-transparent px-6 text-[0.95rem] font-semibold tracking-tight text-[#5c5750] transition-colors hover:border-[#D5D0C5] hover:text-[#090909]"
+              className="h-12 rounded-none border-2 border-transparent px-6 text-[0.95rem] font-semibold tracking-normal text-[#5c5750] transition-colors hover:border-[#D5D0C5] hover:text-[#090909]"
               onClick={() => navigate("/events")}
             >
               Events

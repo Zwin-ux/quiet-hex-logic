@@ -87,6 +87,7 @@ export function NavBar({ variant = "default", visualMode = "default" }: NavBarPr
                     wordmarkClassName="text-[29px]"
                   />
                   <BoardLogo
+                    variant="wordmark"
                     tone="dark"
                     className="hidden md:inline-flex"
                     wordmarkClassName="text-[34px]"
@@ -165,6 +166,7 @@ export function NavBar({ variant = "default", visualMode = "default" }: NavBarPr
               <BoardLogo
                 tone="dark"
                 className="hidden sm:inline-flex"
+                iconClassName="text-[1.8rem] md:text-[2.25rem]"
                 wordmarkClassName="text-[1.8rem] md:text-[2.25rem]"
               />
             </>

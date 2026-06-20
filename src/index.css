@@ -497,7 +497,7 @@
     color: #f8f6ef;
     font-size: 0.82rem;
     font-weight: 650;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     transition: background-color 100ms steps(2, end), transform 100ms steps(2, end);
   }
 
@@ -1435,7 +1435,19 @@
     background: rgba(10, 10, 10, 0.04);
   }
 
+  .landing-game-row:focus-visible {
+    outline: 2px solid #101114;
+    outline-offset: -2px;
+    background: rgba(10, 10, 10, 0.035);
+  }
+
   .landing-game-row--active {
+    background: #101114;
+    color: #f8f6ef;
+  }
+
+  .landing-game-row--active:hover,
+  .landing-game-row--active:focus-visible {
     background: #101114;
     color: #f8f6ef;
   }
@@ -2074,6 +2086,11 @@
   }
 
   .board-logo__mark-shell {
+    display: inline-flex;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 0.84em;
+    height: 1.12em;
     align-items: center;
     justify-content: center;
     padding: 0.12em;
@@ -2107,11 +2124,16 @@
 
   .board-wordmark__monogram {
     display: block;
-    width: min(100%, 0.58em);
+    width: 0.58em;
     height: auto;
     aspect-ratio: 0.58 / 1;
     overflow: visible;
     shape-rendering: geometricPrecision;
+  }
+
+  .board-logo__mark-shell .board-wordmark__monogram {
+    width: 100%;
+    height: 100%;
   }
 
   .board-wordmark__svg--trimmed {

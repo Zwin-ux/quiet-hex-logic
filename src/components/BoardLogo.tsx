@@ -33,7 +33,7 @@ function BoardMonogram({
     >
       <svg
         className="board-wordmark__monogram"
-        viewBox="0 0 82 156"
+        viewBox="0 0 90 156"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
