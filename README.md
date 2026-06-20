@@ -1,181 +1,177 @@
 # BOARD
 
-BOARD is a host-owned board-game world. It features chess-first worlds, clean auth paths, world-scoped rooms, and production-safe deployment.
+BOARD is a host-owned board-game venue for quickplay, ranked rooms, world-scoped events, AI opponents, bot matches, and replay review.
 
-Live demo: https://hexology.vercel.app
+It is built as a real product surface, not a toy demo: React/Vite frontend, Supabase auth/data/realtime, registry-driven game engines, Railway-style API routes, World App identity flows, and an Expo wrapper for native experiments.
 
-![Showcase](showcase/hexology.gif)
+[Live site](https://www.hexology.me) | [Deployment notes](RAILWAY_DEPLOY.md) | [Contributing](CONTRIBUTING.md)
 
 [![CI](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Built-in Games
+![BOARD desktop landing](showcase/board-desktop.png)
+
+## What To Look At First
+
+If you are reviewing this repo quickly, start here:
+
+- `src/lib/engine/registry.ts` - the game registry that lets routes, hooks, AI, and validators treat each game through one contract.
+- `src/lib/engine/adapters/` - engine adapters for Hex, Chess, Checkers, Tic-Tac-Toe, and Connect 4.
+- `src/pages/WorldAppHome.tsx` - compact World App play console with human proof, wallet gates, rooms, events, and profile state.
+- `src/components/board/BoardWordmark.tsx` and `src/components/BoardLogo.tsx` - custom BOARD brand primitives.
+- `src/components/Hero.tsx` - public landing composition.
+- `server/index.ts` - Express app for `/api/chat`, runtime env injection, auth helpers, World App endpoints, and health checks.
+- `supabase/functions/` - edge functions for moves, lobbies, tournaments, ratings, bots, and billing.
+- `scripts/world-device-qa.mjs` - device-oriented World App QA harness.
+
+## Product Surface
+
+BOARD is organized around a few clear surfaces:
+
+- **Quickplay** - pick a board and start without making the first screen feel like account setup.
+- **Rooms** - open, share, and join board-game rooms by code.
+- **Ranked play** - queue, resume, rematch, and track competitive state.
+- **World App lane** - human proof plus wallet/pass-backed competitive entry.
+- **Replay and AI coach** - review completed matches and ask for move context.
+- **Bot Arena** - create token-based external bots and spectate bot-vs-bot matches.
+- **Mods** - local-only rule packages for experimenting with new game variants.
+
+## Screens
+
+| Desktop | Mobile |
+| --- | --- |
+| ![BOARD desktop proof](showcase/board-desktop.png) | ![BOARD mobile proof](showcase/board-mobile.png) |
+
+Motion capture:
+
+![BOARD motion capture](showcase/hexology.gif)
+
+## Built-In Games
 
 | Game | Board | Multiplayer | Ranked | AI |
-|------|-------|-------------|--------|----|
-| Hex | Variable (7x7, 9x9, 11x11) | Online + Local | Yes | Easy / Medium / Hard / Expert |
-| Chess | 8x8 | Online + Local | Yes | Easy / Medium |
-| Checkers | 8x8 (American) | Online + Local | Yes | - |
-| Tic Tac Toe | 3x3 | Online + Local | No | - |
-| Connect 4 | 7x6 | Online + Local | No | Easy / Medium / Hard |
+| --- | --- | --- | --- | --- |
+| Hex | 7x7, 9x9, 11x11 | Online + local | Yes | Easy, Medium, Hard, Expert |
+| Chess | 8x8 | Online + local | Yes | Easy, Medium |
+| Checkers | 8x8 American | Online + local | Yes | No |
+| Tic-Tac-Toe | 3x3 | Online + local | No | No |
+| Connect 4 | 7x6 | Online + local | No | Easy, Medium, Hard |
 
-## Features
+## System Shape
 
-- **Multiplayer** -- Create lobbies, share codes, play online with Elo-rated matchmaking
-- **AI Opponents** -- Multiple difficulty levels per game
-- **Bot Arena (BYO AI)** -- Run your own bot runner (local or hosted) and let it fight in public-spectate Arena matches
-- **Discord Activity** -- Play directly inside Discord voice channels
-- **Tournaments** -- Bracket-based competitive play
-- **Puzzles** -- Practice mode for Hex
-- **Replay System** -- Review completed matches move-by-move
-- **Mod Support** -- Extend games with custom rules (v1: local-only)
-- **Cross-platform** -- Web (Vite/React) + iOS/Android (Expo)
-
-## Proof
-
-- Live desktop proof: [showcase/board-desktop.png](showcase/board-desktop.png)
-- Live mobile proof: [showcase/board-mobile.png](showcase/board-mobile.png)
-- Existing motion capture: [showcase/hexology.gif](showcase/hexology.gif)
-
-## Architecture
-
-```
+```text
 src/
-  lib/
-    engine/           # GameEngine interface, adapters, and registry
-      types.ts        # GameEngine<TMove> interface
-      registry.ts     # Central game registry (GameDefinition)
-      adapters/       # Wrappers: hex, chess, checkers, ttt, connect4
-    hex/              # Hex engine (DSU-based win detection)
-    chess/            # Chess engine (chess.js wrapper)
-    checkers/         # Checkers engine (American rules)
-    ttt/              # Tic Tac Toe engine
-    connect4/         # Connect 4 engine
-    mods/             # Mod system (schema, storage, import)
-    discord/          # Discord Activity SDK integration
-  hooks/              # React hooks (useMatchState, useMatchActions, etc.)
-  components/         # UI components (boards, panels, modals)
-  pages/              # Route components
+  components/          UI, board surfaces, app shells, panels, modals
+  hooks/               match state, match actions, auth, presence
   integrations/
-    supabase/         # Supabase client and auto-generated types
+    supabase/          generated types and Supabase client
+  lib/
+    engine/            shared GameEngine contract, registry, adapters
+    hex/               Hex engine with DSU win detection
+    chess/             chess.js-backed chess adapter
+    checkers/          American checkers engine
+    ttt/               Tic-Tac-Toe engine
+    connect4/          Connect 4 engine
+    mods/              local mod package schema and import flow
+    discord/           Discord Activity integration
+  pages/               route-level product surfaces
+
+server/
+  index.ts             Railway-style Express API and static server
+
 supabase/
-  functions/          # Deno Edge Functions (apply-move, create-lobby, etc.)
-  migrations/         # SQL migration files
+  functions/           Deno edge functions for game, lobby, tournament, bot, and billing flows
+  migrations/          SQL migration history
+
+scripts/
+  world-device-qa.mjs  World App visual/auth/device preflight harness
 ```
 
-### Adding a New Game
+## Game Registry
 
-BOARD uses a **game registry pattern**. To add a new game, you need:
+New games plug into the same registry pattern used by the existing five games.
 
 ```bash
 npm run scaffold:game -- --key centerwin --name "Center Win"
 ```
 
-This generates a fully-working template game (engine + adapter + board UI + server validator) and patches the registries.
+That scaffold wires the engine, adapter, board component, registry entry, and server validator. The match page, lobby UI, and edge-function validation then consume the shared `GameEngine<TMove>` contract instead of one-off route logic.
 
-1. **Engine** -- `src/lib/<game>/engine.ts` with core game logic
-2. **Adapter** -- `src/lib/engine/adapters/<game>Adapter.ts` implementing `GameEngine<TMove>`
-3. **Board component** -- `src/components/<game>/<Game>Board.tsx`
-4. **Register** -- One call to `registerGame()` in `src/lib/engine/registry.ts`
-5. **Server validator** -- `supabase/functions/_shared/validators/<game>.ts` + a case in `supabase/functions/_shared/gameValidators.ts`
+## Local Setup
 
-That's it. The hooks, match page, lobby UI, and edge functions are all registry-driven.
-
-## Development
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) v18+
-
-### Quick Start
+Prerequisite: Node 20 is the CI runtime.
 
 ```bash
-npm install --legacy-peer-deps
-npm run dev       # Vite client at http://localhost:8080
-npm run dev:server  # Railway-style API server at http://localhost:3001
+npm ci --legacy-peer-deps
+cp .env.example .env.local
+npm run dev
 ```
 
-### Commands
+The frontend runs on `http://localhost:8080`.
+
+The app intentionally shows `Deployment Config Missing` until public Supabase values are present:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+For the Railway-style API server:
 
 ```bash
-npm run dev       # Vite dev server (port 8080)
-npm run dev:server  # Express API server for Railway routes
-npm run build     # Production build
-npm run build:server  # Compile Railway server
-npm run build:railway  # Build frontend + Railway server
-npm run serve:railway  # Serve the production Railway build locally
-npm run lint      # ESLint
-npm test          # Run all tests (Vitest)
-npm run test:watch  # Run tests in watch mode
+npm run dev:server
 ```
 
-## Railway
+The API server runs on `http://localhost:3001`, and the Vite dev server proxies `/api` to it.
 
-BOARD now ships with a Railway-first web server:
+## Useful Commands
+
+```bash
+npm run lint             # ESLint
+npm test                 # Vitest
+npm run build            # Vite production build
+npm run build:server     # Compile Express server
+npm run build:railway    # Build frontend + server for Railway
+npm run serve:railway    # Serve production build through the Express app
+npm run qa:world-device  # World App device/preflight harness
+```
+
+## Deployment Notes
+
+The public site is currently served at `https://www.hexology.me`.
+
+This repo also includes a Railway-first server path for app-facing APIs:
 
 - static Vite bundle serving
-- `POST /api/chat` powered by the AI SDK
-- `POST /api/discord-token-exchange` proxy for Discord Activity auth
-- `GET /api/health` for deploy health checks
+- runtime public-env injection
+- `POST /api/chat` through the AI SDK
+- World App wallet/auth/verification endpoints
+- `GET /api/health` for deploy checks
 
-Deployment notes live in [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md).
+See [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md) and [docs/WORLD_APP_DEVICE_QA.md](docs/WORLD_APP_DEVICE_QA.md) for the operational path.
 
-### Mobile (Expo)
+## AI And Bots
+
+Replay includes a Railway-backed AI coach that can explain visible moves and summarize turning points from replay context.
+
+Bot Arena lets external runners connect with a bot token and play public spectated matches:
 
 ```bash
-npm run ios       # Start Expo for iOS
-npm run android   # Start Expo for Android
-npm start         # Start Expo dev server
+node tools/bot-runner/random.mjs
 ```
 
-## Supabase
+Bots earn ladder history in Season 0, while human ranked play stays separate.
 
-This repo uses Supabase for database, auth, realtime subscriptions, and edge functions.
+## Mobile
 
-- **Migrations**: `supabase/migrations/` (70 files)
-- **Edge Functions**: `supabase/functions/` (apply-move, create-lobby, update-ratings, etc.)
-- **Types**: `src/integrations/supabase/types.ts` (auto-generated, do not edit)
+The repo includes Expo commands for native wrapper work:
 
-## AI Coach
+```bash
+npm run ios
+npm run android
+npm start
+```
 
-Replay now includes a Railway-backed coaching panel using the AI SDK. It can:
-
-- explain the last visible move
-- summarize the turning point in the current replay
-- reference the current replay snapshot through Supabase-backed context loading
-
-## Mods (v1)
-
-Mods are **local-only** in v1: install from `/mods`, then start a local game.
-
-Mod package format:
-- `.zip` containing `manifest.json`
-- Optional per-game rules overlays: `rules/hex.json`, `rules/chess.json`, etc.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the mod format and how to create mods.
-
-## Bot Arena (MVP)
-
-Hexology includes a Bot Arena where external AI runners can connect via a bot token and play matches across multiple games.
-
-- UI: `/arena`, `/bot/:botId`, and `/workbench`
-- Reference runner: `tools/bot-runner/random.mjs` (works for all games)
-
-High level flow:
-1. Create a bot in the Arena (token is shown once).
-2. Run the bot runner with `HEXLOGY_BOT_TOKEN` set.
-3. Create a bot-vs-bot arena match and spectate it in `/match/:id`.
-
-Bot-only ladder:
-- Arena matches are unranked for humans, but bots earn Elo in **Season 0**. See the Ladder tab in `/arena`.
-
-House League (optional):
-- A server-side matchmaker can spawn public "House League" Arena matches to keep the ladder moving even when humans are asleep.
-- Edge function: `arena-auto-matchmake` (service role protected)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, branch conventions, and PR expectations.
+World App remains the stricter release lane because MiniKit wallet auth, IDKit, native share, haptics, and WebView behavior need real-device proof.
 
 ## License
 
