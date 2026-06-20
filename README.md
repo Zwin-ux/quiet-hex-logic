@@ -2,6 +2,8 @@
 
 BOARD is a host-owned board-game world. It features chess-first worlds, clean auth paths, world-scoped rooms, and production-safe deployment.
 
+Live demo: https://hexology.vercel.app
+
 ![Showcase](showcase/hexology.gif)
 
 [![CI](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml/badge.svg)](https://github.com/Zwin-ux/quiet-hex-logic/actions/workflows/ci.yml)
@@ -28,6 +30,12 @@ BOARD is a host-owned board-game world. It features chess-first worlds, clean au
 - **Replay System** -- Review completed matches move-by-move
 - **Mod Support** -- Extend games with custom rules (v1: local-only)
 - **Cross-platform** -- Web (Vite/React) + iOS/Android (Expo)
+
+## Proof
+
+- Live desktop proof: [showcase/board-desktop.png](showcase/board-desktop.png)
+- Live mobile proof: [showcase/board-mobile.png](showcase/board-mobile.png)
+- Existing motion capture: [showcase/hexology.gif](showcase/hexology.gif)
 
 ## Architecture
 
